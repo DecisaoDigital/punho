@@ -30,20 +30,72 @@ abstract interface class OperationRepository {
 
 class OnboardingData {
   const OnboardingData({
+    this.ownerName,
     required this.companyName,
     required this.legalForm,
     required this.hasFleet,
     required this.collaborators,
     required this.totalMachinesDeclared,
     required this.insertMachinesNow,
+    this.companyTaxId,
+    this.companyPhone,
+    this.companyEmail,
+    this.companyAddress,
+    this.companyPostalCode,
+    this.companyLocality,
+    this.revenueLastYearCents,
+    this.revenueThisYearCents,
+    this.maintenanceLastYearCents,
+    this.fixedMonthlyCostsCents,
   });
 
+  final String? ownerName;
   final String companyName;
   final String legalForm;
   final bool hasFleet;
   final int collaborators;
   final int totalMachinesDeclared;
   final bool insertMachinesNow;
+  final String? companyTaxId, companyPhone, companyEmail;
+  final String? companyAddress, companyPostalCode, companyLocality;
+  final int? revenueLastYearCents;
+  final int? revenueThisYearCents;
+  final int? maintenanceLastYearCents;
+  final int? fixedMonthlyCostsCents;
+
+  OnboardingData copyWith({
+    String? ownerName,
+    String? companyTaxId,
+    String? companyPhone,
+    String? companyEmail,
+    String? companyAddress,
+    String? companyPostalCode,
+    String? companyLocality,
+    int? revenueLastYearCents,
+    int? revenueThisYearCents,
+    int? maintenanceLastYearCents,
+    int? fixedMonthlyCostsCents,
+  }) => OnboardingData(
+    ownerName: ownerName ?? this.ownerName,
+    companyName: companyName,
+    legalForm: legalForm,
+    hasFleet: hasFleet,
+    collaborators: collaborators,
+    totalMachinesDeclared: totalMachinesDeclared,
+    insertMachinesNow: insertMachinesNow,
+    companyTaxId: companyTaxId ?? this.companyTaxId,
+    companyPhone: companyPhone ?? this.companyPhone,
+    companyEmail: companyEmail ?? this.companyEmail,
+    companyAddress: companyAddress ?? this.companyAddress,
+    companyPostalCode: companyPostalCode ?? this.companyPostalCode,
+    companyLocality: companyLocality ?? this.companyLocality,
+    revenueLastYearCents: revenueLastYearCents ?? this.revenueLastYearCents,
+    revenueThisYearCents: revenueThisYearCents ?? this.revenueThisYearCents,
+    maintenanceLastYearCents:
+        maintenanceLastYearCents ?? this.maintenanceLastYearCents,
+    fixedMonthlyCostsCents:
+        fixedMonthlyCostsCents ?? this.fixedMonthlyCostsCents,
+  );
 }
 
 class LocalDemoOperationRepository implements OperationRepository {
@@ -295,11 +347,22 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
         ? null
         : {
             'companyName': onboarding!.companyName,
+            'ownerName': onboarding!.ownerName,
             'legalForm': onboarding!.legalForm,
             'hasFleet': onboarding!.hasFleet,
             'collaborators': onboarding!.collaborators,
             'totalMachinesDeclared': onboarding!.totalMachinesDeclared,
             'insertMachinesNow': onboarding!.insertMachinesNow,
+            'companyTaxId': onboarding!.companyTaxId,
+            'companyPhone': onboarding!.companyPhone,
+            'companyEmail': onboarding!.companyEmail,
+            'companyAddress': onboarding!.companyAddress,
+            'companyPostalCode': onboarding!.companyPostalCode,
+            'companyLocality': onboarding!.companyLocality,
+            'revenueLastYearCents': onboarding!.revenueLastYearCents,
+            'revenueThisYearCents': onboarding!.revenueThisYearCents,
+            'maintenanceLastYearCents': onboarding!.maintenanceLastYearCents,
+            'fixedMonthlyCostsCents': onboarding!.fixedMonthlyCostsCents,
           },
     'machines': _machines.map(_machineToJson).toList(),
     'customers': _customers.map(_customerToJson).toList(),
@@ -338,12 +401,31 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     final onboardingJson = _mapOrNull(data['onboarding']);
     if (onboardingJson != null) {
       _onboarding = OnboardingData(
+        ownerName: _nullableString(onboardingJson['ownerName']),
         companyName: _string(onboardingJson, 'companyName'),
         legalForm: _string(onboardingJson, 'legalForm'),
         hasFleet: _bool(onboardingJson, 'hasFleet'),
         collaborators: _int(onboardingJson, 'collaborators'),
         totalMachinesDeclared: _int(onboardingJson, 'totalMachinesDeclared'),
         insertMachinesNow: _bool(onboardingJson, 'insertMachinesNow'),
+        companyTaxId: _nullableString(onboardingJson['companyTaxId']),
+        companyPhone: _nullableString(onboardingJson['companyPhone']),
+        companyEmail: _nullableString(onboardingJson['companyEmail']),
+        companyAddress: _nullableString(onboardingJson['companyAddress']),
+        companyPostalCode: _nullableString(onboardingJson['companyPostalCode']),
+        companyLocality: _nullableString(onboardingJson['companyLocality']),
+        revenueLastYearCents: _nullableInt(
+          onboardingJson['revenueLastYearCents'],
+        ),
+        revenueThisYearCents: _nullableInt(
+          onboardingJson['revenueThisYearCents'],
+        ),
+        maintenanceLastYearCents: _nullableInt(
+          onboardingJson['maintenanceLastYearCents'],
+        ),
+        fixedMonthlyCostsCents: _nullableInt(
+          onboardingJson['fixedMonthlyCostsCents'],
+        ),
       );
     }
     _replace(_machines, data['machines'], _machineFromJson);
@@ -403,6 +485,9 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'phone': item.phone,
     'taxId': item.taxId,
     'email': item.email,
+    'address': item.address,
+    'postalCode': item.postalCode,
+    'locality': item.locality,
     'notes': item.notes,
     'companyId': item.companyId,
   };
@@ -413,6 +498,9 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     phone: _string(data, 'phone'),
     taxId: _nullableString(data['taxId']),
     email: _nullableString(data['email']),
+    address: _nullableString(data['address']),
+    postalCode: _nullableString(data['postalCode']),
+    locality: _nullableString(data['locality']),
     notes: _string(data, 'notes'),
     companyId: _string(data, 'companyId', 'local-company'),
   );

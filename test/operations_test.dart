@@ -155,4 +155,39 @@ void main() {
       throwsStateError,
     );
   });
+
+  test('cliente guarda morada, codigo postal e localidade', () {
+    const customer = Customer(
+      id: 'customer-address',
+      name: 'Obras Costa',
+      phone: '913 000 000',
+      address: 'Rua do Campo, 10',
+      postalCode: '1000-100',
+      locality: 'Lisboa',
+    );
+
+    expect(customer.address, 'Rua do Campo, 10');
+    expect(customer.postalCode, '1000-100');
+    expect(customer.locality, 'Lisboa');
+  });
+
+  test('dados iniciais em falta ficam como tarefas abertas', () {
+    const incomplete = OperationsState(onboarded: true);
+    const complete = OperationsState(
+      onboarded: true,
+      companyTaxId: '123456789',
+      ownerName: 'Ana Costa',
+      companyPhone: '912000000',
+      companyAddress: 'Rua do Campo, 10',
+      companyPostalCode: '1000-100',
+      companyLocality: 'Lisboa',
+      revenueLastYearCents: 10000000,
+      revenueThisYearCents: 6000000,
+      maintenanceLastYearCents: 250000,
+      fixedMonthlyCostsCents: 80000,
+    );
+
+    expect(incomplete.initialDataTasks, hasLength(8));
+    expect(complete.initialDataTasks, isEmpty);
+  });
 }

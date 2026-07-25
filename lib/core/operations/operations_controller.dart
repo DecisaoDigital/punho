@@ -17,12 +17,23 @@ final operationsProvider =
 class OperationsState {
   const OperationsState({
     this.onboarded = false,
+    this.ownerName,
     this.companyName = '',
     this.legalForm = '',
     this.hasFleet = true,
     this.declaredCollaboratorCount = 0,
     this.totalMachinesDeclared = 0,
     this.insertMachinesNow = false,
+    this.companyTaxId,
+    this.companyPhone,
+    this.companyEmail,
+    this.companyAddress,
+    this.companyPostalCode,
+    this.companyLocality,
+    this.revenueLastYearCents,
+    this.revenueThisYearCents,
+    this.maintenanceLastYearCents,
+    this.fixedMonthlyCostsCents,
     this.machines = const [],
     this.customers = const [],
     this.leads = const [],
@@ -34,6 +45,7 @@ class OperationsState {
     this.activeCollaboratorLimit = 3,
   });
   final bool onboarded, hasFleet;
+  final String? ownerName;
   final String companyName, legalForm;
   final int declaredCollaboratorCount, totalMachinesDeclared;
   int get registeredMachinesCount =>
@@ -47,6 +59,10 @@ class OperationsState {
   bool get inventoryIdentifiedAboveEstimate =>
       registeredMachinesCount > totalMachinesDeclared;
   final bool insertMachinesNow;
+  final String? companyTaxId, companyPhone, companyEmail;
+  final String? companyAddress, companyPostalCode, companyLocality;
+  final int? revenueLastYearCents, revenueThisYearCents;
+  final int? maintenanceLastYearCents, fixedMonthlyCostsCents;
   final List<Machine> machines;
   final List<Customer> customers;
   final List<Lead> leads;
@@ -59,14 +75,39 @@ class OperationsState {
   int get activeCollaborators => collaborators
       .where((x) => !x.archived && x.status == CollaboratorStatus.active)
       .length;
+  List<String> get initialDataTasks => [
+    if (companyTaxId == null) 'Indicar o NIF da empresa',
+    if (ownerName == null) 'Indicar o nome do responsável pela empresa',
+    if (companyPhone == null) 'Indicar o contacto da empresa',
+    if (companyAddress == null ||
+        companyPostalCode == null ||
+        companyLocality == null)
+      'Completar a morada da empresa',
+    if (revenueLastYearCents == null) 'Indicar a faturação do ano passado',
+    if (revenueThisYearCents == null) 'Indicar a faturação deste ano até hoje',
+    if (maintenanceLastYearCents == null)
+      'Estimar a manutenção paga no ano passado',
+    if (fixedMonthlyCostsCents == null) 'Indicar os custos fixos mensais',
+  ];
   OperationsState copyWith({
     bool? onboarded,
+    String? ownerName,
     String? companyName,
     String? legalForm,
     bool? hasFleet,
     int? declaredCollaboratorCount,
     int? totalMachinesDeclared,
     bool? insertMachinesNow,
+    String? companyTaxId,
+    String? companyPhone,
+    String? companyEmail,
+    String? companyAddress,
+    String? companyPostalCode,
+    String? companyLocality,
+    int? revenueLastYearCents,
+    int? revenueThisYearCents,
+    int? maintenanceLastYearCents,
+    int? fixedMonthlyCostsCents,
     List<Machine>? machines,
     List<Customer>? customers,
     List<Lead>? leads,
@@ -78,6 +119,7 @@ class OperationsState {
     int? activeCollaboratorLimit,
   }) => OperationsState(
     onboarded: onboarded ?? this.onboarded,
+    ownerName: ownerName ?? this.ownerName,
     companyName: companyName ?? this.companyName,
     legalForm: legalForm ?? this.legalForm,
     hasFleet: hasFleet ?? this.hasFleet,
@@ -85,6 +127,18 @@ class OperationsState {
         declaredCollaboratorCount ?? this.declaredCollaboratorCount,
     totalMachinesDeclared: totalMachinesDeclared ?? this.totalMachinesDeclared,
     insertMachinesNow: insertMachinesNow ?? this.insertMachinesNow,
+    companyTaxId: companyTaxId ?? this.companyTaxId,
+    companyPhone: companyPhone ?? this.companyPhone,
+    companyEmail: companyEmail ?? this.companyEmail,
+    companyAddress: companyAddress ?? this.companyAddress,
+    companyPostalCode: companyPostalCode ?? this.companyPostalCode,
+    companyLocality: companyLocality ?? this.companyLocality,
+    revenueLastYearCents: revenueLastYearCents ?? this.revenueLastYearCents,
+    revenueThisYearCents: revenueThisYearCents ?? this.revenueThisYearCents,
+    maintenanceLastYearCents:
+        maintenanceLastYearCents ?? this.maintenanceLastYearCents,
+    fixedMonthlyCostsCents:
+        fixedMonthlyCostsCents ?? this.fixedMonthlyCostsCents,
     machines: machines ?? this.machines,
     customers: customers ?? this.customers,
     leads: leads ?? this.leads,
@@ -105,12 +159,23 @@ class OperationsController extends Notifier<OperationsState> {
     final onboarding = _repo.onboarding;
     return OperationsState(
       onboarded: onboarding != null,
+      ownerName: onboarding?.ownerName,
       companyName: onboarding?.companyName ?? '',
       legalForm: onboarding?.legalForm ?? '',
       hasFleet: onboarding?.hasFleet ?? true,
       declaredCollaboratorCount: onboarding?.collaborators ?? 0,
       totalMachinesDeclared: onboarding?.totalMachinesDeclared ?? 0,
       insertMachinesNow: onboarding?.insertMachinesNow ?? false,
+      companyTaxId: onboarding?.companyTaxId,
+      companyPhone: onboarding?.companyPhone,
+      companyEmail: onboarding?.companyEmail,
+      companyAddress: onboarding?.companyAddress,
+      companyPostalCode: onboarding?.companyPostalCode,
+      companyLocality: onboarding?.companyLocality,
+      revenueLastYearCents: onboarding?.revenueLastYearCents,
+      revenueThisYearCents: onboarding?.revenueThisYearCents,
+      maintenanceLastYearCents: onboarding?.maintenanceLastYearCents,
+      fixedMonthlyCostsCents: onboarding?.fixedMonthlyCostsCents,
       machines: _repo.machines,
       customers: _repo.customers,
       leads: _repo.leads,
@@ -133,31 +198,108 @@ class OperationsController extends Notifier<OperationsState> {
     vehicles: _repo.vehicles,
   );
   void completeOnboarding({
+    String? ownerName,
     required String companyName,
     required String legalForm,
     required bool hasFleet,
     required int collaborators,
     required int totalMachinesDeclared,
     required bool insertMachinesNow,
+    String? companyTaxId,
+    String? companyPhone,
+    String? companyEmail,
+    String? companyAddress,
+    String? companyPostalCode,
+    String? companyLocality,
+    int? revenueLastYearCents,
+    int? revenueThisYearCents,
+    int? maintenanceLastYearCents,
+    int? fixedMonthlyCostsCents,
   }) {
     _repo.saveOnboarding(
       OnboardingData(
+        ownerName: ownerName,
         companyName: companyName,
         legalForm: legalForm,
         hasFleet: hasFleet,
         collaborators: collaborators,
         totalMachinesDeclared: totalMachinesDeclared,
         insertMachinesNow: insertMachinesNow,
+        companyTaxId: companyTaxId,
+        companyPhone: companyPhone,
+        companyEmail: companyEmail,
+        companyAddress: companyAddress,
+        companyPostalCode: companyPostalCode,
+        companyLocality: companyLocality,
+        revenueLastYearCents: revenueLastYearCents,
+        revenueThisYearCents: revenueThisYearCents,
+        maintenanceLastYearCents: maintenanceLastYearCents,
+        fixedMonthlyCostsCents: fixedMonthlyCostsCents,
       ),
     );
     state = _fromRepo().copyWith(
       onboarded: true,
+      ownerName: ownerName,
       companyName: companyName,
       legalForm: legalForm,
       hasFleet: hasFleet,
       declaredCollaboratorCount: collaborators,
       totalMachinesDeclared: totalMachinesDeclared,
       insertMachinesNow: insertMachinesNow,
+      companyTaxId: companyTaxId,
+      companyPhone: companyPhone,
+      companyEmail: companyEmail,
+      companyAddress: companyAddress,
+      companyPostalCode: companyPostalCode,
+      companyLocality: companyLocality,
+      revenueLastYearCents: revenueLastYearCents,
+      revenueThisYearCents: revenueThisYearCents,
+      maintenanceLastYearCents: maintenanceLastYearCents,
+      fixedMonthlyCostsCents: fixedMonthlyCostsCents,
+    );
+  }
+
+  void updateInitialData({
+    String? ownerName,
+    String? companyTaxId,
+    String? companyPhone,
+    String? companyEmail,
+    String? companyAddress,
+    String? companyPostalCode,
+    String? companyLocality,
+    int? revenueLastYearCents,
+    int? revenueThisYearCents,
+    int? maintenanceLastYearCents,
+    int? fixedMonthlyCostsCents,
+  }) {
+    final onboarding = _repo.onboarding;
+    if (onboarding == null) return;
+    final updated = onboarding.copyWith(
+      ownerName: ownerName,
+      companyTaxId: companyTaxId,
+      companyPhone: companyPhone,
+      companyEmail: companyEmail,
+      companyAddress: companyAddress,
+      companyPostalCode: companyPostalCode,
+      companyLocality: companyLocality,
+      revenueLastYearCents: revenueLastYearCents,
+      revenueThisYearCents: revenueThisYearCents,
+      maintenanceLastYearCents: maintenanceLastYearCents,
+      fixedMonthlyCostsCents: fixedMonthlyCostsCents,
+    );
+    _repo.saveOnboarding(updated);
+    state = state.copyWith(
+      ownerName: updated.ownerName,
+      companyTaxId: updated.companyTaxId,
+      companyPhone: updated.companyPhone,
+      companyEmail: updated.companyEmail,
+      companyAddress: updated.companyAddress,
+      companyPostalCode: updated.companyPostalCode,
+      companyLocality: updated.companyLocality,
+      revenueLastYearCents: updated.revenueLastYearCents,
+      revenueThisYearCents: updated.revenueThisYearCents,
+      maintenanceLastYearCents: updated.maintenanceLastYearCents,
+      fixedMonthlyCostsCents: updated.fixedMonthlyCostsCents,
     );
   }
 

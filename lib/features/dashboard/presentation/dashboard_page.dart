@@ -10,6 +10,7 @@ import '../../../domain/models/finance.dart';
 import '../../../domain/models/workforce.dart';
 import '../../../core/guidance/guidance_engine.dart';
 import '../../finance/presentation/finance_pages.dart';
+import '../../operations/presentation/operational_pages.dart';
 import '../../updates/presentation/update_banner.dart';
 
 class DashboardPage extends ConsumerWidget {
@@ -76,7 +77,7 @@ class DashboardPage extends ConsumerWidget {
               ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
-            Text('Olá, ${state.companyName}.'),
+            Text('Olá, ${state.ownerName ?? state.companyName}.'),
             const SizedBox(height: 12),
             const PunhoUpdateBanner(),
             const SizedBox(height: 24),
@@ -175,21 +176,17 @@ class DashboardPage extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 20),
-            if (recommendations.isNotEmpty) ...[
-              Text(
-                'Próximo passo',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    '${recommendations.first.title}\n${recommendations.first.explanation}\nAção sugerida: ${recommendations.first.action}',
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
+            if (state.initialDataTasks.isNotEmpty) ...[
+              _InitialDataTasksNotice(tasks: state.initialDataTasks),
+              const SizedBox(height: 20),
             ],
+            _WeeklyDirectionPanel(
+              note: weeklyManagementNote(now),
+              goal: weeklyGoalFromRecommendations(recommendations),
+            ),
+            const SizedBox(height: 20),
+            _GrowthCommandPanel(recommendations: recommendations),
+            const SizedBox(height: 12),
             Wrap(
               spacing: 12,
               runSpacing: 12,
@@ -306,6 +303,56 @@ class DashboardPage extends ConsumerWidget {
   }
 }
 
+class _InitialDataTasksNotice extends StatelessWidget {
+  const _InitialDataTasksNotice({required this.tasks});
+  final List<String> tasks;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.assignment_late_outlined,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Dados por completar (${tasks.length})',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Completa estes dados para o Punho conseguir comparar, medir e recomendar com mais rigor.',
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const InitialDataTasksPage(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.playlist_add_check),
+                  label: const Text('Ver tarefas'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 String _syncMessage(String status) => switch (status) {
   'synchronized' => 'Dados sincronizados com segurança.',
   'pendingChanges' =>
@@ -314,6 +361,232 @@ String _syncMessage(String status) => switch (status) {
     'Existe uma alteração remota por rever antes de sincronizar.',
   _ => 'A sincronização está em curso.',
 };
+
+class _WeeklyDirectionPanel extends StatelessWidget {
+  const _WeeklyDirectionPanel({required this.note, required this.goal});
+  final WeeklyManagementNote note;
+  final WeeklyGoal goal;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final phrase = _WeeklyCard(
+        icon: Icons.format_quote_rounded,
+        eyebrow: 'FRASE DA SEMANA',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '“${note.text}”',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${note.isDirectQuote ? '—' : '— Ideia de'} ${note.author}',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            Text(note.source, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 10),
+            Text(note.context),
+          ],
+        ),
+      );
+      final goalCard = _WeeklyCard(
+        icon: Icons.flag_outlined,
+        eyebrow: 'OBJECTIVO DA SEMANA',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              goal.title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Text(goal.action),
+            const SizedBox(height: 10),
+            Text(
+              'Mede: ${goal.measure}',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      );
+      if (constraints.maxWidth < 820) {
+        return Column(children: [phrase, const SizedBox(height: 12), goalCard]);
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: phrase),
+          const SizedBox(width: 12),
+          Expanded(child: goalCard),
+        ],
+      );
+    },
+  );
+}
+
+class _WeeklyCard extends StatelessWidget {
+  const _WeeklyCard({
+    required this.icon,
+    required this.eyebrow,
+    required this.child,
+  });
+  final IconData icon;
+  final String eyebrow;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 19,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                eyebrow,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.9,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    ),
+  );
+}
+
+class _GrowthCommandPanel extends StatelessWidget {
+  const _GrowthCommandPanel({required this.recommendations});
+  final List<Recommendation> recommendations;
+
+  @override
+  Widget build(BuildContext context) {
+    final recommendation = recommendations.isEmpty
+        ? null
+        : recommendations.first;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Comando de Crescimento',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: recommendation == null
+                ? const _CommandStep(
+                    icon: Icons.edit_note_outlined,
+                    label: 'PRIMEIRA MISSÃO',
+                    text:
+                        'Regista a próxima reserva, recebimento ou despesa. O Punho começa a orientar com base no que realmente acontece na empresa.',
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              recommendation.title,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                          Chip(
+                            avatar: const Icon(Icons.bolt_outlined, size: 16),
+                            label: Text(recommendation.lever.label),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 28),
+                      _CommandStep(
+                        icon: Icons.analytics_outlined,
+                        label: 'O QUE OS DADOS MOSTRAM',
+                        text: recommendation.explanation,
+                      ),
+                      const SizedBox(height: 14),
+                      _CommandStep(
+                        icon: Icons.play_circle_outline,
+                        label: 'ACÇÃO DESTA SEMANA',
+                        text: recommendation.action,
+                      ),
+                      const SizedBox(height: 14),
+                      _CommandStep(
+                        icon: Icons.track_changes_outlined,
+                        label: 'MEDE DEPOIS',
+                        text: recommendation.measure,
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        recommendation.quality,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CommandStep extends StatelessWidget {
+  const _CommandStep({
+    required this.icon,
+    required this.label,
+    required this.text,
+  });
+  final IconData icon;
+  final String label;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(text),
+          ],
+        ),
+      ),
+    ],
+  );
+}
 
 class _IdentificationNotice extends ConsumerWidget {
   const _IdentificationNotice({required this.state});

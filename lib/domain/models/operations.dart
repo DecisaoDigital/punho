@@ -62,12 +62,15 @@ class Customer {
     required this.phone,
     this.taxId,
     this.email,
+    this.address,
+    this.postalCode,
+    this.locality,
     this.notes = '',
     this.companyId = 'local-company',
   });
   final String id, name, phone, notes;
   final String companyId;
-  final String? taxId, email;
+  final String? taxId, email, address, postalCode, locality;
 }
 
 class Lead {

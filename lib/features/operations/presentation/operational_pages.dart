@@ -17,40 +17,90 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   int step = 0, collaborators = 0, machines = 0;
   bool fleet = false, insertMachines = false;
   String legal = 'Empresário em Nome Individual';
+  final ownerName = TextEditingController();
   final name = TextEditingController();
+  final taxId = TextEditingController();
+  final phone = TextEditingController();
+  final email = TextEditingController();
+  final address = TextEditingController();
+  final postalCode = TextEditingController();
+  final locality = TextEditingController();
+  final revenueLastYear = TextEditingController();
+  final revenueThisYear = TextEditingController();
+  final maintenanceLastYear = TextEditingController();
+  final fixedMonthlyCosts = TextEditingController();
   @override
   void dispose() {
-    name.dispose();
+    for (final controller in [
+      name,
+      ownerName,
+      taxId,
+      phone,
+      email,
+      address,
+      postalCode,
+      locality,
+      revenueLastYear,
+      revenueThisYear,
+      maintenanceLastYear,
+      fixedMonthlyCosts,
+    ]) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     const titles = [
+      'Como te chamas?',
       'Como se chama a empresa?',
       'Qual é a forma jurídica?',
+      'Qual é o NIF da empresa?',
+      'Como podemos contactar a empresa?',
+      'Onde fica a empresa?',
       'Tem colaboradores?',
       'A empresa tem veículos?',
       'Quantas máquinas tem aproximadamente?',
+      'Quanto faturou no ano passado?',
+      'Quanto faturou este ano até hoje?',
+      'Quanto gastou em manutenção no ano passado?',
+      'Quais são os custos fixos mensais?',
       'Quer inserir as primeiras máquinas agora?',
     ];
     const helps = [
+      'O Punho orienta a pessoa responsável por decidir e agir na empresa.',
       'Usamos este nome para personalizar o espaço de gestão.',
       'Ajuda a preparar os dados da empresa; pode ser alterado mais tarde.',
+      'É importante para a identificação e faturação. Se não souber agora, ficará como tarefa aberta.',
+      'Telemóvel e email ajudam a centralizar as futuras comunicações.',
+      'Morada, código-postal e localidade. Não é pedido país.',
       'Mostramos Funcionários apenas quando fizer sentido para a equipa.',
       'Ativa a área de Veículos quando a empresa tiver frota.',
       'Uma estimativa é suficiente; não precisa de ser exata.',
+      'Pode indicar um número redondo. Se não souber, avance: o Punho irá lembrar-lhe.',
+      'Indique o acumulado deste ano até ao momento. Pode preencher mais tarde.',
+      'Mesmo uma estimativa ajuda a perceber o peso real das avarias e revisões.',
+      'Renda, eletricidade, água, seguros, programas e outros custos recorrentes. Uma estimativa chega.',
       'Pode adicionar máquinas agora ou a qualquer momento.',
     ];
     final input = switch (step) {
       0 => TextField(
+        controller: ownerName,
+        textCapitalization: TextCapitalization.words,
+        decoration: const InputDecoration(
+          labelText: 'Nome do empresário ou responsável',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      1 => TextField(
         controller: name,
         decoration: const InputDecoration(
           labelText: 'Nome da empresa',
           border: OutlineInputBorder(),
         ),
       ),
-      1 => DropdownButtonFormField<String>(
+      2 => DropdownButtonFormField<String>(
         value: legal,
         decoration: const InputDecoration(border: OutlineInputBorder()),
         items: const [
@@ -62,21 +112,95 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         ],
         onChanged: (v) => setState(() => legal = v!),
       ),
-      2 => _NumberChoice(
+      3 => TextField(
+        controller: taxId,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(
+          labelText: 'NIF da empresa',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      4 => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: phone,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(
+              labelText: 'Telemóvel ou telefone',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: email,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+      5 => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: address,
+            decoration: const InputDecoration(
+              labelText: 'Morada',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: postalCode,
+            decoration: const InputDecoration(
+              labelText: 'Código-postal',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: locality,
+            decoration: const InputDecoration(
+              labelText: 'Localidade',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+      6 => _NumberChoice(
         label: 'Número aproximado de colaboradores',
         value: collaborators,
         onChanged: (v) => setState(() => collaborators = v),
       ),
-      3 => SwitchListTile(
+      7 => SwitchListTile(
         contentPadding: EdgeInsets.zero,
         title: Text(fleet ? 'Sim, temos veículos' : 'Não, não temos veículos'),
         value: fleet,
         onChanged: (v) => setState(() => fleet = v),
       ),
-      4 => _NumberChoice(
+      8 => _NumberChoice(
         label: 'Número aproximado de máquinas',
         value: machines,
         onChanged: (v) => setState(() => machines = v),
+      ),
+      9 => _EuroInput(
+        controller: revenueLastYear,
+        label: 'Faturação no ano passado (€)',
+      ),
+      10 => _EuroInput(
+        controller: revenueThisYear,
+        label: 'Faturação deste ano até hoje (€)',
+      ),
+      11 => _EuroInput(
+        controller: maintenanceLastYear,
+        label: 'Manutenção paga no ano passado (€)',
+      ),
+      12 => _EuroInput(
+        controller: fixedMonthlyCosts,
+        label: 'Custos fixos mensais (€)',
       ),
       _ => SwitchListTile(
         contentPadding: EdgeInsets.zero,
@@ -102,7 +226,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   ),
                 ),
                 const SizedBox(height: 28),
-                Text('${step + 1} de 6'),
+                Text('${step + 1} de ${titles.length}'),
                 const SizedBox(height: 8),
                 Text(
                   titles[step],
@@ -123,12 +247,13 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                     const Spacer(),
                     FilledButton(
                       onPressed: () {
-                        if (step < 5) {
+                        if (step < titles.length - 1) {
                           setState(() => step++);
                         } else {
                           ref
                               .read(operationsProvider.notifier)
                               .completeOnboarding(
+                                ownerName: _optional(ownerName.text),
                                 companyName: name.text.trim().isEmpty
                                     ? 'A minha empresa'
                                     : name.text.trim(),
@@ -137,10 +262,30 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                                 collaborators: collaborators,
                                 totalMachinesDeclared: machines,
                                 insertMachinesNow: insertMachines,
+                                companyTaxId: _optional(taxId.text),
+                                companyPhone: _optional(phone.text),
+                                companyEmail: _optional(email.text),
+                                companyAddress: _optional(address.text),
+                                companyPostalCode: _optional(postalCode.text),
+                                companyLocality: _optional(locality.text),
+                                revenueLastYearCents: _euroCents(
+                                  revenueLastYear.text,
+                                ),
+                                revenueThisYearCents: _euroCents(
+                                  revenueThisYear.text,
+                                ),
+                                maintenanceLastYearCents: _euroCents(
+                                  maintenanceLastYear.text,
+                                ),
+                                fixedMonthlyCostsCents: _euroCents(
+                                  fixedMonthlyCosts.text,
+                                ),
                               );
                         }
                       },
-                      child: Text(step == 5 ? 'Começar' : 'Continuar'),
+                      child: Text(
+                        step == titles.length - 1 ? 'Começar' : 'Continuar',
+                      ),
                     ),
                   ],
                 ),
@@ -151,6 +296,39 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       ),
     );
   }
+}
+
+String? _optional(String value) {
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}
+
+int? _euroCents(String value) {
+  final raw = value.trim().replaceAll(' ', '');
+  if (raw.isEmpty) return null;
+  final normalized = raw.contains(',')
+      ? raw.replaceAll('.', '').replaceAll(',', '.')
+      : raw;
+  final amount = double.tryParse(normalized);
+  return amount == null || amount < 0 ? null : (amount * 100).round();
+}
+
+class _EuroInput extends StatelessWidget {
+  const _EuroInput({required this.controller, required this.label});
+  final TextEditingController controller;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    controller: controller,
+    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    decoration: InputDecoration(
+      labelText: label,
+      hintText: 'Ex.: 35000',
+      suffixText: '€',
+      border: const OutlineInputBorder(),
+    ),
+  );
 }
 
 class _NumberChoice extends StatelessWidget {
@@ -178,6 +356,209 @@ class _NumberChoice extends StatelessWidget {
     ],
   );
 }
+
+class InitialDataTasksPage extends ConsumerStatefulWidget {
+  const InitialDataTasksPage({super.key});
+
+  @override
+  ConsumerState<InitialDataTasksPage> createState() =>
+      _InitialDataTasksPageState();
+}
+
+class _InitialDataTasksPageState extends ConsumerState<InitialDataTasksPage> {
+  late final TextEditingController ownerName;
+  late final TextEditingController taxId;
+  late final TextEditingController phone;
+  late final TextEditingController email;
+  late final TextEditingController address;
+  late final TextEditingController postalCode;
+  late final TextEditingController locality;
+  late final TextEditingController revenueLastYear;
+  late final TextEditingController revenueThisYear;
+  late final TextEditingController maintenanceLastYear;
+  late final TextEditingController fixedMonthlyCosts;
+
+  @override
+  void initState() {
+    super.initState();
+    final data = ref.read(operationsProvider);
+    ownerName = TextEditingController(text: data.ownerName ?? '');
+    taxId = TextEditingController(text: data.companyTaxId ?? '');
+    phone = TextEditingController(text: data.companyPhone ?? '');
+    email = TextEditingController(text: data.companyEmail ?? '');
+    address = TextEditingController(text: data.companyAddress ?? '');
+    postalCode = TextEditingController(text: data.companyPostalCode ?? '');
+    locality = TextEditingController(text: data.companyLocality ?? '');
+    revenueLastYear = TextEditingController(
+      text: _euros(data.revenueLastYearCents),
+    );
+    revenueThisYear = TextEditingController(
+      text: _euros(data.revenueThisYearCents),
+    );
+    maintenanceLastYear = TextEditingController(
+      text: _euros(data.maintenanceLastYearCents),
+    );
+    fixedMonthlyCosts = TextEditingController(
+      text: _euros(data.fixedMonthlyCostsCents),
+    );
+  }
+
+  @override
+  void dispose() {
+    for (final controller in [
+      taxId,
+      ownerName,
+      phone,
+      email,
+      address,
+      postalCode,
+      locality,
+      revenueLastYear,
+      revenueThisYear,
+      maintenanceLastYear,
+      fixedMonthlyCosts,
+    ]) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pending = ref.watch(operationsProvider).initialDataTasks;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Dados por completar')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            Text(
+              'Sem estes dados, o Punho não deve tirar conclusões definitivas. Pode preencher por etapas e guardar quando quiser.',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            if (pending.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                '${pending.length} tarefas abertas',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 8),
+              for (final task in pending)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 5),
+                  child: Text('• $task'),
+                ),
+            ],
+            const SizedBox(height: 24),
+            Text(
+              'Identificação da empresa',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ownerName,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Nome do empresário ou responsável',
+              ),
+            ),
+            TextField(
+              controller: taxId,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'NIF da empresa'),
+            ),
+            TextField(
+              controller: phone,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Telemóvel ou telefone',
+              ),
+            ),
+            TextField(
+              controller: email,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+            TextField(
+              controller: address,
+              decoration: const InputDecoration(labelText: 'Morada'),
+            ),
+            TextField(
+              controller: postalCode,
+              decoration: const InputDecoration(labelText: 'Código-postal'),
+            ),
+            TextField(
+              controller: locality,
+              decoration: const InputDecoration(labelText: 'Localidade'),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Referências para orientar a gestão',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Pode usar valores redondos. Não é uma declaração fiscal.',
+            ),
+            const SizedBox(height: 8),
+            _EuroInput(
+              controller: revenueLastYear,
+              label: 'Faturação no ano passado (€)',
+            ),
+            _EuroInput(
+              controller: revenueThisYear,
+              label: 'Faturação deste ano até hoje (€)',
+            ),
+            _EuroInput(
+              controller: maintenanceLastYear,
+              label: 'Manutenção paga no ano passado (€)',
+            ),
+            _EuroInput(
+              controller: fixedMonthlyCosts,
+              label: 'Custos fixos mensais (€)',
+            ),
+            const SizedBox(height: 28),
+            FilledButton.icon(
+              onPressed: () {
+                ref
+                    .read(operationsProvider.notifier)
+                    .updateInitialData(
+                      ownerName: _optional(ownerName.text),
+                      companyTaxId: _optional(taxId.text),
+                      companyPhone: _optional(phone.text),
+                      companyEmail: _optional(email.text),
+                      companyAddress: _optional(address.text),
+                      companyPostalCode: _optional(postalCode.text),
+                      companyLocality: _optional(locality.text),
+                      revenueLastYearCents: _euroCents(revenueLastYear.text),
+                      revenueThisYearCents: _euroCents(revenueThisYear.text),
+                      maintenanceLastYearCents: _euroCents(
+                        maintenanceLastYear.text,
+                      ),
+                      fixedMonthlyCostsCents: _euroCents(
+                        fixedMonthlyCosts.text,
+                      ),
+                    );
+                Navigator.pop(context);
+              },
+              icon: const Icon(Icons.task_alt),
+              label: const Text('Guardar dados'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _euros(int? cents) =>
+    cents == null ? '' : (cents / 100).toStringAsFixed(2).replaceAll('.', ',');
 
 class MachinesPage extends ConsumerWidget {
   const MachinesPage({super.key});
@@ -500,7 +881,18 @@ class ClientsPage extends ConsumerWidget {
           const Text('Clientes', style: TextStyle(fontWeight: FontWeight.w800)),
           for (final c in state.customers)
             Card(
-              child: ListTile(title: Text(c.name), subtitle: Text(c.phone)),
+              child: ListTile(
+                title: Text(c.name),
+                subtitle: Text(
+                  [
+                    c.phone,
+                    [c.postalCode, c.locality]
+                        .whereType<String>()
+                        .where((value) => value.isNotEmpty)
+                        .join(' '),
+                  ].where((value) => value.isNotEmpty).join(' · '),
+                ),
+              ),
             ),
           const Padding(
             padding: EdgeInsets.only(top: 16),
@@ -532,6 +924,9 @@ Future<void> _customerDialog(BuildContext context, WidgetRef ref) async {
   final phone = TextEditingController();
   final taxId = TextEditingController();
   final email = TextEditingController();
+  final address = TextEditingController();
+  final postalCode = TextEditingController();
+  final locality = TextEditingController();
   final notes = TextEditingController();
   await showDialog<void>(
     context: context,
@@ -560,6 +955,20 @@ Future<void> _customerDialog(BuildContext context, WidgetRef ref) async {
               controller: email,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(labelText: 'Email'),
+            ),
+            TextField(
+              controller: address,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(labelText: 'Morada'),
+            ),
+            TextField(
+              controller: postalCode,
+              decoration: const InputDecoration(labelText: 'Código-postal'),
+            ),
+            TextField(
+              controller: locality,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(labelText: 'Localidade'),
             ),
             TextField(
               controller: notes,
@@ -591,6 +1000,15 @@ Future<void> _customerDialog(BuildContext context, WidgetRef ref) async {
                       email: email.text.trim().isEmpty
                           ? null
                           : email.text.trim(),
+                      address: address.text.trim().isEmpty
+                          ? null
+                          : address.text.trim(),
+                      postalCode: postalCode.text.trim().isEmpty
+                          ? null
+                          : postalCode.text.trim(),
+                      locality: locality.text.trim().isEmpty
+                          ? null
+                          : locality.text.trim(),
                       notes: notes.text.trim(),
                     ),
                   );

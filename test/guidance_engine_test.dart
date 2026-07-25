@@ -59,4 +59,25 @@ void main() {
     'dados incompletos mostram por apurar',
     () => expect(availabilityLabel(const [], 15), 'Por apurar'),
   );
+
+  test('frase semanal tem autor e contexto de aplicação', () {
+    final note = weeklyManagementNote(DateTime(2026, 7, 30));
+    expect(note.author, isNotEmpty);
+    expect(note.context, isNotEmpty);
+  });
+
+  test('objectivo semanal mede a recomendação principal', () {
+    const recommendation = Recommendation(
+      id: 'test',
+      title: 'Melhorar cobrança',
+      explanation: 'Há valores pendentes.',
+      impact: 'Mais tesouraria.',
+      quality: 'Dados confirmados.',
+      action: 'Contactar clientes',
+      measure: 'Valor por receber no fim da semana.',
+    );
+    final goal = weeklyGoalFromRecommendations([recommendation]);
+    expect(goal.title, 'Melhorar cobrança');
+    expect(goal.measure, 'Valor por receber no fim da semana.');
+  });
 }

@@ -3,6 +3,17 @@ import '../../domain/models/operations.dart';
 
 enum RecommendationState { newItem, seen, accepted, ignored }
 
+enum GuidanceLever {
+  demand('Procura e vendas'),
+  cash('Tesouraria'),
+  margin('Margem'),
+  utilization('Utilização da frota'),
+  team('Equipa e processo');
+
+  const GuidanceLever(this.label);
+  final String label;
+}
+
 class Recommendation {
   const Recommendation({
     required this.id,
@@ -11,10 +22,105 @@ class Recommendation {
     required this.impact,
     required this.quality,
     required this.action,
+    this.measure = 'Confirma o resultado depois de executar a ação.',
+    this.lever = GuidanceLever.utilization,
     this.state = RecommendationState.newItem,
   });
-  final String id, title, explanation, impact, quality, action;
+  final String id, title, explanation, impact, quality, action, measure;
+  final GuidanceLever lever;
   final RecommendationState state;
+}
+
+class WeeklyManagementNote {
+  const WeeklyManagementNote({
+    required this.text,
+    required this.author,
+    required this.source,
+    required this.context,
+    this.isDirectQuote = false,
+  });
+  final String text;
+  final String author;
+  final String source;
+  final String context;
+  final bool isDirectQuote;
+}
+
+class WeeklyGoal {
+  const WeeklyGoal({
+    required this.title,
+    required this.action,
+    required this.measure,
+  });
+  final String title;
+  final String action;
+  final String measure;
+}
+
+const _weeklyNotes = [
+  WeeklyManagementNote(
+    text:
+        'No passado, o homem vinha primeiro; no futuro, o sistema tem de vir primeiro.',
+    author: 'Frederick W. Taylor',
+    source: 'The Principles of Scientific Management, 1911',
+    isDirectQuote: true,
+    context:
+        'Um bom processo protege a equipa de depender apenas de memória, urgência ou improviso.',
+  ),
+  WeeklyManagementNote(
+    text: 'O consumo é o único fim e propósito de toda a produção.',
+    author: 'Adam Smith',
+    source: 'The Wealth of Nations, 1776',
+    isDirectQuote: true,
+    context:
+        'Máquinas, preço e rapidez só têm valor quando tornam a vida do cliente melhor.',
+  ),
+  WeeklyManagementNote(
+    text: 'Foca primeiro os poucos factores que concentram o maior impacto.',
+    author: 'Vilfredo Pareto',
+    source: 'Princípio de concentração de impacto',
+    context:
+        'Procura os clientes, máquinas ou despesas que mais movem os resultados antes de dispersar esforço.',
+  ),
+  WeeklyManagementNote(
+    text: 'Inovar é testar uma forma melhor de criar valor.',
+    author: 'Joseph Schumpeter',
+    source: 'Ideia aplicada de desenvolvimento e inovação',
+    context:
+        'Uma campanha ou novo serviço deve ser um teste com objectivo e medida, não uma aposta às cegas.',
+  ),
+  WeeklyManagementNote(
+    text:
+        'Os problemas resolvem-se melhor quando quem está no terreno participa na solução.',
+    author: 'Mary Parker Follett',
+    source: 'Ideia aplicada de Creative Experience, 1924',
+    context:
+        'O colaborador vê atrasos, avarias e pedidos do cliente; registar essa informação melhora a decisão do gestor.',
+  ),
+];
+
+WeeklyManagementNote weeklyManagementNote(DateTime date) {
+  final anchor = DateTime(2026, 1, 5);
+  final index = date.difference(anchor).inDays ~/ 7;
+  return _weeklyNotes[index.abs() % _weeklyNotes.length];
+}
+
+WeeklyGoal weeklyGoalFromRecommendations(List<Recommendation> recommendations) {
+  if (recommendations.isEmpty) {
+    return const WeeklyGoal(
+      title: 'Criar base de gestão',
+      action:
+          'Regista esta semana pelo menos uma reserva, um recebimento e uma despesa.',
+      measure:
+          'No fim da semana confirma se já tens números suficientes para o Punho orientar.',
+    );
+  }
+  final recommendation = recommendations.first;
+  return WeeklyGoal(
+    title: recommendation.title,
+    action: recommendation.action,
+    measure: recommendation.measure,
+  );
 }
 
 class GuidanceInput {
@@ -52,6 +158,8 @@ class GuidanceEngine {
               'Confirmar recebimentos e criar novas leads válidas reforça as próximas semanas.',
           quality: 'Confirmado pelos registos',
           action: 'Confirmar recebimentos e criar leads',
+          measure: 'Compara o valor por receber no início e no fim da semana.',
+          lever: GuidanceLever.cash,
         ),
       );
     }
@@ -89,6 +197,9 @@ class GuidanceEngine {
               'Considera uma promoção de quarta-feira com até 35% de desconto.',
           quality: 'Dados de reservas e inventário identificados',
           action: 'Criar campanha',
+          measure:
+              'Compara reservas, receita e margem com uma quarta-feira normal.',
+          lever: GuidanceLever.demand,
         ),
       );
     }
@@ -109,6 +220,8 @@ class GuidanceEngine {
           impact: 'Acompanhar tendência.',
           quality: 'Dados de despesas',
           action: 'Ver despesas',
+          measure: 'Compara refeições com os recebimentos do mesmo período.',
+          lever: GuidanceLever.margin,
         ),
       );
     }
