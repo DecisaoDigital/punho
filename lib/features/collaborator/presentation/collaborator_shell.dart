@@ -87,7 +87,15 @@ class _Action extends StatelessWidget {
 }
 
 void _newBooking(BuildContext c, WidgetRef ref, String id) {
-  showBookingForm(c, ref, responsibleId: id);
+  Navigator.push(
+    c,
+    MaterialPageRoute(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: const Text('Nova marcação')),
+        body: BookingsPage(responsibleId: id),
+      ),
+    ),
+  );
 }
 
 void _receipt(BuildContext c, WidgetRef ref, String id) {

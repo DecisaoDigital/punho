@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/licenca/licenca_provider.dart';
+import 'core/licenca/licenca_service.dart';
+import 'core/licenca/machine_id.dart';
 import 'core/operations/operations_controller.dart';
 import 'core/theme/punho_theme.dart';
 import 'core/config/supabase_config.dart';
@@ -16,6 +21,9 @@ Future<void> main() async {
       url: SupabaseConfig.url,
       publishableKey: SupabaseConfig.anonKey,
     );
+    // Auto-onboarding: não bloqueia o arranque e falha em silêncio. As Edge
+    // Functions aceitam a chave pública, por isso corre antes do login.
+    unawaited(_registarTerminal());
   }
   final operationsRepository = await PersistentOperationRepository.create();
   runApp(
@@ -28,14 +36,29 @@ Future<void> main() async {
   );
 }
 
-class PunhoApp extends StatelessWidget {
+Future<void> _registarTerminal() async {
+  try {
+    final machineId = await resolverMachineId();
+    await PunhoLicencaService(
+      Supabase.instance.client,
+    ).registarTerminal(machineId);
+  } catch (erro) {
+    debugPrint('auto-onboarding falhou: $erro');
+  }
+}
+
+class PunhoApp extends ConsumerWidget {
   const PunhoApp({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'Punho',
-    debugShowCheckedModeBanner: false,
-    theme: PunhoTheme.light,
-    home: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),
-  );
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Mantém o timer de revalidação vivo durante a vida da app.
+    ref.watch(licencaRefreshProvider);
+    return MaterialApp(
+      title: 'Punho',
+      debugShowCheckedModeBanner: false,
+      theme: PunhoTheme.light,
+      home: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),
+    );
+  }
 }

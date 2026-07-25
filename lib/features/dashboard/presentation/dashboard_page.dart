@@ -8,6 +8,7 @@ import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/operations.dart';
 import '../../../domain/models/finance.dart';
 import '../../../domain/models/workforce.dart';
+import '../../../domain/models/historical_month.dart';
 import '../../../core/guidance/guidance_engine.dart';
 import '../../finance/presentation/finance_pages.dart';
 import '../../operations/presentation/operational_pages.dart';
@@ -36,6 +37,34 @@ class DashboardPage extends ConsumerWidget {
     final receivedMonth = receiptTotal(state.receipts, monthStart, now);
     final paidMonth = paidExpenseTotal(state.expenses, monthStart, now);
     final unpaid = unpaidExpenseTotal(state.expenses);
+    final monthAdvertising = state.expenses
+        .where(
+          (expense) =>
+              !expense.archived &&
+              expense.status == ExpensePaymentStatus.paid &&
+              expense.category == ExpenseCategory.advertising &&
+              expense.date.year == now.year &&
+              expense.date.month == now.month,
+        )
+        .fold(0, (sum, expense) => sum + expense.amountCents);
+    final monthMaintenance = state.expenses
+        .where(
+          (expense) =>
+              !expense.archived &&
+              expense.status == ExpensePaymentStatus.paid &&
+              expense.category == ExpenseCategory.machineMaintenance &&
+              expense.date.year == now.year &&
+              expense.date.month == now.month,
+        )
+        .fold(0, (sum, expense) => sum + expense.amountCents);
+    final monthLeads = state.leads
+        .where(
+          (lead) =>
+              lead.createdAt.year == now.year &&
+              lead.createdAt.month == now.month,
+        )
+        .toList();
+    final homologous = state.historicalMonth(now.year - 1, now.month);
     final pending = state.bookings.fold(
       0,
       (sum, b) =>
@@ -180,6 +209,19 @@ class DashboardPage extends ConsumerWidget {
               _InitialDataTasksNotice(tasks: state.initialDataTasks),
               const SizedBox(height: 20),
             ],
+            _HomologousMonthPanel(
+              now: now,
+              historical: homologous,
+              receivedCents: receivedMonth,
+              paidExpensesCents: paidMonth,
+              advertisingCents: monthAdvertising,
+              maintenanceCents: monthMaintenance,
+              leads: monthLeads.length,
+              convertedLeads: monthLeads
+                  .where((lead) => lead.status == LeadStatus.converted)
+                  .length,
+            ),
+            const SizedBox(height: 20),
             _WeeklyDirectionPanel(
               note: weeklyManagementNote(now),
               goal: weeklyGoalFromRecommendations(recommendations),
@@ -298,6 +340,160 @@ class DashboardPage extends ConsumerWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _HomologousMonthPanel extends StatelessWidget {
+  const _HomologousMonthPanel({
+    required this.now,
+    required this.historical,
+    required this.receivedCents,
+    required this.paidExpensesCents,
+    required this.advertisingCents,
+    required this.maintenanceCents,
+    required this.leads,
+    required this.convertedLeads,
+  });
+  final DateTime now;
+  final HistoricalMonth? historical;
+  final int receivedCents,
+      paidExpensesCents,
+      advertisingCents,
+      maintenanceCents;
+  final int leads, convertedLeads;
+
+  @override
+  Widget build(BuildContext context) {
+    final previousYear = now.year - 1;
+    if (historical?.revenueReceivedCents == null) {
+      return Card(
+        child: ListTile(
+          leading: Icon(
+            Icons.compare_arrows_outlined,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          title: const Text('Comparação homóloga por preparar'),
+          subtitle: Text(
+            'Preenche ${monthName(now.month)} de $previousYear para comparar este mês com o mesmo mês do ano passado.',
+          ),
+          trailing: OutlinedButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HistoricalDataPage()),
+            ),
+            child: const Text('Histórico'),
+          ),
+        ),
+      );
+    }
+    final last = historical!;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${monthName(now.month)} ${now.year} vs. ${monthName(now.month)} $previousYear',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 4),
+            const Text('Comparação homóloga com dados registados.'),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _ComparisonMetric(
+                  label: 'Recebido',
+                  current: receivedCents,
+                  previous: last.revenueReceivedCents!,
+                  currency: true,
+                ),
+                if (last.paidExpensesCents != null)
+                  _ComparisonMetric(
+                    label: 'Despesas pagas',
+                    current: paidExpensesCents,
+                    previous: last.paidExpensesCents!,
+                    currency: true,
+                  ),
+                if (last.advertisingSpendCents != null)
+                  _ComparisonMetric(
+                    label: 'Publicidade',
+                    current: advertisingCents,
+                    previous: last.advertisingSpendCents!,
+                    currency: true,
+                  ),
+                if (last.maintenanceCents != null)
+                  _ComparisonMetric(
+                    label: 'Manutenção',
+                    current: maintenanceCents,
+                    previous: last.maintenanceCents!,
+                    currency: true,
+                  ),
+                if (last.leadsReceived != null)
+                  _ComparisonMetric(
+                    label: 'Leads',
+                    current: leads,
+                    previous: last.leadsReceived!,
+                  ),
+                if (last.convertedLeads != null)
+                  _ComparisonMetric(
+                    label: 'Leads convertidas',
+                    current: convertedLeads,
+                    previous: last.convertedLeads!,
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ComparisonMetric extends StatelessWidget {
+  const _ComparisonMetric({
+    required this.label,
+    required this.current,
+    required this.previous,
+    this.currency = false,
+  });
+  final String label;
+  final int current, previous;
+  final bool currency;
+
+  @override
+  Widget build(BuildContext context) {
+    final difference = current - previous;
+    final percentage = previous == 0 ? null : difference / previous * 100;
+    final value = currency
+        ? '${(current / 100).toStringAsFixed(2)} €'
+        : '$current';
+    final change = percentage == null
+        ? '${difference >= 0 ? '+' : ''}$difference'
+        : '${percentage >= 0 ? '+' : ''}${percentage.toStringAsFixed(0)}%';
+    return SizedBox(
+      width: 156,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 2),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
+          Text(
+            '$change vs. ano anterior',
+            style: TextStyle(
+              color: difference >= 0
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.error,
+            ),
+          ),
+        ],
       ),
     );
   }

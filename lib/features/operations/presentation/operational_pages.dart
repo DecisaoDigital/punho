@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/media/machine_image_store.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/operations.dart';
+import '../../../domain/models/historical_month.dart';
 
 class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key});
@@ -451,6 +452,15 @@ class _InitialDataTasksPageState extends ConsumerState<InitialDataTasksPage> {
                   child: Text('• $task'),
                 ),
             ],
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HistoricalDataPage()),
+              ),
+              icon: const Icon(Icons.history_outlined),
+              label: const Text('Preencher histórico mensal'),
+            ),
             const SizedBox(height: 24),
             Text(
               'Identificação da empresa',
@@ -560,6 +570,205 @@ class _InitialDataTasksPageState extends ConsumerState<InitialDataTasksPage> {
 String _euros(int? cents) =>
     cents == null ? '' : (cents / 100).toStringAsFixed(2).replaceAll('.', ',');
 
+int? _wholeNumber(String value) {
+  final parsed = int.tryParse(value.trim());
+  return parsed == null || parsed < 0 ? null : parsed;
+}
+
+class HistoricalDataPage extends ConsumerStatefulWidget {
+  const HistoricalDataPage({super.key});
+
+  @override
+  ConsumerState<HistoricalDataPage> createState() => _HistoricalDataPageState();
+}
+
+class _HistoricalDataPageState extends ConsumerState<HistoricalDataPage> {
+  late int year;
+
+  @override
+  void initState() {
+    super.initState();
+    year = DateTime.now().year - 1;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(operationsProvider);
+    final years = List<int>.generate(
+      6,
+      (index) => DateTime.now().year - 5 + index,
+    );
+    return Scaffold(
+      appBar: AppBar(title: const Text('Histórico mensal')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            Text(
+              'Preenche o histórico aos poucos. O Punho só mostra comparações homólogas quando existe um mês real para comparar.',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 18),
+            DropdownButtonFormField<int>(
+              value: year,
+              decoration: const InputDecoration(labelText: 'Ano'),
+              items: [
+                for (final item in years)
+                  DropdownMenuItem(value: item, child: Text('$item')),
+              ],
+              onChanged: (value) => setState(() => year = value!),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Os valores são recebimentos e despesas efetivamente pagos. Pode usar estimativas redondas se ainda não tiver os extratos.',
+            ),
+            const SizedBox(height: 12),
+            for (var month = 1; month <= 12; month++)
+              _HistoricalMonthEditor(
+                key: ValueKey('$year-$month'),
+                initial: state.historicalMonth(year, month),
+                year: year,
+                month: month,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoricalMonthEditor extends ConsumerStatefulWidget {
+  const _HistoricalMonthEditor({
+    super.key,
+    required this.initial,
+    required this.year,
+    required this.month,
+  });
+  final HistoricalMonth? initial;
+  final int year, month;
+
+  @override
+  ConsumerState<_HistoricalMonthEditor> createState() =>
+      _HistoricalMonthEditorState();
+}
+
+class _HistoricalMonthEditorState
+    extends ConsumerState<_HistoricalMonthEditor> {
+  late final TextEditingController revenue;
+  late final TextEditingController expenses;
+  late final TextEditingController advertising;
+  late final TextEditingController leads;
+  late final TextEditingController converted;
+  late final TextEditingController maintenance;
+
+  @override
+  void initState() {
+    super.initState();
+    final item = widget.initial;
+    revenue = TextEditingController(text: _euros(item?.revenueReceivedCents));
+    expenses = TextEditingController(text: _euros(item?.paidExpensesCents));
+    advertising = TextEditingController(
+      text: _euros(item?.advertisingSpendCents),
+    );
+    leads = TextEditingController(text: item?.leadsReceived?.toString() ?? '');
+    converted = TextEditingController(
+      text: item?.convertedLeads?.toString() ?? '',
+    );
+    maintenance = TextEditingController(text: _euros(item?.maintenanceCents));
+  }
+
+  @override
+  void dispose() {
+    for (final controller in [
+      revenue,
+      expenses,
+      advertising,
+      leads,
+      converted,
+      maintenance,
+    ]) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final saved = widget.initial?.hasAnyData == true;
+    return Card(
+      child: ExpansionTile(
+        title: Text(monthName(widget.month)),
+        subtitle: Text(
+          saved ? 'Dados guardados — pode corrigir' : 'Por preencher',
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: [
+          _EuroInput(controller: revenue, label: 'Recebimentos (€)'),
+          _EuroInput(controller: expenses, label: 'Despesas pagas (€)'),
+          _EuroInput(controller: advertising, label: 'Publicidade (€)'),
+          TextField(
+            controller: leads,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Leads recebidas'),
+          ),
+          TextField(
+            controller: converted,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Leads convertidas em reserva',
+            ),
+          ),
+          _EuroInput(controller: maintenance, label: 'Manutenção paga (€)'),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+              onPressed: () {
+                ref
+                    .read(operationsProvider.notifier)
+                    .saveHistoricalMonth(
+                      HistoricalMonth(
+                        year: widget.year,
+                        month: widget.month,
+                        revenueReceivedCents: _euroCents(revenue.text),
+                        paidExpensesCents: _euroCents(expenses.text),
+                        advertisingSpendCents: _euroCents(advertising.text),
+                        leadsReceived: _wholeNumber(leads.text),
+                        convertedLeads: _wholeNumber(converted.text),
+                        maintenanceCents: _euroCents(maintenance.text),
+                      ),
+                    );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${monthName(widget.month)} guardado.'),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('Guardar mês'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String monthName(int month) => const [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+][month - 1];
+
 class MachinesPage extends ConsumerWidget {
   const MachinesPage({super.key});
   @override
@@ -585,8 +794,56 @@ class MachinesPage extends ConsumerWidget {
                 title: Text(m.name),
                 subtitle: Text('${m.category} · ${m.reference}'),
                 trailing: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Chip(label: Text(m.status.name)),
+                    _MachineStatusChip(status: m.status),
+                    if (m.status == MachineStatus.stopped)
+                      TextButton.icon(
+                        onPressed: () {
+                          final changed = ref
+                              .read(operationsProvider.notifier)
+                              .updateMachineStatus(
+                                m.id,
+                                MachineStatus.available,
+                              );
+                          if (!changed) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'A máquina tem uma reserva ativa e não pode ficar disponível.',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.play_circle_outline),
+                        label: const Text('Disponível'),
+                      ),
+                    PopupMenuButton<MachineStatus>(
+                      tooltip: 'Mudar estado',
+                      icon: const Icon(Icons.swap_horiz),
+                      onSelected: (status) {
+                        final changed = ref
+                            .read(operationsProvider.notifier)
+                            .updateMachineStatus(m.id, status);
+                        if (!changed) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'A máquina tem uma reserva ativa e não pode ficar disponível.',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        for (final status in MachineStatus.values)
+                          PopupMenuItem(
+                            value: status,
+                            child: Text(machineStatusLabel(status)),
+                          ),
+                      ],
+                    ),
                     IconButton(
                       icon: const Icon(Icons.edit_outlined),
                       onPressed: () => _machineDialog(context, ref, m),
@@ -603,6 +860,26 @@ class MachinesPage extends ConsumerWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _MachineStatusChip extends StatelessWidget {
+  const _MachineStatusChip({required this.status});
+  final MachineStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (status) {
+      MachineStatus.available => Colors.green.shade700,
+      MachineStatus.reserved => Colors.blue.shade700,
+      MachineStatus.rented => Colors.deepPurple.shade700,
+      MachineStatus.maintenance => Colors.orange.shade800,
+      MachineStatus.stopped => Theme.of(context).colorScheme.error,
+    };
+    return Chip(
+      avatar: Icon(Icons.circle, size: 10, color: color),
+      label: Text(machineStatusLabel(status)),
     );
   }
 }
@@ -804,10 +1081,16 @@ Future<void> _machineDialog(
             ),
           ),
           StatefulBuilder(
-            builder: (_, set) => DropdownButtonFormField(
+            builder: (_, set) => DropdownButtonFormField<MachineStatus>(
               value: status,
+              decoration: const InputDecoration(labelText: 'Estado atual'),
               items: MachineStatus.values
-                  .map((v) => DropdownMenuItem(value: v, child: Text(v.name)))
+                  .map(
+                    (value) => DropdownMenuItem(
+                      value: value,
+                      child: Text(machineStatusLabel(value)),
+                    ),
+                  )
                   .toList(),
               onChanged: (v) => set(() => status = v!),
             ),
@@ -1080,54 +1363,658 @@ Future<void> _leadDialog(BuildContext context, WidgetRef ref) async {
   );
 }
 
-class BookingsPage extends ConsumerWidget {
-  const BookingsPage({super.key});
+class BookingsPage extends ConsumerStatefulWidget {
+  const BookingsPage({super.key, this.responsibleId});
+  final String? responsibleId;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final bookings = ref.watch(operationsProvider).bookings;
+  ConsumerState<BookingsPage> createState() => _BookingsPageState();
+}
+
+enum _CalendarView { week, month }
+
+class _BookingsPageState extends ConsumerState<BookingsPage> {
+  var _view = _CalendarView.week;
+  var _focus = DateUtils.dateOnly(DateTime.now());
+  String? _selectedMachineId;
+  final Set<DateTime> _selectedSlotStarts = {};
+
+  Machine? _selectedMachine(OperationsState state) {
+    final matches = state.machines.where(
+      (machine) => machine.id == _selectedMachineId && !machine.archived,
+    );
+    return matches.isEmpty ? null : matches.first;
+  }
+
+  bool _machineCanReceiveReservation(Machine machine) =>
+      machine.status != MachineStatus.maintenance &&
+      machine.status != MachineStatus.stopped &&
+      machine.status != MachineStatus.rented;
+
+  void _toggleSlot(BuildContext context, DateTime startsAt) {
+    setState(() {
+      if (!_selectedSlotStarts.add(startsAt)) {
+        _selectedSlotStarts.remove(startsAt);
+      }
+    });
+  }
+
+  void _clearSelection() => setState(_selectedSlotStarts.clear);
+
+  DateTimeRange? get _selectedPeriod {
+    if (_selectedSlotStarts.isEmpty ||
+        !_isContiguousHalfDaySelection(_selectedSlotStarts)) {
+      return null;
+    }
+    final ordered = _selectedSlotStarts.toList()..sort();
+    return DateTimeRange(
+      start: ordered.first,
+      end: ordered.last.add(const Duration(hours: 12)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(operationsProvider);
+    final selectedMachine = _selectedMachine(state);
+    final period = _selectedPeriod;
+    final canAdd =
+        selectedMachine != null &&
+        _machineCanReceiveReservation(selectedMachine) &&
+        period != null;
     return _PageFrame(
       title: 'Marcações / Reservas',
-      action: FilledButton.icon(
-        onPressed: () => showBookingForm(context, ref),
-        icon: const Icon(Icons.add),
-        label: const Text('Nova marcação'),
-      ),
-      child: ListView(
+      action: Wrap(
+        spacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          for (final b in bookings)
-            Card(
-              child: ListTile(
-                onTap: () => _bookingStatusDialog(context, ref, b),
-                leading: const CircleAvatar(
-                  child: Icon(Icons.calendar_month_outlined),
-                ),
-                title: Text(
-                  '${b.startsAt.day}/${b.startsAt.month} — ${b.endsAt.day}/${b.endsAt.month}',
-                ),
-                subtitle: Text(b.status.name),
-                trailing: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (b.expectedValueCents != null)
-                      Text(
-                        '${(b.expectedValueCents! / 100).toStringAsFixed(2)} €',
-                      ),
-                    Text(
-                      b.customerNameSnapshot.isEmpty
-                          ? 'Cliente por confirmar'
-                          : b.customerNameSnapshot,
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ],
-                ),
+          if (_selectedSlotStarts.isNotEmpty)
+            TextButton(
+              onPressed: _clearSelection,
+              child: const Text('Limpar seleção'),
+            ),
+          FilledButton.icon(
+            onPressed: !canAdd
+                ? null
+                : () async {
+                    final saved = await _showCalendarBookingConfirmation(
+                      context,
+                      ref,
+                      machine: selectedMachine,
+                      startsAt: period.start,
+                      endsAt: period.end,
+                      responsibleId: widget.responsibleId,
+                    );
+                    if (mounted && saved) _clearSelection();
+                  },
+            icon: const Icon(Icons.add),
+            label: Text(
+              _selectedSlotStarts.isEmpty
+                  ? 'Adicionar reserva'
+                  : 'Adicionar (${_selectedSlotStarts.length})',
+            ),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _CalendarToolbar(
+            focus: _focus,
+            view: _view,
+            onPrevious: () => setState(
+              () => _focus = _view == _CalendarView.week
+                  ? _focus.subtract(const Duration(days: 7))
+                  : DateTime(_focus.year, _focus.month - 1, 1),
+            ),
+            onNext: () => setState(
+              () => _focus = _view == _CalendarView.week
+                  ? _focus.add(const Duration(days: 7))
+                  : DateTime(_focus.year, _focus.month + 1, 1),
+            ),
+            onViewChanged: (view) => setState(() => _view = view),
+          ),
+          const SizedBox(height: 12),
+          _MachineReservationSelector(
+            machines: state.machines
+                .where((machine) => !machine.archived)
+                .toList(),
+            selectedMachineId: _selectedMachineId,
+            onSelected: (machineId) => setState(() {
+              _selectedMachineId = machineId;
+              _selectedSlotStarts.clear();
+            }),
+          ),
+          const SizedBox(height: 10),
+          if (selectedMachine == null)
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Escolhe uma máquina para marcar os períodos livres.',
+              ),
+            )
+          else if (!_machineCanReceiveReservation(selectedMachine))
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '${selectedMachine.reference} está ${machineStatusLabel(selectedMachine.status).toLowerCase()} e não pode receber reservas.',
+              ),
+            )
+          else if (_selectedSlotStarts.isNotEmpty && period == null)
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Escolhe períodos consecutivos para criar uma única reserva.',
+              ),
+            )
+          else if (period != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '${selectedMachine.reference} · ${_calendarPeriodLabel(period)}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: _view == _CalendarView.week
+                ? _WeekBookingsCalendar(
+                    focus: _focus,
+                    bookings: state.bookings,
+                    machineId: _selectedMachineId,
+                    selectedSlotStarts: _selectedSlotStarts,
+                    onToggleSlot:
+                        selectedMachine == null ||
+                            !_machineCanReceiveReservation(selectedMachine)
+                        ? null
+                        : (startsAt) => _toggleSlot(context, startsAt),
+                  )
+                : _MonthBookingsCalendar(
+                    focus: _focus,
+                    bookings: state.bookings,
+                    machineId: _selectedMachineId,
+                    onDaySelected: (day) => setState(() {
+                      _focus = day;
+                      _view = _CalendarView.week;
+                    }),
+                  ),
+          ),
         ],
       ),
     );
   }
 }
+
+class _MachineReservationSelector extends StatelessWidget {
+  const _MachineReservationSelector({
+    required this.machines,
+    required this.selectedMachineId,
+    required this.onSelected,
+  });
+  final List<Machine> machines;
+  final String? selectedMachineId;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    if (machines.isEmpty) {
+      return const Text('Ainda não existem máquinas identificadas.');
+    }
+    return SizedBox(
+      height: 64,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: machines.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final machine = machines[index];
+          final selected = machine.id == selectedMachineId;
+          return ChoiceChip(
+            selected: selected,
+            onSelected: (_) => onSelected(machine.id),
+            avatar: Icon(
+              machine.status == MachineStatus.available
+                  ? Icons.precision_manufacturing_outlined
+                  : Icons.build_circle_outlined,
+              size: 18,
+            ),
+            label: SizedBox(
+              width: 128,
+              child: Text(
+                '${machine.reference}\n${machineStatusLabel(machine.status)}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CalendarToolbar extends StatelessWidget {
+  const _CalendarToolbar({
+    required this.focus,
+    required this.view,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onViewChanged,
+  });
+  final DateTime focus;
+  final _CalendarView view;
+  final VoidCallback onPrevious, onNext;
+  final ValueChanged<_CalendarView> onViewChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final weekStart = _weekStart(focus);
+    final label = view == _CalendarView.week
+        ? '${_date(weekStart)} a ${_date(weekStart.add(const Duration(days: 6)))}'
+        : '${monthName(focus.month)} ${focus.year}';
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 12,
+      runSpacing: 8,
+      children: [
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            IconButton(
+              onPressed: onPrevious,
+              icon: const Icon(Icons.chevron_left),
+              tooltip: 'Período anterior',
+            ),
+            Text(label, style: Theme.of(context).textTheme.titleMedium),
+            IconButton(
+              onPressed: onNext,
+              icon: const Icon(Icons.chevron_right),
+              tooltip: 'Período seguinte',
+            ),
+          ],
+        ),
+        ToggleButtons(
+          isSelected: [view == _CalendarView.week, view == _CalendarView.month],
+          onPressed: (index) => onViewChanged(_CalendarView.values[index]),
+          children: const [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: Text('Semana'),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: Text('Mês'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _WeekBookingsCalendar extends ConsumerWidget {
+  const _WeekBookingsCalendar({
+    required this.focus,
+    required this.bookings,
+    required this.machineId,
+    required this.selectedSlotStarts,
+    required this.onToggleSlot,
+  });
+  final DateTime focus;
+  final List<Booking> bookings;
+  final String? machineId;
+  final Set<DateTime> selectedSlotStarts;
+  final ValueChanged<DateTime>? onToggleSlot;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final start = _weekStart(focus);
+    final days = List.generate(7, (index) => start.add(Duration(days: index)));
+    final state = ref.watch(operationsProvider);
+    final machineBookings = machineId == null
+        ? const <Booking>[]
+        : bookings
+              .where((booking) => booking.machineIds.contains(machineId))
+              .toList();
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: constraints.maxWidth < 860 ? 860 : constraints.maxWidth,
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const SizedBox(width: 86),
+                    for (final day in days)
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Text(
+                            '${_weekDay(day)}\n${day.day}/${day.month}',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                _WeekSlotRow(
+                  label: 'Manhã',
+                  days: days,
+                  slot: _HalfDay.morning,
+                  bookings: machineBookings,
+                  state: state,
+                  selectedSlotStarts: selectedSlotStarts,
+                  onToggleSlot: onToggleSlot,
+                ),
+                _WeekSlotRow(
+                  label: 'Tarde',
+                  days: days,
+                  slot: _HalfDay.afternoon,
+                  bookings: machineBookings,
+                  state: state,
+                  selectedSlotStarts: selectedSlotStarts,
+                  onToggleSlot: onToggleSlot,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WeekSlotRow extends ConsumerWidget {
+  const _WeekSlotRow({
+    required this.label,
+    required this.days,
+    required this.slot,
+    required this.bookings,
+    required this.state,
+    required this.selectedSlotStarts,
+    required this.onToggleSlot,
+  });
+  final String label;
+  final List<DateTime> days;
+  final _HalfDay slot;
+  final List<Booking> bookings;
+  final OperationsState state;
+  final Set<DateTime> selectedSlotStarts;
+  final ValueChanged<DateTime>? onToggleSlot;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Row(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      SizedBox(
+        width: 86,
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
+      ),
+      for (final day in days)
+        Expanded(
+          child: _BookingSlotCell(
+            day: day,
+            slot: slot,
+            bookings: bookings
+                .where((booking) => _overlapsSlot(booking, day, slot))
+                .toList(),
+            state: state,
+            selected: selectedSlotStarts.contains(_slotStartsAt(day, slot)),
+            onToggle: onToggleSlot == null
+                ? null
+                : () => onToggleSlot!(_slotStartsAt(day, slot)),
+          ),
+        ),
+    ],
+  );
+}
+
+class _BookingSlotCell extends ConsumerWidget {
+  const _BookingSlotCell({
+    required this.day,
+    required this.slot,
+    required this.bookings,
+    required this.state,
+    required this.selected,
+    required this.onToggle,
+  });
+  final DateTime day;
+  final _HalfDay slot;
+  final List<Booking> bookings;
+  final OperationsState state;
+  final bool selected;
+  final VoidCallback? onToggle;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => InkWell(
+    onTap: bookings.isEmpty ? onToggle : null,
+    child: Container(
+      constraints: const BoxConstraints(minHeight: 116),
+      margin: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: selected ? Theme.of(context).colorScheme.primaryContainer : null,
+        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: bookings.isEmpty
+          ? Center(
+              child: selected
+                  ? Icon(
+                      Icons.check_circle,
+                      size: 22,
+                      color: Theme.of(context).colorScheme.primary,
+                    )
+                  : Icon(
+                      Icons.add_circle_outline,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final booking in bookings)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: InkWell(
+                      onTap: () => _bookingStatusDialog(context, ref, booking),
+                      child: _BookingEventChip(booking: booking, state: state),
+                    ),
+                  ),
+              ],
+            ),
+    ),
+  );
+}
+
+class _MonthBookingsCalendar extends ConsumerWidget {
+  const _MonthBookingsCalendar({
+    required this.focus,
+    required this.bookings,
+    required this.machineId,
+    required this.onDaySelected,
+  });
+  final DateTime focus;
+  final List<Booking> bookings;
+  final String? machineId;
+  final ValueChanged<DateTime> onDaySelected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final first = DateTime(focus.year, focus.month);
+    final start = _weekStart(first);
+    final state = ref.watch(operationsProvider);
+    final machineBookings = machineId == null
+        ? const <Booking>[]
+        : bookings
+              .where((booking) => booking.machineIds.contains(machineId))
+              .toList();
+    return Column(
+      children: [
+        Row(
+          children: [
+            for (final day in ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'])
+              Expanded(child: Center(child: Text(day))),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Expanded(
+          child: GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              childAspectRatio: 0.95,
+            ),
+            itemCount: 42,
+            itemBuilder: (context, index) {
+              final day = start.add(Duration(days: index));
+              final dayBookings = machineBookings
+                  .where((booking) => _overlapsDay(booking, day))
+                  .toList();
+              return InkWell(
+                onTap: () => onDaySelected(day),
+                child: Container(
+                  margin: const EdgeInsets.all(2),
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: day.month == focus.month
+                        ? null
+                        : Theme.of(context).colorScheme.surfaceContainerHighest,
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${day.day}',
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 3),
+                      for (final booking in dayBookings.take(2))
+                        _BookingEventChip(booking: booking, state: state),
+                      if (dayBookings.length > 2)
+                        Text(
+                          '+${dayBookings.length - 2}',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BookingEventChip extends StatelessWidget {
+  const _BookingEventChip({required this.booking, required this.state});
+  final Booking booking;
+  final OperationsState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final machineNames = booking.machineIds
+        .map(
+          (id) =>
+              state.machines
+                  .where((machine) => machine.id == id)
+                  .map((machine) => machine.reference)
+                  .firstOrNull ??
+              'Máquina',
+        )
+        .join(', ');
+    final customer = booking.customerNameSnapshot.isEmpty
+        ? state.customers
+                  .where((item) => item.id == booking.customerId)
+                  .map((item) => item.name)
+                  .firstOrNull ??
+              'Cliente'
+        : booking.customerNameSnapshot;
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: _bookingColor(booking.status).withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        '$machineNames\n$customer',
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: _bookingColor(booking.status),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+DateTime _weekStart(DateTime day) {
+  final date = DateUtils.dateOnly(day);
+  return date.subtract(Duration(days: date.weekday - DateTime.monday));
+}
+
+String _weekDay(DateTime day) =>
+    const ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'][day.weekday - 1];
+
+bool _overlapsDay(Booking booking, DateTime day) {
+  final start = DateUtils.dateOnly(day);
+  final end = start.add(const Duration(days: 1));
+  return booking.startsAt.isBefore(end) && booking.endsAt.isAfter(start);
+}
+
+bool _overlapsSlot(Booking booking, DateTime day, _HalfDay slot) {
+  final start = _slotStartsAt(day, slot);
+  final end = start.add(const Duration(hours: 12));
+  return booking.startsAt.isBefore(end) && booking.endsAt.isAfter(start);
+}
+
+DateTime _slotStartsAt(DateTime day, _HalfDay slot) =>
+    DateTime(day.year, day.month, day.day, slot == _HalfDay.morning ? 0 : 12);
+
+bool _isContiguousHalfDaySelection(Iterable<DateTime> slots) {
+  final ordered = slots.toList()..sort();
+  if (ordered.isEmpty) return false;
+  for (var index = 1; index < ordered.length; index++) {
+    if (ordered[index].difference(ordered[index - 1]) !=
+        const Duration(hours: 12)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+String _calendarPeriodLabel(DateTimeRange period) {
+  final halfDays = period.duration.inHours ~/ 12;
+  final start = period.start;
+  final end = period.end;
+  final startLabel = '${_date(start)} · ${start.hour == 0 ? 'Manhã' : 'Tarde'}';
+  final finalSlotStart = end.subtract(const Duration(hours: 12));
+  final endLabel =
+      '${_date(finalSlotStart)} · ${finalSlotStart.hour == 0 ? 'Manhã' : 'Tarde'}';
+  return halfDays == 1 ? startLabel : '$startLabel até $endLabel';
+}
+
+Color _bookingColor(BookingStatus status) => switch (status) {
+  BookingStatus.request => Colors.blueGrey,
+  BookingStatus.proposalSent => Colors.blue,
+  BookingStatus.confirmed => Colors.orange.shade800,
+  BookingStatus.rented => Colors.deepPurple,
+  BookingStatus.completed => Colors.green.shade700,
+  BookingStatus.cancelled => Colors.red.shade700,
+};
 
 Future<void> _bookingStatusDialog(
   BuildContext context,
@@ -1179,10 +2066,166 @@ String _bookingStatusLabel(BookingStatus status) => switch (status) {
   BookingStatus.cancelled => 'Cancelada',
 };
 
+Future<bool> _showCalendarBookingConfirmation(
+  BuildContext context,
+  WidgetRef ref, {
+  required Machine machine,
+  required DateTime startsAt,
+  required DateTime endsAt,
+  String? responsibleId,
+}) async {
+  final state = ref.read(operationsProvider);
+  if (state.customers.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Regista primeiro o cliente da reserva.')),
+    );
+    return false;
+  }
+  var customerId = state.customers.first.id;
+  var status = BookingStatus.request;
+  final expectedValue = TextEditingController();
+  final notes = TextEditingController();
+  final saved = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: const Text('Confirmar reserva'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.precision_manufacturing_outlined),
+                title: Text('${machine.name} · ${machine.reference}'),
+                subtitle: Text(
+                  _calendarPeriodLabel(
+                    DateTimeRange(start: startsAt, end: endsAt),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: customerId,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Cliente'),
+                items: state.customers
+                    .map(
+                      (customer) => DropdownMenuItem(
+                        value: customer.id,
+                        child: Text(
+                          '${customer.name}${customer.phone.isEmpty ? '' : ' · ${customer.phone}'}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => setDialogState(() => customerId = value!),
+              ),
+              DropdownButtonFormField<BookingStatus>(
+                value: status,
+                decoration: const InputDecoration(labelText: 'Estado inicial'),
+                items: const [
+                  DropdownMenuItem(
+                    value: BookingStatus.request,
+                    child: Text('Pedido'),
+                  ),
+                  DropdownMenuItem(
+                    value: BookingStatus.proposalSent,
+                    child: Text('Proposta enviada'),
+                  ),
+                  DropdownMenuItem(
+                    value: BookingStatus.confirmed,
+                    child: Text('Confirmada'),
+                  ),
+                ],
+                onChanged: (value) => setDialogState(() => status = value!),
+              ),
+              TextField(
+                controller: expectedValue,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Valor previsto (€)',
+                ),
+              ),
+              TextField(
+                controller: notes,
+                maxLines: 2,
+                decoration: const InputDecoration(labelText: 'Notas'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final cents =
+                  ((double.tryParse(expectedValue.text.replaceAll(',', '.')) ??
+                              0) *
+                          100)
+                      .round();
+              final conflict = ref
+                  .read(operationsProvider.notifier)
+                  .addBooking(
+                    Booking(
+                      id: 'b${DateTime.now().microsecondsSinceEpoch}',
+                      customerId: customerId,
+                      machineIds: [machine.id],
+                      startsAt: startsAt,
+                      endsAt: endsAt,
+                      status: status,
+                      expectedValueCents: cents > 0 ? cents : null,
+                      collaboratorResponsibleId: responsibleId,
+                      notes: notes.text.trim(),
+                    ),
+                  );
+              if (conflict != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Conflito: ${conflict.machine.name} já está ocupada.',
+                    ),
+                  ),
+                );
+                return;
+              }
+              Navigator.pop(dialogContext, true);
+            },
+            child: const Text('Gravar reserva'),
+          ),
+        ],
+      ),
+    ),
+  );
+  expectedValue.dispose();
+  notes.dispose();
+  return saved ?? false;
+}
+
+/// Abre a marcação operacional usada também pela área do colaborador.
+///
+/// As opções de agenda (data e período) ficam privadas a este ecrã, para não
+/// expor tipos internos como parte da API partilhada com os restantes fluxos.
 Future<void> showBookingForm(
   BuildContext context,
   WidgetRef ref, {
   String? responsibleId,
+}) => _showBookingForm(context, ref, responsibleId: responsibleId);
+
+Future<void> _showBookingForm(
+  BuildContext context,
+  WidgetRef ref, {
+  String? responsibleId,
+  DateTime? initialDate,
+  _BookingDuration? initialDuration,
+  _HalfDay? initialHalfDay,
 }) async {
   final state = ref.read(operationsProvider);
   if (state.customers.isEmpty ||
@@ -1197,8 +2240,12 @@ Future<void> showBookingForm(
   var customerId = state.customers.first.id;
   var machineId = state.machines.firstWhere((m) => !m.archived).id;
   var status = BookingStatus.request;
-  var startsAt = DateTime.now().add(const Duration(days: 1));
-  var endsAt = startsAt.add(const Duration(days: 1));
+  var startDate = DateUtils.dateOnly(
+    initialDate ?? DateTime.now().add(const Duration(days: 1)),
+  );
+  var endDate = startDate;
+  var duration = initialDuration ?? _BookingDuration.halfDay;
+  var halfDay = initialHalfDay ?? _HalfDay.morning;
   String? collaboratorId = responsibleId;
   final expectedValue = TextEditingController();
   final notes = TextEditingController();
@@ -1207,6 +2254,8 @@ Future<void> showBookingForm(
     context: context,
     builder: (dialogContext) => StatefulBuilder(
       builder: (context, setDialogState) {
+        final startsAt = _bookingStartsAt(startDate, duration, halfDay);
+        final endsAt = _bookingEndsAt(endDate, duration, halfDay);
         final availableMachines = state.machines
             .where(
               (machine) =>
@@ -1265,29 +2314,89 @@ Future<void> showBookingForm(
                         ? null
                         : (value) => setDialogState(() => machineId = value!),
                   ),
+                  DropdownButtonFormField<_BookingDuration>(
+                    value: duration,
+                    decoration: const InputDecoration(labelText: 'Duração'),
+                    items: const [
+                      DropdownMenuItem(
+                        value: _BookingDuration.halfDay,
+                        child: Text('Meio dia'),
+                      ),
+                      DropdownMenuItem(
+                        value: _BookingDuration.fullDay,
+                        child: Text('Dia inteiro'),
+                      ),
+                      DropdownMenuItem(
+                        value: _BookingDuration.multipleDays,
+                        child: Text('Vários dias seguidos'),
+                      ),
+                    ],
+                    onChanged: (value) => setDialogState(() {
+                      duration = value!;
+                      if (duration != _BookingDuration.multipleDays) {
+                        endDate = startDate;
+                      }
+                    }),
+                  ),
+                  if (duration == _BookingDuration.halfDay)
+                    DropdownButtonFormField<_HalfDay>(
+                      value: halfDay,
+                      decoration: const InputDecoration(labelText: 'Período'),
+                      items: const [
+                        DropdownMenuItem(
+                          value: _HalfDay.morning,
+                          child: Text('Manhã'),
+                        ),
+                        DropdownMenuItem(
+                          value: _HalfDay.afternoon,
+                          child: Text('Tarde'),
+                        ),
+                      ],
+                      onChanged: (value) =>
+                          setDialogState(() => halfDay = value!),
+                    ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Período'),
-                    subtitle: Text('${_date(startsAt)} a ${_date(endsAt)}'),
+                    subtitle: Text(
+                      _bookingDatesLabel(startDate, endDate, duration, halfDay),
+                    ),
                     trailing: const Icon(Icons.date_range_outlined),
                     onTap: () async {
-                      final range = await showDateRangePicker(
+                      if (duration == _BookingDuration.multipleDays) {
+                        final range = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime.now().subtract(
+                            const Duration(days: 1),
+                          ),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 730),
+                          ),
+                          initialDateRange: DateTimeRange(
+                            start: startDate,
+                            end: endDate,
+                          ),
+                        );
+                        if (range == null) return;
+                        setDialogState(() {
+                          startDate = DateUtils.dateOnly(range.start);
+                          endDate = DateUtils.dateOnly(range.end);
+                        });
+                        return;
+                      }
+                      final date = await showDatePicker(
                         context: context,
                         firstDate: DateTime.now().subtract(
                           const Duration(days: 1),
                         ),
                         lastDate: DateTime.now().add(const Duration(days: 730)),
-                        initialDateRange: DateTimeRange(
-                          start: startsAt,
-                          end: endsAt,
-                        ),
+                        initialDate: startDate,
                       );
-                      if (range != null) {
-                        setDialogState(() {
-                          startsAt = range.start;
-                          endsAt = range.end.add(const Duration(days: 1));
-                        });
-                      }
+                      if (date == null) return;
+                      setDialogState(() {
+                        startDate = DateUtils.dateOnly(date);
+                        endDate = startDate;
+                      });
                     },
                   ),
                   DropdownButtonFormField<BookingStatus>(
@@ -1311,26 +2420,45 @@ Future<void> showBookingForm(
                     ],
                     onChanged: (value) => setDialogState(() => status = value!),
                   ),
-                  DropdownButtonFormField<String?>(
-                    value: collaboratorId,
-                    decoration: const InputDecoration(labelText: 'Responsável'),
-                    items: [
-                      const DropdownMenuItem<String?>(
-                        value: null,
-                        child: Text('Gestor'),
+                  if (responsibleId == null)
+                    DropdownButtonFormField<String?>(
+                      value: collaboratorId,
+                      decoration: const InputDecoration(
+                        labelText: 'Responsável',
                       ),
-                      ...state.collaborators
-                          .where((collaborator) => !collaborator.archived)
-                          .map(
-                            (collaborator) => DropdownMenuItem<String?>(
-                              value: collaborator.id,
-                              child: Text(collaborator.name),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('Gestor'),
+                        ),
+                        ...state.collaborators
+                            .where((collaborator) => !collaborator.archived)
+                            .map(
+                              (collaborator) => DropdownMenuItem<String?>(
+                                value: collaborator.id,
+                                child: Text(collaborator.name),
+                              ),
                             ),
-                          ),
-                    ],
-                    onChanged: (value) =>
-                        setDialogState(() => collaboratorId = value),
-                  ),
+                      ],
+                      onChanged: (value) =>
+                          setDialogState(() => collaboratorId = value),
+                    )
+                  else
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.person_outline),
+                      title: const Text('Registada por'),
+                      subtitle: Text(
+                        state.collaborators
+                                .where(
+                                  (collaborator) =>
+                                      collaborator.id == responsibleId,
+                                )
+                                .map((collaborator) => collaborator.name)
+                                .firstOrNull ??
+                            'Colaborador',
+                      ),
+                    ),
                   TextField(
                     controller: expectedValue,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -1406,6 +2534,55 @@ Future<void> showBookingForm(
   );
   expectedValue.dispose();
   notes.dispose();
+}
+
+enum _BookingDuration { halfDay, fullDay, multipleDays }
+
+enum _HalfDay { morning, afternoon }
+
+DateTime _bookingStartsAt(
+  DateTime day,
+  _BookingDuration duration,
+  _HalfDay halfDay,
+) => switch (duration) {
+  _BookingDuration.halfDay when halfDay == _HalfDay.afternoon => DateTime(
+    day.year,
+    day.month,
+    day.day,
+    12,
+  ),
+  _ => DateTime(day.year, day.month, day.day),
+};
+
+DateTime _bookingEndsAt(
+  DateTime endDay,
+  _BookingDuration duration,
+  _HalfDay halfDay,
+) => switch (duration) {
+  _BookingDuration.halfDay when halfDay == _HalfDay.morning => DateTime(
+    endDay.year,
+    endDay.month,
+    endDay.day,
+    12,
+  ),
+  _ => DateTime(endDay.year, endDay.month, endDay.day + 1),
+};
+
+String _bookingDatesLabel(
+  DateTime start,
+  DateTime end,
+  _BookingDuration duration,
+  _HalfDay halfDay,
+) {
+  final dates = duration == _BookingDuration.multipleDays
+      ? '${_date(start)} a ${_date(end)}'
+      : _date(start);
+  final detail = switch (duration) {
+    _BookingDuration.halfDay => halfDay == _HalfDay.morning ? 'Manhã' : 'Tarde',
+    _BookingDuration.fullDay => 'Dia inteiro',
+    _BookingDuration.multipleDays => 'Dias seguidos',
+  };
+  return '$dates · $detail';
 }
 
 int? _moneyCents(String value) {

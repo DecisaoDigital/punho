@@ -1,5 +1,13 @@
 enum MachineStatus { available, reserved, rented, maintenance, stopped }
 
+String machineStatusLabel(MachineStatus status) => switch (status) {
+  MachineStatus.available => 'Disponível',
+  MachineStatus.reserved => 'Reservada',
+  MachineStatus.rented => 'Alugada',
+  MachineStatus.maintenance => 'Em manutenção',
+  MachineStatus.stopped => 'Parada',
+};
+
 enum LeadStatus { newLead, contacted, proposal, lost, converted }
 
 enum LeadSource { call, referral, facebook, google, other }
