@@ -5,6 +5,7 @@ import '../../data/repositories/operation_repository.dart';
 import '../../domain/models/operations.dart';
 import '../../domain/models/finance.dart';
 import '../../domain/models/workforce.dart';
+import '../../domain/models/historical_month.dart';
 
 final operationRepositoryProvider = Provider<OperationRepository>(
   (ref) => LocalDemoOperationRepository(),
@@ -13,6 +14,8 @@ final operationsProvider =
     NotifierProvider<OperationsController, OperationsState>(
       OperationsController.new,
     );
+
+const minimumBookingDuration = Duration(hours: 12);
 
 class OperationsState {
   const OperationsState({
@@ -34,6 +37,7 @@ class OperationsState {
     this.revenueThisYearCents,
     this.maintenanceLastYearCents,
     this.fixedMonthlyCostsCents,
+    this.historicalMonths = const [],
     this.machines = const [],
     this.customers = const [],
     this.leads = const [],
@@ -63,6 +67,7 @@ class OperationsState {
   final String? companyAddress, companyPostalCode, companyLocality;
   final int? revenueLastYearCents, revenueThisYearCents;
   final int? maintenanceLastYearCents, fixedMonthlyCostsCents;
+  final List<HistoricalMonth> historicalMonths;
   final List<Machine> machines;
   final List<Customer> customers;
   final List<Lead> leads;
@@ -88,7 +93,20 @@ class OperationsState {
     if (maintenanceLastYearCents == null)
       'Estimar a manutenção paga no ano passado',
     if (fixedMonthlyCostsCents == null) 'Indicar os custos fixos mensais',
+    if (!hasFullRevenueHistoryFor(DateTime.now().year - 1))
+      'Preencher o histórico mensal do ano passado',
   ];
+  bool hasFullRevenueHistoryFor(int year) =>
+      List<int>.generate(12, (index) => index + 1).every(
+        (month) => historicalMonth(year, month)?.revenueReceivedCents != null,
+      );
+  HistoricalMonth? historicalMonth(int year, int month) {
+    for (final item in historicalMonths) {
+      if (item.year == year && item.month == month) return item;
+    }
+    return null;
+  }
+
   OperationsState copyWith({
     bool? onboarded,
     String? ownerName,
@@ -108,6 +126,7 @@ class OperationsState {
     int? revenueThisYearCents,
     int? maintenanceLastYearCents,
     int? fixedMonthlyCostsCents,
+    List<HistoricalMonth>? historicalMonths,
     List<Machine>? machines,
     List<Customer>? customers,
     List<Lead>? leads,
@@ -139,6 +158,7 @@ class OperationsState {
         maintenanceLastYearCents ?? this.maintenanceLastYearCents,
     fixedMonthlyCostsCents:
         fixedMonthlyCostsCents ?? this.fixedMonthlyCostsCents,
+    historicalMonths: historicalMonths ?? this.historicalMonths,
     machines: machines ?? this.machines,
     customers: customers ?? this.customers,
     leads: leads ?? this.leads,
@@ -176,6 +196,7 @@ class OperationsController extends Notifier<OperationsState> {
       revenueThisYearCents: onboarding?.revenueThisYearCents,
       maintenanceLastYearCents: onboarding?.maintenanceLastYearCents,
       fixedMonthlyCostsCents: onboarding?.fixedMonthlyCostsCents,
+      historicalMonths: _repo.historicalMonths,
       machines: _repo.machines,
       customers: _repo.customers,
       leads: _repo.leads,
@@ -196,6 +217,7 @@ class OperationsController extends Notifier<OperationsState> {
     receipts: _repo.receipts,
     collaborators: _repo.collaborators,
     vehicles: _repo.vehicles,
+    historicalMonths: _repo.historicalMonths,
   );
   void completeOnboarding({
     String? ownerName,
@@ -303,6 +325,11 @@ class OperationsController extends Notifier<OperationsState> {
     );
   }
 
+  void saveHistoricalMonth(HistoricalMonth item) {
+    _repo.saveHistoricalMonth(item);
+    state = _fromRepo();
+  }
+
   void saveMachine(Machine item) {
     _repo.saveMachine(item);
     state = _fromRepo();
@@ -311,6 +338,25 @@ class OperationsController extends Notifier<OperationsState> {
   void archiveMachine(String id) {
     _repo.archiveMachine(id);
     state = _fromRepo();
+  }
+
+  bool updateMachineStatus(String id, MachineStatus status) {
+    final machine = _repo.machines.where((item) => item.id == id).firstOrNull;
+    if (machine == null || machine.archived) return false;
+    final now = DateTime.now();
+    final hasActiveRental = state.bookings.any(
+      (booking) =>
+          booking.machineIds.contains(id) &&
+          (booking.status == BookingStatus.confirmed ||
+              booking.status == BookingStatus.rented) &&
+          !now.isBefore(booking.startsAt) &&
+          now.isBefore(booking.endsAt),
+    );
+    if (status == MachineStatus.available && hasActiveRental) return false;
+    _repo.saveMachine(machine.copyWith(status: status));
+    _syncMachineCycle([id]);
+    state = _fromRepo();
+    return true;
   }
 
   void addLead(Lead item) {
@@ -418,11 +464,15 @@ class OperationsController extends Notifier<OperationsState> {
     final m = state.machines.firstWhere((x) => x.id == id);
     return !m.archived &&
         m.status != MachineStatus.maintenance &&
+        m.status != MachineStatus.stopped &&
         m.status != MachineStatus.rented &&
         conflictFor(machineIds: [id], startsAt: start, endsAt: end) == null;
   }
 
   BookingConflict? addBooking(Booking booking) {
+    if (booking.endsAt.difference(booking.startsAt) < minimumBookingDuration) {
+      throw ArgumentError('A reserva mínima é de meio dia.');
+    }
     final registeredMachineIds = state.machines
         .where((machine) => !machine.archived)
         .map((machine) => machine.id)
@@ -470,6 +520,7 @@ class OperationsController extends Notifier<OperationsState> {
             : booking.collaboratorNameSnapshot,
       ),
     );
+    _syncMachineCycle(booking.machineIds);
     state = _fromRepo();
     return null;
   }
@@ -491,8 +542,50 @@ class OperationsController extends Notifier<OperationsState> {
       }
     }
     _repo.saveBooking(current.copyWith(status: status));
+    _syncMachineCycle(current.machineIds);
     state = _fromRepo();
     return null;
+  }
+
+  void _syncMachineCycle(Iterable<String> machineIds) {
+    final now = DateTime.now();
+    for (final id in machineIds) {
+      final machineMatches = _repo.machines.where(
+        (machine) => machine.id == id && !machine.archived,
+      );
+      if (machineMatches.isEmpty) continue;
+      final machine = machineMatches.first;
+      // Uma decisão explícita de manutenção/paragem nunca é anulada por uma reserva.
+      if (machine.status == MachineStatus.maintenance ||
+          machine.status == MachineStatus.stopped) {
+        continue;
+      }
+      final related = _repo.bookings.where(
+        (booking) =>
+            booking.machineIds.contains(id) &&
+            (booking.status == BookingStatus.confirmed ||
+                booking.status == BookingStatus.rented),
+      );
+      final hasRentedNow = related.any(
+        (booking) =>
+            booking.status == BookingStatus.rented &&
+            !now.isBefore(booking.startsAt) &&
+            now.isBefore(booking.endsAt),
+      );
+      final hasReserved = related.any(
+        (booking) =>
+            booking.status == BookingStatus.confirmed ||
+            booking.status == BookingStatus.rented,
+      );
+      final next = hasRentedNow
+          ? MachineStatus.rented
+          : hasReserved
+          ? MachineStatus.reserved
+          : MachineStatus.available;
+      if (machine.status != next) {
+        _repo.saveMachine(machine.copyWith(status: next));
+      }
+    }
   }
 
   Future<SyncStatus> synchronizeRemote() async {
@@ -512,7 +605,8 @@ int availableMachines(OperationsState state, DateTime now) => state.machines
       (m) =>
           state.machines.isNotEmpty &&
           !m.archived &&
-          m.status == MachineStatus.available &&
+          (m.status == MachineStatus.available ||
+              m.status == MachineStatus.reserved) &&
           state.bookings
               .where(
                 (b) =>

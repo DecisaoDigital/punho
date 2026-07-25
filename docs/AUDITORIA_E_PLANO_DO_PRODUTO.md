@@ -373,6 +373,36 @@ Regras obrigatórias:
 
 O que se reutiliza do padrão atual: Control autenticado, funções de servidor para mutações sensíveis, histórico de ações e catálogo de versões. O que não se copia: HMAC embutido no cliente, autorização baseada apenas em machine_id, leituras diretas anónimas de tabelas e a mistura entre licença de terminal e identidade de utilizador.
 
+#### 8.2.1 Estado implementado — provisório, DIVERGE do alvo acima
+
+> Esta secção descreve o que existe hoje no código (sprint de licenciamento,
+> Julho 2026). **Não substitui o alvo definido em 8.2** — regista uma solução
+> intermédia, deliberadamente mais simples, para permitir pôr terminais no
+> terreno antes de existir o domínio `punho_*`. Detalhe técnico em
+> [LICENCIAMENTO.md](LICENCIAMENTO.md).
+
+O que ficou feito:
+
+- auto-onboarding no arranque, antes do login, idempotente e não bloqueante;
+- trial de **40 dias** atribuído automaticamente (não é versão gratuita);
+- validação no arranque e de 6 em 6 horas;
+- banner de aviso em todos os ecrãs, com contacto directo para o Cesar.
+
+Divergências conscientes face às regras de 8.2 e 8.4, por resolver:
+
+| Regra definida | O que está implementado | Porquê |
+|---|---|---|
+| "nunca reutilizar diretamente a tabela `licencas`" (8.4) | Reutiliza `licencas`, com coluna `app='punho'` | As EFs multi-app já existiam e estavam testadas para o POS |
+| Domínio próprio `punho_empresas`, `punho_instalacoes`, … (8.4) | Não existe | Depende do sprint de multi-app no Control |
+| "não se copia autorização baseada apenas em machine_id" (8.2) | A licença **é** indexada por `machine_id` | Solução do POS, reaproveitada tal e qual |
+| "licença expirada bloqueia as áreas protegidas" (8.2) | **Não bloqueia nada** — só mostra banner | Sem cliente pagante, bloquear só cria risco de falhar uma demonstração |
+| "o preço é por empresa, não por instalação/dispositivo" (8.3) | Uma linha de licença **por dispositivo** | Consequência directa de usar `machine_id` |
+
+A última linha é a mais relevante comercialmente: um gestor com o Punho no PC
+e no telemóvel gera **duas** linhas em `licencas`, o que colide com o modelo de
+preço por empresa definido em 8.3. Enquanto o faturamento for manual pelo
+Cesar, não faz mal. Deixa de servir assim que houver cobrança automática.
+
 ### 8.3 Modelo comercial de colaboradores
 
 A subscrição é composta por uma licença **Main** da empresa e por capacidade adicional de colaboradores. A primeira oferta definida é:
@@ -470,3 +500,65 @@ O empresário deve conseguir:
 - meios de pagamento e validação de dinheiro recolhido;
 - cópias de segurança, retenção e exportação;
 - ficheiro final do mockup na pasta assets/brand/.
+
+## 13. Atualização de implementação — julho de 2026
+
+### O que está implementado localmente
+
+- aplicação Flutter para Windows, Android e iOS, com navegação responsiva;
+- domínio operacional de máquinas, clientes, leads, reservas, recebimentos,
+  despesas, colaboradores, veículos, campanhas e recomendações;
+- separação entre máquinas declaradas e máquinas identificadas;
+- valores monetários em cêntimos no domínio;
+- regras locais de conflito de reserva, valores pendentes e limite de
+  colaboradores;
+- modo de demonstração explícito quando não existe configuração Supabase;
+- abstrações locais para QR/OCR e documentos: o utilizador confirma sempre os
+  dados antes de criar uma despesa;
+- motor determinístico de recomendações, sem alterações automáticas.
+
+### Base multiempresa já preparada
+
+O projeto inclui `supabase_flutter`, configuração pública por `--dart-define`,
+`.env.example`, migrations e documentação de validação RLS. As migrations
+presentes criam o domínio `punho_`, RLS, políticas iniciais, validação de
+referências entre empresa/cliente/máquina/reserva, prevenção de conflitos de
+reservas e a RPC atómica `punho_criar_empresa_inicial`.
+
+Quando Supabase está configurado, a aplicação apresenta criação de conta,
+login, restauro de sessão e criação inicial de empresa. A criação inicial gera
+empresa, membro gestor, subscrição de desenvolvimento e instalação de forma
+atómica.
+
+### Decisões consolidadas dos brainstorms
+
+- clientes pertencem à empresa, nunca ao colaborador;
+- reservas preservam IDs relacionais e snapshots de cliente/colaborador;
+- dinheiro recebido não é lucro; o produto usa “resultado operacional simples”;
+- colaboradores registam trabalho, leads, pedidos e recebimentos, sem acesso a
+custos ou indicadores globais;
+- OCR/QR sugere e nunca confirma ou lança despesas automaticamente;
+- promoções e campanhas são sugestões/riscunhos, nunca descontos automáticos;
+- documentos deverão permanecer privados e usar URL assinada quando o upload
+remoto estiver ligado;
+- não há ligação administrativa externa nesta fase.
+
+### Lacunas que impedem declarar o produto pronto para produção
+
+- a interface operacional ainda usa repositórios locais como fonte de verdade;
+- repositórios Supabase, outbox persistente, sincronização em rede e resolução
+de conflitos ainda não estão ligados aos fluxos de interface;
+- convites reais de colaboradores, recuperação de palavra-passe e permissões
+de rota baseadas em membro Supabase ainda precisam de conclusão;
+- upload privado de documentos, OCR local real e câmara Android não estão
+integrados;
+- a RLS deve ser aplicada e verificada num projeto Supabase real antes de usar
+dados de clientes.
+
+### Ordem recomendada a partir daqui
+
+1. Ligar repositórios remotos de clientes, leads, máquinas e reservas à sessão.
+2. Persistir outbox local e sincronizar operações com revisão/conflito.
+3. Substituir perfis de demonstração por contexto de `punho_membros`.
+4. Implementar armazenamento privado de documentos e convites reais.
+5. Validar RLS com duas empresas e um colaborador antes de qualquer piloto.

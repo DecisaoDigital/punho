@@ -12,6 +12,7 @@ import '../../../core/theme/punho_theme.dart';
 import '../../../shared/widgets/brand_lockup.dart';
 import '../../collaborator/presentation/collaborator_shell.dart';
 import '../../dashboard/presentation/dashboard_page.dart';
+import '../../licenca/presentation/licenca_banner.dart';
 import '../../operations/presentation/operational_pages.dart';
 import '../../workforce/presentation/workforce_pages.dart';
 
@@ -30,7 +31,14 @@ class AppShell extends ConsumerWidget {
     final destination = ref.watch(navigationProvider);
     final destinations = visibleOperationalDestinations(operational);
     final isDesktop = MediaQuery.sizeOf(context).width >= 680;
-    final content = _DestinationContent(destination: destination);
+    // O aviso de licença fica acima do conteúdo para aparecer em todos os
+    // ecrãs, e não só no painel de gestão. Encolhe a zero quando está tudo bem.
+    final content = Column(
+      children: [
+        const LicencaBanner(),
+        Expanded(child: _DestinationContent(destination: destination)),
+      ],
+    );
 
     if (isDesktop) {
       return PhoneOrientationLock(

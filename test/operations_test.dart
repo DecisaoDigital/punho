@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/operations.dart';
+import 'package:punho/domain/models/historical_month.dart';
 
 void main() {
   ProviderContainer container() => ProviderContainer();
@@ -173,7 +174,7 @@ void main() {
 
   test('dados iniciais em falta ficam como tarefas abertas', () {
     const incomplete = OperationsState(onboarded: true);
-    const complete = OperationsState(
+    final complete = OperationsState(
       onboarded: true,
       companyTaxId: '123456789',
       ownerName: 'Ana Costa',
@@ -185,9 +186,117 @@ void main() {
       revenueThisYearCents: 6000000,
       maintenanceLastYearCents: 250000,
       fixedMonthlyCostsCents: 80000,
+      historicalMonths: List.generate(
+        12,
+        (index) => HistoricalMonth(
+          year: DateTime.now().year - 1,
+          month: index + 1,
+          revenueReceivedCents: 100000,
+        ),
+      ),
     );
 
-    expect(incomplete.initialDataTasks, hasLength(8));
+    expect(incomplete.initialDataTasks, hasLength(9));
     expect(complete.initialDataTasks, isEmpty);
+  });
+
+  test('estados de máquina são apresentados em português', () {
+    expect(machineStatusLabel(MachineStatus.stopped), 'Parada');
+    expect(machineStatusLabel(MachineStatus.available), 'Disponível');
+    expect(machineStatusLabel(MachineStatus.maintenance), 'Em manutenção');
+  });
+
+  test('máquina numa reserva ativa não pode passar a disponível', () {
+    final c = container();
+    addTearDown(c.dispose);
+    final now = DateTime.now();
+    final controller = c.read(operationsProvider.notifier);
+    controller.addBooking(
+      Booking(
+        id: 'active-rental',
+        customerId: 'c1',
+        machineIds: const ['m1'],
+        startsAt: now.subtract(const Duration(hours: 6)),
+        endsAt: now.add(const Duration(hours: 6)),
+        status: BookingStatus.rented,
+      ),
+    );
+
+    expect(
+      controller.updateMachineStatus('m1', MachineStatus.available),
+      isFalse,
+    );
+  });
+
+  test('reserva confirmada, aluguer e conclusão atualizam a máquina', () {
+    final c = container();
+    addTearDown(c.dispose);
+    final controller = c.read(operationsProvider.notifier);
+    final now = DateTime.now();
+    controller.addBooking(
+      Booking(
+        id: 'machine-cycle',
+        customerId: 'c1',
+        machineIds: const ['m1'],
+        startsAt: now.subtract(const Duration(hours: 6)),
+        endsAt: now.add(const Duration(hours: 6)),
+        status: BookingStatus.confirmed,
+      ),
+    );
+    expect(
+      c.read(operationsProvider).machines.first.status,
+      MachineStatus.reserved,
+    );
+
+    controller.updateBookingStatus('machine-cycle', BookingStatus.rented);
+    expect(
+      c.read(operationsProvider).machines.first.status,
+      MachineStatus.rented,
+    );
+
+    controller.updateBookingStatus('machine-cycle', BookingStatus.completed);
+    expect(
+      c.read(operationsProvider).machines.first.status,
+      MachineStatus.available,
+    );
+  });
+
+  test('máquina parada não pode receber nova reserva', () {
+    final c = container();
+    addTearDown(c.dispose);
+    final controller = c.read(operationsProvider.notifier);
+    controller.updateMachineStatus('m1', MachineStatus.stopped);
+
+    expect(
+      controller.machineAvailable(
+        'm1',
+        DateTime.now().add(const Duration(days: 1)),
+        DateTime.now().add(const Duration(days: 2)),
+      ),
+      isFalse,
+    );
+  });
+
+  test('reserva inferior a meio dia é rejeitada', () {
+    final c = container();
+    addTearDown(c.dispose);
+    final start = DateTime.now().add(const Duration(days: 1));
+
+    expect(
+      () => c
+          .read(operationsProvider.notifier)
+          .addBooking(
+            Booking(
+              id: 'too-short',
+              customerId: 'c1',
+              machineIds: const ['m1'],
+              startsAt: start,
+              endsAt: start.add(const Duration(hours: 6)),
+              status: BookingStatus.request,
+            ),
+          ),
+      throwsArgumentError,
+    );
+    expect(minimumBookingDuration, const Duration(hours: 12));
   });
 }

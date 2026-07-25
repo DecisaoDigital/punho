@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/models/operations.dart';
 import '../../domain/models/finance.dart';
 import '../../domain/models/workforce.dart';
+import '../../domain/models/historical_month.dart';
 
 abstract interface class OperationRepository {
   List<Machine> get machines;
@@ -15,6 +16,7 @@ abstract interface class OperationRepository {
   List<Receipt> get receipts;
   List<Collaborator> get collaborators;
   List<Vehicle> get vehicles;
+  List<HistoricalMonth> get historicalMonths;
   OnboardingData? get onboarding;
   void saveMachine(Machine item);
   void archiveMachine(String id);
@@ -25,6 +27,7 @@ abstract interface class OperationRepository {
   void saveReceipt(Receipt item);
   void saveCollaborator(Collaborator item);
   void saveVehicle(Vehicle item);
+  void saveHistoricalMonth(HistoricalMonth item);
   void saveOnboarding(OnboardingData value);
 }
 
@@ -125,6 +128,7 @@ class LocalDemoOperationRepository implements OperationRepository {
   final List<Receipt> _receipts = [];
   final List<Collaborator> _collaborators = [];
   final List<Vehicle> _vehicles = [];
+  final List<HistoricalMonth> _historicalMonths = [];
   OnboardingData? _onboarding;
   @override
   List<Machine> get machines => List.unmodifiable(_machines);
@@ -142,6 +146,9 @@ class LocalDemoOperationRepository implements OperationRepository {
   List<Collaborator> get collaborators => List.unmodifiable(_collaborators);
   @override
   List<Vehicle> get vehicles => List.unmodifiable(_vehicles);
+  @override
+  List<HistoricalMonth> get historicalMonths =>
+      List.unmodifiable(_historicalMonths);
   @override
   OnboardingData? get onboarding => _onboarding;
   @override
@@ -233,6 +240,18 @@ class LocalDemoOperationRepository implements OperationRepository {
   }
 
   @override
+  void saveHistoricalMonth(HistoricalMonth item) {
+    final index = _historicalMonths.indexWhere(
+      (month) => month.year == item.year && month.month == item.month,
+    );
+    if (index < 0) {
+      _historicalMonths.add(item);
+    } else {
+      _historicalMonths[index] = item;
+    }
+  }
+
+  @override
   void saveOnboarding(OnboardingData value) => _onboarding = value;
 }
 
@@ -312,6 +331,12 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   }
 
   @override
+  void saveHistoricalMonth(HistoricalMonth item) {
+    super.saveHistoricalMonth(item);
+    _markDirty();
+  }
+
+  @override
   void saveOnboarding(OnboardingData value) {
     super.saveOnboarding(value);
     _markDirty();
@@ -372,6 +397,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'receipts': _receipts.map(_receiptToJson).toList(),
     'collaborators': _collaborators.map(_collaboratorToJson).toList(),
     'vehicles': _vehicles.map(_vehicleToJson).toList(),
+    'historicalMonths': _historicalMonths.map(_historicalMonthToJson).toList(),
   };
 
   void _persist() {
@@ -436,6 +462,11 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     _replace(_receipts, data['receipts'], _receiptFromJson);
     _replace(_collaborators, data['collaborators'], _collaboratorFromJson);
     _replace(_vehicles, data['vehicles'], _vehicleFromJson);
+    _replace(
+      _historicalMonths,
+      data['historicalMonths'],
+      _historicalMonthFromJson,
+    );
   }
 
   void _replace<T>(
@@ -478,6 +509,29 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
         : const [],
     archived: _bool(data, 'archived'),
   );
+
+  static Map<String, Object?> _historicalMonthToJson(HistoricalMonth item) => {
+    'year': item.year,
+    'month': item.month,
+    'revenueReceivedCents': item.revenueReceivedCents,
+    'paidExpensesCents': item.paidExpensesCents,
+    'advertisingSpendCents': item.advertisingSpendCents,
+    'leadsReceived': item.leadsReceived,
+    'convertedLeads': item.convertedLeads,
+    'maintenanceCents': item.maintenanceCents,
+  };
+
+  static HistoricalMonth _historicalMonthFromJson(Map<String, dynamic> data) =>
+      HistoricalMonth(
+        year: _int(data, 'year'),
+        month: _int(data, 'month'),
+        revenueReceivedCents: _nullableInt(data['revenueReceivedCents']),
+        paidExpensesCents: _nullableInt(data['paidExpensesCents']),
+        advertisingSpendCents: _nullableInt(data['advertisingSpendCents']),
+        leadsReceived: _nullableInt(data['leadsReceived']),
+        convertedLeads: _nullableInt(data['convertedLeads']),
+        maintenanceCents: _nullableInt(data['maintenanceCents']),
+      );
 
   static Map<String, Object?> _customerToJson(Customer item) => {
     'id': item.id,
