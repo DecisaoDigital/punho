@@ -1,0 +1,640 @@
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../domain/models/operations.dart';
+import '../../domain/models/finance.dart';
+import '../../domain/models/workforce.dart';
+
+abstract interface class OperationRepository {
+  List<Machine> get machines;
+  List<Customer> get customers;
+  List<Lead> get leads;
+  List<Booking> get bookings;
+  List<Expense> get expenses;
+  List<Receipt> get receipts;
+  List<Collaborator> get collaborators;
+  List<Vehicle> get vehicles;
+  OnboardingData? get onboarding;
+  void saveMachine(Machine item);
+  void archiveMachine(String id);
+  void saveLead(Lead item);
+  void saveCustomer(Customer item);
+  void saveBooking(Booking item);
+  void saveExpense(Expense item);
+  void saveReceipt(Receipt item);
+  void saveCollaborator(Collaborator item);
+  void saveVehicle(Vehicle item);
+  void saveOnboarding(OnboardingData value);
+}
+
+class OnboardingData {
+  const OnboardingData({
+    required this.companyName,
+    required this.legalForm,
+    required this.hasFleet,
+    required this.collaborators,
+    required this.totalMachinesDeclared,
+    required this.insertMachinesNow,
+  });
+
+  final String companyName;
+  final String legalForm;
+  final bool hasFleet;
+  final int collaborators;
+  final int totalMachinesDeclared;
+  final bool insertMachinesNow;
+}
+
+class LocalDemoOperationRepository implements OperationRepository {
+  final List<Machine> _machines = [
+    const Machine(
+      id: 'm1',
+      name: 'Mini escavadora 1.8T',
+      reference: 'ME-018',
+      category: 'Escavação',
+      status: MachineStatus.available,
+      dailyRateCents: 18500,
+    ),
+    const Machine(
+      id: 'm2',
+      name: 'Plataforma elevatória',
+      reference: 'PE-002',
+      category: 'Elevação',
+      status: MachineStatus.stopped,
+    ),
+  ];
+  final List<Customer> _customers = [
+    const Customer(id: 'c1', name: 'Construções Silva', phone: '912 000 000'),
+  ];
+  final List<Lead> _leads = [];
+  final List<Booking> _bookings = [];
+  final List<Expense> _expenses = [];
+  final List<Receipt> _receipts = [];
+  final List<Collaborator> _collaborators = [];
+  final List<Vehicle> _vehicles = [];
+  OnboardingData? _onboarding;
+  @override
+  List<Machine> get machines => List.unmodifiable(_machines);
+  @override
+  List<Customer> get customers => List.unmodifiable(_customers);
+  @override
+  List<Lead> get leads => List.unmodifiable(_leads);
+  @override
+  List<Booking> get bookings => List.unmodifiable(_bookings);
+  @override
+  List<Expense> get expenses => List.unmodifiable(_expenses);
+  @override
+  List<Receipt> get receipts => List.unmodifiable(_receipts);
+  @override
+  List<Collaborator> get collaborators => List.unmodifiable(_collaborators);
+  @override
+  List<Vehicle> get vehicles => List.unmodifiable(_vehicles);
+  @override
+  OnboardingData? get onboarding => _onboarding;
+  @override
+  void saveMachine(Machine item) {
+    final i = _machines.indexWhere((x) => x.id == item.id);
+    if (i < 0) {
+      _machines.add(item);
+    } else {
+      _machines[i] = item;
+    }
+  }
+
+  @override
+  void archiveMachine(String id) {
+    final i = _machines.indexWhere((x) => x.id == id);
+    if (i >= 0) {
+      _machines[i] = _machines[i].copyWith(archived: true);
+    }
+  }
+
+  @override
+  void saveLead(Lead item) {
+    final i = _leads.indexWhere((x) => x.id == item.id);
+    if (i < 0) {
+      _leads.add(item);
+    } else {
+      _leads[i] = item;
+    }
+  }
+
+  @override
+  void saveCustomer(Customer item) {
+    final i = _customers.indexWhere((x) => x.id == item.id);
+    if (i < 0) {
+      _customers.add(item);
+    } else {
+      _customers[i] = item;
+    }
+  }
+
+  @override
+  void saveBooking(Booking item) {
+    final index = _bookings.indexWhere((booking) => booking.id == item.id);
+    if (index < 0) {
+      _bookings.add(item);
+    } else {
+      _bookings[index] = item;
+    }
+  }
+
+  @override
+  void saveExpense(Expense item) {
+    final i = _expenses.indexWhere((x) => x.id == item.id);
+    if (i < 0) {
+      _expenses.add(item);
+    } else {
+      _expenses[i] = item;
+    }
+  }
+
+  @override
+  void saveReceipt(Receipt item) {
+    final i = _receipts.indexWhere((x) => x.id == item.id);
+    if (i < 0) {
+      _receipts.add(item);
+    } else {
+      _receipts[i] = item;
+    }
+  }
+
+  @override
+  void saveCollaborator(Collaborator item) {
+    final i = _collaborators.indexWhere((x) => x.id == item.id);
+    if (i < 0) {
+      _collaborators.add(item);
+    } else {
+      _collaborators[i] = item;
+    }
+  }
+
+  @override
+  void saveVehicle(Vehicle item) {
+    final i = _vehicles.indexWhere((x) => x.id == item.id);
+    if (i < 0) {
+      _vehicles.add(item);
+    } else {
+      _vehicles[i] = item;
+    }
+  }
+
+  @override
+  void saveOnboarding(OnboardingData value) => _onboarding = value;
+}
+
+/// Repositório local para o piloto: conserva os dados neste dispositivo sem
+/// depender de ligação. A sincronização Supabase substitui-o numa fase futura.
+class PersistentOperationRepository extends LocalDemoOperationRepository {
+  PersistentOperationRepository._(this._preferences);
+
+  static const _storageKey = 'punho.operations.v1';
+  final SharedPreferences _preferences;
+  int? _remoteRevision;
+  bool _hasPendingRemoteChanges = false;
+
+  int? get remoteRevision => _remoteRevision;
+  bool get hasPendingRemoteChanges => _hasPendingRemoteChanges;
+
+  static Future<PersistentOperationRepository> create() async {
+    final repository = PersistentOperationRepository._(
+      await SharedPreferences.getInstance(),
+    );
+    repository._restore();
+    return repository;
+  }
+
+  @override
+  void saveMachine(Machine item) {
+    super.saveMachine(item);
+    _markDirty();
+  }
+
+  @override
+  void archiveMachine(String id) {
+    super.archiveMachine(id);
+    _markDirty();
+  }
+
+  @override
+  void saveLead(Lead item) {
+    super.saveLead(item);
+    _markDirty();
+  }
+
+  @override
+  void saveCustomer(Customer item) {
+    super.saveCustomer(item);
+    _markDirty();
+  }
+
+  @override
+  void saveBooking(Booking item) {
+    super.saveBooking(item);
+    _markDirty();
+  }
+
+  @override
+  void saveExpense(Expense item) {
+    super.saveExpense(item);
+    _markDirty();
+  }
+
+  @override
+  void saveReceipt(Receipt item) {
+    super.saveReceipt(item);
+    _markDirty();
+  }
+
+  @override
+  void saveCollaborator(Collaborator item) {
+    super.saveCollaborator(item);
+    _markDirty();
+  }
+
+  @override
+  void saveVehicle(Vehicle item) {
+    super.saveVehicle(item);
+    _markDirty();
+  }
+
+  @override
+  void saveOnboarding(OnboardingData value) {
+    super.saveOnboarding(value);
+    _markDirty();
+  }
+
+  String exportOperationalPayload() => jsonEncode(_operationalPayload());
+
+  bool importOperationalPayload(String raw, {required int revision}) {
+    try {
+      _applyData(Map<String, dynamic>.from(jsonDecode(raw) as Map));
+      _remoteRevision = revision;
+      _hasPendingRemoteChanges = false;
+      _persist();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void markRemoteSynchronized(int revision) {
+    _remoteRevision = revision;
+    _hasPendingRemoteChanges = false;
+    _persist();
+  }
+
+  void _markDirty() {
+    _hasPendingRemoteChanges = true;
+    _persist();
+  }
+
+  Map<String, Object?> _operationalPayload() => <String, Object?>{
+    'onboarding': onboarding == null
+        ? null
+        : {
+            'companyName': onboarding!.companyName,
+            'legalForm': onboarding!.legalForm,
+            'hasFleet': onboarding!.hasFleet,
+            'collaborators': onboarding!.collaborators,
+            'totalMachinesDeclared': onboarding!.totalMachinesDeclared,
+            'insertMachinesNow': onboarding!.insertMachinesNow,
+          },
+    'machines': _machines.map(_machineToJson).toList(),
+    'customers': _customers.map(_customerToJson).toList(),
+    'leads': _leads.map(_leadToJson).toList(),
+    'bookings': _bookings.map(_bookingToJson).toList(),
+    'expenses': _expenses.map(_expenseToJson).toList(),
+    'receipts': _receipts.map(_receiptToJson).toList(),
+    'collaborators': _collaborators.map(_collaboratorToJson).toList(),
+    'vehicles': _vehicles.map(_vehicleToJson).toList(),
+  };
+
+  void _persist() {
+    final data = _operationalPayload();
+    data['sync'] = {
+      'remoteRevision': _remoteRevision,
+      'hasPendingRemoteChanges': _hasPendingRemoteChanges,
+    };
+    _preferences.setString(_storageKey, jsonEncode(data));
+  }
+
+  void _restore() {
+    final raw = _preferences.getString(_storageKey);
+    if (raw == null || raw.isEmpty) return;
+    try {
+      final data = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+      final sync = _mapOrNull(data['sync']);
+      _remoteRevision = _nullableInt(sync?['remoteRevision']);
+      _hasPendingRemoteChanges = sync?['hasPendingRemoteChanges'] == true;
+      _applyData(data);
+    } catch (_) {
+      // Uma cache antiga ou inválida não impede a app de iniciar com os dados demo.
+    }
+  }
+
+  void _applyData(Map<String, dynamic> data) {
+    final onboardingJson = _mapOrNull(data['onboarding']);
+    if (onboardingJson != null) {
+      _onboarding = OnboardingData(
+        companyName: _string(onboardingJson, 'companyName'),
+        legalForm: _string(onboardingJson, 'legalForm'),
+        hasFleet: _bool(onboardingJson, 'hasFleet'),
+        collaborators: _int(onboardingJson, 'collaborators'),
+        totalMachinesDeclared: _int(onboardingJson, 'totalMachinesDeclared'),
+        insertMachinesNow: _bool(onboardingJson, 'insertMachinesNow'),
+      );
+    }
+    _replace(_machines, data['machines'], _machineFromJson);
+    _replace(_customers, data['customers'], _customerFromJson);
+    _replace(_leads, data['leads'], _leadFromJson);
+    _replace(_bookings, data['bookings'], _bookingFromJson);
+    _replace(_expenses, data['expenses'], _expenseFromJson);
+    _replace(_receipts, data['receipts'], _receiptFromJson);
+    _replace(_collaborators, data['collaborators'], _collaboratorFromJson);
+    _replace(_vehicles, data['vehicles'], _vehicleFromJson);
+  }
+
+  void _replace<T>(
+    List<T> target,
+    Object? source,
+    T Function(Map<String, dynamic>) parser,
+  ) {
+    if (source is! List) return;
+    target
+      ..clear()
+      ..addAll(
+        source.map((item) => parser(Map<String, dynamic>.from(item as Map))),
+      );
+  }
+
+  static Map<String, Object?> _machineToJson(Machine item) => {
+    'id': item.id,
+    'name': item.name,
+    'reference': item.reference,
+    'category': item.category,
+    'status': item.status.name,
+    'dailyRateCents': item.dailyRateCents,
+    'acquiredOn': item.acquiredOn?.toIso8601String(),
+    'notes': item.notes,
+    'photoPaths': item.photoPaths,
+    'archived': item.archived,
+  };
+
+  static Machine _machineFromJson(Map<String, dynamic> data) => Machine(
+    id: _string(data, 'id'),
+    name: _string(data, 'name'),
+    reference: _string(data, 'reference'),
+    category: _string(data, 'category'),
+    status: MachineStatus.values.byName(_string(data, 'status', 'available')),
+    dailyRateCents: _nullableInt(data['dailyRateCents']),
+    acquiredOn: _nullableDate(data['acquiredOn']),
+    notes: _string(data, 'notes'),
+    photoPaths: data['photoPaths'] is List
+        ? List<String>.from(data['photoPaths'] as List)
+        : const [],
+    archived: _bool(data, 'archived'),
+  );
+
+  static Map<String, Object?> _customerToJson(Customer item) => {
+    'id': item.id,
+    'name': item.name,
+    'phone': item.phone,
+    'taxId': item.taxId,
+    'email': item.email,
+    'notes': item.notes,
+    'companyId': item.companyId,
+  };
+
+  static Customer _customerFromJson(Map<String, dynamic> data) => Customer(
+    id: _string(data, 'id'),
+    name: _string(data, 'name'),
+    phone: _string(data, 'phone'),
+    taxId: _nullableString(data['taxId']),
+    email: _nullableString(data['email']),
+    notes: _string(data, 'notes'),
+    companyId: _string(data, 'companyId', 'local-company'),
+  );
+
+  static Map<String, Object?> _leadToJson(Lead item) => {
+    'id': item.id,
+    'name': item.name,
+    'phone': item.phone,
+    'status': item.status.name,
+    'source': item.source?.name,
+    'createdAt': item.createdAt.toIso8601String(),
+    'summary': item.summary,
+    'collaboratorResponsibleId': item.collaboratorResponsibleId,
+  };
+
+  static Lead _leadFromJson(Map<String, dynamic> data) => Lead(
+    id: _string(data, 'id'),
+    name: _string(data, 'name'),
+    phone: _string(data, 'phone'),
+    status: LeadStatus.values.byName(_string(data, 'status', 'newLead')),
+    source: _nullableString(data['source']) == null
+        ? null
+        : LeadSource.values.byName(_string(data, 'source')),
+    createdAt: DateTime.parse(_string(data, 'createdAt')),
+    summary: _string(data, 'summary'),
+    collaboratorResponsibleId: _nullableString(
+      data['collaboratorResponsibleId'],
+    ),
+  );
+
+  static Map<String, Object?> _bookingToJson(Booking item) => {
+    'id': item.id,
+    'customerId': item.customerId,
+    'machineIds': item.machineIds,
+    'startsAt': item.startsAt.toIso8601String(),
+    'endsAt': item.endsAt.toIso8601String(),
+    'status': item.status.name,
+    'expectedValueCents': item.expectedValueCents,
+    'collaboratorResponsibleId': item.collaboratorResponsibleId,
+    'companyId': item.companyId,
+    'customerNameSnapshot': item.customerNameSnapshot,
+    'collaboratorNameSnapshot': item.collaboratorNameSnapshot,
+    'notes': item.notes,
+  };
+
+  static Booking _bookingFromJson(Map<String, dynamic> data) => Booking(
+    id: _string(data, 'id'),
+    customerId: _string(data, 'customerId'),
+    machineIds: List<String>.from(data['machineIds'] as List),
+    startsAt: DateTime.parse(_string(data, 'startsAt')),
+    endsAt: DateTime.parse(_string(data, 'endsAt')),
+    status: BookingStatus.values.byName(_string(data, 'status', 'request')),
+    expectedValueCents: _nullableInt(data['expectedValueCents']),
+    collaboratorResponsibleId: _nullableString(
+      data['collaboratorResponsibleId'],
+    ),
+    companyId: _string(data, 'companyId', 'local-company'),
+    customerNameSnapshot: _string(data, 'customerNameSnapshot'),
+    collaboratorNameSnapshot: _string(data, 'collaboratorNameSnapshot'),
+    notes: _string(data, 'notes'),
+  );
+
+  static Map<String, Object?> _expenseToJson(Expense item) => {
+    'id': item.id,
+    'date': item.date.toIso8601String(),
+    'amountCents': item.amountCents,
+    'category': item.category.name,
+    'status': item.status.name,
+    'note': item.note,
+    'description': item.description,
+    'machineId': item.machineId,
+    'vehicleId': item.vehicleId,
+    'documentPath': item.documentPath,
+    'recordedByCollaboratorId': item.recordedByCollaboratorId,
+    'dataSource': item.dataSource.name,
+    'archived': item.archived,
+  };
+
+  static Expense _expenseFromJson(Map<String, dynamic> data) => Expense(
+    id: _string(data, 'id'),
+    date: DateTime.parse(_string(data, 'date')),
+    amountCents: _int(data, 'amountCents'),
+    category: ExpenseCategory.values.byName(_string(data, 'category', 'other')),
+    status: ExpensePaymentStatus.values.byName(_string(data, 'status', 'paid')),
+    note: _string(data, 'note'),
+    description: _string(data, 'description'),
+    machineId: _nullableString(data['machineId']),
+    vehicleId: _nullableString(data['vehicleId']),
+    documentPath: _nullableString(data['documentPath']),
+    recordedByCollaboratorId: _nullableString(data['recordedByCollaboratorId']),
+    dataSource: DocumentDataSource.values.byName(
+      _string(data, 'dataSource', 'manual'),
+    ),
+    archived: _bool(data, 'archived'),
+  );
+
+  static Map<String, Object?> _receiptToJson(Receipt item) => {
+    'id': item.id,
+    'date': item.date.toIso8601String(),
+    'amountCents': item.amountCents,
+    'customerId': item.customerId,
+    'bookingId': item.bookingId,
+    'method': item.method.name,
+    'note': item.note,
+    'recordedByCollaboratorId': item.recordedByCollaboratorId,
+    'archived': item.archived,
+  };
+
+  static Receipt _receiptFromJson(Map<String, dynamic> data) => Receipt(
+    id: _string(data, 'id'),
+    date: DateTime.parse(_string(data, 'date')),
+    amountCents: _int(data, 'amountCents'),
+    customerId: _string(data, 'customerId'),
+    bookingId: _nullableString(data['bookingId']),
+    method: PaymentMethod.values.byName(_string(data, 'method', 'transfer')),
+    note: _string(data, 'note'),
+    recordedByCollaboratorId: _nullableString(data['recordedByCollaboratorId']),
+    archived: _bool(data, 'archived'),
+  );
+
+  static Map<String, Object?> _collaboratorToJson(Collaborator item) => {
+    'id': item.id,
+    'name': item.name,
+    'status': item.status.name,
+    'phone': item.phone,
+    'role': item.role,
+    'costFrequency': item.costFrequency.name,
+    'costCents': item.costCents,
+    'schedule': item.schedule.map(
+      (key, value) => MapEntry('$key', {
+        'works': value.works,
+        'start': value.start == null
+            ? null
+            : {'hour': value.start!.hour, 'minute': value.start!.minute},
+        'end': value.end == null
+            ? null
+            : {'hour': value.end!.hour, 'minute': value.end!.minute},
+      }),
+    ),
+    'notes': item.notes,
+    'archived': item.archived,
+  };
+
+  static Collaborator _collaboratorFromJson(Map<String, dynamic> data) =>
+      Collaborator(
+        id: _string(data, 'id'),
+        name: _string(data, 'name'),
+        status: CollaboratorStatus.values.byName(
+          _string(data, 'status', 'active'),
+        ),
+        phone: _nullableString(data['phone']),
+        role: _nullableString(data['role']),
+        costFrequency: CostFrequency.values.byName(
+          _string(data, 'costFrequency', 'monthly'),
+        ),
+        costCents: _nullableInt(data['costCents']),
+        schedule: _scheduleFromJson(data['schedule']),
+        notes: _string(data, 'notes'),
+        archived: _bool(data, 'archived'),
+      );
+
+  static Map<int, WorkDay> _scheduleFromJson(Object? value) {
+    if (value is! Map) return const {};
+    return value.map((key, rawDay) {
+      final day = Map<String, dynamic>.from(rawDay as Map);
+      final start = _timeFromJson(day['start']);
+      final end = _timeFromJson(day['end']);
+      return MapEntry(
+        int.parse('$key'),
+        WorkDay(works: _bool(day, 'works'), start: start, end: end),
+      );
+    });
+  }
+
+  static TimeOfDay? _timeFromJson(Object? value) {
+    final data = _mapOrNull(value);
+    if (data == null) return null;
+    return TimeOfDay(_int(data, 'hour'), _int(data, 'minute'));
+  }
+
+  static Map<String, Object?> _vehicleToJson(Vehicle item) => {
+    'id': item.id,
+    'plate': item.plate,
+    'type': item.type,
+    'status': item.status.name,
+    'alias': item.alias,
+    'monthlyPaymentCents': item.monthlyPaymentCents,
+    'insuranceCents': item.insuranceCents,
+    'insuranceFrequency': item.insuranceFrequency?.name,
+    'notes': item.notes,
+    'archived': item.archived,
+  };
+
+  static Vehicle _vehicleFromJson(Map<String, dynamic> data) => Vehicle(
+    id: _string(data, 'id'),
+    plate: _string(data, 'plate'),
+    type: _string(data, 'type'),
+    status: VehicleStatus.values.byName(_string(data, 'status', 'active')),
+    alias: _nullableString(data['alias']),
+    monthlyPaymentCents: _nullableInt(data['monthlyPaymentCents']),
+    insuranceCents: _nullableInt(data['insuranceCents']),
+    insuranceFrequency: _nullableString(data['insuranceFrequency']) == null
+        ? null
+        : InsuranceFrequency.values.byName(_string(data, 'insuranceFrequency')),
+    notes: _string(data, 'notes'),
+    archived: _bool(data, 'archived'),
+  );
+
+  static Map<String, dynamic>? _mapOrNull(Object? value) =>
+      value is Map ? Map<String, dynamic>.from(value) : null;
+  static String _string(
+    Map<String, dynamic> data,
+    String key, [
+    String fallback = '',
+  ]) => data[key] is String ? data[key] as String : fallback;
+  static String? _nullableString(Object? value) =>
+      value is String && value.isNotEmpty ? value : null;
+  static int _int(Map<String, dynamic> data, String key, [int fallback = 0]) =>
+      data[key] is num ? (data[key] as num).toInt() : fallback;
+  static int? _nullableInt(Object? value) =>
+      value is num ? value.toInt() : null;
+  static bool _bool(Map<String, dynamic> data, String key) => data[key] == true;
+  static DateTime? _nullableDate(Object? value) =>
+      value is String ? DateTime.tryParse(value) : null;
+}

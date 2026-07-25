@@ -1,0 +1,379 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
+import '../../../core/operations/operations_controller.dart';
+import '../../../domain/models/finance.dart';
+
+class FinanceListPage extends ConsumerWidget {
+  const FinanceListPage({
+    super.key,
+    required this.title,
+    required this.expenses,
+  });
+  final String title;
+  final bool expenses;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(operationsProvider);
+    final now = DateTime.now();
+    final from = DateTime(now.year, now.month, 1);
+    final list = expenses ? state.expenses : state.receipts;
+    final total = expenses
+        ? paidExpenseTotal(state.expenses, from, now)
+        : receiptTotal(state.receipts, from, now);
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Este mês: ${_money(total)}',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: ListView(
+                children: [
+                  for (final item in list)
+                    Card(
+                      child: ListTile(
+                        title: Text(_money(item.amountCents)),
+                        subtitle: Text(
+                          '${item.date.day}/${item.date.month} · ${item.note.isEmpty ? 'Sem nota' : item.note}',
+                        ),
+                        trailing: item is Expense
+                            ? Chip(
+                                label: Text(
+                                  item.status == ExpensePaymentStatus.paid
+                                      ? 'Paga'
+                                      : 'Por pagar',
+                                ),
+                              )
+                            : const Chip(label: Text('Recebido')),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class RegisterExpensePage extends ConsumerStatefulWidget {
+  const RegisterExpensePage({super.key, this.recordedByCollaboratorId});
+  final String? recordedByCollaboratorId;
+  @override
+  ConsumerState<RegisterExpensePage> createState() =>
+      _RegisterExpensePageState();
+}
+
+class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
+  final amount = TextEditingController();
+  final note = TextEditingController();
+  var category = ExpenseCategory.other;
+  late ExpensePaymentStatus status;
+  String? documentPath;
+  String? machineId;
+  String? vehicleId;
+
+  @override
+  void initState() {
+    super.initState();
+    status = widget.recordedByCollaboratorId == null
+        ? ExpensePaymentStatus.paid
+        : ExpensePaymentStatus.unpaid;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final operations = ref.watch(operationsProvider);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Registar despesa')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            TextField(
+              controller: amount,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Valor (€)'),
+            ),
+            Wrap(
+              spacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final file = await FilePicker.platform.pickFiles(
+                      type: FileType.image,
+                    );
+                    if (file?.files.single.path != null) {
+                      setState(() => documentPath = file!.files.single.path);
+                    }
+                  },
+                  icon: const Icon(Icons.attach_file),
+                  label: const Text('Escolher ficheiro'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'A câmara estará disponível em Android numa implementação local futura. Pode preencher manualmente.',
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.camera_alt_outlined),
+                  label: const Text('Fotografar fatura'),
+                ),
+              ],
+            ),
+            if (documentPath != null)
+              Text(
+                'Documento associado: $documentPath',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            const Text(
+              'Sugestões QR/OCR são sempre confirmadas manualmente. Neste dispositivo, se a leitura automática não estiver disponível, preencha os dados abaixo.',
+              style: TextStyle(fontSize: 12),
+            ),
+            DropdownButtonFormField(
+              value: category,
+              items: ExpenseCategory.values
+                  .map((x) => DropdownMenuItem(value: x, child: Text(x.name)))
+                  .toList(),
+              onChanged: (v) => setState(() => category = v!),
+            ),
+            DropdownButtonFormField<String?>(
+              value: machineId,
+              decoration: const InputDecoration(
+                labelText: 'Máquina associada (opcional)',
+              ),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('Sem máquina associada'),
+                ),
+                ...operations.machines
+                    .where((machine) => !machine.archived)
+                    .map(
+                      (machine) => DropdownMenuItem<String?>(
+                        value: machine.id,
+                        child: Text(machine.name),
+                      ),
+                    ),
+              ],
+              onChanged: (value) => setState(() => machineId = value),
+            ),
+            DropdownButtonFormField<String?>(
+              value: vehicleId,
+              decoration: const InputDecoration(
+                labelText: 'Veículo associado (opcional)',
+              ),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('Sem veículo associado'),
+                ),
+                ...operations.vehicles
+                    .where((vehicle) => !vehicle.archived)
+                    .map(
+                      (vehicle) => DropdownMenuItem<String?>(
+                        value: vehicle.id,
+                        child: Text(vehicle.alias ?? vehicle.plate),
+                      ),
+                    ),
+              ],
+              onChanged: (value) => setState(() => vehicleId = value),
+            ),
+            TextField(
+              controller: note,
+              decoration: const InputDecoration(labelText: 'Nota / descrição'),
+            ),
+            if (widget.recordedByCollaboratorId == null)
+              DropdownButtonFormField(
+                value: status,
+                items: ExpensePaymentStatus.values
+                    .map(
+                      (x) => DropdownMenuItem(
+                        value: x,
+                        child: Text(
+                          x == ExpensePaymentStatus.paid ? 'Paga' : 'Por pagar',
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) => setState(() => status = v!),
+              )
+            else
+              const ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.pending_actions_outlined),
+                title: Text('Enviada para validação da empresa'),
+                subtitle: Text(
+                  'Fica por pagar até o gestor confirmar o pagamento ou reembolso.',
+                ),
+              ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () {
+                final cents =
+                    ((double.tryParse(amount.text.replaceAll(',', '.')) ?? 0) *
+                            100)
+                        .round();
+                if (cents <= 0) return;
+                ref
+                    .read(operationsProvider.notifier)
+                    .saveExpense(
+                      Expense(
+                        id: 'e${DateTime.now().microsecondsSinceEpoch}',
+                        date: DateTime.now(),
+                        amountCents: cents,
+                        category: category,
+                        status: status,
+                        note: note.text,
+                        documentPath: documentPath,
+                        machineId: machineId,
+                        vehicleId: vehicleId,
+                        recordedByCollaboratorId:
+                            widget.recordedByCollaboratorId,
+                      ),
+                    );
+                Navigator.pop(context);
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class RegisterReceiptPage extends ConsumerStatefulWidget {
+  const RegisterReceiptPage({super.key, this.recordedByCollaboratorId});
+  final String? recordedByCollaboratorId;
+  @override
+  ConsumerState<RegisterReceiptPage> createState() =>
+      _RegisterReceiptPageState();
+}
+
+class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
+  final amount = TextEditingController();
+  final note = TextEditingController();
+  PaymentMethod method = PaymentMethod.transfer;
+  String? customerId;
+  String? bookingId;
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(operationsProvider);
+    final customers = state.customers;
+    final selectedCustomerId =
+        customerId ?? (customers.isEmpty ? null : customers.first.id);
+    final customerBookings = state.bookings
+        .where((booking) => booking.customerId == selectedCustomerId)
+        .toList();
+    return Scaffold(
+      appBar: AppBar(title: const Text('Registar recebimento')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            TextField(
+              controller: amount,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Valor (€)'),
+            ),
+            DropdownButtonFormField<String>(
+              value: selectedCustomerId,
+              decoration: const InputDecoration(labelText: 'Cliente'),
+              items: customers
+                  .map(
+                    (customer) => DropdownMenuItem(
+                      value: customer.id,
+                      child: Text(customer.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: customers.isEmpty
+                  ? null
+                  : (value) => setState(() {
+                      customerId = value;
+                      bookingId = null;
+                    }),
+            ),
+            DropdownButtonFormField<String?>(
+              value: bookingId,
+              decoration: const InputDecoration(
+                labelText: 'Associar a reserva (opcional)',
+              ),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('Sem reserva associada'),
+                ),
+                ...customerBookings.map(
+                  (booking) => DropdownMenuItem<String?>(
+                    value: booking.id,
+                    child: Text(
+                      '${booking.startsAt.day}/${booking.startsAt.month} · ${booking.status.name}',
+                    ),
+                  ),
+                ),
+              ],
+              onChanged: (value) => setState(() => bookingId = value),
+            ),
+            DropdownButtonFormField(
+              value: method,
+              items: PaymentMethod.values
+                  .map((x) => DropdownMenuItem(value: x, child: Text(x.name)))
+                  .toList(),
+              onChanged: (v) => setState(() => method = v!),
+            ),
+            TextField(
+              controller: note,
+              decoration: const InputDecoration(labelText: 'Nota'),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: customers.isEmpty
+                  ? null
+                  : () {
+                      final cents =
+                          ((double.tryParse(amount.text.replaceAll(',', '.')) ??
+                                      0) *
+                                  100)
+                              .round();
+                      if (cents <= 0) return;
+                      ref
+                          .read(operationsProvider.notifier)
+                          .saveReceipt(
+                            Receipt(
+                              id: 'r${DateTime.now().microsecondsSinceEpoch}',
+                              date: DateTime.now(),
+                              amountCents: cents,
+                              customerId: selectedCustomerId!,
+                              bookingId: bookingId,
+                              recordedByCollaboratorId:
+                                  widget.recordedByCollaboratorId,
+                              method: method,
+                              note: note.text,
+                            ),
+                          );
+                      Navigator.pop(context);
+                    },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _money(int cents) =>
+    '${(cents / 100).toStringAsFixed(2).replaceAll('.', ',')} €';

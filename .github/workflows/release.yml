@@ -1,0 +1,74 @@
+name: Release Punho
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - run: flutter pub get
+      - run: flutter test
+      - run: flutter build apk --release --build-name=${{ steps.version.outputs.version }}
+      - name: Rename APK
+        run: mv build/app/outputs/flutter-apk/app-release.apk punho-android-${{ github.ref_name }}.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: punho-android-${{ github.ref_name }}.apk
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Get version from tag
+        id: version
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - run: flutter pub get
+      - run: flutter test
+      - run: flutter build windows --release --build-name=${{ steps.version.outputs.version }}
+      - name: Zip Windows build
+        shell: pwsh
+        run: |
+          $out = "punho-windows-${{ github.ref_name }}.zip"
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath $out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: punho-windows-${{ github.ref_name }}.zip
+
+  release:
+    name: Publish GitHub Release
+    needs: [build-android, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/android-apk/*.apk
+            artifacts/windows-zip/*.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false

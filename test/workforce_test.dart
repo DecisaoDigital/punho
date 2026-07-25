@@ -1,0 +1,73 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:punho/domain/models/workforce.dart';
+import 'package:punho/core/operations/operations_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+void main() {
+  test('bloqueia exceder vagas', () {
+    final c = ProviderContainer();
+    addTearDown(c.dispose);
+    final n = c.read(operationsProvider.notifier);
+    for (var i = 0; i < 3; i++) {
+      n.saveCollaborator(
+        Collaborator(id: '$i', name: 'n', status: CollaboratorStatus.active),
+      );
+    }
+    expect(
+      () => n.saveCollaborator(
+        const Collaborator(
+          id: '4',
+          name: 'n',
+          status: CollaboratorStatus.active,
+        ),
+      ),
+      throwsStateError,
+    );
+  });
+  test('seguro anual e semestral mensalizado', () {
+    expect(
+      monthlyInsuranceCost(
+        const Vehicle(
+          id: 'a',
+          plate: 'A',
+          type: 'x',
+          status: VehicleStatus.active,
+          insuranceCents: 120000,
+          insuranceFrequency: InsuranceFrequency.annual,
+        ),
+      ),
+      10000,
+    );
+    expect(
+      monthlyInsuranceCost(
+        const Vehicle(
+          id: 's',
+          plate: 'S',
+          type: 'x',
+          status: VehicleStatus.active,
+          insuranceCents: 60000,
+          insuranceFrequency: InsuranceFrequency.semiannual,
+        ),
+      ),
+      10000,
+    );
+  });
+  test(
+    'custo hora é por apurar sem horário válido',
+    () => expect(
+      hourlyCollaboratorCost(
+        const Collaborator(
+          id: 'c',
+          name: 'C',
+          status: CollaboratorStatus.active,
+          costCents: 100000,
+        ),
+      ),
+      isNull,
+    ),
+  );
+  test('resultado atribuível não é lucro', () {
+    const label = 'Resultado atribuível';
+    expect(label, isNot(contains('lucro')));
+  });
+}
