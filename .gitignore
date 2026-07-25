@@ -108,3 +108,6 @@ web/flutter_service_worker.js
 # ---------------------------------------------------------------------------
 supabase/.branches/
 supabase/.temp/
+
+# Inno Setup output
+installer_output/

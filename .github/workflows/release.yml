@@ -10,8 +10,15 @@ jobs:
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -20,7 +27,11 @@ jobs:
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
       - run: flutter pub get
       - run: flutter test
-      - run: flutter build apk --release --build-name=${{ steps.version.outputs.version }}
+      - run: |
+          flutter build apk --release \
+            --build-name=${{ steps.version.outputs.version }} \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
       - name: Rename APK
         run: mv build/app/outputs/flutter-apk/app-release.apk punho-android-${{ github.ref_name }}.apk
       - uses: actions/upload-artifact@v4
@@ -29,8 +40,11 @@ jobs:
           path: punho-android-${{ github.ref_name }}.apk
 
   build-windows:
-    name: Build Windows
+    name: Build Windows Installer
     runs-on: windows-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -42,16 +56,34 @@ jobs:
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
       - run: flutter pub get
       - run: flutter test
-      - run: flutter build windows --release --build-name=${{ steps.version.outputs.version }}
-      - name: Zip Windows build
+      - shell: pwsh
+        run: |
+          flutter build windows --release `
+            --build-name=${{ steps.version.outputs.version }} `
+            --dart-define=SUPABASE_URL=$env:SUPABASE_URL `
+            --dart-define=SUPABASE_ANON_KEY=$env:SUPABASE_ANON_KEY
+      - name: Verify Inno Setup is available
         shell: pwsh
         run: |
-          $out = "punho-windows-${{ github.ref_name }}.zip"
-          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath $out
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+      - name: Compile installer (Inno Setup)
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          & $iscc "/DMyAppVersion=${{ steps.version.outputs.version }}" installer\punho_setup.iss
+      - name: Rename installer
+        shell: pwsh
+        run: |
+          $src = "installer_output\Punho_Setup_v${{ steps.version.outputs.version }}.exe"
+          $dst = "Punho_Setup_${{ github.ref_name }}.exe"
+          Move-Item -Path $src -Destination $dst
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-zip
-          path: punho-windows-${{ github.ref_name }}.zip
+          name: windows-installer
+          path: Punho_Setup_${{ github.ref_name }}.exe
 
   release:
     name: Publish GitHub Release
@@ -68,7 +100,7 @@ jobs:
         with:
           files: |
             artifacts/android-apk/*.apk
-            artifacts/windows-zip/*.zip
+            artifacts/windows-installer/*.exe
           generate_release_notes: true
           draft: false
           prerelease: false
