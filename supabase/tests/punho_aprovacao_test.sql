@@ -11,7 +11,10 @@
 --   Termina com "TODOS OS CENÁRIOS PASSARAM" => passou.
 --   Levanta excepção com o cenário que falhou => corrigir antes de aplicar.
 --
--- ESTADO: por correr. Ver docs/design/control_aprova_punho.md (repo Control).
+-- ESTADO: CORRIDO EM PRODUÇÃO em 2026-07-26, todos os cenários passaram.
+--         Estado confrontado antes/depois: admins 1 -> 1 (mesmo UUID), zero
+--         sobras de utilizadores de teste, zero linhas punho. O rollback
+--         aguentou. Ver docs/design/control_aprova_punho.md (repo Control).
 -- ============================================================================
 
 begin;
@@ -74,7 +77,13 @@ begin
   -- 3. Não-admin é recusado. (Primeiro, para garantir que a guarda existe
   --    antes de qualquer escrita.)
   -- ------------------------------------------------------------------
-  set local role authenticated;
+  -- Muda-se só a identidade (`request.jwt.claims`), NÃO o role. As RPCs são
+  -- `security definer` e a guarda delas é `is_admin()`, que lê `auth.uid()`
+  -- das claims — não depende do role. Com `set local role authenticated` as
+  -- verificações a seguir liam as tabelas através da RLS e falhavam: o admin
+  -- global não é membro de empresa nenhuma, logo `punho_empresa_atual()` é
+  -- nulo e ele não vê `punho_empresas`. Isso mascarava uma RPC que estava
+  -- correcta. Quem testa a RLS é rls_smoke_isolamento_empresas.sql.
   perform set_config('request.jwt.claims',
     json_build_object('sub', v_livre, 'role', 'authenticated')::text, true);
   begin
@@ -209,7 +218,6 @@ begin
     when sqlstate 'P0001' then null;  -- esperado
   end;
 
-  reset role;
   raise notice 'TODOS OS CENÁRIOS PASSARAM.';
 end $$;
 
