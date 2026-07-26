@@ -1,0 +1,12 @@
+<!-- Placeholder da marca: quadrado laranja + mão aberta, igual ao BrandLockup
+     da app (lib/shared/widgets/brand_lockup.dart). Substituir pelo logótipo
+     final quando existir — ver assets/brand/README.md. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Punho">
+  <rect width="48" height="48" rx="12" fill="#F2A23A"/>
+  <g fill="none" stroke="#10283A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 24V14.5a2 2 0 0 1 4 0V23"/>
+    <path d="M21 22.5v-9a2 2 0 0 1 4 0V23"/>
+    <path d="M25 22.5v-8a2 2 0 0 1 4 0V24"/>
+    <path d="M29 24v-5a2 2 0 0 1 4 0v9a9 9 0 0 1-9 9h-1a8 8 0 0 1-8-8v-4.5a2 2 0 0 1 4 0V26"/>
+  </g>
+</svg>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email confirmado · Punho</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/punho-logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<!-- Destino do link de confirmação do email (`emailRedirectTo` no signUp da
+     landing de convites). Sem esta página o Supabase mandava o utilizador para
+     a Site URL do projecto, que é do Control e nada lhe diz. É estática de
+     propósito: a confirmação já aconteceu do lado do servidor. -->
+<div class="pagina">
+  <div class="marca">
+    <img src="/assets/punho-logo.svg" alt="">
+    <div class="marca-texto">
+      <span class="marca-nome">Punho</span>
+      <span class="marca-slogan">Agarra o comando.</span>
+    </div>
+  </div>
+
+  <main class="cartao">
+    <div class="selo" aria-hidden="true">✓</div>
+    <h1 class="centro">Email confirmado</h1>
+    <p class="suave">O teu endereço está confirmado. Agora o acesso está
+      <strong>pendente de aprovação</strong> — recebes aviso quando ficar
+      activo.</p>
+    <p class="suave">Enquanto esperas, instala a app. Se entrares antes da
+      aprovação, vês o ecrã "Pedido em análise" — é normal, e não precisas de
+      voltar a registar-te.</p>
+
+    <h2>Descarregar</h2>
+    <a class="botao" href="/download">Punho para Android</a>
+    <a class="botao secundario" href="/download">Punho para Windows</a>
+    <p class="ajuda centro">Os dois ficheiros estão na mesma página de
+      descargas.</p>
+  </main>
+
+  <p class="rodape">
+    Punho · <a href="/">punho.decisaodigital.pt</a><br>
+    <a href="mailto:cesarmendes78@gmail.com">cesarmendes78@gmail.com</a>
+  </p>
+</div>
+</body>
+</html>

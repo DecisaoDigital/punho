@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aceitar convite · Punho</title>
+  <meta name="description" content="Cria a tua conta Punho a partir do convite que recebeste.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/punho-logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<div class="pagina">
+  <div class="marca">
+    <img src="/assets/punho-logo.svg" alt="">
+    <div class="marca-texto">
+      <span class="marca-nome">Punho</span>
+      <span class="marca-slogan">Agarra o comando.</span>
+    </div>
+  </div>
+
+  <main class="cartao">
+    <!-- 1. À espera da validação do código -->
+    <section id="estado-carregar">
+      <h1>A validar o convite…</h1>
+      <p class="suave">Um instante.</p>
+    </section>
+
+    <!-- 2. Código imprestável -->
+    <section id="estado-recusado" hidden>
+      <div class="selo alerta" aria-hidden="true">!</div>
+      <h1 class="centro" id="recusado-titulo">Convite inválido</h1>
+      <p class="centro suave" id="recusado-texto"></p>
+      <p class="centro suave">Pede um convite novo a quem te convidou — cada
+        código serve uma vez e dura 14 dias.</p>
+      <a class="botao secundario" href="/download">Descarregar o Punho</a>
+    </section>
+
+    <!-- 3. Formulário de criação de conta -->
+    <section id="estado-formulario" hidden>
+      <h1>Criar a tua conta Punho</h1>
+      <p class="suave">Convite válido. Preenche os dados e a conta fica criada —
+        a app instala-se depois.</p>
+
+      <form id="form" novalidate>
+        <label for="nome">Nome</label>
+        <input id="nome" name="nome" type="text" autocomplete="name"
+               required maxlength="120" placeholder="O teu nome">
+
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email"
+               inputmode="email" required placeholder="nome@empresa.pt">
+        <p class="ajuda">Tem de ser o email onde recebeste o convite — o código
+          está preso a ele.</p>
+
+        <label for="password">Palavra-passe</label>
+        <input id="password" name="password" type="password"
+               autocomplete="new-password" required minlength="8"
+               placeholder="Mínimo 8 caracteres">
+
+        <label for="password2">Repetir a palavra-passe</label>
+        <input id="password2" name="password2" type="password"
+               autocomplete="new-password" required minlength="8"
+               placeholder="Escreve outra vez">
+
+        <div id="erro" class="aviso erro" role="alert" hidden></div>
+
+        <button id="submeter" class="botao" type="submit">Criar conta</button>
+      </form>
+    </section>
+
+    <!-- 4. Conta criada -->
+    <section id="estado-sucesso" hidden>
+      <div class="selo" aria-hidden="true">✓</div>
+      <h1 class="centro">Conta criada</h1>
+      <p class="suave">Falta pouco:</p>
+      <ol class="passos">
+        <li>Recebes um <strong>email para confirmar</strong> o endereço. Abre-o e
+          clica no link.</li>
+        <li>Depois disso o acesso fica <strong>pendente de aprovação</strong>.
+          Recebes aviso quando ficar activo.</li>
+        <li>Entretanto podes já instalar a app.</li>
+      </ol>
+      <h2>Descarregar</h2>
+      <a class="botao" href="/download">Punho para Android</a>
+      <a class="botao secundario" href="/download">Punho para Windows</a>
+      <p class="ajuda centro">Os dois ficheiros estão na mesma página de
+        descargas.</p>
+    </section>
+  </main>
+
+  <p class="rodape">
+    Punho · <a href="/">punho.decisaodigital.pt</a><br>
+    Precisas de ajuda? <a href="mailto:cesarmendes78@gmail.com">cesarmendes78@gmail.com</a>
+  </p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // Chaves públicas do projecto, de propósito no código do cliente: a anon key
+  // é pública por desenho e toda a autorização vive nas policies e nas RPCs
+  // `security definer`. NUNCA pôr aqui a service role key.
+  var SUPABASE_URL = 'https://oefqbkhioncakojipqyx.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lZnFia2hpb25jYWtvamlwcXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjM1NTYsImV4cCI6MjA5ODMzOTU1Nn0.DMv74ihRFG4zfuhwosKrolWVHQWEVUqmFlM8GP6RV9Y';
+
+  var seccoes = {
+    carregar: document.getElementById('estado-carregar'),
+    recusado: document.getElementById('estado-recusado'),
+    formulario: document.getElementById('estado-formulario'),
+    sucesso: document.getElementById('estado-sucesso')
+  };
+
+  function mostrar(nome) {
+    Object.keys(seccoes).forEach(function (chave) {
+      seccoes[chave].hidden = chave !== nome;
+    });
+  }
+
+  function recusar(titulo, texto) {
+    document.getElementById('recusado-titulo').textContent = titulo;
+    document.getElementById('recusado-texto').textContent = texto;
+    mostrar('recusado');
+  }
+
+  /// Lê o código de `/convite/A3F2B819D0` ou de `?codigo=A3F2B819D0`. A query
+  /// existe para poder abrir o ficheiro localmente, sem servidor nem rewrites.
+  function lerCodigo() {
+    var daQuery = new URLSearchParams(location.search).get('codigo');
+    if (daQuery && daQuery.trim()) return daQuery.trim();
+    var partes = location.pathname.split('/').filter(function (p) { return p; });
+    var ultima = partes[partes.length - 1] || '';
+    if (!ultima || ultima === 'convite' || ultima.indexOf('.') !== -1) return '';
+    return decodeURIComponent(ultima).trim();
+  }
+
+  var MENSAGENS = {
+    invalido: 'Não encontrámos este convite. Confirma que abriste o link completo.',
+    expirado: 'Este convite passou dos 14 dias de validade.',
+    usado: 'Este convite já foi utilizado para criar uma conta.'
+  };
+
+  var TITULOS = {
+    invalido: 'Convite inválido',
+    expirado: 'Convite expirado',
+    usado: 'Convite já utilizado'
+  };
+
+  var codigo = lerCodigo();
+  var cliente = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    // A landing não guarda sessão: cria a conta e acaba ali. Sem isto ficava um
+    // token no localStorage do telemóvel de quem só passou por aqui uma vez.
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+
+  function validarConvite() {
+    if (!codigo) {
+      recusar('Falta o código', 'Abre o link do convite tal como o recebeste, ' +
+        'incluindo o código no fim.');
+      return;
+    }
+    cliente.rpc('punho_validar_convite', { p_codigo: codigo })
+      .then(function (resposta) {
+        if (resposta.error) throw resposta.error;
+        var estado = resposta.data;
+        if (estado === 'valido') {
+          mostrar('formulario');
+          document.getElementById('nome').focus();
+          return;
+        }
+        recusar(TITULOS[estado] || TITULOS.invalido,
+                MENSAGENS[estado] || MENSAGENS.invalido);
+      })
+      .catch(function () {
+        // Falha de rede ou projecto em baixo. Não se diz "convite inválido":
+        // seria mentira e o convidado desistia de um convite bom.
+        recusar('Não foi possível validar',
+          'Falhou a ligação ao servidor. Tenta outra vez dentro de um minuto — ' +
+          'o convite continua válido.');
+      });
+  }
+
+  // --- Submissão ---------------------------------------------------------
+  var form = document.getElementById('form');
+  var botao = document.getElementById('submeter');
+  var caixaErro = document.getElementById('erro');
+  var aEnviar = false;
+
+  function erro(texto) {
+    caixaErro.textContent = texto;
+    caixaErro.hidden = false;
+  }
+
+  function validarCampos(dados) {
+    if (!dados.nome) return 'Escreve o teu nome.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(dados.email)) {
+      return 'Escreve um email válido.';
+    }
+    if (dados.password.length < 8) {
+      return 'A palavra-passe precisa de pelo menos 8 caracteres.';
+    }
+    if (dados.password !== dados.password2) {
+      return 'As duas palavras-passe não são iguais.';
+    }
+    return null;
+  }
+
+  /// O trigger `punho_criar_pedido_ao_registar` exige que o email do registo
+  /// seja o mesmo do convite, e rebenta a criação do utilizador se não for. O
+  /// GoTrue devolve isso como erro genérico de base de dados, por isso não se
+  /// consegue distinguir a causa exacta — diz-se a mais provável, que é esta.
+  function mensagemDeErro(err) {
+    var texto = (err && (err.message || err.error_description) || '').toLowerCase();
+    if (texto.indexOf('already registered') !== -1 || texto.indexOf('already exists') !== -1) {
+      return 'Já existe uma conta com este email. Instala a app e entra com ela.';
+    }
+    if (texto.indexOf('password') !== -1) {
+      return 'Palavra-passe recusada pelo servidor. Escolhe uma mais longa.';
+    }
+    if (texto.indexOf('rate limit') !== -1 || texto.indexOf('too many') !== -1) {
+      return 'Demasiadas tentativas seguidas. Espera um minuto e tenta de novo.';
+    }
+    if (texto.indexOf('database') !== -1 || texto.indexOf('convite') !== -1) {
+      return 'O convite não aceitou este email. Usa o mesmo endereço onde ' +
+        'recebeste o convite — o código está preso a ele.';
+    }
+    return 'Não foi possível criar a conta. Tenta outra vez; se continuar, ' +
+      'fala com quem te convidou.';
+  }
+
+  form.addEventListener('submit', function (evento) {
+    evento.preventDefault();
+    if (aEnviar) return;
+    caixaErro.hidden = true;
+
+    var dados = {
+      nome: document.getElementById('nome').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value,
+      password2: document.getElementById('password2').value
+    };
+
+    var problema = validarCampos(dados);
+    if (problema) { erro(problema); return; }
+
+    aEnviar = true;
+    botao.disabled = true;
+    botao.textContent = 'A criar conta…';
+
+    var opcoes = {
+      // `empresa` e `perfil` vão vazios de propósito: com convite válido é o
+      // trigger no servidor que os lê do próprio convite. A landing não decide
+      // empresas nem cargos.
+      data: { app: 'punho', convite: codigo, nome: dados.nome, empresa: '', perfil: '' }
+    };
+    // Aberto como ficheiro local (origin "null") não se manda destino nenhum —
+    // o Supabase usaria a Site URL do projecto, e o link do email só interessa
+    // no domínio a sério.
+    if (location.origin.indexOf('http') === 0) {
+      opcoes.emailRedirectTo = location.origin + '/confirmado';
+    }
+
+    cliente.auth.signUp({
+      email: dados.email,
+      password: dados.password,
+      options: opcoes
+    }).then(function (resposta) {
+      if (resposta.error) throw resposta.error;
+      var utilizador = resposta.data && resposta.data.user;
+      // Com "confirm email" ligado, um email já registado devolve um utilizador
+      // sem identidades em vez de erro — para não revelar quem tem conta.
+      if (utilizador && utilizador.identities && utilizador.identities.length === 0) {
+        erro('Já existe uma conta com este email. Instala a app e entra com ela.');
+        return;
+      }
+      mostrar('sucesso');
+    }).catch(function (err) {
+      erro(mensagemDeErro(err));
+    }).then(function () {
+      aEnviar = false;
+      botao.disabled = false;
+      botao.textContent = 'Criar conta';
+    });
+  });
+
+  validarConvite();
+})();
+</script>
+</body>
+</html>

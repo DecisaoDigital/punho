@@ -1,0 +1,174 @@
+/* Punho — landing pública. Cores tiradas de lib/core/theme/punho_theme.dart
+   para a web e a app parecerem a mesma coisa. */
+:root {
+  --navy: #10283a;
+  --navy-deep: #0a1c2a;
+  --orange: #f2a23a;
+  --fundo: #f5f7fa;
+  --texto: #10283a;
+  --texto-suave: #5b6b78;
+  --borda: #e5eaf0;
+  --erro: #b3261e;
+  --ok: #1b6e3c;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--navy);
+  color: var(--texto);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.pagina {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 20px 48px;
+}
+
+/* --- Marca ------------------------------------------------------------- */
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.marca img { width: 44px; height: 44px; display: block; }
+
+.marca-texto { display: flex; flex-direction: column; }
+.marca-nome {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+.marca-slogan { color: #b7c5ce; font-size: 12px; }
+
+/* --- Cartão ------------------------------------------------------------ */
+.cartao {
+  width: 100%;
+  max-width: 460px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 24px;
+  box-shadow: 0 10px 30px rgba(10, 28, 42, 0.25);
+}
+
+h1 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+h2 {
+  margin: 24px 0 8px;
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--texto-suave);
+}
+
+p { margin: 0 0 12px; }
+p.suave { color: var(--texto-suave); font-size: 14px; }
+.centro { text-align: center; }
+
+/* --- Formulário -------------------------------------------------------- */
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  margin: 14px 0 5px;
+}
+
+input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  font-size: 16px; /* 16px evita o zoom automático do Safari em iOS */
+  font-family: inherit;
+  background: #fff;
+  color: var(--texto);
+}
+
+input:focus {
+  outline: 2px solid var(--orange);
+  outline-offset: 1px;
+  border-color: var(--orange);
+}
+
+input[aria-invalid="true"] { border-color: var(--erro); }
+
+.ajuda { font-size: 12px; color: var(--texto-suave); margin-top: 4px; }
+
+.botao {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px 18px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--orange);
+  color: var(--navy-deep);
+  font-size: 16px;
+  font-weight: 800;
+  font-family: inherit;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.botao:disabled { opacity: 0.55; cursor: default; }
+
+.botao.secundario {
+  background: #fff;
+  color: var(--navy);
+  border: 1.5px solid var(--navy);
+}
+
+/* --- Mensagens --------------------------------------------------------- */
+.aviso {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+.aviso.erro { background: #fdecea; color: var(--erro); }
+.aviso.ok { background: #e8f5ec; color: var(--ok); }
+
+.selo {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  background: #e8f5ec;
+}
+.selo.alerta { background: #fdecea; }
+
+.passos { margin: 0; padding-left: 20px; color: var(--texto-suave); font-size: 14px; }
+.passos li { margin-bottom: 6px; }
+
+.rodape {
+  margin-top: 26px;
+  color: #8fa2b0;
+  font-size: 12px;
+  text-align: center;
+}
+.rodape a { color: #b7c5ce; }
+
+[hidden] { display: none !important; }
