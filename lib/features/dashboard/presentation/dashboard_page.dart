@@ -10,6 +10,7 @@ import '../../../domain/models/finance.dart';
 import '../../../domain/models/workforce.dart';
 import '../../../domain/models/historical_month.dart';
 import '../../../core/guidance/guidance_engine.dart';
+import '../../company/presentation/company_settings_page.dart';
 import '../../finance/presentation/finance_pages.dart';
 import '../../operations/presentation/operational_pages.dart';
 
@@ -98,11 +99,29 @@ class DashboardPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Gestão',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Gestão',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                // Entrada para os dados da empresa. Fica aqui e não na barra
+                // lateral: aquela tem 72 dp e este ecrã visita-se poucas vezes.
+                IconButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CompanySettingsPage(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.edit_note),
+                  tooltip: 'Editar dados da empresa',
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             Text('Olá, ${state.ownerName ?? state.companyName}.'),
