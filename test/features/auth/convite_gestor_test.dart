@@ -140,6 +140,55 @@ void main() {
     });
   });
 
+  group('Mensagem de convite', () {
+    final convite = Convite(
+      codigo: 'A3F2B819D0',
+      email: 'novo@exemplo.pt',
+      perfil: 'colaborador',
+      expiraEm: DateTime.parse('2026-08-09T12:00:00Z'),
+    );
+
+    test('leva o link único da landing à frente do código', () {
+      final texto = mensagemConvite(convite);
+
+      expect(texto, contains('https://punho.decisaodigital.pt/convite/A3F2B819D0'));
+      // O link tem de vir antes do código: é o caminho curto.
+      expect(
+        texto.indexOf('/convite/A3F2B819D0'),
+        lessThan(texto.lastIndexOf('A3F2B819D0')),
+      );
+    });
+
+    test('mantém o código e a página de descarga como recurso', () {
+      final texto = mensagemConvite(convite);
+
+      expect(texto, contains('A3F2B819D0'));
+      expect(texto, contains('https://punho.decisaodigital.pt/download'));
+      // Já não manda ninguém directamente ao GitHub: o link envelhecia a cada
+      // release e a landing passou a redireccionar.
+      expect(texto, isNot(contains('github.com')));
+    });
+
+    test('diz o cargo certo e avisa do email preso ao convite', () {
+      expect(mensagemConvite(convite), contains('colaborador'));
+      expect(
+        mensagemConvite(
+          Convite(
+            codigo: 'G1',
+            email: 'g@exemplo.pt',
+            perfil: 'gestor',
+            expiraEm: DateTime.parse('2026-08-09T12:00:00Z'),
+          ),
+        ),
+        contains('como gestor'),
+      );
+      // O trigger de `auth.users` exige que o email do registo seja o do
+      // convite. Se a mensagem não o disser, o convidado descobre-o a bater
+      // contra um erro.
+      expect(mensagemConvite(convite), contains('email'));
+    });
+  });
+
   group('Convite (modelo)', () {
     final agora = DateTime.parse('2026-07-26T12:00:00Z');
     Convite comExpiracao(DateTime quando, {bool usado = false}) => Convite(

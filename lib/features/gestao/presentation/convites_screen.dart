@@ -2,10 +2,43 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/auth/auth_rules.dart';
 import '../../auth/acesso_providers.dart';
 import '../../auth/data/acesso_service.dart';
+
+/// Base da landing pública do Punho (pasta `web/` deste repositório, servida
+/// pela Vercel). É a única constante a mudar se o domínio mudar.
+const kBaseLandingPunho = 'https://punho.decisaodigital.pt';
+
+/// Link único do convite. Abre a landing que valida o código e cria a conta,
+/// sem o convidado ter de instalar nada primeiro nem copiar códigos à mão.
+String linkConvite(String codigo) => '$kBaseLandingPunho/convite/$codigo';
+
+/// Página de descarga da app. Redirecciona para o GitHub Releases mais recente
+/// (ver `web/vercel.json`), para o link partilhado nunca envelhecer.
+const kUrlDescargaPunho = '$kBaseLandingPunho/download';
+
+/// Constrói a mensagem completa a partilhar — link único primeiro, código como
+/// recurso. É função de topo para os testes a poderem asserter sem montar o
+/// diálogo nem passar pelo `launchUrl`.
+///
+/// O link vem à frente porque é o caminho curto: abre no telemóvel, cria a
+/// conta e só depois é que a app é instalada. O código fica escrito porque a
+/// landing pode não abrir (sem rede, DNS por propagar, link cortado por um
+/// cliente de mensagens) e nesse caso a app aceita-o à mão.
+String mensagemConvite(Convite convite) {
+  final cargo = convite.perfil == 'gestor' ? 'gestor' : 'colaborador';
+  return 'Olá! Foste convidado(a) para o Punho como $cargo.\n\n'
+      'Abre este link no telemóvel para criares conta:\n'
+      '${linkConvite(convite.codigo)}\n\n'
+      'Se o link não funcionar, instala a app em\n'
+      '$kUrlDescargaPunho\n'
+      'e usa este código de convite: ${convite.codigo}\n\n'
+      'Usa o email onde recebeste este convite — o código está preso a ele.\n'
+      'Código válido durante 14 dias e de uma só utilização.';
+}
 
 /// Convites da empresa, para um gestor já aprovado.
 ///
@@ -66,6 +99,25 @@ class _ConvitesScreenState extends ConsumerState<ConvitesScreen> {
     }
   }
 
+  Future<void> _partilharWhatsApp(Convite convite) async {
+    final texto = Uri.encodeComponent(mensagemConvite(convite));
+    final url = Uri.parse('https://wa.me/?text=$texto');
+    // externalApplication: se WhatsApp instalado, abre a app; senão o browser
+    // abre wa.me que faz o redirect ou pede para instalar.
+    final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      // Falha genuína a abrir URL (raro). Fallback: copia mensagem toda para
+      // colar noutro sítio.
+      await Clipboard.setData(ClipboardData(text: mensagemConvite(convite)));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não abriu o WhatsApp. Mensagem copiada.'),
+        ),
+      );
+    }
+  }
+
   Future<void> _mostrarCodigo(Convite convite) => showDialog<void>(
     context: context,
     builder: (dialogContext) => AlertDialog(
@@ -92,6 +144,11 @@ class _ConvitesScreenState extends ConsumerState<ConvitesScreen> {
         ],
       ),
       actions: [
+        TextButton.icon(
+          onPressed: () => _partilharWhatsApp(convite),
+          icon: const Icon(Icons.send, size: 18),
+          label: const Text('Enviar por WhatsApp'),
+        ),
         TextButton(
           onPressed: () =>
               Clipboard.setData(ClipboardData(text: convite.codigo)),
