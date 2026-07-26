@@ -75,6 +75,37 @@ Contagem regressiva antes de bloquear, mensagem a dizer *porquê* é obrigatóri
 localização das mensagens. Hoje bloqueia de imediato com texto fixo — correcto,
 mas seco.
 
+## Deixado de fora da landing de convites
+
+A landing pública (`web/`) entrou com o essencial: validar o código, criar a
+conta, mandar descarregar a app. Ver `web/README.md`.
+
+### Deep link `punho://convite/<codigo>` — v0.1.0
+
+Abrir a app directamente se já estiver instalada, em vez de passar pelo browser.
+Precisa de intent-filter no `AndroidManifest.xml` e, para iOS, de associated
+domains com o ficheiro `apple-app-site-association` servido pela landing. Só
+compensa quando houver instalações a sério para aproveitar.
+
+### QR code do link no diálogo do gestor
+
+Trivial de fazer (um `QrImageView`, ou a própria landing a desenhá-lo), útil
+quando o gestor está ao lado do convidado em vez de lhe mandar mensagem. Fica
+para quando for pedido.
+
+### Email transaccional próprio (Resend/SendGrid)
+
+Hoje o email de confirmação é o do Supabase Auth, com o limite de envios do
+plano gratuito e o remetente deles. Um serviço próprio dava melhor
+deliverability, remetente `@decisaodigital.pt` e controlo do template. Só quando
+o volume justificar.
+
+### Analytics da landing
+
+Quantos abrem o link, quantos completam o registo, onde desistem. Sem isto não
+se sabe se o fluxo funciona — mas com um punhado de convidados pergunta-se
+directamente. Adicionar quando houver volume que valha medir.
+
 ## Dívida técnica registada
 
 - Auditoria completa de RLS — a v0.0.3 só faz o smoke de isolamento entre
