@@ -292,12 +292,18 @@ revoke all on function public.punho_criar_empresa_inicial(text) from anon;
 revoke all on function public.punho_criar_empresa_inicial(text) from authenticated;
 
 -- As três funções auxiliares de 20260725/26 ficaram com o `execute to public`
--- por omissão. Fecham-se aqui: só contam para RLS de contas autenticadas.
+-- por omissão. Tira-se o grant genérico e concede-se explicitamente.
+--
+-- `anon` entra na lista de propósito: as policies de 20260726 foram criadas sem
+-- cláusula `to`, ou seja aplicam-se também ao anon, e sem EXECUTE uma query
+-- anónima passaria a rebentar com "permission denied for function" em vez de
+-- devolver zero linhas. Não se perde nada: as três funções filtram por
+-- `auth.uid()`, que no anon é nulo, e portanto não revelam coisa nenhuma.
 revoke all on function public.punho_empresa_atual() from public;
 revoke all on function public.punho_e_gestor() from public;
 revoke all on function public.punho_membro_ativo() from public;
-grant execute on function public.punho_empresa_atual() to authenticated;
-grant execute on function public.punho_e_gestor() to authenticated;
-grant execute on function public.punho_membro_ativo() to authenticated;
+grant execute on function public.punho_empresa_atual() to anon, authenticated;
+grant execute on function public.punho_e_gestor() to anon, authenticated;
+grant execute on function public.punho_membro_ativo() to anon, authenticated;
 
 commit;
