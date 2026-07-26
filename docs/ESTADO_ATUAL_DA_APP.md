@@ -1,5 +1,16 @@
 # Estado atual do Punho
 
+> **Sprint v0.0.4 · aviso de update global** (branch `feat/update-global`)
+>
+> O aviso de nova versao deixou de depender de sessao e de ecra. Antes so um
+> gestor com adesao activa que abrisse o dashboard o via; agora chega a quem
+> esta no login e a quem esta bloqueado no gate (pedido pendente, acesso
+> recusado ou revogado). Suite de testes 162 -> 177. Ver
+> `design/punho_v004_update_global.md`.
+>
+> **So passa a valer na proxima versao publicada.** A v0.0.3 instalada no Redmi
+> continua sem aviso automatico: e a app instalada que faz a pergunta.
+
 > **Sprint de estabilizacao v0.0.3** (branch `chore/estabilizacao-v0.0.3`)
 >
 > Foi estabilizacao pura: **o ambito de "utilizacao real" nao mudou**. Nada
@@ -26,6 +37,9 @@
 - Area de colaborador para criar leads, pedidos de reserva e recebimentos, sem acesso aos custos da empresa.
 - Painel de gestao com indicadores e recomendacoes deterministicas.
 - Dados de onboarding e operacao guardados no proprio dispositivo entre reinicios.
+- Aviso de nova versao publicada, em qualquer ecra e sem precisar de sessao —
+  inclui quem esta bloqueado no gate de acesso. Update obrigatorio bloqueia a
+  app. Depende do Cesar publicar em `versoes_apps`; a app so avisa, nao instala.
 
 ## Ja preparado para a aplicacao real
 

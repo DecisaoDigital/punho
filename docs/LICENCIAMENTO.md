@@ -41,9 +41,11 @@ para não criar registos:
 | Publishable key (`sb_publishable_…`) | `400` — passou |
 | Nenhuma | `401` |
 
-Por isso o `PunhoLicencaService` **não** replica o
-`if (session == null) return null;` que existe no `update_service.dart`. Essa
-guarda é específica do auto-update, que só interessa depois do login.
+Por isso o `PunhoLicencaService` **não** tem guarda de sessão nenhuma. Desde a
+v0.0.4 o `update_service.dart` também não: a guarda
+`if (session == null) return null;` que lá existia deixava sem aviso de update
+todos os utilizadores presos no login ou no gate de acesso — ver
+`design/punho_v004_update_global.md`.
 
 ## `machine_id`
 
