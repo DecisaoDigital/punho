@@ -1,5 +1,19 @@
 # Estado atual do Punho
 
+> **Sprint de estabilizacao v0.0.3** (branch `chore/estabilizacao-v0.0.3`)
+>
+> Foi estabilizacao pura: **o ambito de "utilizacao real" nao mudou**. Nada
+> passou de "modo demonstracao" para "utilizavel com dados reais" — as
+> correccoes foram de bugs, nao de ligacao a dados novos.
+>
+> O que mudou de facto: o perfil aprovado em `punho_membros` passa a escolher a
+> shell, pelo que um colaborador ja nao recebe a vista de gestor com custos,
+> salarios e lucros globais (era P0). Corrigidos mais 2 P0 e 8 P1. Suite de
+> testes 106 -> 162. Ver `AUDITORIA_BUGS_v0.0.3.md`.
+>
+> **Smoke manual dos 9 fluxos: por fazer.** Ate estar assinado na auditoria,
+> nada disto conta como validado.
+
 ## Ja utilizavel no modo demonstracao local
 
 - Onboarding guiado da empresa, forma juridica, equipa, frota e numero estimado de maquinas.
