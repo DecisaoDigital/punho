@@ -29,6 +29,10 @@ abstract interface class OperationRepository {
   void saveVehicle(Vehicle item);
   void saveHistoricalMonth(HistoricalMonth item);
   void saveOnboarding(OnboardingData value);
+
+  /// Apaga tudo — onboarding incluído — e deixa o repositório vazio. Não repõe
+  /// dados de demonstração: a app volta ao onboarding com zero registos.
+  void resetAll();
 }
 
 class OnboardingData {
@@ -38,6 +42,7 @@ class OnboardingData {
     required this.legalForm,
     required this.hasFleet,
     required this.collaborators,
+    this.declaredVehicleCount = 0,
     required this.totalMachinesDeclared,
     required this.insertMachinesNow,
     this.companyTaxId,
@@ -57,6 +62,11 @@ class OnboardingData {
   final String legalForm;
   final bool hasFleet;
   final int collaborators;
+
+  /// Quantos veículos o gestor declarou ter. `hasFleet` deriva daqui (`> 0`),
+  /// mas guarda-se o número: sem ele, o ecrã de Definições não conseguia
+  /// mostrar de volta o que o utilizador escreveu no onboarding.
+  final int declaredVehicleCount;
   final int totalMachinesDeclared;
   final bool insertMachinesNow;
   final String? companyTaxId, companyPhone, companyEmail;
@@ -84,6 +94,7 @@ class OnboardingData {
     legalForm: legalForm,
     hasFleet: hasFleet,
     collaborators: collaborators,
+    declaredVehicleCount: declaredVehicleCount,
     totalMachinesDeclared: totalMachinesDeclared,
     insertMachinesNow: insertMachinesNow,
     companyTaxId: companyTaxId ?? this.companyTaxId,
@@ -253,6 +264,25 @@ class LocalDemoOperationRepository implements OperationRepository {
 
   @override
   void saveOnboarding(OnboardingData value) => _onboarding = value;
+
+  @override
+  void resetAll() => _limparMemoria();
+
+  /// Esvazia as colecções em memória, dados de demonstração incluídos. O
+  /// repositório persistente chama isto ao arrancar, porque num dispositivo
+  /// real as duas máquinas e o cliente de demonstração nunca são "os teus".
+  void _limparMemoria() {
+    _machines.clear();
+    _customers.clear();
+    _leads.clear();
+    _bookings.clear();
+    _expenses.clear();
+    _receipts.clear();
+    _collaborators.clear();
+    _vehicles.clear();
+    _historicalMonths.clear();
+    _onboarding = null;
+  }
 }
 
 /// Repositório local para o piloto: conserva os dados neste dispositivo sem
@@ -376,6 +406,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
             'legalForm': onboarding!.legalForm,
             'hasFleet': onboarding!.hasFleet,
             'collaborators': onboarding!.collaborators,
+            'declaredVehicleCount': onboarding!.declaredVehicleCount,
             'totalMachinesDeclared': onboarding!.totalMachinesDeclared,
             'insertMachinesNow': onboarding!.insertMachinesNow,
             'companyTaxId': onboarding!.companyTaxId,
@@ -409,7 +440,21 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     _preferences.setString(_storageKey, jsonEncode(data));
   }
 
+  @override
+  void resetAll() {
+    super.resetAll();
+    _remoteRevision = null;
+    _hasPendingRemoteChanges = false;
+    _preferences.remove(_storageKey);
+  }
+
   void _restore() {
+    // Num dispositivo real a app nasce vazia. As duas máquinas e o cliente de
+    // demonstração vinham por herança do LocalDemoOperationRepository e o painel
+    // mostrava-os como se fossem do utilizador: "máquinas identificadas 2",
+    // "máquinas paradas 1", um cliente que ninguém criou. Era a origem dos
+    // números que o Cesar não reconhecia.
+    _limparMemoria();
     final raw = _preferences.getString(_storageKey);
     if (raw == null || raw.isEmpty) return;
     try {
@@ -419,7 +464,9 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
       _hasPendingRemoteChanges = sync?['hasPendingRemoteChanges'] == true;
       _applyData(data);
     } catch (_) {
-      // Uma cache antiga ou inválida não impede a app de iniciar com os dados demo.
+      // Uma cache antiga ou inválida não impede a app de arrancar — arranca
+      // vazia, que é melhor do que arrancar com metade de um estado antigo.
+      _limparMemoria();
     }
   }
 
@@ -432,6 +479,9 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
         legalForm: _string(onboardingJson, 'legalForm'),
         hasFleet: _bool(onboardingJson, 'hasFleet'),
         collaborators: _int(onboardingJson, 'collaborators'),
+        // Ausente nas gravações anteriores a este campo: aí o número perde-se
+        // mas o `hasFleet` guardado continua a valer.
+        declaredVehicleCount: _int(onboardingJson, 'declaredVehicleCount'),
         totalMachinesDeclared: _int(onboardingJson, 'totalMachinesDeclared'),
         insertMachinesNow: _bool(onboardingJson, 'insertMachinesNow'),
         companyTaxId: _nullableString(onboardingJson['companyTaxId']),

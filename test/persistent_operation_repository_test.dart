@@ -58,4 +58,46 @@ void main() {
       expect(restored.historicalMonths.single.revenueReceivedCents, 450000);
     },
   );
+
+  test('um dispositivo sem dados guardados arranca vazio', () async {
+    // Os "números fantasma" do painel: o repositório persistente herdava as
+    // duas máquinas e o cliente de demonstração do repositório local, e o
+    // utilizador via "máquinas identificadas 2" e um cliente que nunca criou.
+    final repositorio = await PersistentOperationRepository.create();
+
+    expect(repositorio.machines, isEmpty);
+    expect(repositorio.customers, isEmpty);
+    expect(repositorio.bookings, isEmpty);
+    expect(repositorio.historicalMonths, isEmpty);
+    expect(repositorio.onboarding, isNull);
+  });
+
+  test('cache inválida arranca vazia em vez de meio estado', () async {
+    SharedPreferences.setMockInitialValues({
+      'punho.operations.v1': '{isto não é json',
+    });
+
+    final repositorio = await PersistentOperationRepository.create();
+
+    expect(repositorio.machines, isEmpty);
+    expect(repositorio.customers, isEmpty);
+    expect(repositorio.onboarding, isNull);
+  });
+
+  test('resetAll apaga o que estava guardado', () async {
+    final primeiro = await PersistentOperationRepository.create();
+    primeiro.saveCustomer(
+      const Customer(id: 'c-real', name: 'Cliente real', phone: '910 000 000'),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    primeiro.resetAll();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(primeiro.customers, isEmpty);
+    // E não volta na recriação: o armazenamento também ficou limpo.
+    final recriado = await PersistentOperationRepository.create();
+    expect(recriado.customers, isEmpty);
+    expect(recriado.onboarding, isNull);
+  });
 }
