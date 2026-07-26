@@ -17,6 +17,22 @@ final operationsProvider =
 
 const minimumBookingDuration = Duration(hours: 12);
 
+/// Valor a escrever num campo opcional.
+///
+/// Existe para distinguir **não mexer** (não passar o parâmetro) de **apagar**
+/// (`Campo(null)`). Um `String?` sozinho não sabe dizer as duas coisas: é o
+/// mesmo defeito registado no P2-5 da auditoria v0.0.3, em que limpar a diária
+/// de uma máquina não a limpava. Aqui isso importa porque o utilizador tem de
+/// poder apagar o NIF ou uma facturação que escreveu errada.
+class Campo<T> {
+  const Campo(this.valor);
+  final T? valor;
+
+  /// Aplica o campo a um valor actual: sem campo nenhum, fica como está.
+  static T? aplicar<T>(Campo<T>? campo, T? actual) =>
+      campo == null ? actual : campo.valor;
+}
+
 class OperationsState {
   const OperationsState({
     this.onboarded = false,
@@ -25,6 +41,7 @@ class OperationsState {
     this.legalForm = '',
     this.hasFleet = true,
     this.declaredCollaboratorCount = 0,
+    this.declaredVehicleCount = 0,
     this.totalMachinesDeclared = 0,
     this.insertMachinesNow = false,
     this.companyTaxId,
@@ -52,6 +69,10 @@ class OperationsState {
   final String? ownerName;
   final String companyName, legalForm;
   final int declaredCollaboratorCount, totalMachinesDeclared;
+
+  /// Veículos declarados pelo gestor. `hasFleet` é isto `> 0` — guarda-se o
+  /// número para o ecrã de Definições poder mostrar de volta o que ele escreveu.
+  final int declaredVehicleCount;
   int get registeredMachinesCount =>
       machines.where((machine) => !machine.archived).length;
   int get machinesStillToIdentify =>
@@ -114,6 +135,7 @@ class OperationsState {
     String? legalForm,
     bool? hasFleet,
     int? declaredCollaboratorCount,
+    int? declaredVehicleCount,
     int? totalMachinesDeclared,
     bool? insertMachinesNow,
     String? companyTaxId,
@@ -144,6 +166,7 @@ class OperationsState {
     hasFleet: hasFleet ?? this.hasFleet,
     declaredCollaboratorCount:
         declaredCollaboratorCount ?? this.declaredCollaboratorCount,
+    declaredVehicleCount: declaredVehicleCount ?? this.declaredVehicleCount,
     totalMachinesDeclared: totalMachinesDeclared ?? this.totalMachinesDeclared,
     insertMachinesNow: insertMachinesNow ?? this.insertMachinesNow,
     companyTaxId: companyTaxId ?? this.companyTaxId,
@@ -184,6 +207,7 @@ class OperationsController extends Notifier<OperationsState> {
       legalForm: onboarding?.legalForm ?? '',
       hasFleet: onboarding?.hasFleet ?? true,
       declaredCollaboratorCount: onboarding?.collaborators ?? 0,
+      declaredVehicleCount: onboarding?.declaredVehicleCount ?? 0,
       totalMachinesDeclared: onboarding?.totalMachinesDeclared ?? 0,
       insertMachinesNow: onboarding?.insertMachinesNow ?? false,
       companyTaxId: onboarding?.companyTaxId,
@@ -225,6 +249,10 @@ class OperationsController extends Notifier<OperationsState> {
     required String legalForm,
     required bool hasFleet,
     required int collaborators,
+    /// Quantos veículos o gestor declarou. Opcional para não quebrar quem já
+    /// chama isto só com `hasFleet`; quando vem, é a partir dele que o ecrã de
+    /// Definições mostra o número de volta.
+    int declaredVehicleCount = 0,
     required int totalMachinesDeclared,
     required bool insertMachinesNow,
     String? companyTaxId,
@@ -245,6 +273,7 @@ class OperationsController extends Notifier<OperationsState> {
         legalForm: legalForm,
         hasFleet: hasFleet,
         collaborators: collaborators,
+        declaredVehicleCount: declaredVehicleCount,
         totalMachinesDeclared: totalMachinesDeclared,
         insertMachinesNow: insertMachinesNow,
         companyTaxId: companyTaxId,
@@ -266,6 +295,7 @@ class OperationsController extends Notifier<OperationsState> {
       legalForm: legalForm,
       hasFleet: hasFleet,
       declaredCollaboratorCount: collaborators,
+      declaredVehicleCount: declaredVehicleCount,
       totalMachinesDeclared: totalMachinesDeclared,
       insertMachinesNow: insertMachinesNow,
       companyTaxId: companyTaxId,
@@ -279,6 +309,127 @@ class OperationsController extends Notifier<OperationsState> {
       maintenanceLastYearCents: maintenanceLastYearCents,
       fixedMonthlyCostsCents: fixedMonthlyCostsCents,
     );
+  }
+
+  /// Edita os dados da empresa depois do onboarding — é o que o ecrã de
+  /// Definições grava.
+  ///
+  /// Separado do [completeOnboarding] de propósito: aquele define o onboarding
+  /// do zero e marca a app como configurada, este só altera o que recebe. Um
+  /// parâmetro omitido fica como está; um [Campo] com `null` apaga o valor.
+  ///
+  /// Não faz nada se ainda não houver onboarding: sem ele não há empresa para
+  /// editar, e inventar uma aqui saltava o fluxo de arranque.
+  void updateCompanySettings({
+    Campo<String>? ownerName,
+    String? companyName,
+    String? legalForm,
+    int? collaborators,
+    int? vehicles,
+    int? totalMachinesDeclared,
+    Campo<String>? companyTaxId,
+    Campo<String>? companyPhone,
+    Campo<String>? companyEmail,
+    Campo<String>? companyAddress,
+    Campo<String>? companyPostalCode,
+    Campo<String>? companyLocality,
+    Campo<int>? revenueLastYearCents,
+    Campo<int>? revenueThisYearCents,
+    Campo<int>? maintenanceLastYearCents,
+    Campo<int>? fixedMonthlyCostsCents,
+  }) {
+    final actual = _repo.onboarding;
+    if (actual == null) return;
+    // Construído campo a campo em vez de por `copyWith`: o copyWith usa
+    // `?? this`, portanto nunca conseguiria apagar um valor.
+    final veiculos = vehicles ?? actual.declaredVehicleCount;
+    final novo = OnboardingData(
+      ownerName: Campo.aplicar(ownerName, actual.ownerName),
+      companyName: companyName?.trim().isNotEmpty == true
+          ? companyName!.trim()
+          : actual.companyName,
+      legalForm: legalForm ?? actual.legalForm,
+      // A frota deriva do número: pôr veículos a zero faz desaparecer a área de
+      // Frota da navegação, e um veículo faz voltar.
+      hasFleet: veiculos > 0,
+      collaborators: collaborators ?? actual.collaborators,
+      declaredVehicleCount: veiculos,
+      totalMachinesDeclared: totalMachinesDeclared ?? actual.totalMachinesDeclared,
+      insertMachinesNow: actual.insertMachinesNow,
+      companyTaxId: Campo.aplicar(companyTaxId, actual.companyTaxId),
+      companyPhone: Campo.aplicar(companyPhone, actual.companyPhone),
+      companyEmail: Campo.aplicar(companyEmail, actual.companyEmail),
+      companyAddress: Campo.aplicar(companyAddress, actual.companyAddress),
+      companyPostalCode: Campo.aplicar(
+        companyPostalCode,
+        actual.companyPostalCode,
+      ),
+      companyLocality: Campo.aplicar(companyLocality, actual.companyLocality),
+      revenueLastYearCents: Campo.aplicar(
+        revenueLastYearCents,
+        actual.revenueLastYearCents,
+      ),
+      revenueThisYearCents: Campo.aplicar(
+        revenueThisYearCents,
+        actual.revenueThisYearCents,
+      ),
+      maintenanceLastYearCents: Campo.aplicar(
+        maintenanceLastYearCents,
+        actual.maintenanceLastYearCents,
+      ),
+      fixedMonthlyCostsCents: Campo.aplicar(
+        fixedMonthlyCostsCents,
+        actual.fixedMonthlyCostsCents,
+      ),
+    );
+    _repo.saveOnboarding(novo);
+    state = _comDadosDaEmpresa(novo);
+  }
+
+  /// Reflecte no state um [OnboardingData] inteiro. Não passa por `copyWith`
+  /// porque também aqui é preciso poder pôr campos de volta a `null`.
+  OperationsState _comDadosDaEmpresa(OnboardingData dados) => OperationsState(
+    onboarded: true,
+    ownerName: dados.ownerName,
+    companyName: dados.companyName,
+    legalForm: dados.legalForm,
+    hasFleet: dados.hasFleet,
+    declaredCollaboratorCount: dados.collaborators,
+    declaredVehicleCount: dados.declaredVehicleCount,
+    totalMachinesDeclared: dados.totalMachinesDeclared,
+    insertMachinesNow: dados.insertMachinesNow,
+    companyTaxId: dados.companyTaxId,
+    companyPhone: dados.companyPhone,
+    companyEmail: dados.companyEmail,
+    companyAddress: dados.companyAddress,
+    companyPostalCode: dados.companyPostalCode,
+    companyLocality: dados.companyLocality,
+    revenueLastYearCents: dados.revenueLastYearCents,
+    revenueThisYearCents: dados.revenueThisYearCents,
+    maintenanceLastYearCents: dados.maintenanceLastYearCents,
+    fixedMonthlyCostsCents: dados.fixedMonthlyCostsCents,
+    historicalMonths: state.historicalMonths,
+    machines: state.machines,
+    customers: state.customers,
+    leads: state.leads,
+    bookings: state.bookings,
+    expenses: state.expenses,
+    receipts: state.receipts,
+    collaborators: state.collaborators,
+    vehicles: state.vehicles,
+    activeCollaboratorLimit: state.activeCollaboratorLimit,
+  );
+
+  /// Apaga tudo o que está neste dispositivo e volta ao onboarding.
+  ///
+  /// Existe por causa dos dados de demonstração: instalações anteriores a esta
+  /// versão já gravaram as duas máquinas e o cliente de demonstração no
+  /// armazenamento local, e nascer vazio só resolve para quem instala de novo.
+  /// Sem isto, quem já tem a app instalada continuava com números que não são
+  /// dele.
+  void resetAll() {
+    _repo.resetAll();
+    state = const OperationsState();
   }
 
   void updateInitialData({

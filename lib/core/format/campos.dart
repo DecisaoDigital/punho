@@ -1,0 +1,36 @@
+/// Conversões entre o texto de um campo e o valor guardado.
+///
+/// Os mesmos quatro ajudantes existem, privados, em `operational_pages.dart`.
+/// Ficam aqui em público para o ecrã de Definições os poder usar sem mexer
+/// naquele ficheiro — quando o onboarding assentar, aquele passa a importar
+/// estes e os privados saem.
+library;
+
+/// Texto de um campo opcional: em branco quer dizer "sem valor", não "vazio".
+String? textoOpcional(String valor) {
+  final limpo = valor.trim();
+  return limpo.isEmpty ? null : limpo;
+}
+
+/// Lê euros escritos à portuguesa ("1.234,56" ou "1234.56") em cêntimos.
+/// Devolve `null` para vazio ou impossível — nunca um zero inventado.
+int? centsDeTexto(String valor) {
+  final cru = valor.trim().replaceAll(' ', '');
+  if (cru.isEmpty) return null;
+  final normalizado = cru.contains(',')
+      ? cru.replaceAll('.', '').replaceAll(',', '.')
+      : cru;
+  final montante = double.tryParse(normalizado);
+  return montante == null || montante < 0 ? null : (montante * 100).round();
+}
+
+/// Cêntimos em texto para mostrar num campo. `null` fica em branco.
+String textoDeCents(int? cents) =>
+    cents == null ? '' : (cents / 100).toStringAsFixed(2).replaceAll('.', ',');
+
+/// Contagens (colaboradores, veículos, máquinas). Em branco ou inválido conta
+/// como zero: são números declarados, não valores opcionais.
+int contagemDeTexto(String valor) {
+  final parsed = int.tryParse(valor.trim());
+  return parsed == null || parsed < 0 ? 0 : parsed;
+}
