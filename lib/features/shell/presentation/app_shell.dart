@@ -10,8 +10,10 @@ import '../../../core/operations/operations_controller.dart';
 import '../../../core/session/demo_session.dart';
 import '../../../core/theme/punho_theme.dart';
 import '../../../shared/widgets/brand_lockup.dart';
+import '../../auth/acesso_providers.dart';
 import '../../collaborator/presentation/collaborator_shell.dart';
 import '../../dashboard/presentation/dashboard_page.dart';
+import '../../gestao/presentation/convites_screen.dart';
 import '../../licenca/presentation/licenca_banner.dart';
 import '../../operations/presentation/operational_pages.dart';
 import '../../workforce/presentation/workforce_pages.dart';
@@ -63,6 +65,7 @@ class AppShell extends ConsumerWidget {
           title: const Text('Punho'),
           actions: [
             if (!SupabaseConfig.enabled) const _ProfileSelector(),
+            if (SupabaseConfig.enabled) const _ConvitesButton(),
             if (SupabaseConfig.enabled) const _SignOutButton(),
           ],
         ),
@@ -98,6 +101,27 @@ class _ProfileSelector extends ConsumerWidget {
           )
           .toList(),
       onChanged: (x) => ref.read(demoSessionProvider.notifier).select(x!),
+    );
+  }
+}
+
+/// Atalho para os convites da empresa. Só aparece a quem está aprovado como
+/// gestor — um colaborador não gere acessos.
+class _ConvitesButton extends ConsumerWidget {
+  const _ConvitesButton({this.onDarkBackground = false});
+  final bool onDarkBackground;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final gestor = ref.watch(estadoAcessoProvider).valueOrNull?.eGestor ?? false;
+    if (!gestor) return const SizedBox.shrink();
+    return IconButton(
+      tooltip: 'Convites',
+      color: onDarkBackground ? const Color(0xFFB7C5CE) : null,
+      icon: const Icon(Icons.person_add_alt),
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const ConvitesScreen()),
+      ),
     );
   }
 }
@@ -191,8 +215,10 @@ class _Sidebar extends ConsumerWidget {
                     ),
                   ),
                 ),
-                if (SupabaseConfig.enabled)
+                if (SupabaseConfig.enabled) ...[
+                  const _ConvitesButton(onDarkBackground: true),
                   const _SignOutButton(onDarkBackground: true),
+                ],
               ],
             ),
           ),
