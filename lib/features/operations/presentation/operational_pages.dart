@@ -15,9 +15,19 @@ class OnboardingPage extends ConsumerStatefulWidget {
 }
 
 class _OnboardingPageState extends ConsumerState<OnboardingPage> {
-  int step = 0, collaborators = 0, machines = 0;
-  bool fleet = false, insertMachines = false;
+  int step = 0, collaborators = 0, machines = 0, vehicles = 0;
+  // Se o gestor não quer/não tem tempo agora, salta os passos financeiros e
+  // operacionais (máquinas + facturação + manutenção + custos).
+  // A ideia é deixá-lo entrar na app cedo e ganhar confiança primeiro.
+  bool wantsFullSetup = true;
   String legal = 'Empresário em Nome Individual';
+  // fleet fica derivado de vehicles > 0 na hora de gravar (para não mudar
+  // o contrato de completeOnboarding).
+  // Cargo declarado pelo utilizador logo no início do onboarding.
+  // Em modo demo o valor fica só no state (não bloqueia nada por agora).
+  // Quando a app for para Supabase real, o cargo autoritativo vem de
+  // punho_membros — este é ignorado ou usado só como sugestão.
+  String role = 'gestor';
   final ownerName = TextEditingController();
   final name = TextEditingController();
   final taxId = TextEditingController();
@@ -53,77 +63,173 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
-    const titles = [
+    // Fluxo:
+    //   0 - nome do utilizador
+    //   1 - nome da empresa
+    //   2 - cargo (gestor / colaborador)
+    //   [se colaborador termina aqui — não sabe nem tem de saber NIF, morada,
+    //    facturação ou custos da empresa. Isso é do gestor.]
+    //   3+ - só para gestor: dados administrativos + operacionais
+    const titlesFull = [
       'Como te chamas?',
       'Como se chama a empresa?',
-      'Qual é a forma jurídica?',
-      'Qual é o NIF da empresa?',
-      'Como podemos contactar a empresa?',
-      'Onde fica a empresa?',
-      'Tem colaboradores?',
-      'A empresa tem veículos?',
+      'Qual é o teu cargo?',
+      'Forma jurídica e NIF da empresa',
+      'Morada e contactos da empresa',
+      'Equipa e frota',
+      'Continuar com os dados operacionais?',
       'Quantas máquinas tem aproximadamente?',
       'Quanto faturou no ano passado?',
       'Quanto faturou este ano até hoje?',
       'Quanto gastou em manutenção no ano passado?',
       'Quais são os custos fixos mensais?',
-      'Quer inserir as primeiras máquinas agora?',
     ];
-    const helps = [
+    const helpsFull = [
       'O Punho orienta a pessoa responsável por decidir e agir na empresa.',
       'Usamos este nome para personalizar o espaço de gestão.',
-      'Ajuda a preparar os dados da empresa; pode ser alterado mais tarde.',
-      'É importante para a identificação e faturação. Se não souber agora, ficará como tarefa aberta.',
-      'Telemóvel e email ajudam a centralizar as futuras comunicações.',
-      'Morada, código-postal e localidade. Não é pedido país.',
-      'Mostramos Funcionários apenas quando fizer sentido para a equipa.',
-      'Ativa a área de Veículos quando a empresa tiver frota.',
-      'Uma estimativa é suficiente; não precisa de ser exata.',
+      'O gestor decide e vê tudo. O colaborador só regista o seu próprio trabalho.',
+      'A forma jurídica pode ser alterada mais tarde. O NIF é importante para a identificação — se não souber agora, ficará como tarefa aberta.',
+      'Morada, código-postal e localidade + telemóvel e email. Não é pedido país.',
+      'Número de colaboradores e de veículos (podem ser 0). Os separadores Funcionários e Veículos ficam activos quando forem maiores que 0.',
+      'Sem os próximos dados (máquinas, faturação, custos), a app abre e podes explorar, mas o Punho não consegue mostrar recomendações reais nem tirar todo o potencial. Podes preencher agora ou deixar para depois.',
+      'Uma estimativa é suficiente; não precisa de ser exata. Podes adicionar cada máquina em detalhe mais tarde na secção Máquinas.',
       'Pode indicar um número redondo. Se não souber, avance: o Punho irá lembrar-lhe.',
       'Indique o acumulado deste ano até ao momento. Pode preencher mais tarde.',
       'Mesmo uma estimativa ajuda a perceber o peso real das avarias e revisões.',
       'Renda, eletricidade, água, seguros, programas e outros custos recorrentes. Uma estimativa chega.',
-      'Pode adicionar máquinas agora ou a qualquer momento.',
     ];
+    // Colaborador: 4 passos (nome, empresa, cargo, contacto telefónico
+    // pessoal — para o gestor o poder contactar). O resto — dados fiscais,
+    // faturação, custos — é responsabilidade do gestor, não é sequer pedido.
+    const titlesColab = [
+      'Como te chamas?',
+      'Como se chama a empresa?',
+      'Qual é o teu cargo?',
+      'Qual é o teu contacto telefónico?',
+    ];
+    const helpsColab = [
+      'O Punho orienta a pessoa responsável por decidir e agir na empresa.',
+      'Usamos este nome para personalizar o espaço de gestão.',
+      'O gestor decide e vê tudo. O colaborador só regista o seu próprio trabalho.',
+      'O gestor precisa deste contacto para te chegar quando for preciso.',
+    ];
+    // Gestor que declarou não ter tempo agora: termina no passo 7 (o próprio
+    // switch), sem entrar nos campos financeiros. Fica lá para preencher
+    // depois, na secção Gestão.
+    final gestorTitles = wantsFullSetup ? titlesFull : titlesFull.sublist(0, 7);
+    final gestorHelps = wantsFullSetup ? helpsFull : helpsFull.sublist(0, 7);
+    final titles = role == 'colaborador' ? titlesColab : gestorTitles;
+    final helps = role == 'colaborador' ? helpsColab : gestorHelps;
     final input = switch (step) {
       0 => TextField(
         controller: ownerName,
+        autofocus: true,
         textCapitalization: TextCapitalization.words,
         decoration: const InputDecoration(
-          labelText: 'Nome do empresário ou responsável',
+          labelText: 'Nome',
           border: OutlineInputBorder(),
         ),
       ),
       1 => TextField(
         controller: name,
+        autofocus: true,
         decoration: const InputDecoration(
           labelText: 'Nome da empresa',
           border: OutlineInputBorder(),
         ),
       ),
       2 => DropdownButtonFormField<String>(
-        value: legal,
-        decoration: const InputDecoration(border: OutlineInputBorder()),
-        items: const [
-          DropdownMenuItem(
-            value: 'Empresário em Nome Individual',
-            child: Text('Empresário em Nome Individual'),
-          ),
-          DropdownMenuItem(value: 'Lda.', child: Text('Lda.')),
-        ],
-        onChanged: (v) => setState(() => legal = v!),
-      ),
-      3 => TextField(
-        controller: taxId,
-        keyboardType: TextInputType.number,
+        value: role,
         decoration: const InputDecoration(
-          labelText: 'NIF da empresa',
+          labelText: 'O teu cargo',
           border: OutlineInputBorder(),
         ),
+        items: const [
+          DropdownMenuItem(value: 'gestor', child: Text('Gestor')),
+          DropdownMenuItem(value: 'colaborador', child: Text('Colaborador')),
+        ],
+        onChanged: (v) => setState(() => role = v ?? 'gestor'),
       ),
+      // Passo 3 ramifica pelo cargo:
+      //   colaborador → contacto pessoal (último passo dele)
+      //   gestor → forma jurídica + NIF juntos (menos ecrãs para dados que
+      //   pertencem ao mesmo bloco administrativo)
+      3 => role == 'colaborador'
+          ? TextField(
+              controller: phone,
+              autofocus: true,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Telemóvel',
+                border: OutlineInputBorder(),
+              ),
+            )
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: legal,
+                  decoration: const InputDecoration(
+                    labelText: 'Forma jurídica',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'Empresário em Nome Individual',
+                      child: Text('Empresário em Nome Individual'),
+                    ),
+                    DropdownMenuItem(value: 'Lda.', child: Text('Lda.')),
+                  ],
+                  onChanged: (v) => setState(() => legal = v!),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: taxId,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'NIF da empresa',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+      // Passo 4 (só gestor): morada + contactos juntos.
       4 => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          TextField(
+            controller: address,
+            decoration: const InputDecoration(
+              labelText: 'Morada',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: postalCode,
+                  decoration: const InputDecoration(
+                    labelText: 'Código-postal',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: locality,
+                  decoration: const InputDecoration(
+                    labelText: 'Localidade',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           TextField(
             controller: phone,
             keyboardType: TextInputType.phone,
@@ -143,71 +249,66 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           ),
         ],
       ),
+      // Passo 5 (só gestor): equipa + frota, ambos como número (default 0).
+      // Veículos deixou de ser um switch — o número serve tanto para saber
+      // se a área Veículos deve aparecer (>0) como para calcular custos.
       5 => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(
-            controller: address,
-            decoration: const InputDecoration(
-              labelText: 'Morada',
-              border: OutlineInputBorder(),
-            ),
+          _NumberChoice(
+            label: 'Colaboradores',
+            value: collaborators,
+            onChanged: (v) => setState(() => collaborators = v),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: postalCode,
-            decoration: const InputDecoration(
-              labelText: 'Código-postal',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: locality,
-            decoration: const InputDecoration(
-              labelText: 'Localidade',
-              border: OutlineInputBorder(),
-            ),
+          _NumberChoice(
+            label: 'Veículos',
+            value: vehicles,
+            onChanged: (v) => setState(() => vehicles = v),
           ),
         ],
       ),
-      6 => _NumberChoice(
-        label: 'Número aproximado de colaboradores',
-        value: collaborators,
-        onChanged: (v) => setState(() => collaborators = v),
-      ),
-      7 => SwitchListTile(
+      // Passo 6 (só gestor): switch de decisão. Se OFF, titles.length cai
+      // para 7 e o botão passa a "Concluir" — o utilizador entra na app
+      // sem preencher máquinas/faturação/custos.
+      // Cor verde no thumb+track quando ON: torna claro visualmente que a
+      // opção "sim, preencher" está seleccionada. Cinza (default) para OFF.
+      6 => SwitchListTile(
         contentPadding: EdgeInsets.zero,
-        title: Text(fleet ? 'Sim, temos veículos' : 'Não, não temos veículos'),
-        value: fleet,
-        onChanged: (v) => setState(() => fleet = v),
+        title: Text(
+          wantsFullSetup
+              ? 'Sim, quero preencher agora'
+              : 'Não, entro na app e preencho depois',
+        ),
+        value: wantsFullSetup,
+        activeColor: Colors.green.shade600,
+        activeTrackColor: Colors.green.shade200,
+        onChanged: (v) => setState(() => wantsFullSetup = v),
       ),
-      8 => _NumberChoice(
+      7 => _NumberChoice(
         label: 'Número aproximado de máquinas',
         value: machines,
         onChanged: (v) => setState(() => machines = v),
       ),
-      9 => _EuroInput(
+      8 => _EuroInput(
         controller: revenueLastYear,
         label: 'Faturação no ano passado (€)',
       ),
-      10 => _EuroInput(
+      9 => _EuroInput(
         controller: revenueThisYear,
         label: 'Faturação deste ano até hoje (€)',
       ),
-      11 => _EuroInput(
+      10 => _EuroInput(
         controller: maintenanceLastYear,
         label: 'Manutenção paga no ano passado (€)',
       ),
-      12 => _EuroInput(
+      // Custos fixos é o último passo do onboarding completo — daqui vai
+      // directo para a app, sem passar por "quer inserir máquinas agora?".
+      // O utilizador adiciona máquinas em detalhe na secção Máquinas quando
+      // quiser (assim não é forçado a fazê-lo já no onboarding).
+      _ => _EuroInput(
         controller: fixedMonthlyCosts,
         label: 'Custos fixos mensais (€)',
-      ),
-      _ => SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Sim, inserir agora'),
-        value: insertMachines,
-        onChanged: (v) => setState(() => insertMachines = v),
       ),
     };
     return Scaffold(
@@ -259,10 +360,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                                     ? 'A minha empresa'
                                     : name.text.trim(),
                                 legalForm: legal,
-                                hasFleet: fleet,
+                                hasFleet: vehicles > 0,
+                                declaredVehicleCount: vehicles,
                                 collaborators: collaborators,
                                 totalMachinesDeclared: machines,
-                                insertMachinesNow: insertMachines,
+                                // Sempre false: o passo "inserir máquinas
+                                // agora" foi removido. Utilizador adiciona
+                                // máquinas em detalhe (foto, referência,
+                                // etc.) na secção Máquinas ao seu ritmo.
+                                insertMachinesNow: false,
                                 companyTaxId: _optional(taxId.text),
                                 companyPhone: _optional(phone.text),
                                 companyEmail: _optional(email.text),
@@ -322,6 +428,9 @@ class _EuroInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) => TextField(
     controller: controller,
+    // Foco imediato para o utilizador escrever logo sem ter de tocar primeiro
+    // no campo. Como o input é o único widget do passo, não há ambiguidade.
+    autofocus: true,
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
     decoration: InputDecoration(
       labelText: label,
@@ -791,8 +900,19 @@ class MachinesPage extends ConsumerWidget {
               child: ListTile(
                 minLeadingWidth: 70,
                 leading: _MachineThumbnail(machine: m),
-                title: Text(m.name),
-                subtitle: Text('${m.category} · ${m.reference}'),
+                // maxLines+ellipsis obrigatórios: sem eles o Flutter parte o
+                // texto em coluna vertical de caracteres quando o trailing
+                // (chip + 4 botões) rouba a largura toda em ecrãs estreitos.
+                title: Text(
+                  m.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  '${m.category} · ${m.reference}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 trailing: Wrap(
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
@@ -904,18 +1024,51 @@ class _MachineThumbnail extends StatelessWidget {
                   color: Theme.of(context).colorScheme.primary,
                 ),
               )
-            : Image.file(
-                File(path),
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => ColoredBox(
-                  color: const Color(0xFFFFE5BD),
-                  child: Icon(
-                    Icons.image_not_supported_outlined,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ),
+            : _MachinePhoto(path: path, fit: BoxFit.cover),
       ),
+    );
+  }
+}
+
+class _MachinePhoto extends StatelessWidget {
+  const _MachinePhoto({
+    required this.path,
+    this.width,
+    this.height,
+    required this.fit,
+  });
+
+  final String path;
+  final double? width, height;
+  final BoxFit fit;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget unavailable() => const ColoredBox(
+      color: Color(0xFFFFE5BD),
+      child: Center(child: Icon(Icons.image_not_supported_outlined)),
+    );
+    if (!MachineImageStore.isRemotePath(path)) {
+      return Image.file(
+        File(path),
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (_, _, _) => unavailable(),
+      );
+    }
+    return FutureBuilder<String?>(
+      future: MachineImageStore.signedUrl(path),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return unavailable();
+        return Image.network(
+          snapshot.data!,
+          width: width,
+          height: height,
+          fit: fit,
+          errorBuilder: (_, _, _) => unavailable(),
+        );
+      },
     );
   }
 }
@@ -996,21 +1149,11 @@ Future<void> _machineDialog(
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(10),
-                            child: Image.file(
-                              File(paths[index]),
+                            child: _MachinePhoto(
+                              path: paths[index],
                               width: 78,
                               height: 78,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => const ColoredBox(
-                                color: Color(0xFFFFE5BD),
-                                child: SizedBox(
-                                  width: 78,
-                                  height: 78,
-                                  child: Icon(
-                                    Icons.image_not_supported_outlined,
-                                  ),
-                                ),
-                              ),
                             ),
                           ),
                           Positioned(
@@ -1048,18 +1191,38 @@ Future<void> _machineDialog(
                     if (Platform.isAndroid || Platform.isIOS)
                       OutlinedButton.icon(
                         onPressed: () async {
-                          final path = await MachineImageStore.pickFromCamera();
-                          if (path != null) photoPaths.value = [...paths, path];
+                          try {
+                            final path = await MachineImageStore.pickFromCamera();
+                            if (path != null) photoPaths.value = [...paths, path];
+                          } catch (_) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('NÃ£o foi possÃ­vel enviar a fotografia para o arquivo da empresa.'),
+                                ),
+                              );
+                            }
+                          }
                         },
                         icon: const Icon(Icons.photo_camera_outlined),
                         label: const Text('Tirar foto'),
                       ),
                     OutlinedButton.icon(
-                      onPressed: () async {
-                        final path = Platform.isAndroid || Platform.isIOS
-                            ? await MachineImageStore.pickFromGallery()
-                            : await MachineImageStore.pickFromFiles();
-                        if (path != null) photoPaths.value = [...paths, path];
+                        onPressed: () async {
+                        try {
+                          final path = Platform.isAndroid || Platform.isIOS
+                              ? await MachineImageStore.pickFromGallery()
+                              : await MachineImageStore.pickFromFiles();
+                          if (path != null) photoPaths.value = [...paths, path];
+                        } catch (_) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('NÃ£o foi possÃ­vel enviar a fotografia para o arquivo da empresa.'),
+                              ),
+                            );
+                          }
+                        }
                       },
                       icon: const Icon(Icons.add_photo_alternate_outlined),
                       label: Text(
@@ -2681,29 +2844,22 @@ class _PageFrame extends StatelessWidget {
     required this.action,
     required this.child,
   });
+  // Mantido no construtor para não partir os call sites, mas o header foi
+  // removido: era só rótulo informativo (o item da sidebar já mostra em que
+  // ecrã se está, com border laranja à esquerda) e ocupava ~60 dp de altura
+  // que agora entram no conteúdo — sobretudo útil em landscape mobile.
   final String title;
   final Widget action, child;
   @override
   Widget build(BuildContext context) => SafeArea(
     child: Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Wrap e não Row: dentro de um Row o `action` (que já é um Wrap de
-          // botões) recebia largura infinita e nunca quebrava linha, pelo que
-          // num telemóvel os botões saíam do ecrã cortados.
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.headlineMedium),
-              action,
-            ],
-          ),
-          const SizedBox(height: 18),
+          // Só o action (botão de acção principal do ecrã), alinhado à direita.
+          Align(alignment: Alignment.centerRight, child: action),
+          const SizedBox(height: 8),
           Expanded(child: child),
         ],
       ),

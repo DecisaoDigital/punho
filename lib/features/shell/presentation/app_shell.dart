@@ -149,17 +149,39 @@ class _Sidebar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Container(
-    width: 272,
+    // Sidebar compacta (só ícones + tooltip) — inspirada no Point of Rental
+    // referenciado no doc de identidade. 72 dp em vez dos 272 anteriores:
+    // liberta ~200 dp para o conteúdo em mobile landscape e tablet.
+    // Para versão expandida (labels visíveis), substituir por NavigationRail
+    // com extended=true — decisão adiada até haver piloto com opinião.
+    width: 72,
     color: PunhoTheme.navyDeep,
     child: SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(24, 28, 20, 28),
-            child: BrandLockup(),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Center(
+              child: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: PunhoTheme.orange,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.pan_tool_alt,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+            ),
           ),
-          const _SidebarSectionLabel('CENTRO DE COMANDO'),
+          // Labels de secção ("CENTRO DE COMANDO", "OPERAÇÃO") removidos:
+          // Cesar validou no smoke que os ícones + rótulos já são suficientes
+          // e as labels só ocupavam altura sem valor informativo real.
           _SidebarItem(
             item: AppDestination.management,
             selected: selected == AppDestination.management,
@@ -167,10 +189,7 @@ class _Sidebar extends ConsumerWidget {
                 .read(navigationProvider.notifier)
                 .goTo(AppDestination.management),
           ),
-          const Padding(
-            padding: EdgeInsets.only(top: 22),
-            child: _SidebarSectionLabel('OPERAÇÃO'),
-          ),
+          const SizedBox(height: 8),
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
@@ -187,38 +206,34 @@ class _Sidebar extends ConsumerWidget {
             ),
           ),
           Container(height: 1, color: const Color(0xFF203A4D)),
+          // Footer compacto: avatar (com tooltip do estado) empilhado em cima
+          // dos ícones de acção. O texto "Sessão activa / Demonstração local"
+          // saiu do ecrã — leva-se pelo tooltip do avatar.
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 12, 16),
-            child: Row(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
               children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1D3A4E),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.person_outline_rounded,
-                    size: 18,
-                    color: Color(0xFFCEDAE1),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    SupabaseConfig.enabled
-                        ? 'Sessão activa'
-                        : 'Demonstração local',
-                    style: const TextStyle(
+                Tooltip(
+                  message: SupabaseConfig.enabled
+                      ? 'Sessão activa'
+                      : 'Demonstração local',
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1D3A4E),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.person_outline_rounded,
+                      size: 18,
                       color: Color(0xFFCEDAE1),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
                 if (SupabaseConfig.enabled) ...[
+                  const SizedBox(height: 8),
                   const _ConvitesButton(onDarkBackground: true),
                   const _SignOutButton(onDarkBackground: true),
                 ],
@@ -226,25 +241,6 @@ class _Sidebar extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    ),
-  );
-}
-
-class _SidebarSectionLabel extends StatelessWidget {
-  const _SidebarSectionLabel(this.label);
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
-    child: Text(
-      label,
-      style: const TextStyle(
-        color: Color(0xFF7E96A6),
-        fontSize: 10,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 1.2,
       ),
     ),
   );
@@ -263,53 +259,37 @@ class _SidebarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-    child: Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    // Modo compacto (sidebar 72 dp): só ícone + Tooltip com o rótulo.
+    // Estado seleccionado sinalizado por fundo + border laranja à esquerda.
+    // A seta ">" foi removida — não caberia no espaço estreito.
+    child: Tooltip(
+      message: item.label,
+      preferBelow: false,
+      child: Material(
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(12),
-        child: Ink(
-          height: 48,
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFF1B3A4D) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: selected
-                ? const Border(
-                    left: BorderSide(color: PunhoTheme.orange, width: 3),
-                  )
-                : null,
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 16),
-              Icon(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Ink(
+            height: 48,
+            decoration: BoxDecoration(
+              color: selected ? const Color(0xFF1B3A4D) : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: selected
+                  ? const Border(
+                      left: BorderSide(color: PunhoTheme.orange, width: 3),
+                    )
+                  : null,
+            ),
+            child: Center(
+              child: Icon(
                 item.icon,
-                size: 21,
+                size: 22,
                 color: selected ? PunhoTheme.orange : const Color(0xFFB7C7D1),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  item.label,
-                  style: TextStyle(
-                    color: selected ? Colors.white : const Color(0xFFB7C7D1),
-                    fontSize: 14,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                ),
-              ),
-              if (selected)
-                const Padding(
-                  padding: EdgeInsets.only(right: 14),
-                  child: Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 13,
-                    color: PunhoTheme.orange,
-                  ),
-                ),
-            ],
+            ),
           ),
         ),
       ),

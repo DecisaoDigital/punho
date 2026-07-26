@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_picker/file_picker.dart';
 import '../../../core/operations/operations_controller.dart';
+import '../../../core/documents/at_invoice_qr.dart';
+import '../../../core/documents/expense_document_capture.dart';
+import '../../../core/documents/expense_document_storage.dart';
 import '../../../domain/models/finance.dart';
 
 class FinanceListPage extends ConsumerWidget {
@@ -78,6 +80,8 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
   var category = ExpenseCategory.other;
   late ExpensePaymentStatus status;
   String? documentPath;
+  DateTime expenseDate = DateTime.now();
+  bool qrDetected = false;
   String? machineId;
   String? vehicleId;
 
@@ -108,26 +112,19 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
               children: [
                 OutlinedButton.icon(
                   onPressed: () async {
-                    final file = await FilePicker.platform.pickFiles(
-                      type: FileType.image,
-                    );
-                    if (file?.files.single.path != null) {
-                      setState(() => documentPath = file!.files.single.path);
-                    }
+                    final path = await ExpenseDocumentCapture.pickImage();
+                    if (path != null) await _useInvoicePhoto(path);
                   },
                   icon: const Icon(Icons.attach_file),
                   label: const Text('Escolher ficheiro'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'A câmara estará disponível em Android numa implementação local futura. Pode preencher manualmente.',
-                      ),
-                    ),
-                  ),
-                  icon: const Icon(Icons.camera_alt_outlined),
-                  label: const Text('Fotografar fatura'),
+                  onPressed: () async {
+                    final path = await ExpenseDocumentCapture.captureFromCamera();
+                    if (path != null) await _useInvoicePhoto(path);
+                  },
+                  icon: const Icon(Icons.document_scanner_outlined),
+                  label: const Text('Tirar e ler QR'),
                 ),
               ],
             ),
@@ -220,7 +217,7 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
               ),
             const SizedBox(height: 20),
             FilledButton(
-              onPressed: () {
+              onPressed: () async {
                 final cents =
                     ((double.tryParse(amount.text.replaceAll(',', '.')) ?? 0) *
                             100)
@@ -234,12 +231,13 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
                   );
                   return;
                 }
+                final expenseId = 'e${DateTime.now().microsecondsSinceEpoch}';
                 ref
                     .read(operationsProvider.notifier)
                     .saveExpense(
                       Expense(
-                        id: 'e${DateTime.now().microsecondsSinceEpoch}',
-                        date: DateTime.now(),
+                        id: expenseId,
+                        date: expenseDate,
                         amountCents: cents,
                         category: category,
                         status: status,
@@ -249,8 +247,33 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
                         vehicleId: vehicleId,
                         recordedByCollaboratorId:
                             widget.recordedByCollaboratorId,
+                        dataSource: qrDetected
+                            ? DocumentDataSource.qr
+                            : DocumentDataSource.manual,
                       ),
                     );
+                if (documentPath != null) {
+                  try {
+                    await ExpenseDocumentStorage.upload(
+                      localPath: documentPath!,
+                      expenseId: expenseId,
+                    );
+                  } catch (_) {
+                    // context.mounted (não só mounted) — o linter só aceita
+                    // esta forma para garantir que o próprio context ainda
+                    // pertence à árvore, não só que o State existe.
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'A despesa foi guardada, mas o comprovativo ainda não foi enviado para o arquivo privado.',
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                }
+                if (!context.mounted) return;
                 Navigator.pop(context);
               },
               child: const Text('Guardar'),
@@ -259,6 +282,28 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
         ),
       ),
     );
+  }
+  Future<void> _useInvoicePhoto(String path) async {
+    final qr = await AtInvoiceQrReader.readFromImage(path);
+    if (!mounted) return;
+    setState(() {
+      documentPath = path;
+      qrDetected = qr != null;
+      if (qr?.totalCents != null) {
+        amount.text = (qr!.totalCents! / 100).toStringAsFixed(2);
+      }
+      if (qr?.documentDate != null) expenseDate = qr!.documentDate!;
+      if (qr?.summary.isNotEmpty ?? false) note.text = qr!.summary;
+    });
+    if (qr == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Fotografia associada. Não foi encontrado um QR de fatura legível; complete os dados manualmente.',
+          ),
+        ),
+      );
+    }
   }
 }
 
