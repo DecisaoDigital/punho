@@ -825,18 +825,24 @@ class _Metric extends StatelessWidget {
     child: Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
+        // O cartão tem altura fixa (142) mas o rótulo é livre: rótulos longos
+        // como "Colaboradores ativos / vagas" quebravam para três linhas e
+        // rebentavam o cartão. spaceBetween em vez de Spacer, e limite de
+        // linhas com reticências, mantêm o desenho dentro da caixa.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Icon(icon, color: Theme.of(context).colorScheme.primary),
-            const Spacer(),
             Text(
               value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
-            Text(label),
+            Text(label, maxLines: 2, overflow: TextOverflow.ellipsis),
           ],
         ),
       ),

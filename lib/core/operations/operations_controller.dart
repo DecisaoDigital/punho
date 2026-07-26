@@ -354,7 +354,10 @@ class OperationsController extends Notifier<OperationsState> {
     );
     if (status == MachineStatus.available && hasActiveRental) return false;
     _repo.saveMachine(machine.copyWith(status: status));
-    _syncMachineCycle([id]);
+    // Não se chama _syncMachineCycle aqui de propósito: ele recalcula o estado
+    // a partir das reservas e anulava logo a escolha manual — pôr uma máquina
+    // com reserva futura em "disponível" não tinha efeito nenhum visível. O
+    // ciclo automático só corre quando é uma reserva a mudar.
     state = _fromRepo();
     return true;
   }
@@ -422,7 +425,31 @@ class OperationsController extends Notifier<OperationsState> {
     state = _fromRepo();
   }
 
+  /// Converte uma lead em cliente.
+  ///
+  /// Passa pelas mesmas regras de duplicados que a criação manual: antes disto
+  /// a conversão escrevia directamente no repositório e criava clientes
+  /// repetidos com o mesmo telemóvel. É idempotente — converter a mesma lead
+  /// duas vezes (dois toques seguidos no botão) devolve o cliente já criado em
+  /// vez de duplicar.
   Customer convertLead(Lead lead) {
+    final jaConvertida = state.leads
+        .where((item) => item.id == lead.id)
+        .any((item) => item.status == LeadStatus.converted);
+    final existente = state.customers
+        .where(
+          (customer) =>
+              lead.phone.isNotEmpty && customer.phone == lead.phone,
+        )
+        .firstOrNull;
+    if (jaConvertida && existente != null) return existente;
+    if (existente != null) {
+      _repo.saveLead(lead.copyWith(status: LeadStatus.converted));
+      state = _fromRepo();
+      throw StateError(
+        'Já existe um cliente com o telemóvel desta lead: ${existente.name}.',
+      );
+    }
     final customer = Customer(
       id: 'c${DateTime.now().microsecondsSinceEpoch}',
       name: lead.name,
@@ -449,10 +476,13 @@ class OperationsController extends Notifier<OperationsState> {
           endsAt.isAfter(booking.startsAt)) {
         for (final id in machineIds) {
           if (booking.machineIds.contains(id)) {
-            return BookingConflict(
-              state.machines.firstWhere((m) => m.id == id),
-              booking,
-            );
+            // `firstWhere` sem `orElse` rebentava quando uma reserva antiga
+            // ainda apontava para uma máquina que já não existe no estado.
+            final machine = state.machines
+                .where((m) => m.id == id)
+                .firstOrNull;
+            if (machine == null) continue;
+            return BookingConflict(machine, booking);
           }
         }
       }
@@ -479,6 +509,22 @@ class OperationsController extends Notifier<OperationsState> {
         .toSet();
     if (booking.machineIds.any((id) => !registeredMachineIds.contains(id))) {
       throw ArgumentError('Uma reserva só pode usar máquinas identificadas.');
+    }
+    // Uma máquina em manutenção ou parada não pode ser reservada: o
+    // _syncMachineCycle nunca lhe mexe no estado, pelo que ficava com uma
+    // reserva confirmada e ao mesmo tempo marcada como indisponível.
+    final indisponiveis = state.machines.where(
+      (machine) =>
+          booking.machineIds.contains(machine.id) &&
+          (machine.status == MachineStatus.maintenance ||
+              machine.status == MachineStatus.stopped),
+    );
+    if (indisponiveis.isNotEmpty) {
+      throw ArgumentError(
+        '${indisponiveis.first.name} está '
+        '${machineStatusLabel(indisponiveis.first.status).toLowerCase()} '
+        'e não pode ser reservada.',
+      );
     }
     final conflict = conflictFor(
       machineIds: booking.machineIds,

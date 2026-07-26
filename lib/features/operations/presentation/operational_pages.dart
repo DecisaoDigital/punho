@@ -1104,24 +1104,37 @@ Future<void> _machineDialog(
         ),
         FilledButton(
           onPressed: () {
-            if (name.text.isNotEmpty) {
-              ref
-                  .read(operationsProvider.notifier)
-                  .saveMachine(
-                    Machine(
-                      id:
-                          current?.id ??
-                          'm${DateTime.now().microsecondsSinceEpoch}',
-                      name: name.text,
-                      reference: reference.text,
-                      category: category.text,
-                      status: status,
-                      dailyRateCents: _moneyCents(dailyRate.text),
-                      notes: notes.text.trim(),
-                      photoPaths: photoPaths.value,
-                    ),
-                  );
+            if (name.text.trim().isEmpty) {
+              // Antes fechava o diálogo em silêncio e deitava fora o que
+              // tinha sido escrito.
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Indica o nome da máquina.')),
+              );
+              return;
             }
+            // A editar usa-se copyWith: construir um Machine novo apagava a
+            // data de aquisição e desarquivava máquinas arquivadas.
+            final machine = current != null
+                ? current.copyWith(
+                    name: name.text.trim(),
+                    reference: reference.text,
+                    category: category.text,
+                    status: status,
+                    dailyRateCents: _moneyCents(dailyRate.text),
+                    notes: notes.text.trim(),
+                    photoPaths: photoPaths.value,
+                  )
+                : Machine(
+                    id: 'm${DateTime.now().microsecondsSinceEpoch}',
+                    name: name.text.trim(),
+                    reference: reference.text,
+                    category: category.text,
+                    status: status,
+                    dailyRateCents: _moneyCents(dailyRate.text),
+                    notes: notes.text.trim(),
+                    photoPaths: photoPaths.value,
+                  );
+            ref.read(operationsProvider.notifier).saveMachine(machine);
             Navigator.pop(context);
           },
           child: const Text('Guardar'),
@@ -1189,9 +1202,17 @@ class ClientsPage extends ConsumerWidget {
                 trailing: l.status == LeadStatus.converted
                     ? null
                     : TextButton(
-                        onPressed: () => ref
-                            .read(operationsProvider.notifier)
-                            .convertLead(l),
+                        onPressed: () {
+                          try {
+                            ref
+                                .read(operationsProvider.notifier)
+                                .convertLead(l);
+                          } on StateError catch (error) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(error.message)),
+                            );
+                          }
+                        },
                         child: const Text('Converter'),
                       ),
               ),
@@ -1746,34 +1767,41 @@ class _WeekSlotRow extends ConsumerWidget {
   final ValueChanged<DateTime>? onToggleSlot;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => Row(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      SizedBox(
-        width: 86,
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w800),
+  // IntrinsicHeight é obrigatório aqui: a linha vive dentro de um
+  // SingleChildScrollView vertical, que lhe dá altura infinita, e o
+  // `stretch` transformava isso numa constraint apertada de altura infinita
+  // — constraints inválidas e o calendário da semana rebentava a montar.
+  // O IntrinsicHeight resolve a altura da célula mais alta antes do stretch.
+  Widget build(BuildContext context, WidgetRef ref) => IntrinsicHeight(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: 86,
+          child: Center(
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
           ),
         ),
-      ),
-      for (final day in days)
-        Expanded(
-          child: _BookingSlotCell(
-            day: day,
-            slot: slot,
-            bookings: bookings
-                .where((booking) => _overlapsSlot(booking, day, slot))
-                .toList(),
-            state: state,
-            selected: selectedSlotStarts.contains(_slotStartsAt(day, slot)),
-            onToggle: onToggleSlot == null
-                ? null
-                : () => onToggleSlot!(_slotStartsAt(day, slot)),
+        for (final day in days)
+          Expanded(
+            child: _BookingSlotCell(
+              day: day,
+              slot: slot,
+              bookings: bookings
+                  .where((booking) => _overlapsSlot(booking, day, slot))
+                  .toList(),
+              state: state,
+              selected: selectedSlotStarts.contains(_slotStartsAt(day, slot)),
+              onToggle: onToggleSlot == null
+                  ? null
+                  : () => onToggleSlot!(_slotStartsAt(day, slot)),
+            ),
           ),
-        ),
-    ],
+      ],
+    ),
   );
 }
 
@@ -2498,21 +2526,32 @@ Future<void> _showBookingForm(
                                       0) *
                                   100)
                               .round();
-                      final conflict = ref
-                          .read(operationsProvider.notifier)
-                          .addBooking(
-                            Booking(
-                              id: 'b${DateTime.now().microsecondsSinceEpoch}',
-                              customerId: customerId,
-                              machineIds: [machineId],
-                              startsAt: startsAt,
-                              endsAt: endsAt,
-                              status: status,
-                              expectedValueCents: cents > 0 ? cents : null,
-                              collaboratorResponsibleId: collaboratorId,
-                              notes: notes.text.trim(),
-                            ),
-                          );
+                      // addBooking valida duração mínima, máquinas por
+                      // identificar e máquinas paradas com ArgumentError. Sem
+                      // este try a excepção subia por tratar e rebentava o ecrã.
+                      final BookingConflict? conflict;
+                      try {
+                        conflict = ref
+                            .read(operationsProvider.notifier)
+                            .addBooking(
+                              Booking(
+                                id: 'b${DateTime.now().microsecondsSinceEpoch}',
+                                customerId: customerId,
+                                machineIds: [machineId],
+                                startsAt: startsAt,
+                                endsAt: endsAt,
+                                status: status,
+                                expectedValueCents: cents > 0 ? cents : null,
+                                collaboratorResponsibleId: collaboratorId,
+                                notes: notes.text.trim(),
+                              ),
+                            );
+                      } on ArgumentError catch (error) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('${error.message}')),
+                        );
+                        return;
+                      }
                       if (conflict != null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -2651,10 +2690,16 @@ class _PageFrame extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          // Wrap e não Row: dentro de um Row o `action` (que já é um Wrap de
+          // botões) recebia largura infinita e nunca quebrava linha, pelo que
+          // num telemóvel os botões saíam do ecrã cortados.
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
             children: [
               Text(title, style: Theme.of(context).textTheme.headlineMedium),
-              const Spacer(),
               action,
             ],
           ),

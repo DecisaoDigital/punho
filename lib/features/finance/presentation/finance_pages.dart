@@ -225,7 +225,15 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
                     ((double.tryParse(amount.text.replaceAll(',', '.')) ?? 0) *
                             100)
                         .round();
-                if (cents <= 0) return;
+                // Antes o botão não fazia rigorosamente nada e não dizia porquê.
+                if (cents <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Indica um valor superior a zero.'),
+                    ),
+                  );
+                  return;
+                }
                 ref
                     .read(operationsProvider.notifier)
                     .saveExpense(
@@ -348,7 +356,14 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
                                       0) *
                                   100)
                               .round();
-                      if (cents <= 0) return;
+                      if (cents <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Indica um valor superior a zero.'),
+                          ),
+                        );
+                        return;
+                      }
                       ref
                           .read(operationsProvider.notifier)
                           .saveReceipt(
