@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/auth/auth_rules.dart';
+import '../../collaborator/presentation/collaborator_shell.dart';
 import '../../shell/presentation/app_shell.dart';
 import '../acesso_providers.dart';
 import '../domain/estado_acesso.dart';
@@ -151,7 +152,15 @@ class AcessoGate extends ConsumerWidget {
             const Scaffold(body: Center(child: CircularProgressIndicator())),
         error: (_, __) => _erroPage(ref),
         data: (acesso) => switch (decidirAcesso(acesso)) {
-          DecisaoAcesso.app => const AppShell(),
+          // O perfil aprovado em punho_membros escolhe a shell. Sem isto, um
+          // colaborador recebia a shell de gestor e via custos, salários e
+          // lucros globais.
+          DecisaoAcesso.app => acesso.eGestor
+              ? const AppShell()
+              : CollaboratorShell(
+                  collaboratorId: ref.read(acessoServiceProvider).utilizadorId,
+                  titulo: 'Colaborador',
+                ),
           DecisaoAcesso.pendente => const PedidoEmAnaliseScreen(),
           DecisaoAcesso.indisponivel => const AcessoIndisponivelScreen(),
         },

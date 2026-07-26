@@ -17,3 +17,13 @@ Future<void> montarGate(WidgetTester tester, FakeAcessoService fake) async {
   );
   await tester.pumpAndSettle();
 }
+
+/// Envolve um ecrã em `ProviderScope` + `MaterialApp` sem substituir nada.
+class ProviderScopeParaTeste extends StatelessWidget {
+  const ProviderScopeParaTeste({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      ProviderScope(child: MaterialApp(home: child));
+}

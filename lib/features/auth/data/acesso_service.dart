@@ -55,6 +55,10 @@ extension ValidacaoConviteMensagem on ValidacaoConvite {
 /// fakear a sério. Os testes implementam isto; a produção usa
 /// [SupabaseAcessoService].
 abstract class AcessoService {
+  /// Id da conta autenticada. Serve de identidade do colaborador nos registos
+  /// que ele cria (leads, marcações, recebimentos).
+  String? get utilizadorId;
+
   Future<EstadoAcesso> meuAcesso();
   Future<ValidacaoConvite> validarConvite(String codigo);
   Future<void> registar({
@@ -73,6 +77,9 @@ abstract class AcessoService {
 class SupabaseAcessoService implements AcessoService {
   SupabaseAcessoService(this._client);
   final SupabaseClient _client;
+
+  @override
+  String? get utilizadorId => _client.auth.currentUser?.id;
 
   @override
   Future<EstadoAcesso> meuAcesso() async {

@@ -13,7 +13,11 @@ class FakeAcessoService implements AcessoService {
     this.convites = const [],
     this.erroAoCriarConvite,
     this.erroAoLerAcesso,
+    this.utilizadorId = 'user-1',
   }) : acesso = acesso ?? const EstadoAcesso(membroAtivo: false, estado: 'pendente');
+
+  @override
+  final String? utilizadorId;
 
   EstadoAcesso acesso;
   ValidacaoConvite validacao;

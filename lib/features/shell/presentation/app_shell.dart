@@ -26,6 +26,9 @@ class AppShell extends ConsumerWidget {
     final operational = ref.watch(operationsProvider);
     final session = ref.watch(demoSessionProvider);
     if (!operational.onboarded) return const OnboardingPage();
+    // Só o modo de demonstração local decide o perfil por aqui. Com Supabase
+    // ligado quem escolhe a shell é o AcessoGate, a partir do perfil aprovado
+    // em punho_membros — a esta altura já se sabe que é gestor.
     if (!SupabaseConfig.enabled && !session.isManager) {
       return const CollaboratorShell();
     }

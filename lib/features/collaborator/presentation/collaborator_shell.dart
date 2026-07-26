@@ -8,63 +8,97 @@ import '../../finance/presentation/finance_pages.dart';
 import '../../operations/presentation/operational_pages.dart';
 
 class CollaboratorShell extends ConsumerWidget {
-  const CollaboratorShell({super.key});
+  const CollaboratorShell({super.key, this.collaboratorId, this.titulo});
+
+  /// Identidade do colaborador autenticado. Quando é nula cai-se na sessão de
+  /// demonstração local — é o caminho usado sem Supabase.
+  final String? collaboratorId;
+  final String? titulo;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(demoSessionProvider);
-    final id = session.collaboratorId!;
+    // Era `session.collaboratorId!`: com Supabase ligado a sessão de
+    // demonstração é sempre `manager`, cujo id é nulo, e o `!` rebentava.
+    final id = collaboratorId ?? session.collaboratorId;
+    if (id == null) return const _SemColaborador();
     return PhoneOrientationLock(
       orientation: PhoneOrientation.portrait,
       child: Scaffold(
-        appBar: AppBar(title: Text(session.label)),
+        appBar: AppBar(title: Text(titulo ?? session.label)),
         body: SafeArea(
-          child: Padding(
+          // ListView e não Column: seis botões de 76 dp não cabem numa janela
+          // baixa (Windows, ou telemóvel em paisagem) e o ecrã aparecia com as
+          // barras amarelas e pretas de overflow.
+          child: ListView(
             padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'O que quer registar?',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 20),
-                _Action(
-                  'Nova marcação',
-                  Icons.add_task,
-                  () => _newBooking(context, ref, id),
-                ),
-                _Action(
-                  'Registar recebimento',
-                  Icons.payments,
-                  () => _receipt(context, ref, id),
-                ),
-                _Action(
-                  'Registar despesa / fatura',
-                  Icons.receipt_long_outlined,
-                  () => _expense(context, id),
-                ),
-                _Action(
-                  'Nova lead',
-                  Icons.person_add_alt_1,
-                  () => _newLead(context, ref, id),
-                ),
-                _Action(
-                  'As minhas marcações',
-                  Icons.calendar_month,
-                  () => _mine(context, ref, id),
-                ),
-                _Action(
-                  'A minha atividade',
-                  Icons.timeline,
-                  () => _activity(context, ref, id),
-                ),
-              ],
-            ),
+            children: [
+              Text(
+                'O que quer registar?',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 20),
+              _Action(
+                'Nova marcação',
+                Icons.add_task,
+                () => _newBooking(context, ref, id),
+              ),
+              _Action(
+                'Registar recebimento',
+                Icons.payments,
+                () => _receipt(context, ref, id),
+              ),
+              _Action(
+                'Registar despesa / fatura',
+                Icons.receipt_long_outlined,
+                () => _expense(context, id),
+              ),
+              _Action(
+                'Nova lead',
+                Icons.person_add_alt_1,
+                () => _newLead(context, ref, id),
+              ),
+              _Action(
+                'As minhas marcações',
+                Icons.calendar_month,
+                () => _mine(context, ref, id),
+              ),
+              _Action(
+                'A minha atividade',
+                Icons.timeline,
+                () => _activity(context, ref, id),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
+
+/// Sessão sem colaborador associado. Antes disto o ecrã rebentava com um null
+/// check; mostrar o estado é sempre melhor do que estoirar em frente ao cliente.
+class _SemColaborador extends StatelessWidget {
+  const _SemColaborador();
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.badge_outlined, size: 48),
+            SizedBox(height: 16),
+            Text(
+              'Sem colaborador associado a esta sessão.',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _Action extends StatelessWidget {
