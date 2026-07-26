@@ -1,6 +1,13 @@
-# v0.0.4 — Aviso de update global, independente do gate de acesso
+# v0.0.3 — Aviso de update global, independente do gate de acesso
 
-Branch: `feat/update-global`. Primeira sprint da v0.0.4.
+Branch: `release/v0.0.3`, a partir de `chore/estabilizacao-v0.0.3`. Entra na
+release consolidada da v0.0.3, junto com a sprint de estabilização.
+
+Foi pensado para a v0.0.4 e **antecipado** para aqui por uma razão prática: a
+v0.0.2 instalada no telemóvel do Cesar não sabe verificar updates fora do
+dashboard, portanto a v0.0.3 tem de ir por USB de qualquer maneira. Se o aviso
+global não fosse nesta, a v0.0.4 também teria de ir por USB. Metendo-o aqui, a
+v0.0.3 é a **última** instalação manual.
 
 ## O buraco que isto tapa
 
@@ -129,15 +136,18 @@ uma permissão de notificações a pedir ao utilizador no Android 13+.
 
 E não resolve nada que já não esteja resolvido: quem abre a app recebe o aviso
 no arranque, e quem não a abre não a vai actualizar por ver uma notificação.
-Registado em `BACKLOG_v0.1.0.md` com a nota "só se justificar" — quando houver
+Registado em `BACKLOG_v0.0.4.md` com a nota "só se justificar", com destino
+v0.1.0 — quando houver
 utilizadores reais que passem dias sem abrir a app.
 
 ## Por validar à mão
 
 **Por fazer, para o Cesar.** Nada disto conta como validado até estar feito:
 
+0. Instalar a v0.0.3 (`0.0.3+3`) no Redmi por USB. Sem isto nada disto se
+   observa — a v0.0.2 instalada não tem este código.
 1. Publicar em `versoes_apps` uma linha para `app='punho'` com `build_number`
-   superior ao instalado, `obrigatoria=false`.
+   superior a **3**, `obrigatoria=false`.
 2. Arrancar a app **sem fazer login** → o aviso tem de aparecer por cima do
    ecrã de login, com botão "Atualizar" a abrir o URL.
 3. Entrar com uma conta com pedido pendente → aviso por cima de "Pedido em
@@ -146,7 +156,19 @@ utilizadores reais que passem dias sem abrir a app.
 
 ## Nota de release
 
-Este código só passa a valer **depois** de haver uma versão nova publicada. A
-v0.0.3 instalada por USB no Redmi continua sem aviso automático: a app instalada
-é que faz a pergunta, e essa não tem este código. É a **próxima** versão
-instalada que passa a avisar das seguintes.
+A **v0.0.3 é a primeira versão com aviso de update global**. A v0.0.2 instalada
+no Redmi não sabe verificar updates fora do dashboard, e é sempre a app
+instalada que faz a pergunta — nenhuma versão se anuncia a si própria a uma
+versão anterior que não pergunta.
+
+Portanto:
+
+| Versão | Como chega ao telemóvel |
+|---|---|
+| v0.0.3 | **USB.** Última instalação manual. |
+| v0.0.4 e seguintes | Aviso na app, assim que o Cesar publicar em `versoes_apps` |
+
+E o aviso da v0.0.3 só aparece depois de existir uma linha em `versoes_apps` com
+`build_number` maior que 3 — enquanto for a versão mais recente publicada, não há
+nada a anunciar e o banner fica invisível. Isso é o comportamento certo, não um
+sintoma de estar quebrado.

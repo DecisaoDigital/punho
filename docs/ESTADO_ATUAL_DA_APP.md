@@ -1,15 +1,17 @@
 # Estado atual do Punho
 
-> **Sprint v0.0.4 · aviso de update global** (branch `feat/update-global`)
+> **Release v0.0.3 consolidada** (branch `release/v0.0.3`, `version: 0.0.3+3`)
 >
-> O aviso de nova versao deixou de depender de sessao e de ecra. Antes so um
-> gestor com adesao activa que abrisse o dashboard o via; agora chega a quem
+> Junta a sprint de estabilizacao (abaixo) com o **aviso de update global**,
+> antecipado da v0.0.4. O aviso deixou de depender de sessao e de ecra: antes so
+> um gestor com adesao activa que abrisse o dashboard o via, agora chega a quem
 > esta no login e a quem esta bloqueado no gate (pedido pendente, acesso
 > recusado ou revogado). Suite de testes 162 -> 177. Ver
-> `design/punho_v004_update_global.md`.
+> `design/punho_v003_update_global.md`.
 >
-> **So passa a valer na proxima versao publicada.** A v0.0.3 instalada no Redmi
-> continua sem aviso automatico: e a app instalada que faz a pergunta.
+> **A v0.0.3 tem de ser instalada por USB** — a v0.0.2 no Redmi nao sabe
+> verificar updates fora do dashboard. E a ultima instalacao manual: a partir
+> daqui as versoes chegam pelo aviso na app.
 
 > **Sprint de estabilizacao v0.0.3** (branch `chore/estabilizacao-v0.0.3`)
 >

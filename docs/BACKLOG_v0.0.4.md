@@ -38,6 +38,43 @@ Vários `onPressed` fazem `Navigator.pop` sem impedir o segundo toque. Um padrã
 partilhado (flag `_ocupado`, ou um `FilledButton` que se desactiva ao primeiro
 toque) resolvia de uma vez em todos.
 
+## Deixado de fora do aviso de update global (v0.0.3)
+
+Ver `design/punho_v003_update_global.md`. O aviso global entrou na v0.0.3; estas
+quatro coisas ficaram deliberadamente de fora.
+
+### Push de notificações (FCM) — destino v0.1.0, só se justificar
+
+Hoje o único canal é a app perguntar ao Control no arranque, o que cobre todos os
+utilizadores que abrem a app. FCM só acrescentaria avisar quem tem a app
+**fechada**. O que custa: `firebase_messaging` e projecto Firebase,
+`google-services.json` e configuração do Gradle, service account do lado do
+Control, código de registo e renovação de token com tabela para o guardar,
+tratamento das três situações (foreground, background, terminated) e permissão de
+notificações no Android 13+. Grátis no plano Spark para volumes baixos, mas é
+mais uma consola, mais um segredo e mais uma dependência de terceiros.
+
+**Só vale a pena quando** houver utilizadores reais que passem dias sem abrir a
+app e a demora a actualizar for um problema medido, não suposto.
+
+### Persistir o último check
+
+Hoje cada arranque a frio pergunta de novo. É uma chamada barata a uma Edge
+Function, mas guardar a resposta e o instante em `SharedPreferences` evitaria a
+chamada em arranques seguidos e permitiria mostrar o aviso **antes** da resposta
+chegar (offline incluído). Precisa de decidir a validade da cache.
+
+### UX do banner
+
+Colapsar/expandir, notas de release inline com mais do que uma linha, e um estado
+"a descarregar". Hoje é um cartão fixo com título, notas e botão.
+
+### Tratamento fino do update obrigatório
+
+Contagem regressiva antes de bloquear, mensagem a dizer *porquê* é obrigatório, e
+localização das mensagens. Hoje bloqueia de imediato com texto fixo — correcto,
+mas seco.
+
 ## Dívida técnica registada
 
 - Auditoria completa de RLS — a v0.0.3 só faz o smoke de isolamento entre

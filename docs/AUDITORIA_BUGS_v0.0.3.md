@@ -3,7 +3,14 @@
 **Branch:** `chore/estabilizacao-v0.0.3` · **Base:** `feat/contas-organizacao`
 **Âmbito:** zero features novas. Bug hunt, correcção de P0/P1 e cobertura de
 testes do happy path.
-**Versão:** fica em `0.0.2+2`. Não foi bumpada.
+**Versão:** a sprint não bumpou (ficou em `0.0.2+2`). A release consolidada
+`release/v0.0.3` bumpou para **`0.0.3+3`** e acrescentou o aviso de update
+global — ver `design/punho_v003_update_global.md`.
+
+**Nenhuma entrada desta auditoria caducou com essa adição.** As 8 entradas P2
+continuam PENDING como estão: nenhuma toca no auto-update nem nos ecrãs que o
+wrapper envolve. O único ficheiro auditado que o aviso global mexeu foi
+`dashboard_page.dart`, e só para lhe **tirar** o banner.
 
 ## Como foi feito o hunt
 
@@ -26,6 +33,7 @@ eliminadas** — estão listadas na secção "Por verificar à mão".
 **Nenhuma entrada P0 ou P1 em PENDING.**
 
 Testes: **106 → 162** (+56), todos verdes. `flutter analyze` limpo.
+Com o aviso de update global da release consolidada: **162 → 177**.
 
 > **PRONTO PARA SMOKE MANUAL.** Os 9 fluxos do happy path estão por confirmar
 > numa app a correr — é o passo do Cesar. Enquanto não estiver assinado aqui

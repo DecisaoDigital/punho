@@ -1,3 +1,8 @@
+> **SUBSTITUÍDO** por `punho_v003_release_final.md`. O âmbito deste prompt foi
+> antecipado da v0.0.4 para a release consolidada v0.0.3 (branch
+> `release/v0.0.3`). Fica aqui pelo registo do raciocínio; o que foi executado
+> está no prompt novo e em `docs/design/punho_v003_update_global.md`.
+
 # Prompt Claude Code — Punho v0.0.4
 
 ## Update check e banner independentes do gate de auth

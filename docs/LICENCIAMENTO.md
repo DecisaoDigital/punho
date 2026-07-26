@@ -42,10 +42,10 @@ para não criar registos:
 | Nenhuma | `401` |
 
 Por isso o `PunhoLicencaService` **não** tem guarda de sessão nenhuma. Desde a
-v0.0.4 o `update_service.dart` também não: a guarda
+v0.0.3 o `update_service.dart` também não: a guarda
 `if (session == null) return null;` que lá existia deixava sem aviso de update
 todos os utilizadores presos no login ou no gate de acesso — ver
-`design/punho_v004_update_global.md`.
+`design/punho_v003_update_global.md`.
 
 ## `machine_id`
 
