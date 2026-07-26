@@ -13,6 +13,7 @@ import 'core/config/supabase_config.dart';
 import 'data/repositories/operation_repository.dart';
 import 'features/auth/presentation/auth_gate.dart';
 import 'features/shell/presentation/app_shell.dart';
+import 'features/updates/presentation/update_banner_wrapper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,7 +59,11 @@ class PunhoApp extends ConsumerWidget {
       title: 'Punho',
       debugShowCheckedModeBanner: false,
       theme: PunhoTheme.light,
-      home: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),
+      // O aviso de nova versão envolve a raiz, e não um ecrã: tem de chegar a
+      // quem está preso no login ou no gate de acesso.
+      home: PunhoUpdateBannerWrapper(
+        child: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),
+      ),
     );
   }
 }

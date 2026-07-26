@@ -12,7 +12,6 @@ import '../../../domain/models/historical_month.dart';
 import '../../../core/guidance/guidance_engine.dart';
 import '../../finance/presentation/finance_pages.dart';
 import '../../operations/presentation/operational_pages.dart';
-import '../../updates/presentation/update_banner.dart';
 
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
@@ -107,8 +106,8 @@ class DashboardPage extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text('Olá, ${state.ownerName ?? state.companyName}.'),
-            const SizedBox(height: 12),
-            const PunhoUpdateBanner(),
+            // O aviso de nova versão saiu daqui: passou a viver no
+            // PunhoUpdateBannerWrapper, à volta da raiz da app.
             const SizedBox(height: 24),
             Wrap(
               spacing: 14,

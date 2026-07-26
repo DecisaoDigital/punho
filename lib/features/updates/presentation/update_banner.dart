@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/config/supabase_config.dart';
 import '../../../core/updates/update_info.dart';
-import '../../../core/updates/update_service.dart';
+import '../update_providers.dart';
 
-final punhoUpdateProvider = FutureProvider<PunhoUpdateInfo?>((ref) {
-  if (!SupabaseConfig.enabled) return null;
-  return PunhoUpdateService(Supabase.instance.client).check();
-});
-
+/// O aviso em si. Quem o monta é o [PunhoUpdateBannerWrapper], por cima de
+/// qualquer ecrã — o estado vive em `punhoUpdateProvider`, não aqui.
 class PunhoUpdateBanner extends ConsumerWidget {
-  const PunhoUpdateBanner({super.key});
+  const PunhoUpdateBanner({super.key, this.update});
+
+  /// Quando é nulo, o aviso lê o estado global. Serve para o wrapper poder
+  /// passar o que já leu, sem segunda leitura do provider.
+  final PunhoUpdateInfo? update;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final update = ref.watch(punhoUpdateProvider).valueOrNull;
+    final update = this.update ?? ref.watch(punhoUpdateProvider);
     if (update == null) return const SizedBox.shrink();
     final color = update.mandatory
         ? Theme.of(context).colorScheme.errorContainer
