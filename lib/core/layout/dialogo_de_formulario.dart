@@ -9,11 +9,15 @@ import 'package:flutter/material.dart';
 /// também não rolava, pelo que os últimos campos simplesmente não existiam.
 ///
 /// A correcção é sempre a mesma, e é por isso que vive num sítio só:
-///  * `insetPadding` desconta `viewInsets.bottom` — o diálogo sobe com o teclado;
-///  * `maxHeight` desconta o mesmo — o diálogo encolhe em vez de transbordar;
 ///  * o corpo vai num [SingleChildScrollView] dentro de um [Flexible], por isso
 ///    rola quando não cabe e não estica quando cabe;
-///  * o rodapé fica fora do scroll — *Guardar* está sempre visível.
+///  * o rodapé fica fora do scroll — *Guardar* está sempre visível;
+///  * a altura fica limitada ao que o [Dialog] deixa, que já é o ecrã menos o
+///    teclado.
+///
+/// O `insetPadding` **não** desconta o teclado à mão: o [Dialog] soma-lhe
+/// `viewInsets` por dentro. Descontá-lo aqui contava-o duas vezes e o diálogo
+/// ficava com 220 dp de altura num ecrã que tinha 532 livres.
 class DialogoDeFormulario extends StatelessWidget {
   const DialogoDeFormulario({
     super.key,
@@ -38,17 +42,10 @@ class DialogoDeFormulario extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final teclado = MediaQuery.viewInsetsOf(context).bottom;
-    final alturaDoEcra = MediaQuery.sizeOf(context).height;
     return Dialog(
-      insetPadding: EdgeInsets.fromLTRB(16, 24, 16, teclado + 16),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: larguraMaxima,
-          // Sem descontar o teclado o diálogo tenta ocupar o ecrã inteiro e
-          // rebenta pelo fundo em vez de rolar.
-          maxHeight: (alturaDoEcra - teclado - 48).clamp(160.0, alturaDoEcra),
-        ),
+        constraints: BoxConstraints(maxWidth: larguraMaxima),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,

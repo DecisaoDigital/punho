@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide TimeOfDay;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/workforce.dart';
 
@@ -229,24 +230,50 @@ class VehiclesPage extends ConsumerWidget {
   }
 }
 
-Future<void> _vehicleDialog(BuildContext context, WidgetRef ref) async {
+Future<void> _vehicleDialog(BuildContext context, WidgetRef ref) => showDialog(
+  context: context,
+  // Os mesmos quatro defeitos que o diálogo dos colaboradores tinha e que o
+  // Cesar apanhou no smoke da v0.0.4: fechava ao tocar fora, o título dizia
+  // "Novo" (leu-se como "já foi criado"), não validava nada e não punha o
+  // cursor no primeiro campo.
+  barrierDismissible: false,
+  builder: (_) =>
+      _FormularioDeVeiculo(notifier: ref.read(operationsProvider.notifier)),
+);
+
+class _FormularioDeVeiculo extends StatefulWidget {
+  const _FormularioDeVeiculo({required this.notifier});
+
+  final OperationsController notifier;
+
+  @override
+  State<_FormularioDeVeiculo> createState() => _FormularioDeVeiculoState();
+}
+
+class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
   final plate = TextEditingController();
   final type = TextEditingController();
   final alias = TextEditingController();
   final monthlyPayment = TextEditingController();
   final insurance = TextEditingController();
   var insuranceFrequency = InsuranceFrequency.annual;
-  await showDialog(
-    context: context,
-    // Os mesmos quatro defeitos que o diálogo dos colaboradores tinha e que o
-    // Cesar apanhou no smoke da v0.0.4: fechava ao tocar fora, o título dizia
-    // "Novo" (leu-se como "já foi criado"), não validava nada e não punha o
-    // cursor no primeiro campo.
-    barrierDismissible: false,
-    builder: (context) => AlertDialog(
-      title: const Text('Adicionar veículo'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
+
+  @override
+  void dispose() {
+    plate.dispose();
+    type.dispose();
+    alias.dispose();
+    monthlyPayment.dispose();
+    insurance.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DialogoDeFormulario(
+      titulo: 'Adicionar veículo',
+      corpo: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TextField(
             controller: plate,
@@ -279,6 +306,7 @@ Future<void> _vehicleDialog(BuildContext context, WidgetRef ref) async {
           ),
           DropdownButtonFormField<InsuranceFrequency>(
             value: insuranceFrequency,
+            isExpanded: true,
             decoration: const InputDecoration(
               labelText: 'Periodicidade do seguro',
             ),
@@ -296,51 +324,38 @@ Future<void> _vehicleDialog(BuildContext context, WidgetRef ref) async {
                 child: Text('Anual'),
               ),
             ],
-            onChanged: (value) => insuranceFrequency = value!,
+            onChanged: (value) => setState(() => insuranceFrequency = value!),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () {
-            // Sem matrícula o veículo não se identifica. Não se valida o
-            // formato AA-11-BB: pode ser matrícula estrangeira ou histórica.
-            final matricula = plate.text.trim();
-            if (matricula.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Indica a matrícula do veículo.'),
-                ),
-              );
-              return;
-            }
-            ref
-                .read(operationsProvider.notifier)
-                .saveVehicle(
-                  Vehicle(
-                    id: 'v${DateTime.now().microsecondsSinceEpoch}',
-                    plate: matricula,
-                    type: type.text,
-                    status: VehicleStatus.active,
-                    alias: alias.text.trim().isEmpty ? null : alias.text.trim(),
-                    monthlyPaymentCents: _cents(monthlyPayment.text),
-                    insuranceCents: _cents(insurance.text),
-                    insuranceFrequency: insurance.text.trim().isEmpty
-                        ? null
-                        : insuranceFrequency,
-                  ),
-                );
-            Navigator.pop(context);
-          },
-          child: const Text('Guardar'),
-        ),
-      ],
-    ),
-  );
+      aoGuardar: () {
+        // Sem matrícula o veículo não se identifica. Não se valida o formato
+        // AA-11-BB: pode ser matrícula estrangeira ou histórica.
+        final matricula = plate.text.trim();
+        if (matricula.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Indica a matrícula do veículo.')),
+          );
+          return;
+        }
+        widget.notifier.saveVehicle(
+          Vehicle(
+            id: 'v${DateTime.now().microsecondsSinceEpoch}',
+            plate: matricula,
+            type: type.text,
+            status: VehicleStatus.active,
+            alias: alias.text.trim().isEmpty ? null : alias.text.trim(),
+            monthlyPaymentCents: _cents(monthlyPayment.text),
+            insuranceCents: _cents(insurance.text),
+            insuranceFrequency: insurance.text.trim().isEmpty
+                ? null
+                : insuranceFrequency,
+          ),
+        );
+        Navigator.pop(context);
+      },
+    );
+  }
 }
 
 int? _cents(String value) {

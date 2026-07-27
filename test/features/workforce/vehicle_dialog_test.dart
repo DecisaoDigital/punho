@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:punho/core/layout/dialogo_de_formulario.dart';
 import 'package:punho/core/operations/operations_controller.dart';
+import 'package:punho/domain/models/workforce.dart';
 import 'package:punho/features/workforce/presentation/workforce_pages.dart';
 
 import '../dashboard/fixtura.dart';
@@ -53,7 +55,7 @@ void main() {
       container.read(operationsProvider).vehicles.map((v) => v.plate),
       contains('ZZ-99-XX'),
     );
-    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(DialogoDeFormulario), findsNothing);
   });
 
   testWidgets('a matrícula ganha foco e escreve-se em maiúsculas', (
@@ -72,7 +74,37 @@ void main() {
     await tester.tapAt(const Offset(20, 20));
     await tester.pumpAndSettle();
 
-    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.byType(DialogoDeFormulario), findsOneWidget);
+  });
+
+  testWidgets('em retrato com o teclado aberto o Guardar continua visível', (
+    tester,
+  ) async {
+    // Seis campos e um teclado de 320 dp: era isto que empurrava o Guardar para
+    // fora do ecrã, sem o corpo rolar para se lá chegar.
+    await montarLandscape(
+      tester,
+      containerCom(estadoComMovimento()),
+      const VehiclesPage(),
+      tamanho: const Size(420, 900),
+    );
+    await tester.tap(find.text('Adicionar veículo').first);
+    await tester.pumpAndSettle();
+    tester.view.viewInsets = FakeViewPadding(
+      bottom: 320 * tester.view.devicePixelRatio,
+    );
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpAndSettle();
+
+    final guardar = find.widgetWithText(FilledButton, 'Guardar');
+    expect(tester.getRect(guardar).bottom, lessThanOrEqualTo(900 - 320));
+    // E o último campo alcança-se a rolar, em vez de não existir.
+    await tester.scrollUntilVisible(
+      find.byType(DropdownButtonFormField<InsuranceFrequency>),
+      120,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('Periodicidade do seguro'), findsOneWidget);
   });
 
   testWidgets('cancelar fecha sem gravar', (tester) async {
@@ -83,7 +115,7 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, 'Cancelar'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(DialogoDeFormulario), findsNothing);
     expect(
       container.read(operationsProvider).vehicles.map((v) => v.plate),
       isNot(contains('AA-11-BB')),

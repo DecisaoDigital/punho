@@ -9,6 +9,7 @@ import 'package:punho/features/dashboard/presentation/dashboard_page.dart';
 import 'package:punho/features/dashboard/presentation/todas_metricas_page.dart';
 import 'package:punho/features/operations/presentation/operational_pages.dart';
 import 'package:punho/features/tarefas/presentation/tarefas_page.dart';
+import 'package:punho/features/workforce/presentation/workforce_pages.dart';
 
 import 'fixtura.dart';
 
@@ -254,6 +255,32 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile(
         '../../../docs/design/screenshots/v005/dialogo_maquina_largo.png',
+      ),
+    );
+  });
+
+  testWidgets('captura do diálogo do veículo em retrato com teclado', (
+    tester,
+  ) async {
+    await montarLandscape(
+      tester,
+      containerCom(estadoComMovimento()),
+      const VehiclesPage(),
+      tamanho: const Size(420, 900),
+    );
+    await tester.tap(find.text('Adicionar veículo').first);
+    await tester.pumpAndSettle();
+    // Com o teclado aberto: é este o caso que estava roto.
+    tester.view.viewInsets = FakeViewPadding(
+      bottom: 320 * tester.view.devicePixelRatio,
+    );
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile(
+        '../../../docs/design/screenshots/v005/dialogo_veiculo_portrait_teclado.png',
       ),
     );
   });
