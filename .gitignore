@@ -112,3 +112,6 @@ supabase/.temp/
 
 # Inno Setup output
 installer_output/
+
+# Artefactos de comparação de goldens (gerados quando um golden falha)
+**/test/**/failures/
