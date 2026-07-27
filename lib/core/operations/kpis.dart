@@ -1,6 +1,8 @@
 import '../../domain/models/finance.dart';
 import '../../domain/models/operations.dart';
 import '../../domain/models/workforce.dart';
+import '../finance/regime_fiscal.dart';
+import '../finance/retencao_irs.dart';
 import '../guidance/guidance_engine.dart';
 import 'operations_controller.dart';
 
@@ -661,4 +663,52 @@ Recommendation? recomendacaoDaSemana(
     if (esperado != null) valor = (valor ?? 0) + esperado;
   }
   return (contagem: contagem, valorCents: valor);
+}
+
+/// O que sai *mesmo* da empresa em pessoal, num mês.
+///
+/// O `colaboradoresCents` do [CustosMes] é a soma dos brutos. Para quem tem
+/// gente com contrato, isso subestima o custo em quase um quarto: a TSU da
+/// entidade patronal não aparece no vencimento e é o que mais se esquece.
+///
+/// `bruto` soma todos os vínculos; `tsuPatronal` só incide sobre os contratos,
+/// porque em recibos verdes o valor pago é o custo total. `total` é a soma dos
+/// dois — o número que o gestor precisa de ver.
+///
+/// O `regime` entra porque o cálculo de cada pessoa passa pelo
+/// [estimarSalarial], que o exige. Em [RegimeFiscal.outro] não há estimativa
+/// aplicável e as três parcelas vêm a `null`: a UI esconde o KPI em vez de
+/// mostrar 0 €, como manda a Decisão 1 — mostrar KPI irrelevante é ruído pior
+/// do que ausência.
+///
+/// O próprio empresário em nome individual não entra aqui: não é colaborador de
+/// si mesmo, desconta como trabalhador independente, e contá-lo era contradição
+/// jurídica. Só entram os registos de `state.collaborators`.
+({int? bruto, int? tsuPatronal, int? total}) custoRealComPessoalMes(
+  OperationsState state, {
+  required RegimeFiscal regime,
+}) {
+  if (regime == RegimeFiscal.outro) {
+    return (bruto: null, tsuPatronal: null, total: null);
+  }
+  var bruto = 0;
+  var tsuPatronal = 0;
+  for (final colaborador in state.collaborators) {
+    // Arquivados fora: um colaborador eliminado não custa dinheiro este mês.
+    if (colaborador.archived) continue;
+    if (colaborador.status != CollaboratorStatus.active) continue;
+    final mensal = monthlyCollaboratorCost(colaborador);
+    if (mensal == null) continue;
+    final estimativa = estimarSalarial(
+      regime: regime,
+      tipo: colaborador.employmentType,
+      estado: colaborador.maritalStatus,
+      dependentes: colaborador.dependents,
+      brutoMensalCents: mensal,
+    );
+    if (estimativa == null) continue;
+    bruto += mensal;
+    tsuPatronal += estimativa.tsuEntidadePatronalCents;
+  }
+  return (bruto: bruto, tsuPatronal: tsuPatronal, total: bruto + tsuPatronal);
 }

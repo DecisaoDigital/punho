@@ -4,6 +4,10 @@ import 'package:punho/core/theme/punho_theme.dart';
 import 'package:punho/features/operations/presentation/boas_vindas_screen.dart';
 import 'package:punho/features/operations/presentation/mais_dados_screen.dart';
 
+import 'package:punho/domain/models/workforce.dart';
+import 'package:punho/features/dashboard/presentation/slides/custos_slide.dart';
+
+import '../dashboard/fixtura.dart';
 import '../dashboard/screenshots_test.dart' show carregarTiposDeLetra;
 
 /// Capturas da v0.0.6, em `docs/design/screenshots/v006/`.
@@ -27,6 +31,40 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets('captura do KPI de custo real com pessoal', (tester) async {
+    final estado = estadoComMovimento().copyWith(
+      legalForm: 'Lda.',
+      collaborators: const [
+        Collaborator(
+          id: 'co1',
+          name: 'Ana',
+          status: CollaboratorStatus.active,
+          costCents: 110000,
+        ),
+        Collaborator(
+          id: 'co2',
+          name: 'Bruno',
+          status: CollaboratorStatus.active,
+          costCents: 80000,
+          employmentType: EmploymentType.recibosVerdes,
+        ),
+      ],
+    );
+    await montarLandscape(
+      tester,
+      containerCom(estado),
+      CustosSlide(agora: agoraFixa),
+      tamanho: const Size(1280, 800),
+    );
+
+    await expectLater(
+      find.byType(CustosSlide),
+      matchesGoldenFile(
+        '../../../docs/design/screenshots/v006/dashboard_custo_real_pessoal.png',
+      ),
+    );
+  });
 
   testWidgets('captura do ecrã Mais dados', (tester) async {
     await montar(tester, MaisDadosScreen(aoAvancar: () {}, aoVoltar: () {}));
