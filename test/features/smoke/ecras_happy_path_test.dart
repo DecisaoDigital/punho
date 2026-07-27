@@ -99,7 +99,7 @@ void main() {
       'Onboarding': const OnboardingPage(),
       'Clientes': const ClientsPage(),
       'Máquinas': const MachinesPage(),
-      'Marcações': const BookingsPage(),
+      'Reservas': const BookingsPage(),
       'Dados iniciais': const InitialDataTasksPage(),
       'Histórico mensal': const HistoricalDataPage(),
       'Recebimentos': const FinanceListPage(
@@ -127,7 +127,7 @@ void main() {
     final ecras = <String, Widget>{
       'Clientes': const ClientsPage(),
       'Máquinas': const MachinesPage(),
-      'Marcações': const BookingsPage(),
+      'Reservas': const BookingsPage(),
       'Recebimentos': const FinanceListPage(
         title: 'Recebimentos',
         expenses: false,

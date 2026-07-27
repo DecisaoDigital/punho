@@ -310,6 +310,44 @@ void main() {
     );
   });
 
+  group('Reservas', () {
+    Future<void> abrir(WidgetTester tester, {bool comMaquina = false}) async {
+      await montarLandscape(
+        tester,
+        containerCom(estadoComMovimento()),
+        const BookingsPage(),
+        tamanho: const Size(1280, 800),
+      );
+      if (!comMaquina) return;
+      await tester.tap(find.byType(DropdownButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('PE-02').last);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('captura do ecrã em paisagem', (tester) async {
+      await abrir(tester);
+
+      await expectLater(
+        find.byType(BookingsPage),
+        matchesGoldenFile(
+          '../../../docs/design/screenshots/v005/reservas_landscape.png',
+        ),
+      );
+    });
+
+    testWidgets('captura da semana inteira sem scroll', (tester) async {
+      await abrir(tester, comMaquina: true);
+
+      await expectLater(
+        find.byType(BookingsPage),
+        matchesGoldenFile(
+          '../../../docs/design/screenshots/v005/reservas_semana_sem_scroll.png',
+        ),
+      );
+    });
+  });
+
   testWidgets('captura da lista completa de métricas', (tester) async {
     await montarLandscape(
       tester,

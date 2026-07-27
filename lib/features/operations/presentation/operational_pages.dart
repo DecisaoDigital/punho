@@ -1804,8 +1804,29 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
         selectedMachine != null &&
         _machineCanReceiveReservation(selectedMachine) &&
         period != null;
+    // Uma frase só, a que interessa neste momento — ou nenhuma. Antes havia
+    // dois SizedBox fixos em volta, que abriam um buraco de 20 dp mesmo quando
+    // não havia nada para dizer.
+    final (String? aviso, bool avisoForte) = switch (selectedMachine) {
+      null => ('Escolhe uma máquina para marcar os períodos livres.', false),
+      final m when !_machineCanReceiveReservation(m) => (
+        '${m.reference} está ${machineStatusLabel(m.status).toLowerCase()} e não pode receber reservas.',
+        false,
+      ),
+      _ when _selectedSlotStarts.isNotEmpty && period == null => (
+        'Escolhe períodos consecutivos para criar uma única reserva.',
+        false,
+      ),
+      final m when period != null => (
+        '${m.reference} · ${_calendarPeriodLabel(period)}',
+        true,
+      ),
+      _ => (null, false),
+    };
     return _PageFrame(
-      title: 'Marcações / Reservas',
+      // "Marcações / Reservas" eram duas palavras para a mesma coisa, e a
+      // barra lateral já diz "Reservas".
+      title: 'Reservas',
       action: Wrap(
         spacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
@@ -1830,10 +1851,12 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                     if (mounted && saved) _clearSelection();
                   },
             icon: const Icon(Icons.add),
+            // "Reservar" e não "Adicionar reserva": o botão faz uma coisa e o
+            // ecrã já se chama Reservas.
             label: Text(
               _selectedSlotStarts.isEmpty
-                  ? 'Adicionar reserva'
-                  : 'Adicionar (${_selectedSlotStarts.length})',
+                  ? 'Reservar'
+                  : 'Reservar (${_selectedSlotStarts.length})',
             ),
           ),
         ],
@@ -1843,6 +1866,17 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
           _CalendarToolbar(
             focus: _focus,
             view: _view,
+            // A máquina passa a viver na barra, ao lado das setas e do
+            // Semana/Mês: eram três linhas a fazer o trabalho de uma, e a
+            // fila de ChoiceChips ocupava 64 dp que o calendário precisava.
+            maquinas: state.machines
+                .where((machine) => !machine.archived)
+                .toList(),
+            maquinaEscolhida: selectedMachine,
+            aoEscolherMaquina: (machineId) => setState(() {
+              _selectedMachineId = machineId;
+              _selectedSlotStarts.clear();
+            }),
             onPrevious: () => setState(
               () => _focus = _view == _CalendarView.week
                   ? _focus.subtract(const Duration(days: 7))
@@ -1855,48 +1889,19 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
             ),
             onViewChanged: (view) => setState(() => _view = view),
           ),
-          const SizedBox(height: 12),
-          _MachineReservationSelector(
-            machines: state.machines
-                .where((machine) => !machine.archived)
-                .toList(),
-            selectedMachineId: _selectedMachineId,
-            onSelected: (machineId) => setState(() {
-              _selectedMachineId = machineId;
-              _selectedSlotStarts.clear();
-            }),
-          ),
-          const SizedBox(height: 10),
-          if (selectedMachine == null)
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Escolhe uma máquina para marcar os períodos livres.',
-              ),
-            )
-          else if (!_machineCanReceiveReservation(selectedMachine))
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '${selectedMachine.reference} está ${machineStatusLabel(selectedMachine.status).toLowerCase()} e não pode receber reservas.',
-              ),
-            )
-          else if (_selectedSlotStarts.isNotEmpty && period == null)
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Escolhe períodos consecutivos para criar uma única reserva.',
-              ),
-            )
-          else if (period != null)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '${selectedMachine.reference} · ${_calendarPeriodLabel(period)}',
-                style: const TextStyle(fontWeight: FontWeight.w700),
+          if (aviso != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  aviso,
+                  style: avisoForte
+                      ? const TextStyle(fontWeight: FontWeight.w700)
+                      : null,
+                ),
               ),
             ),
-          const SizedBox(height: 10),
           Expanded(
             child: _view == _CalendarView.week
                 ? _WeekBookingsCalendar(
@@ -1926,64 +1931,28 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
   }
 }
 
-class _MachineReservationSelector extends StatelessWidget {
-  const _MachineReservationSelector({
-    required this.machines,
-    required this.selectedMachineId,
-    required this.onSelected,
-  });
-  final List<Machine> machines;
-  final String? selectedMachineId;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    if (machines.isEmpty) {
-      return const Text('Ainda não existem máquinas identificadas.');
-    }
-    return SizedBox(
-      height: 64,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: machines.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final machine = machines[index];
-          final selected = machine.id == selectedMachineId;
-          return ChoiceChip(
-            selected: selected,
-            onSelected: (_) => onSelected(machine.id),
-            avatar: Icon(
-              machine.status == MachineStatus.available
-                  ? Icons.precision_manufacturing_outlined
-                  : Icons.build_circle_outlined,
-              size: 18,
-            ),
-            label: SizedBox(
-              width: 128,
-              child: Text(
-                '${machine.reference}\n${machineStatusLabel(machine.status)}',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
+/// Barra do calendário: máquina, período e vista, numa linha só.
+///
+/// A máquina escolhia-se numa fila horizontal de `ChoiceChip` com 64 dp de
+/// altura, por baixo desta barra. Com vinte máquinas era uma lista para rolar
+/// às cegas, e os 64 dp faltavam ao calendário — que por isso rolava também.
+/// Um dropdown de 240 dp diz o mesmo e cabe aqui.
 class _CalendarToolbar extends StatelessWidget {
   const _CalendarToolbar({
     required this.focus,
     required this.view,
+    required this.maquinas,
+    required this.maquinaEscolhida,
+    required this.aoEscolherMaquina,
     required this.onPrevious,
     required this.onNext,
     required this.onViewChanged,
   });
   final DateTime focus;
   final _CalendarView view;
+  final List<Machine> maquinas;
+  final Machine? maquinaEscolhida;
+  final ValueChanged<String> aoEscolherMaquina;
   final VoidCallback onPrevious, onNext;
   final ValueChanged<_CalendarView> onViewChanged;
 
@@ -1999,6 +1968,44 @@ class _CalendarToolbar extends StatelessWidget {
       spacing: 12,
       runSpacing: 8,
       children: [
+        SizedBox(
+          width: 240,
+          child: maquinas.isEmpty
+              ? const Text('Ainda não existem máquinas identificadas.')
+              : DropdownButton<String>(
+                  value: maquinaEscolhida?.id,
+                  isExpanded: true,
+                  hint: const Text('Máquina'),
+                  onChanged: (id) {
+                    if (id != null) aoEscolherMaquina(id);
+                  },
+                  items: [
+                    for (final machine in maquinas)
+                      DropdownMenuItem(
+                        value: machine.id,
+                        child: Row(
+                          children: [
+                            Icon(
+                              machine.status == MachineStatus.available
+                                  ? Icons.precision_manufacturing_outlined
+                                  : Icons.build_circle_outlined,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                machine.reference.isEmpty
+                                    ? machine.name
+                                    : machine.reference,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+        ),
         Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
@@ -2058,53 +2065,49 @@ class _WeekBookingsCalendar extends ConsumerWidget {
         : bookings
               .where((booking) => booking.machineIds.contains(machineId))
               .toList();
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: SizedBox(
-          width: constraints.maxWidth < 860 ? 860 : constraints.maxWidth,
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const SizedBox(width: 86),
-                    for (final day in days)
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(6),
-                          child: Text(
-                            '${_weekDay(day)}\n${day.day}/${day.month}',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.labelLarge,
-                          ),
-                        ),
-                      ),
-                  ],
+    // A semana toda de uma vez: sete colunas e as duas metades do dia dentro do
+    // que há. Antes forçava 860 dp de largura mínima e envolvia tudo em dois
+    // SingleChildScrollView — a Tarde ficava abaixo da dobra e o gestor não via
+    // metade da semana sem rolar em duas direcções. Uma semana são sete dias:
+    // ou cabem, ou o ecrã é que é pequeno, e aí encolhem-se as células.
+    return Column(
+      children: [
+        Row(
+          children: [
+            const SizedBox(width: 86),
+            for (final day in days)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Text(
+                    // Numa linha só: o cabeçalho em duas linhas comia 48 dp de
+                    // altura que as células precisavam.
+                    '${_weekDay(day)} ${day.day}/${day.month}',
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
                 ),
-                _WeekSlotRow(
-                  label: 'Manhã',
-                  days: days,
-                  slot: _HalfDay.morning,
-                  bookings: machineBookings,
-                  state: state,
-                  selectedSlotStarts: selectedSlotStarts,
-                  onToggleSlot: onToggleSlot,
-                ),
-                _WeekSlotRow(
-                  label: 'Tarde',
-                  days: days,
-                  slot: _HalfDay.afternoon,
-                  bookings: machineBookings,
-                  state: state,
-                  selectedSlotStarts: selectedSlotStarts,
-                  onToggleSlot: onToggleSlot,
-                ),
-              ],
+              ),
+          ],
+        ),
+        for (final (label, slot) in const [
+          ('Manhã', _HalfDay.morning),
+          ('Tarde', _HalfDay.afternoon),
+        ])
+          Expanded(
+            child: _WeekSlotRow(
+              label: label,
+              days: days,
+              slot: slot,
+              bookings: machineBookings,
+              state: state,
+              selectedSlotStarts: selectedSlotStarts,
+              onToggleSlot: onToggleSlot,
             ),
           ),
-        ),
-      ),
+      ],
     );
   }
 }
@@ -2128,41 +2131,39 @@ class _WeekSlotRow extends ConsumerWidget {
   final ValueChanged<DateTime>? onToggleSlot;
 
   @override
-  // IntrinsicHeight é obrigatório aqui: a linha vive dentro de um
-  // SingleChildScrollView vertical, que lhe dá altura infinita, e o
-  // `stretch` transformava isso numa constraint apertada de altura infinita
-  // — constraints inválidas e o calendário da semana rebentava a montar.
-  // O IntrinsicHeight resolve a altura da célula mais alta antes do stretch.
-  Widget build(BuildContext context, WidgetRef ref) => IntrinsicHeight(
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          width: 86,
-          child: Center(
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
+  // Sem IntrinsicHeight: a linha vive agora dentro de um Expanded, com altura
+  // já limitada, e o `stretch` distribui-a. Era preciso quando o calendário
+  // estava dentro de um SingleChildScrollView vertical, que lhe dava altura
+  // infinita — e o `stretch` fazia disso uma constraint apertada de altura
+  // infinita, o que rebentava a montar.
+  Widget build(BuildContext context, WidgetRef ref) => Row(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      SizedBox(
+        width: 86,
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w800),
           ),
         ),
-        for (final day in days)
-          Expanded(
-            child: _BookingSlotCell(
-              day: day,
-              slot: slot,
-              bookings: bookings
-                  .where((booking) => _overlapsSlot(booking, day, slot))
-                  .toList(),
-              state: state,
-              selected: selectedSlotStarts.contains(_slotStartsAt(day, slot)),
-              onToggle: onToggleSlot == null
-                  ? null
-                  : () => onToggleSlot!(_slotStartsAt(day, slot)),
-            ),
+      ),
+      for (final day in days)
+        Expanded(
+          child: _BookingSlotCell(
+            day: day,
+            slot: slot,
+            bookings: bookings
+                .where((booking) => _overlapsSlot(booking, day, slot))
+                .toList(),
+            state: state,
+            selected: selectedSlotStarts.contains(_slotStartsAt(day, slot)),
+            onToggle: onToggleSlot == null
+                ? null
+                : () => onToggleSlot!(_slotStartsAt(day, slot)),
           ),
-      ],
-    ),
+        ),
+    ],
   );
 }
 
@@ -2186,7 +2187,8 @@ class _BookingSlotCell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => InkWell(
     onTap: bookings.isEmpty ? onToggle : null,
     child: Container(
-      constraints: const BoxConstraints(minHeight: 116),
+      // Sem minHeight: a célula ocupa o que a linha lhe der. Os 116 dp fixos
+      // eram o que obrigava o calendário a rolar.
       margin: const EdgeInsets.all(3),
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
@@ -2196,20 +2198,18 @@ class _BookingSlotCell extends ConsumerWidget {
       ),
       child: bookings.isEmpty
           ? Center(
-              child: selected
-                  ? Icon(
-                      Icons.check_circle,
-                      size: 22,
-                      color: Theme.of(context).colorScheme.primary,
-                    )
-                  : Icon(
-                      Icons.add_circle_outline,
-                      size: 18,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+              // 24 dp: o alvo de toque é a célula toda, mas o sinal de que se
+              // pode marcar aqui tem de se ver de relance.
+              child: Icon(
+                selected ? Icons.check_circle : Icons.add_circle_outline,
+                size: 24,
+                color: Theme.of(context).colorScheme.primary,
+              ),
             )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          // Rola por dentro: uma célula com três reservas não transborda para
+          // cima da célula de baixo.
+          : ListView(
+              padding: EdgeInsets.zero,
               children: [
                 for (final booking in bookings)
                   Padding(
