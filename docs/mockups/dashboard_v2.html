@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1024, initial-scale=1">
+<title>Punho — Dashboard v2 (mockup landscape)</title>
+<style>
+  :root {
+    --orange: #F4A623;
+    --orange-dark: #4A1B0C;
+    --amber-50: #FAF2E4;
+    --amber-100: #FAEEDA;
+    --amber-800: #854F0B;
+    --amber-900: #412402;
+    --green-100: #EAF3DE;
+    --green-600: #639922;
+    --green-800: #27500A;
+    --yellow-100: #FEF3C7;
+    --yellow-800: #92400E;
+    --blue-50: #E6F1FB;
+    --blue-800: #0C447C;
+    --surface-page: #F5F5F0;
+    --surface-card: #FFFFFF;
+    --sidebar-bg: #1F2E3A;
+    --sidebar-active: #2B4A5E;
+    --text-primary: #1A1A18;
+    --text-secondary: #6B6A64;
+    --border: #E5E3DA;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--surface-page);
+    color: var(--text-primary);
+  }
+  .app {
+    display: flex;
+    min-height: 100vh;
+    max-width: 1280px;
+    margin: 0 auto;
+    background: var(--surface-page);
+  }
+  .sidebar {
+    width: 88px;
+    background: var(--sidebar-bg);
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .sidebar .logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--orange);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--orange-dark);
+    margin-bottom: 12px;
+  }
+  .sidebar .item {
+    width: 80px;
+    padding: 8px 4px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: #B7C7D1;
+    cursor: pointer;
+    position: relative;
+  }
+  .sidebar .item .icon { font-size: 22px; }
+  .sidebar .item .label { font-size: 10px; text-align: center; }
+  .sidebar .item.active {
+    background: var(--sidebar-active);
+    color: var(--orange);
+    border-left: 3px solid var(--orange);
+  }
+  .sidebar .item .badge {
+    position: absolute;
+    top: 4px;
+    right: 12px;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: #E24B4A;
+    color: white;
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    padding: 0 4px;
+  }
+  .sidebar .spacer { flex: 1; }
+
+  .content {
+    flex: 1;
+    padding: 20px 24px;
+    overflow-y: auto;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .header .greeting { display: flex; align-items: center; gap: 12px; }
+  .header .greeting .name { font-size: 18px; font-weight: 500; }
+  .header .greeting .date { font-size: 12px; color: var(--text-secondary); }
+  .header .actions { display: flex; gap: 8px; }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 8px;
+    background: transparent; border: 0.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 18px; color: var(--text-secondary);
+  }
+
+  /* Landscape grid: 3 colunas */
+  .grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 16px;
+  }
+  .col { display: flex; flex-direction: column; gap: 16px; }
+
+  .card {
+    background: var(--surface-card);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .card h3 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card h3 .hint { margin-left: auto; font-size: 11px; font-weight: 400; color: var(--text-secondary); }
+
+  /* HERO KPI */
+  .hero {
+    background: var(--amber-50);
+    border-left: 3px solid var(--orange);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 20px 22px;
+  }
+  .hero .label { font-size: 12px; color: var(--amber-800); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .hero .value { font-size: 40px; font-weight: 500; color: var(--amber-900); line-height: 1.1; margin-top: 4px; }
+  .hero .trend { font-size: 13px; color: var(--amber-800); margin-top: 6px; }
+
+  /* Tesouraria */
+  .cash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .cash-tile { border-radius: var(--radius); padding: 12px; }
+  .cash-tile.pos { background: var(--green-100); }
+  .cash-tile.pos .l { color: var(--green-800); font-size: 11px; font-weight: 500; }
+  .cash-tile.pos .v { color: var(--green-800); font-size: 22px; font-weight: 500; margin-top: 2px; }
+  .cash-tile.warn { background: var(--yellow-100); }
+  .cash-tile.warn .l { color: var(--yellow-800); font-size: 11px; font-weight: 500; }
+  .cash-tile.warn .v { color: var(--yellow-800); font-size: 22px; font-weight: 500; margin-top: 2px; }
+  .cta {
+    width: 100%; padding: 10px; border: none; border-radius: 8px;
+    background: var(--orange); color: var(--orange-dark); font-weight: 500; font-size: 14px; cursor: pointer;
+  }
+
+  /* Procura funil */
+  .funnel { display: flex; align-items: end; gap: 10px; height: 100px; margin-bottom: 6px; }
+  .funnel .bar { flex: 1; text-align: center; }
+  .funnel .bar .b {
+    background: var(--blue-50); border-radius: 6px 6px 0 0;
+    display: flex; align-items: end; justify-content: center;
+    padding-bottom: 6px; color: var(--blue-800); font-weight: 500;
+  }
+  .funnel .bar .lbl { font-size: 10px; color: var(--text-secondary); margin-top: 4px; }
+  .conv { font-size: 12px; color: var(--text-secondary); text-align: center; }
+
+  /* Frota */
+  .fleet { display: flex; align-items: center; gap: 14px; }
+  .fleet .ring { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+  .fleet .ring .pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 500; }
+  .fleet .info { flex: 1; font-size: 13px; }
+  .fleet .info .trend-up { color: var(--green-800); font-weight: 500; }
+  .fleet .info .sub { color: var(--text-secondary); margin-top: 4px; }
+
+  /* Recomendação */
+  .reco { background: var(--surface-page); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px; }
+  .reco .chip {
+    display: inline-block; padding: 3px 10px; border-radius: 999px;
+    background: var(--amber-100); color: var(--amber-800);
+    font-size: 11px; font-weight: 500;
+  }
+  .reco .evidence { font-size: 14px; margin-top: 10px; line-height: 1.5; }
+  .reco .suggest { font-size: 13px; color: var(--text-secondary); margin-top: 8px; line-height: 1.5; }
+  .reco .suggest b { font-weight: 500; color: var(--text-primary); }
+  .reco .btns { display: flex; gap: 8px; margin-top: 14px; }
+  .reco .btns button { flex: 1; padding: 8px; border: 0.5px solid var(--border); background: transparent; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .reco .btns button.p { background: var(--orange); color: var(--orange-dark); border-color: var(--orange); font-weight: 500; }
+
+  details { margin-top: 8px; }
+  summary { font-size: 13px; color: var(--text-secondary); cursor: pointer; list-style: none; padding: 8px 0; }
+  summary::-webkit-details-marker { display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar">
+    <div class="logo">✋</div>
+    <div class="item active"><div class="icon">▦</div><div class="label">Gestão</div></div>
+    <div class="item"><div class="icon">🔧</div><div class="label">Máquinas</div></div>
+    <div class="item"><div class="icon">👥</div><div class="label">Clientes</div></div>
+    <div class="item"><div class="icon">📅</div><div class="label">Reservas</div></div>
+    <div class="item"><div class="icon">💳</div><div class="label">Finanças</div></div>
+    <div class="item"><div class="icon">🚐</div><div class="label">Frota</div></div>
+    <div class="item"><div class="icon">📋</div><div class="label">Tarefas</div><div class="badge">4</div></div>
+    <div class="spacer"></div>
+    <div class="item" title="Sessão"><div class="icon">👤</div></div>
+  </div>
+
+  <div class="content">
+
+    <div class="header">
+      <div class="greeting">
+        <div>
+          <div class="name">Bom dia, Alfredo</div>
+          <div class="date">Domingo, 27 Julho 2026</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="icon-btn" title="Editar dados da empresa">✎</button>
+        <button class="icon-btn" title="Sobre">ⓘ</button>
+      </div>
+    </div>
+
+    <div class="grid">
+
+      <div class="col">
+        <div class="hero">
+          <div class="label">Resultado deste mês</div>
+          <div class="value">Por apurar</div>
+          <div class="trend">Regista os primeiros recebimentos para veres.</div>
+        </div>
+
+        <div class="card">
+          <h3>💰 Tesouraria <span class="hint">este mês</span></h3>
+          <div class="cash-grid">
+            <div class="cash-tile pos">
+              <div class="l">Recebido</div>
+              <div class="v">5.120 €</div>
+            </div>
+            <div class="cash-tile warn">
+              <div class="l">Por receber</div>
+              <div class="v">780 €</div>
+            </div>
+          </div>
+          <button class="cta">+ Registar recebimento</button>
+          <div style="font-size: 12px; color: var(--text-secondary); margin-top: 10px;">
+            3 clientes com atraso &gt; 15 dias — <a href="#" style="color: var(--blue-800);">ver</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card">
+          <h3>🎯 Procura <span class="hint">últimos 30 dias</span></h3>
+          <div class="funnel">
+            <div class="bar">
+              <div class="b" style="height: 90px;">12</div>
+              <div class="lbl">Leads</div>
+            </div>
+            <div class="bar">
+              <div class="b" style="height: 60px; opacity: 0.75;">8</div>
+              <div class="lbl">Contactadas</div>
+            </div>
+            <div class="bar">
+              <div class="b" style="height: 38px; opacity: 0.55;">5</div>
+              <div class="lbl">Reservas</div>
+            </div>
+          </div>
+          <div class="conv">Taxa de conversão: 42%</div>
+        </div>
+
+        <div class="card">
+          <h3>🔧 Máquinas alugadas <span class="hint">esta semana</span></h3>
+          <div class="fleet">
+            <div class="ring">
+              <svg viewBox="0 0 36 36" width="80" height="80">
+                <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--border)" stroke-width="3"/>
+                <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--green-600)" stroke-width="3" stroke-dasharray="68 100" stroke-dashoffset="25" transform="rotate(-90 18 18)"/>
+              </svg>
+              <div class="pct">68%</div>
+            </div>
+            <div class="info">
+              <div>Ocupação <span class="trend-up">↑ 8%</span></div>
+              <div class="sub">2 paradas · 5 alugadas · 3 disponíveis</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>🚐 Frota <span class="hint">custo mensal</span></h3>
+          <div style="font-size: 24px; font-weight: 500; color: var(--text-primary);">380 €</div>
+          <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; line-height: 1.5;">
+            Seguros 90 € · Combustível 180 €<br>
+            Prestações 110 € · Aluguer 0 €
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card">
+          <h3>💡 Recomendação da semana</h3>
+          <div class="reco">
+            <span class="chip">Alavanca: procura</span>
+            <div class="evidence">Nas últimas 3 quartas-feiras houve ≤ 2 reservas e tens 3 máquinas paradas.</div>
+            <div class="suggest"><b>Sugestão:</b> campanha de quarta durante 1 semana, desconto até 35%. Compara reservas depois.</div>
+            <div class="btns">
+              <button>Adiar 7 dias</button>
+              <button class="p">Feito</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>📋 Ações rápidas</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <button style="padding: 10px; font-size: 13px; border: 0.5px solid var(--border); background: transparent; border-radius: 8px; cursor: pointer;">Nova despesa</button>
+            <button style="padding: 10px; font-size: 13px; border: 0.5px solid var(--border); background: transparent; border-radius: 8px; cursor: pointer;">Nova lead</button>
+            <button style="padding: 10px; font-size: 13px; border: 0.5px solid var(--border); background: transparent; border-radius: 8px; cursor: pointer;">Nova reserva</button>
+            <button style="padding: 10px; font-size: 13px; border: 0.5px solid var(--border); background: transparent; border-radius: 8px; cursor: pointer;">Ver todas as métricas</button>
+          </div>
+        </div>
+
+        <details>
+          <summary>▾ 3 dados por completar</summary>
+          <div style="font-size: 12px; color: var(--text-secondary); padding: 8px 0 0;">NIF · morada · custo médio por colaborador</div>
+        </details>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>

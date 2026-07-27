@@ -1,5 +1,17 @@
 # Estado atual do Punho
 
+> **Sprint v0.0.5 · painel em carrossel** (branch `feat/v005-dashboard-alavancas`)
+>
+> O painel de gestao deixou de ser 17 metricas num Wrap e passou a cinco slides
+> com quatro KPIs cada, um por pergunta de gestao. Nenhuma metrica se perdeu:
+> a lista completa esta em "Ver todas as metricas". Barra lateral a 88 dp com
+> rotulos, destinos novos **Financas** e **Tarefas** (com contagem de
+> pendencias), e a app passou a ser so landscape. Suite 203 -> 284. Ver
+> `design/punho_v005_dashboard.md`.
+>
+> Zeros falsos eliminados: um valor que e zero por falta de dados aparece como
+> "Por apurar" com a razao, nao como 0 €.
+
 > **Release v0.0.3 consolidada** (branch `release/v0.0.3`, `version: 0.0.3+3`)
 >
 > Junta a sprint de estabilizacao (abaixo) com o **aviso de update global**,
