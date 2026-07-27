@@ -135,15 +135,19 @@ void main() {
       await montarLandscape(
         tester,
         containerCom(estadoComMovimento()),
-        const TodasMetricasPage(),
+        TodasMetricasPage(agora: agoraFixa),
+        tamanho: const Size(1100, 3800),
       );
 
       // Amostra das 17: nenhuma foi apagada com o redesenho.
       expect(find.text('Colaboradores ativos / vagas'), findsOneWidget);
       expect(find.text('Recebido hoje'), findsOneWidget);
-      expect(find.text('Máquinas paradas'), findsOneWidget);
+      expect(find.text('Sem alugar há mais de 7 dias'), findsOneWidget);
       expect(find.text('Leads por contactar'), findsOneWidget);
-      expect(find.text('Resultado operacional simples'), findsOneWidget);
+      expect(
+        find.text('Resultado provisório (recebido − pago)'),
+        findsOneWidget,
+      );
       expect(find.text('Valor previsto em reservas confirmadas'), findsOneWidget);
       // E a frase da semana, que saiu do painel.
       expect(find.text('FRASE DA SEMANA'), findsOneWidget);

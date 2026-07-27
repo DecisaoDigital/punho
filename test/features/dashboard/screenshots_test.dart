@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/features/auth/data/acesso_service.dart';
 import 'package:punho/features/dashboard/presentation/dashboard_page.dart';
+import 'package:punho/features/dashboard/presentation/todas_metricas_page.dart';
 import 'package:punho/features/tarefas/presentation/tarefas_page.dart';
 
 import 'fixtura.dart';
@@ -152,6 +153,23 @@ void main() {
         ),
       );
     });
+  });
+
+  testWidgets('captura da lista completa de métricas', (tester) async {
+    await montarLandscape(
+      tester,
+      containerCom(estadoComMovimento()),
+      TodasMetricasPage(agora: agoraFixa),
+      // Alta de propósito: a captura serve para se ver a página toda de uma vez.
+      tamanho: const Size(1100, 2400),
+    );
+
+    await expectLater(
+      find.byType(TodasMetricasPage),
+      matchesGoldenFile(
+        '../../../docs/design/screenshots/v005/todas_metricas.png',
+      ),
+    );
   });
 
   testWidgets('captura das Tarefas com convite urgente', (tester) async {
