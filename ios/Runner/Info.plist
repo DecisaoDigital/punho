@@ -25,9 +25,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>O Punho usa a câmara para fotografar e identificar as máquinas da empresa.</string>
+	<string>O Punho usa a câmara para fotografar faturas e identificar as máquinas da empresa.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>O Punho acede à galeria para associar fotografias às máquinas da empresa.</string>
+	<string>O Punho acede à galeria para associar faturas e fotografias às máquinas da empresa.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
