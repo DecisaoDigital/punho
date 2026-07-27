@@ -155,8 +155,68 @@ void main() {
 
       expect(r!.regra, 'custos-criticos');
       expect(r.gravidade, GravidadeRecomendacao.urgente);
-      expect(r.texto, 'Custos a comer a receita — 85% do que entrou já saiu');
+      // 850 € de bruto sobre 1.000 € de receita liam-se como 85%. Com a TSU
+      // patronal — que é dinheiro que sai da empresa — são 1.051 €, ou seja
+      // 105%: a empresa está a gastar mais do que recebe. Decisão 12.
+      expect(r.texto, 'Custos a comer a receita — 105% do que entrou já saiu');
       expect(r.accao, AccaoDoDia.slideCustos);
+    });
+
+    test('um custo que parecia seguro passa a disparar', () {
+      // É este o caso que a Decisão 12 destrava. 700 € de bruto sobre 1.000 €
+      // de receita são 70% e ficavam calados; com a carga social são 86,6% e a
+      // regra dispara. Não é falso positivo — era falso negativo.
+      final estado = _limpo(
+        receipts: [
+          Receipt(
+            id: 'r1',
+            date: agoraFixa,
+            amountCents: 100000,
+            customerId: 'c1',
+            method: PaymentMethod.cash,
+          ),
+        ],
+        collaborators: const [
+          Collaborator(
+            id: 'col-1',
+            name: 'Ana',
+            status: CollaboratorStatus.active,
+            costCents: 70000,
+          ),
+        ],
+      );
+
+      final r = recomendacaoDoDia(estado, agoraFixa);
+
+      expect(r!.regra, 'custos-criticos');
+      expect(r.texto, 'Custos a comer a receita — 87% do que entrou já saiu');
+    });
+
+    test('quem está a recibos verdes não leva carga social', () {
+      // O mesmo bruto, outro vínculo: 700 € a recibos verdes são 70% e não
+      // disparam. A TSU patronal não existe aqui.
+      final estado = _limpo(
+        receipts: [
+          Receipt(
+            id: 'r1',
+            date: agoraFixa,
+            amountCents: 100000,
+            customerId: 'c1',
+            method: PaymentMethod.cash,
+          ),
+        ],
+        collaborators: const [
+          Collaborator(
+            id: 'col-1',
+            name: 'Ana',
+            status: CollaboratorStatus.active,
+            costCents: 70000,
+            employmentType: EmploymentType.recibosVerdes,
+          ),
+        ],
+      );
+
+      expect(recomendacaoDoDia(estado, agoraFixa)?.regra, isNot('custos-criticos'));
     });
 
     test('sem receita não dispara — não há proporção', () {

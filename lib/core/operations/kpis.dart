@@ -441,7 +441,9 @@ int? ticketMedioReserva(OperationsState state, {DateTime? desde}) {
 
 class CustosMes {
   const CustosMes({
-    required this.colaboradoresCents,
+    required this.custoRealPessoalCents,
+    required this.pessoalBrutoCents,
+    required this.tsuPatronalCents,
     required this.colaboradoresActivos,
     required this.frotaCents,
     required this.manutencaoPagaCents,
@@ -451,19 +453,35 @@ class CustosMes {
     required this.receitaMesCents,
   });
 
-  final int colaboradoresCents, frotaCents, manutencaoPagaCents;
+  /// Bruto **mais** a carga social da entidade patronal — o que sai mesmo da
+  /// empresa. Chamava-se `colaboradoresCents` e era só a soma dos brutos; o
+  /// nome mudou para o compilador apanhar todos os leitores, porque o
+  /// significado mudou (Decisão 12 do guião).
+  final int custoRealPessoalCents;
+
+  /// A parcela que aparece nos vencimentos.
+  final int pessoalBrutoCents;
+
+  /// A parcela que não aparece em vencimento nenhum. `null` quando o regime
+  /// fiscal não é modelado — e aí o [custoRealPessoalCents] cai para o bruto,
+  /// portanto o total **subestima**. Quem mostra o número tem de o dizer.
+  final int? tsuPatronalCents;
+
+  final int frotaCents, manutencaoPagaCents;
   final int outrosCustosCents;
   final int colaboradoresActivos;
   final int? manutencaoMedia6MesesCents;
   final int? custosFixosDeclaradosCents;
   final int receitaMesCents;
 
+  /// Média sobre o custo real: é o que a pessoa custa à empresa, não o que
+  /// recebe.
   int? get custoMedioPorColaborador => colaboradoresActivos == 0
       ? null
-      : colaboradoresCents ~/ colaboradoresActivos;
+      : custoRealPessoalCents ~/ colaboradoresActivos;
 
-  int get totalCents => colaboradoresCents + frotaCents + manutencaoPagaCents +
-      outrosCustosCents;
+  int get totalCents => custoRealPessoalCents + frotaCents +
+      manutencaoPagaCents + outrosCustosCents;
 
   /// Peso dos custos na receita do mês. `null` sem receita — sem denominador a
   /// percentagem não existe (e 0% seria uma boa notícia falsa).
@@ -476,7 +494,21 @@ const _categoriasManutencao = {
   ExpenseCategory.vehicleMaintenance,
 };
 
-CustosMes custosMesAgregados(OperationsState state, DateTime now) {
+/// Custos do mês, já com o pessoal ao custo real.
+///
+/// O `regime` é obrigatório porque a carga social da entidade patronal entra no
+/// total (Decisão 12 do guião): dois cards no mesmo ecrã a dar números
+/// diferentes para a mesma pessoa é a app a contradizer-se, e o gestor perde a
+/// confiança nos dois de uma vez. A TSU patronal é dinheiro que sai da empresa,
+/// portanto conta em qualquer agregação de custo.
+///
+/// Consequência assumida: a recomendação "custos críticos" (≥80% da receita)
+/// passa a disparar mais cedo. Não é regressão — antes estava a mascarar.
+CustosMes custosMesAgregados(
+  OperationsState state,
+  DateTime now, {
+  required RegimeFiscal regime,
+}) {
   final inicio = _inicioDoMes(now);
   final fim = _fimDoMes(now);
   int pagoNoPeriodo(
@@ -496,12 +528,20 @@ CustosMes custosMesAgregados(OperationsState state, DateTime now) {
   final activos = state.collaborators
       .where((c) => !c.archived && c.status == CollaboratorStatus.active)
       .toList();
-  // Custo dos colaboradores: o declarado nas fichas, não o que está pago em
-  // despesas. É o que o gestor precisa para saber quanto lhe custa a equipa.
-  final colaboradores = activos.fold(
-    0,
-    (soma, c) => soma + (monthlyCollaboratorCost(c) ?? 0),
-  );
+  // Custo do pessoal: o declarado nas fichas mais a carga social, não o que
+  // está pago em despesas. É o que o gestor precisa para saber quanto lhe custa
+  // a equipa. Uma fonte só — o mesmo cálculo que alimenta o KPI do slide.
+  final pessoal = custoRealComPessoalMes(state, regime: regime);
+  // Regime não modelado: o `custoRealComPessoalMes` devolve tudo a `null`, e o
+  // bruto calcula-se aqui à mão. O total fica a subestimar — é o preço de não
+  // saber a que regime a empresa pertence, e o `tsuPatronalCents` a `null` é o
+  // sinal para quem mostra o número o poder dizer.
+  final bruto =
+      pessoal.bruto ??
+      activos.fold<int>(
+        0,
+        (soma, c) => soma + (monthlyCollaboratorCost(c) ?? 0),
+      );
   final frota = state.vehicles
       .where((v) => !v.archived && v.status != VehicleStatus.inactive)
       .fold(0, (soma, v) => soma + monthlyFleetCost(v));
@@ -532,7 +572,9 @@ CustosMes custosMesAgregados(OperationsState state, DateTime now) {
   }
 
   return CustosMes(
-    colaboradoresCents: colaboradores,
+    custoRealPessoalCents: pessoal.total ?? bruto,
+    pessoalBrutoCents: bruto,
+    tsuPatronalCents: pessoal.tsuPatronal,
     colaboradoresActivos: activos.length,
     frotaCents: frota,
     manutencaoPagaCents: manutencao,

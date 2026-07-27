@@ -40,15 +40,12 @@ class TodasMetricasPage extends ConsumerWidget {
     final ocupacao = ocupacaoMaquinasSemana(state, now);
     final semAlugar = maquinasSemAluguerHaMaisDe(state, 7, now);
     final top = topMaquinasMaisAlugadas(state, 3);
-    final custos = custosMesAgregados(state, now);
-    final rubricas = rubricasFrota(state, now);
-    // As três parcelas vêm a `null` quando a forma jurídica não é modelada, e
-    // aí as linhas desaparecem em vez de mostrarem 0 € — é o `_Linha.opcional`
-    // a fazer o seu trabalho.
-    final pessoal = custoRealComPessoalMes(
+    final custos = custosMesAgregados(
       state,
+      now,
       regime: regimeDaFormaJuridica(state.legalForm),
     );
+    final rubricas = rubricasFrota(state, now);
     final recomendacao = recomendacaoDaSemana(state, now);
     final tarefas = ref.watch(tarefasProvider);
     final homologa = state.historicalMonth(now.year - 1, now.month);
@@ -195,17 +192,17 @@ class TodasMetricasPage extends ConsumerWidget {
                 // aplica a este regime", e a Decisão 1 manda esconder o que não
                 // se aplica. "Por apurar" leria-se como "falta preencher", e
                 // não há nada que o gestor possa preencher para isto aparecer.
-                if (pessoal.total != null) ...[
-                  _Linha('Bruto pago', euros(pessoal.bruto!)),
+                if (custos.tsuPatronalCents != null) ...[
+                  _Linha('Bruto pago', euros(custos.pessoalBrutoCents)),
                   _Linha(
                     'TSU patronal (contratados)',
-                    euros(pessoal.tsuPatronal!),
+                    euros(custos.tsuPatronalCents!),
                     sub: '23,75% sobre o bruto de quem tem contrato. Em '
                         'recibos verdes não se aplica. Estimativa.',
                   ),
                   _Linha(
                     'Custo real com pessoal',
-                    euros(pessoal.total!),
+                    euros(custos.custoRealPessoalCents),
                     sub: 'Bruto mais a carga social da entidade patronal — o '
                         'que sai mesmo da empresa.',
                   ),

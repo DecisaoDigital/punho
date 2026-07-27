@@ -23,7 +23,11 @@ class CustosSlide extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(operationsProvider);
-    final custos = custosMesAgregados(state, agora);
+    final custos = custosMesAgregados(
+      state,
+      agora,
+      regime: regimeDaFormaJuridica(state.legalForm),
+    );
     final temFrota =
         state.hasFleet && state.vehicles.where((v) => !v.archived).isNotEmpty;
 
@@ -38,13 +42,10 @@ class CustosSlide extends ConsumerWidget {
         const SizedBox(height: 12),
         Expanded(
           child: KpiGrid2x2(
-            heroi: _Colaboradores(
-              custos: custos,
-              pessoal: custoRealComPessoalMes(
-                state,
-                regime: regimeDaFormaJuridica(state.legalForm),
-              ),
-            ),
+            // Uma fonte só: o card lê do agregado, que já traz o pessoal ao
+            // custo real. Antes calculava por fora e os dois cards deste slide
+            // davam números diferentes para a mesma pessoa.
+            heroi: _Colaboradores(custos: custos),
             cimaDireita: temFrota
                 ? _Frota(custos: custos, rubricas: rubricasFrota(state, agora))
                 : _OutrosCustos(custos: custos),
@@ -58,18 +59,16 @@ class CustosSlide extends ConsumerWidget {
 }
 
 class _Colaboradores extends StatelessWidget {
-  const _Colaboradores({required this.custos, required this.pessoal});
+  const _Colaboradores({required this.custos});
   final CustosMes custos;
-
-  /// Bruto e TSU patronal, já à luz do regime fiscal da empresa. Vem a `null`
-  /// quando o regime não é modelado.
-  final ({int? bruto, int? tsuPatronal, int? total}) pessoal;
 
   @override
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
-    final total = pessoal.total;
-    final tsu = pessoal.tsuPatronal;
+    final tsu = custos.tsuPatronalCents;
+    // `null` na TSU significa regime não modelado: o custo real não se sabe, e
+    // o que o agregado traz é só o bruto.
+    final total = tsu == null ? null : custos.custoRealPessoalCents;
     return KpiCard(
       // "Custo real" e não "Custo da equipa": o número grande passou a incluir
       // a TSU patronal, que não aparece em vencimento nenhum. Sem o "real" o
@@ -92,7 +91,7 @@ class _Colaboradores extends StatelessWidget {
             KpiValor(euros(total!), tamanho: 40),
             const SizedBox(height: 6),
             Text(
-              'Bruto pago: ${euros(pessoal.bruto!)}'
+              'Bruto pago: ${euros(custos.pessoalBrutoCents)}'
               '${tsu == null || tsu == 0 ? '' : ' · TSU patronal: ${euros(tsu)}'}',
               style: textos.bodySmall,
             ),
