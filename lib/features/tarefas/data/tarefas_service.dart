@@ -67,6 +67,35 @@ List<Tarefa> tarefasPendentes(
     );
   }
 
+  // 2-b. Fichas de colaborador sem o dado que o vínculo exige.
+  //
+  // Uma linha por pessoa, e não uma linha agregada: quem tem de agir precisa de
+  // saber de quem se trata, e o nome é o que o gestor reconhece. Sem NISS não se
+  // declara um contrato; sem NIF não se lança a despesa de um prestador.
+  for (final colaborador in state.collaborators.where((c) => !c.archived)) {
+    final semNiss =
+        colaborador.employmentType == EmploymentType.contrato &&
+        (colaborador.socialSecurityNumber ?? '').trim().isEmpty;
+    final semNif =
+        colaborador.employmentType == EmploymentType.recibosVerdes &&
+        (colaborador.taxId ?? '').trim().isEmpty;
+    if (!semNiss && !semNif) continue;
+    tarefas.add(
+      Tarefa(
+        id: 'ficha-${colaborador.id}',
+        severidade: SeveridadeTarefa.aCompletar,
+        titulo: semNiss
+            ? '${colaborador.name} — NISS em falta'
+            : '${colaborador.name} — NIF em falta',
+        subtitulo: semNiss
+            ? 'Sem o NISS não se declara o contrato'
+            : 'Sem o NIF não se lança a despesa do prestador',
+        cta: 'Abrir ficha',
+        destino: DestinoTarefa.colaboradores,
+      ),
+    );
+  }
+
   // 3. Máquinas criadas a partir do total declarado e ainda por baptizar.
   // Conta placeholders e não o delta `declaradas − registadas`: com os
   // placeholders o delta é zero mesmo havendo vinte linhas "Máquina 7".
