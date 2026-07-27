@@ -285,6 +285,31 @@ void main() {
     );
   });
 
+  testWidgets('captura do diálogo do colaborador em retrato com teclado', (
+    tester,
+  ) async {
+    await montarLandscape(
+      tester,
+      containerCom(estadoComMovimento()),
+      const CollaboratorsPage(),
+      tamanho: const Size(420, 900),
+    );
+    await tester.tap(find.text('Adicionar colaborador').first);
+    await tester.pumpAndSettle();
+    tester.view.viewInsets = FakeViewPadding(
+      bottom: 320 * tester.view.devicePixelRatio,
+    );
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile(
+        '../../../docs/design/screenshots/v005/dialogo_colaborador_portrait_teclado.png',
+      ),
+    );
+  });
+
   testWidgets('captura da lista completa de métricas', (tester) async {
     await montarLandscape(
       tester,

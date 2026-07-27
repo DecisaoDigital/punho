@@ -53,23 +53,54 @@ class CollaboratorsPage extends ConsumerWidget {
   }
 }
 
-Future<void> _collaboratorDialog(BuildContext context, WidgetRef ref) async {
+Future<void> _collaboratorDialog(BuildContext context, WidgetRef ref) =>
+    showDialog(
+      context: context,
+      // Não fecha ao tocar fora — evita perder texto por engano. Só é honesto
+      // porque agora há um Cancelar: até aqui o diálogo não tinha saída
+      // nenhuma a não ser gravar.
+      barrierDismissible: false,
+      builder: (_) => _FormularioDeColaborador(
+        notifier: ref.read(operationsProvider.notifier),
+      ),
+    );
+
+class _FormularioDeColaborador extends StatefulWidget {
+  const _FormularioDeColaborador({required this.notifier});
+
+  final OperationsController notifier;
+
+  @override
+  State<_FormularioDeColaborador> createState() =>
+      _FormularioDeColaboradorState();
+}
+
+class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
   final name = TextEditingController();
   final cost = TextEditingController();
   final hours = TextEditingController(text: '40');
   final phone = TextEditingController();
   final role = TextEditingController();
   var frequency = CostFrequency.monthly;
-  await showDialog(
-    context: context,
-    // Não fecha ao tocar fora — evita perder texto por engano.
-    barrierDismissible: false,
-    builder: (context) => AlertDialog(
+
+  @override
+  void dispose() {
+    name.dispose();
+    cost.dispose();
+    hours.dispose();
+    phone.dispose();
+    role.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DialogoDeFormulario(
       // "Adicionar" em vez de "Novo": deixa claro que é acção pendente, não
       // confirmação de que já foi criado.
-      title: const Text('Adicionar colaborador'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
+      titulo: 'Adicionar colaborador',
+      corpo: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TextField(
             controller: name,
@@ -95,6 +126,7 @@ Future<void> _collaboratorDialog(BuildContext context, WidgetRef ref) async {
           ),
           DropdownButtonFormField<CostFrequency>(
             value: frequency,
+            isExpanded: true,
             decoration: const InputDecoration(
               labelText: 'Periodicidade do custo',
             ),
@@ -108,7 +140,7 @@ Future<void> _collaboratorDialog(BuildContext context, WidgetRef ref) async {
                 child: Text('Custo semanal'),
               ),
             ],
-            onChanged: (value) => frequency = value!,
+            onChanged: (value) => setState(() => frequency = value!),
           ),
           TextField(
             controller: hours,
@@ -120,53 +152,44 @@ Future<void> _collaboratorDialog(BuildContext context, WidgetRef ref) async {
           ),
         ],
       ),
-      actions: [
-        FilledButton(
-          onPressed: () {
-            // Validação: nome é obrigatório. Sem isto, um tap por engano
-            // criava um colaborador anónimo silenciosamente — o Cesar
-            // apanhou este bug no smoke da v0.0.4.
-            if (name.text.trim().isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Indica o nome do colaborador.')),
-              );
-              return;
-            }
-            try {
-              ref
-                  .read(operationsProvider.notifier)
-                  .saveCollaborator(
-                    Collaborator(
-                      id: 'co${DateTime.now().microsecondsSinceEpoch}',
-                      name: name.text.trim(),
-                      status: CollaboratorStatus.active,
-                      phone: phone.text.trim().isEmpty
-                          ? null
-                          : phone.text.trim(),
-                      role: role.text.trim().isEmpty ? null : role.text.trim(),
-                      costFrequency: frequency,
-                      costCents:
-                          ((double.tryParse(cost.text.replaceAll(',', '.')) ??
-                                      0) *
-                                  100)
-                              .round(),
-                      schedule: _scheduleFromWeeklyHours(
-                        int.tryParse(hours.text.trim()) ?? 0,
-                      ),
-                    ),
-                  );
-              Navigator.pop(context);
-            } on StateError catch (e) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(e.message.toString())));
-            }
-          },
-          child: const Text('Guardar'),
-        ),
-      ],
-    ),
-  );
+      aoGuardar: () {
+        // Validação: nome é obrigatório. Sem isto, um tap por engano criava um
+        // colaborador anónimo silenciosamente — o Cesar apanhou este bug no
+        // smoke da v0.0.4.
+        if (name.text.trim().isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Indica o nome do colaborador.')),
+          );
+          return;
+        }
+        try {
+          widget.notifier.saveCollaborator(
+            Collaborator(
+              id: 'co${DateTime.now().microsecondsSinceEpoch}',
+              name: name.text.trim(),
+              status: CollaboratorStatus.active,
+              phone: phone.text.trim().isEmpty ? null : phone.text.trim(),
+              role: role.text.trim().isEmpty ? null : role.text.trim(),
+              costFrequency: frequency,
+              costCents:
+                  ((double.tryParse(cost.text.replaceAll(',', '.')) ?? 0) * 100)
+                      .round(),
+              schedule: _scheduleFromWeeklyHours(
+                int.tryParse(hours.text.trim()) ?? 0,
+              ),
+            ),
+          );
+          Navigator.pop(context);
+        } on StateError catch (e) {
+          // Excedeu as vagas contratadas: o diálogo fica aberto com o que
+          // estava escrito.
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(e.message.toString())));
+        }
+      },
+    );
+  }
 }
 
 Map<int, WorkDay> _scheduleFromWeeklyHours(int weeklyHours) {
