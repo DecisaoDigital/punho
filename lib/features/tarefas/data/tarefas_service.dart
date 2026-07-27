@@ -67,8 +67,25 @@ List<Tarefa> tarefasPendentes(
     );
   }
 
-  // 3. Máquinas declaradas mas não identificadas.
-  if (state.hasUnidentifiedDeclaredMachines) {
+  // 3. Máquinas criadas a partir do total declarado e ainda por baptizar.
+  // Conta placeholders e não o delta `declaradas − registadas`: com os
+  // placeholders o delta é zero mesmo havendo vinte linhas "Máquina 7".
+  final porIdentificar = state.placeholdersDeMaquinas;
+  if (porIdentificar > 0) {
+    tarefas.add(
+      Tarefa(
+        id: 'maquinas-por-identificar',
+        severidade: SeveridadeTarefa.aCompletar,
+        titulo: porIdentificar == 1
+            ? '1 máquina por identificar'
+            : '$porIdentificar máquinas por identificar',
+        subtitulo: 'Dá-lhes nome, referência e foto quando puderes',
+        cta: 'Abrir Máquinas',
+        destino: DestinoTarefa.maquinas,
+      ),
+    );
+  } else if (state.hasUnidentifiedDeclaredMachines) {
+    // Instalações anteriores aos placeholders: só têm o contador.
     tarefas.add(
       Tarefa(
         id: 'maquinas-por-identificar',

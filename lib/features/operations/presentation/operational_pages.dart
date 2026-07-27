@@ -884,10 +884,14 @@ class MachinesPage extends ConsumerWidget {
   const MachinesPage({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final machines = ref
-        .watch(operationsProvider)
-        .machines
-        .where((m) => !m.archived);
+    // Identificadas primeiro: quem já baptizou algumas quer vê-las em cima, e
+    // não perdidas entre vinte linhas "Máquina 7".
+    final machines =
+        ref.watch(operationsProvider).machines.where((m) => !m.archived).toList()
+          ..sort((a, b) {
+            if (a.placeholder == b.placeholder) return 0;
+            return a.placeholder ? 1 : -1;
+          });
     return _PageFrame(
       title: 'Máquinas',
       action: FilledButton.icon(
@@ -909,6 +913,11 @@ class MachinesPage extends ConsumerWidget {
                   m.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  style: m.placeholder
+                      // Cinza: é um nome provisório que a app inventou, não um
+                      // nome que o gestor escolheu.
+                      ? TextStyle(color: Theme.of(context).hintColor)
+                      : null,
                 ),
                 subtitle: Text(
                   '${m.category} · ${m.reference}',
@@ -922,6 +931,17 @@ class MachinesPage extends ConsumerWidget {
                 trailing: Wrap(
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
+                    if (m.placeholder)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Chip(
+                          visualDensity: VisualDensity.compact,
+                          label: const Text('Por identificar'),
+                          labelStyle: const TextStyle(fontSize: 11),
+                          backgroundColor: const Color(0xFFFFF1DA),
+                          side: BorderSide.none,
+                        ),
+                      ),
                     _MachineStatusChip(machine: m),
                     IconButton(
                       icon: const Icon(Icons.edit_outlined),
@@ -1360,6 +1380,10 @@ Future<void> _machineDialog(
                     dailyRateCents: _moneyCents(dailyRate.text),
                     notes: notes.text.trim(),
                     photoPaths: photoPaths.value,
+                    // Quem edita, identifica: qualquer gravação a partir deste
+                    // diálogo tira a máquina do estado "por identificar",
+                    // independentemente do que tenha mudado.
+                    placeholder: false,
                   )
                 : Machine(
                     id: 'm${DateTime.now().microsecondsSinceEpoch}',
@@ -1374,7 +1398,10 @@ Future<void> _machineDialog(
             ref.read(operationsProvider.notifier).saveMachine(machine);
             Navigator.pop(context);
           },
-          child: const Text('Guardar'),
+          // Deixa claro que esta gravação também tira o "por identificar".
+          child: Text(
+            current?.placeholder == true ? 'Guardar e identificar' : 'Guardar',
+          ),
         ),
       ],
     ),

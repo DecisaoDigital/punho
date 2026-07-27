@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:punho/domain/models/operations.dart';
 import 'package:punho/features/auth/data/acesso_service.dart';
 import 'package:punho/features/dashboard/presentation/dashboard_page.dart';
 import 'package:punho/features/dashboard/presentation/todas_metricas_page.dart';
+import 'package:punho/features/operations/presentation/operational_pages.dart';
 import 'package:punho/features/tarefas/presentation/tarefas_page.dart';
 
 import 'fixtura.dart';
@@ -153,6 +155,73 @@ void main() {
         ),
       );
     });
+  });
+
+  testWidgets('captura das máquinas com placeholders', (tester) async {
+    final estado = estadoComMovimento().copyWith(
+      totalMachinesDeclared: 8,
+      machines: [
+        ...estadoComMovimento().machines,
+        for (var i = 4; i <= 8; i++)
+          Machine(
+            id: 'placeholder-$i',
+            name: 'Máquina $i',
+            reference: '',
+            category: 'Por identificar',
+            status: MachineStatus.available,
+            placeholder: true,
+          ),
+      ],
+    );
+    await montarLandscape(
+      tester,
+      containerCom(estado),
+      const MachinesPage(),
+      tamanho: const Size(1280, 900),
+    );
+
+    await expectLater(
+      find.byType(MachinesPage),
+      matchesGoldenFile(
+        '../../../docs/design/screenshots/v005/maquinas_com_placeholders.png',
+      ),
+    );
+  });
+
+  testWidgets('captura do menu de estado aberto no chip', (tester) async {
+    await montarLandscape(
+      tester,
+      containerCom(estadoComMovimento()),
+      const MachinesPage(),
+      tamanho: const Size(1280, 800),
+    );
+    await tester.tap(find.byType(Chip).first);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile(
+        '../../../docs/design/screenshots/v005/maquinas_lista_chip_clicavel.png',
+      ),
+    );
+  });
+
+  testWidgets('captura da confirmação de eliminar máquina', (tester) async {
+    await montarLandscape(
+      tester,
+      containerCom(estadoComMovimento()),
+      const MachinesPage(),
+      tamanho: const Size(1280, 800),
+    );
+    await tester.tap(find.byTooltip('Eliminar máquina').first);
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile(
+        '../../../docs/design/screenshots/v005/maquinas_confirmar_eliminar.png',
+      ),
+    );
   });
 
   testWidgets('captura da lista completa de métricas', (tester) async {
