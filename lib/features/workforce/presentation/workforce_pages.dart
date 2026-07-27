@@ -61,13 +61,19 @@ Future<void> _collaboratorDialog(BuildContext context, WidgetRef ref) async {
   var frequency = CostFrequency.monthly;
   await showDialog(
     context: context,
+    // Não fecha ao tocar fora — evita perder texto por engano.
+    barrierDismissible: false,
     builder: (context) => AlertDialog(
-      title: const Text('Novo colaborador'),
+      // "Adicionar" em vez de "Novo": deixa claro que é acção pendente, não
+      // confirmação de que já foi criado.
+      title: const Text('Adicionar colaborador'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: name,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
             decoration: const InputDecoration(labelText: 'Nome'),
           ),
           TextField(
@@ -116,13 +122,22 @@ Future<void> _collaboratorDialog(BuildContext context, WidgetRef ref) async {
       actions: [
         FilledButton(
           onPressed: () {
+            // Validação: nome é obrigatório. Sem isto, um tap por engano
+            // criava um colaborador anónimo silenciosamente — o Cesar
+            // apanhou este bug no smoke da v0.0.4.
+            if (name.text.trim().isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Indica o nome do colaborador.')),
+              );
+              return;
+            }
             try {
               ref
                   .read(operationsProvider.notifier)
                   .saveCollaborator(
                     Collaborator(
                       id: 'co${DateTime.now().microsecondsSinceEpoch}',
-                      name: name.text,
+                      name: name.text.trim(),
                       status: CollaboratorStatus.active,
                       phone: phone.text.trim().isEmpty
                           ? null
@@ -223,13 +238,21 @@ Future<void> _vehicleDialog(BuildContext context, WidgetRef ref) async {
   var insuranceFrequency = InsuranceFrequency.annual;
   await showDialog(
     context: context,
+    // Os mesmos quatro defeitos que o diálogo dos colaboradores tinha e que o
+    // Cesar apanhou no smoke da v0.0.4: fechava ao tocar fora, o título dizia
+    // "Novo" (leu-se como "já foi criado"), não validava nada e não punha o
+    // cursor no primeiro campo.
+    barrierDismissible: false,
     builder: (context) => AlertDialog(
-      title: const Text('Novo veículo'),
+      title: const Text('Adicionar veículo'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: plate,
+            autofocus: true,
+            // Matrículas escrevem-se em maiúsculas.
+            textCapitalization: TextCapitalization.characters,
             decoration: const InputDecoration(labelText: 'Matrícula'),
           ),
           TextField(
@@ -278,14 +301,29 @@ Future<void> _vehicleDialog(BuildContext context, WidgetRef ref) async {
         ],
       ),
       actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
         FilledButton(
           onPressed: () {
+            // Sem matrícula o veículo não se identifica. Não se valida o
+            // formato AA-11-BB: pode ser matrícula estrangeira ou histórica.
+            final matricula = plate.text.trim();
+            if (matricula.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Indica a matrícula do veículo.'),
+                ),
+              );
+              return;
+            }
             ref
                 .read(operationsProvider.notifier)
                 .saveVehicle(
                   Vehicle(
                     id: 'v${DateTime.now().microsecondsSinceEpoch}',
-                    plate: plate.text,
+                    plate: matricula,
                     type: type.text,
                     status: VehicleStatus.active,
                     alias: alias.text.trim().isEmpty ? null : alias.text.trim(),
