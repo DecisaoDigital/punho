@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:punho/features/auth/data/acesso_service.dart';
 import 'package:punho/features/dashboard/presentation/dashboard_page.dart';
+import 'package:punho/features/tarefas/presentation/tarefas_page.dart';
 
 import 'fixtura.dart';
 
@@ -83,6 +85,106 @@ void main() {
       );
     });
   }
+
+  group('Sprint 2 · dinheiro com recomendação do dia', () {
+    testWidgets('caso vermelho', (tester) async {
+      await montarLandscape(
+        tester,
+        containerCom(estadoComDividaAntiga()),
+        DashboardPage(agora: agoraFixa),
+        tamanho: const Size(1280, 800),
+      );
+
+      await expectLater(
+        find.byType(DashboardPage),
+        matchesGoldenFile(
+          '../../../docs/design/screenshots/v005/slide_dinheiro_recomendacao_vermelho.png',
+        ),
+      );
+    });
+
+    testWidgets('caso verde', (tester) async {
+      await montarLandscape(
+        tester,
+        containerCom(estadoComBoaConversao()),
+        DashboardPage(agora: agoraFixa),
+        tamanho: const Size(1280, 800),
+      );
+
+      await expectLater(
+        find.byType(DashboardPage),
+        matchesGoldenFile(
+          '../../../docs/design/screenshots/v005/slide_dinheiro_recomendacao_verde.png',
+        ),
+      );
+    });
+
+    testWidgets('sem sugestão', (tester) async {
+      await montarLandscape(
+        tester,
+        containerCom(estadoSemRecomendacao()),
+        DashboardPage(agora: agoraFixa),
+        tamanho: const Size(1280, 800),
+      );
+
+      await expectLater(
+        find.byType(DashboardPage),
+        matchesGoldenFile(
+          '../../../docs/design/screenshots/v005/slide_dinheiro_recomendacao_null.png',
+        ),
+      );
+    });
+
+    testWidgets('mês passado, com as setas activas', (tester) async {
+      await montarLandscape(
+        tester,
+        containerCom(estadoComMovimento()),
+        DashboardPage(agora: agoraFixa),
+        tamanho: const Size(1280, 800),
+      );
+      await tester.tap(find.byTooltip('Mês anterior').first);
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(DashboardPage),
+        matchesGoldenFile(
+          '../../../docs/design/screenshots/v005/slide_dinheiro_mes_passado.png',
+        ),
+      );
+    });
+  });
+
+  testWidgets('captura das Tarefas com convite urgente', (tester) async {
+    await montarLandscape(
+      tester,
+      containerCom(
+        estadoComMovimento(),
+        convites: [
+          Convite(
+            codigo: 'URGENTE01',
+            email: 'apressado@exemplo.pt',
+            perfil: 'colaborador',
+            expiraEm: DateTime.now().add(const Duration(hours: 12)),
+          ),
+          Convite(
+            codigo: 'CALMO0002',
+            email: 'tranquilo@exemplo.pt',
+            perfil: 'gestor',
+            expiraEm: DateTime.now().add(const Duration(days: 5)),
+          ),
+        ],
+      ),
+      const TarefasPage(),
+      tamanho: const Size(1280, 800),
+    );
+
+    await expectLater(
+      find.byType(TarefasPage),
+      matchesGoldenFile(
+        '../../../docs/design/screenshots/v005/tarefas_com_convite_urgente.png',
+      ),
+    );
+  });
 
   testWidgets('captura do painel de uma empresa sem movimentos', (tester) async {
     await montarLandscape(

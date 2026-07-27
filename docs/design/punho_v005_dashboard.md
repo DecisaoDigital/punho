@@ -216,6 +216,120 @@ O badge de Tarefas conta as pendências e só fica **vermelho quando há algo
 urgente**; caso contrário é cinzento-escuro. Um badge vermelho permanente por
 causa de uma morada em falta deixa de significar nada.
 
+---
+
+# Sprint 2: Dinheiro + Convites em Tarefas
+
+Segunda ronda na mesma branch. Quatro itens: trocar o 4º KPI do slide 1,
+estender as setas de mês, trazer os convites para as Tarefas, e confirmar por
+escrito a decisão do ecrã do colaborador.
+
+## O 4º KPI do slide 1 passou a "Recomendação do dia"
+
+O "Resultado provisório" era recebido − pago, e os dois números já estavam à
+vista nas duas células acima: a célula gastava um quarto do slide a repetir
+aritmética que o gestor fazia de cabeça. E não dizia o que fazer hoje.
+
+`lib/features/dashboard/kpis/recomendacao_do_dia.dart` — função pura, com o
+`now` de fora, como o resto dos KPIs. Cinco regras por ordem de urgência,
+devolve **a primeira que se aplica** ou `null`:
+
+| # | Gravidade | Dispara quando | CTA |
+|---|---|---|---|
+| 1 | Vermelho | cliente com dívida > 30 dias **e** ≥ 100 € | Abrir ficha → |
+| 2 | Vermelho | custos ≥ 80% da receita do mês | Rever custos → (slide 4) |
+| 3 | Laranja | cliente com dívida entre 15 e 30 dias | Abrir ficha → |
+| 4 | Laranja | recebido < 60% do mês homólogo (se o homólogo ≥ 500 €) | Ver homóloga → |
+| 5 | Verde | conversão de leads a 30 dias ≥ 40% | Ver conversão → (slide 2) |
+| — | — | nada disto | "Sem sugestão para hoje" em cinza |
+
+Três decisões dentro das regras:
+
+- **A dívida agrega-se por cliente**, não por reserva: cobra-se a uma pessoa,
+  não a um contrato. Duas reservas de 60 € do mesmo cliente passam o limiar dos
+  100 €, e a frase usa a mais antiga das duas.
+- **O mês homólogo** vem primeiro dos recebimentos registados do ano passado e,
+  se não houver nenhum, do valor declarado no histórico mensal. Sem nenhum dos
+  dois, a regra não se aplica — comparar com nada não dá aviso, dá ruído.
+- **O mínimo de 500 €** no mês homólogo existe porque uma queda percentual sobre
+  um valor pequeno não quer dizer nada: 40% de 30 € não é notícia.
+
+O card é o `RecomendacaoCard`, agora partilhado com a Recomendação da Semana do
+slide 5 — mesma escala de cor (verde convite, laranja aviso, vermelho risco a
+acontecer), porque duas escalas para a mesma ideia ensinariam ao gestor que a cor
+não significa nada. A célula **nunca desaparece**: sem sugestão mostra a frase de
+vazio, senão o slide mudava de desenho de um dia para o outro.
+
+"Abrir ficha →" leva à área de Clientes: **não existe ecrã de ficha individual de
+cliente** (é o P2-8 da auditoria v0.0.3, ainda em backlog). Quando existir, é uma
+linha a mudar em `_seguir`.
+
+Capturas: `slide_dinheiro_recomendacao_vermelho.png`,
+`slide_dinheiro_recomendacao_verde.png`, `slide_dinheiro_recomendacao_null.png`.
+
+## Setas de mês nos três KPIs, com estado partilhado
+
+`ValueNotifier<DateTime>` no `_DinheiroSlideState`, lido por um
+`ValueListenableBuilder`: **um mês para o slide**, não um por card. Recuar no
+"Recebido" e deixar o "Pago" em Julho punha duas verdades no mesmo ecrã.
+
+- **Recebido** e **Pago** têm o par `‹ ›` e mudam de título ("Recebido em
+  Junho", "Pago em Junho").
+- A seta `›` está desactivada no mês actual e a `‹` **pára no primeiro registo**
+  — não vale deixar o gestor a passear por meses vazios.
+- A **Recomendação do dia** fica sempre no mês actual, e há um teste que o
+  garante: recomendar sobre um mês passado não faz sentido.
+
+### "Por receber" ficou sem setas — e diz porquê
+
+Era o item que dependia de haver histórico de dívida. **Não há**: o modelo guarda
+o valor previsto da reserva e os recebimentos, mas nada registra como a dívida
+estava no fim de cada mês. Ao navegar para trás, o card assume-o com um
+`só o mês actual` ao lado do título.
+
+Nota para quem voltar a isto: seria *reconstruível* (dívida no fim do mês M =
+previsto das reservas terminadas até M − recebimentos até M) e não o fiz de
+propósito. O `expectedValueCents` de uma reserva é editável hoje e aplicar-se-ia
+retroactivamente, portanto o histórico mudava conforme se corrigissem valores no
+presente. Preferi um card que admite o que não sabe a um que apresenta números
+que o Cesar não consegue reconciliar — foi essa a queixa que abriu a v0.0.4.
+
+Captura: `slide_dinheiro_mes_passado.png`.
+
+## Um falso zero que apareceu nas capturas
+
+A captura do caso vermelho mostrou "Pago este mês: 0,00 €" numa empresa que
+**nunca registou uma despesa**. Zero despesas pagas num mês é verdade; zero
+despesas de sempre é falta de dados, e aquele "0,00 €" dizia ao gestor que não
+tem custos. Passou a "Por apurar — ainda não registaste nenhuma despesa".
+
+## Convites por responder nas Tarefas
+
+Sexta fonte da lista. Lê o `convitesProvider` que já existia (`punho_convites`
+via `listarConvites()`) e conta só os que `disponivelEm(now)` — nem usados nem
+expirados.
+
+- **Urgente** se expira em ≤ 48 h ("Expira em 11 horas — depois disso é preciso
+  emitir outro"), **A completar** caso contrário.
+- A CTA leva o **código** consigo: `ConvitesScreen` ganhou `destacarCodigo` e
+  destaca a linha. Abrir uma lista de dez convites sem dizer qual não resolve a
+  tarefa.
+- **Sem Supabase a fonte cala-se.** O `tarefasProvider` usa `.valueOrNull` — em
+  modo de demonstração o provider dos convites fica em erro (não há
+  `Supabase.instance`) e as Tarefas não mostram erro de rede por causa disso. A
+  função pura recebe a lista de fora, por isso testa-se sem servidor nenhum.
+
+Captura: `tarefas_com_convite_urgente.png`.
+
+## Shell do colaborador: fica em portrait
+
+Confirmado por escrito, como pedido: **não se mexeu**. A `CollaboratorShell`
+continua com o seu `PhoneOrientationLock` em portrait — seis botões grandes,
+telemóvel na mão, no terreno. O `bloquearLandscape()` do `main` usa
+`setPreferredOrientations`, que é uma preferência e não uma imposição, portanto
+os dois convivem: a app abre em landscape e aquele ecrã pede portrait enquanto
+está montado.
+
 ## Fora do âmbito, registado
 
 - Página "Ver todas as métricas" — feita a sério em vez de placeholder, porque
