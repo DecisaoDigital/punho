@@ -10,6 +10,11 @@ import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/operations.dart';
 import '../../../domain/models/historical_month.dart';
 import '../../auth/acesso_providers.dart';
+import 'boas_vindas_screen.dart';
+import 'mais_dados_screen.dart';
+
+/// Os ecrãs do onboarding que explicam em vez de pedir.
+enum _EcraDeContexto { maisDados, boasVindas }
 
 class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key});
@@ -62,6 +67,40 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  /// Grava tudo e entra na app.
+  ///
+  /// Saiu de dentro do botão "Continuar" para poder ser chamado pelo
+  /// [BoasVindasScreen], que é agora o único sítio de onde se grava. O `step` já
+  /// não avança depois disto, portanto não há caminho para o chamar duas vezes:
+  /// o ecrã seguinte é a app.
+  void _concluirOnboarding() {
+    ref.read(operationsProvider.notifier).completeOnboarding(
+      ownerName: _optional(ownerName.text),
+      companyName: name.text.trim().isEmpty
+          ? 'A minha empresa'
+          : name.text.trim(),
+      legalForm: legal,
+      hasFleet: vehicles > 0,
+      declaredVehicleCount: vehicles,
+      collaborators: collaborators,
+      totalMachinesDeclared: machines,
+      // Sempre false: o passo "inserir máquinas agora" foi removido. O
+      // utilizador adiciona máquinas em detalhe (foto, referência) na secção
+      // Máquinas ao seu ritmo.
+      insertMachinesNow: false,
+      companyTaxId: _optional(taxId.text),
+      companyPhone: _optional(phone.text),
+      companyEmail: _optional(email.text),
+      companyAddress: _optional(address.text),
+      companyPostalCode: _optional(postalCode.text),
+      companyLocality: _optional(locality.text),
+      revenueLastYearCents: _euroCents(revenueLastYear.text),
+      revenueThisYearCents: _euroCents(revenueThisYear.text),
+      maintenanceLastYearCents: _euroCents(maintenanceLastYear.text),
+      fixedMonthlyCostsCents: _euroCents(fixedMonthlyCosts.text),
+    );
   }
 
   @override
@@ -132,7 +171,44 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final gestorHelps = wantsFullSetup ? helpsFull : helpsFull.sublist(0, 7);
     final titles = role == 'colaborador' ? titlesColab : gestorTitles;
     final helps = role == 'colaborador' ? helpsColab : gestorHelps;
-    final input = switch (step) {
+
+    // O percurso é uma lista de ecrãs, não aritmética sobre um índice: os ecrãs
+    // de contexto entram no meio dos passos de dados e as contas de "+1 aqui,
+    // −1 ali" tornavam-se impossíveis de ler. Um `int` é um passo de dados (o
+    // índice em titles/helps); um `_EcraDeContexto` é um ecrã que explica.
+    final percurso = <Object>[
+      for (var i = 0; i < titles.length; i++) ...[
+        i,
+        // Depois do switch, e só quando ele está ligado: o gestor acabou de
+        // dizer "sim, quero preencher" e merece saber o que vem.
+        if (role != 'colaborador' && wantsFullSetup && i == 6)
+          _EcraDeContexto.maisDados,
+      ],
+      // Ao colaborador não se mostra: o ecrã promete um painel que o shell dele
+      // não tem, e pede uma rotação que o shell dele não faz.
+      if (role != 'colaborador') _EcraDeContexto.boasVindas,
+    ];
+    // O `step` é um índice no percurso, e o switch abaixo continua a indexar os
+    // passos de dados. Fora de um passo de dados fica −1, que nenhum `case`
+    // apanha, e o ecrã de contexto é devolvido antes de o `input` ser usado.
+    final ecraActual = percurso[step.clamp(0, percurso.length - 1)];
+    final passoDeDados = ecraActual is int ? ecraActual : -1;
+
+    if (ecraActual is _EcraDeContexto) {
+      void voltar() => setState(() => step--);
+      return switch (ecraActual) {
+        _EcraDeContexto.maisDados => MaisDadosScreen(
+          aoAvancar: () => setState(() => step++),
+          aoVoltar: voltar,
+        ),
+        _EcraDeContexto.boasVindas => BoasVindasScreen(
+          aoEntrar: _concluirOnboarding,
+          aoVoltar: voltar,
+        ),
+      };
+    }
+
+    final input = switch (passoDeDados) {
       0 => TextField(
         controller: ownerName,
         autofocus: true,
@@ -344,17 +420,20 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   ),
                 ),
                 const SizedBox(height: 28),
-                Text('${step + 1} de ${titles.length}'),
+                // Conta passos de dados, não ecrãs: os de contexto não têm
+                // contador, e dizer "12 de 14" num percurso cujo contador nunca
+                // chega a 14 era pior do que não o ter.
+                Text('${passoDeDados + 1} de ${titles.length}'),
                 const SizedBox(height: 8),
                 Text(
-                  titles[step],
+                  titles[passoDeDados],
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 // Sub-texto vazio colapsa de facto: sem isto ficava um
                 // SizedBox fantasma a abrir buraco entre a pergunta e o campo.
-                if (helps[step].isNotEmpty) ...[
+                if (helps[passoDeDados].isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Text(helps[step]),
+                  Text(helps[passoDeDados]),
                 ],
                 const SizedBox(height: 24),
                 input,
@@ -369,49 +448,17 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                     const Spacer(),
                     FilledButton(
                       onPressed: () {
-                        if (step < titles.length - 1) {
+                        if (step < percurso.length - 1) {
                           setState(() => step++);
                         } else {
-                          ref
-                              .read(operationsProvider.notifier)
-                              .completeOnboarding(
-                                ownerName: _optional(ownerName.text),
-                                companyName: name.text.trim().isEmpty
-                                    ? 'A minha empresa'
-                                    : name.text.trim(),
-                                legalForm: legal,
-                                hasFleet: vehicles > 0,
-                                declaredVehicleCount: vehicles,
-                                collaborators: collaborators,
-                                totalMachinesDeclared: machines,
-                                // Sempre false: o passo "inserir máquinas
-                                // agora" foi removido. Utilizador adiciona
-                                // máquinas em detalhe (foto, referência,
-                                // etc.) na secção Máquinas ao seu ritmo.
-                                insertMachinesNow: false,
-                                companyTaxId: _optional(taxId.text),
-                                companyPhone: _optional(phone.text),
-                                companyEmail: _optional(email.text),
-                                companyAddress: _optional(address.text),
-                                companyPostalCode: _optional(postalCode.text),
-                                companyLocality: _optional(locality.text),
-                                revenueLastYearCents: _euroCents(
-                                  revenueLastYear.text,
-                                ),
-                                revenueThisYearCents: _euroCents(
-                                  revenueThisYear.text,
-                                ),
-                                maintenanceLastYearCents: _euroCents(
-                                  maintenanceLastYear.text,
-                                ),
-                                fixedMonthlyCostsCents: _euroCents(
-                                  fixedMonthlyCosts.text,
-                                ),
-                              );
+                          // Só o colaborador chega aqui como último ecrã: o
+                          // percurso do gestor termina sempre no ecrã de
+                          // boas-vindas, e é ele que grava.
+                          _concluirOnboarding();
                         }
                       },
                       child: Text(
-                        step == titles.length - 1 ? 'Começar' : 'Continuar',
+                        step == percurso.length - 1 ? 'Começar' : 'Continuar',
                       ),
                     ),
                   ],
