@@ -13,10 +13,18 @@ import '../../../shared/widgets/brand_lockup.dart';
 import '../../auth/acesso_providers.dart';
 import '../../collaborator/presentation/collaborator_shell.dart';
 import '../../dashboard/presentation/dashboard_page.dart';
+import '../../finance/presentation/financas_page.dart';
 import '../../gestao/presentation/convites_screen.dart';
 import '../../licenca/presentation/licenca_banner.dart';
 import '../../operations/presentation/operational_pages.dart';
+import '../../tarefas/data/tarefas_service.dart';
+import '../../tarefas/presentation/tarefas_page.dart';
 import '../../workforce/presentation/workforce_pages.dart';
+
+/// Chave da barra lateral. Existe porque os rótulos dos destinos ("Máquinas")
+/// repetem-se nos nomes dos slides do painel: sem ela os testes não sabiam
+/// distinguir o rótulo da barra do nome do slide.
+const chaveDaBarraLateral = Key('barra-lateral');
 
 class AppShell extends ConsumerWidget {
   const AppShell({super.key});
@@ -149,12 +157,11 @@ class _Sidebar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Container(
-    // Sidebar compacta (só ícones + tooltip) — inspirada no Point of Rental
-    // referenciado no doc de identidade. 72 dp em vez dos 272 anteriores:
-    // liberta ~200 dp para o conteúdo em mobile landscape e tablet.
-    // Para versão expandida (labels visíveis), substituir por NavigationRail
-    // com extended=true — decisão adiada até haver piloto com opinião.
-    width: 72,
+    key: chaveDaBarraLateral,
+    // 88 dp em vez de 72: passou a caber o rótulo debaixo do ícone. Com só
+    // ícones, o rótulo dependia do tooltip — que num tablet só aparece com
+    // toque longo, ou seja não aparece a quem está a aprender a app.
+    width: 88,
     color: PunhoTheme.navyDeep,
     child: SafeArea(
       child: Column(
@@ -246,7 +253,7 @@ class _Sidebar extends ConsumerWidget {
   );
 }
 
-class _SidebarItem extends StatelessWidget {
+class _SidebarItem extends ConsumerWidget {
   const _SidebarItem({
     required this.item,
     required this.selected,
@@ -258,40 +265,105 @@ class _SidebarItem extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-    // Modo compacto (sidebar 72 dp): só ícone + Tooltip com o rótulo.
-    // Estado seleccionado sinalizado por fundo + border laranja à esquerda.
-    // A seta ">" foi removida — não caberia no espaço estreito.
-    child: Tooltip(
-      message: item.label,
-      preferBelow: false,
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Só Tarefas leva contagem. Um badge em cada área deixaria de chamar a
+    // atenção a nada.
+    final pendentes = item == AppDestination.tasks
+        ? ref.watch(contagemTarefasPendentesProvider)
+        : 0;
+    final urgente = item == AppDestination.tasks &&
+        ref.watch(tarefasTemUrgenteProvider);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           child: Ink(
-            height: 48,
             decoration: BoxDecoration(
-              color: selected ? const Color(0xFF1B3A4D) : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
+              color: selected ? const Color(0xFF2B4A5E) : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
               border: selected
                   ? const Border(
                       left: BorderSide(color: PunhoTheme.orange, width: 3),
                     )
                   : null,
             ),
-            child: Center(
-              child: Icon(
-                item.icon,
-                size: 22,
-                color: selected ? PunhoTheme.orange : const Color(0xFFB7C7D1),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Column(
+                    children: [
+                      Icon(
+                        item.icon,
+                        size: 22,
+                        color: selected
+                            ? PunhoTheme.orange
+                            : const Color(0xFFB7C7D1),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 10,
+                          height: 1.1,
+                          fontWeight: selected
+                              ? FontWeight.w800
+                              : FontWeight.w500,
+                          color: selected
+                              ? PunhoTheme.orange
+                              : const Color(0xFFB7C7D1),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (pendentes > 0)
+                    Positioned(
+                      top: -2,
+                      right: 4,
+                      child: _Badge(quantidade: pendentes, urgente: urgente),
+                    ),
+                ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Contagem de pendentes. Vermelho só quando há algo urgente — um badge
+/// vermelho permanente por causa de uma morada em falta deixa de significar
+/// nada.
+class _Badge extends StatelessWidget {
+  const _Badge({required this.quantidade, required this.urgente});
+  final int quantidade;
+  final bool urgente;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(minWidth: 16),
+    height: 16,
+    padding: const EdgeInsets.symmetric(horizontal: 4),
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: urgente ? const Color(0xFFE24B4A) : const Color(0xFF4A5C68),
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: Text(
+      quantidade > 9 ? '9+' : '$quantidade',
+      style: const TextStyle(
+        fontSize: 9,
+        fontWeight: FontWeight.w800,
+        color: Colors.white,
       ),
     ),
   );
@@ -338,6 +410,8 @@ class _DestinationContent extends StatelessWidget {
     if (destination == AppDestination.machines) return const MachinesPage();
     if (destination == AppDestination.clients) return const ClientsPage();
     if (destination == AppDestination.bookings) return const BookingsPage();
+    if (destination == AppDestination.finances) return const FinancasPage();
+    if (destination == AppDestination.tasks) return const TarefasPage();
     if (destination == AppDestination.employees) {
       return const CollaboratorsPage();
     }

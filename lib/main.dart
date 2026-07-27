@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -26,6 +27,7 @@ Future<void> main() async {
     // Functions aceitam a chave pública, por isso corre antes do login.
     unawaited(_registarTerminal());
   }
+  await bloquearLandscape();
   final operationsRepository = await PersistentOperationRepository.create();
   runApp(
     ProviderScope(
@@ -36,6 +38,22 @@ Future<void> main() async {
     ),
   );
 }
+
+/// O Punho é uma app de landscape.
+///
+/// Quem a usa é o empresário, no tablet ou no PC, e o painel de gestão foi
+/// desenhado para essa forma: cinco slides com quatro KPIs cada, lado a lado.
+/// Em portrait não caberia sem espremer os números até não se lerem, portanto
+/// portrait não é suportado em vez de ser mal suportado.
+///
+/// Excepção deliberada: a shell do colaborador continua a pedir portrait quando
+/// está montada (`PhoneOrientationLock` dentro dela). Aquele ecrã é para o
+/// telemóvel na mão, no terreno, com seis botões grandes — outro utilizador,
+/// outro dispositivo, outra forma.
+Future<void> bloquearLandscape() => SystemChrome.setPreferredOrientations(const [
+  DeviceOrientation.landscapeLeft,
+  DeviceOrientation.landscapeRight,
+]);
 
 Future<void> _registarTerminal() async {
   try {

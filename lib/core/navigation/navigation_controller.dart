@@ -36,9 +36,11 @@ List<AppDestination> visibleDestinations(CompanySettings settings) => [
 
 List<AppDestination> visibleOperationalDestinations(OperationsState state) => [
   AppDestination.management,
-  if (state.declaredCollaboratorCount > 0) AppDestination.employees,
   AppDestination.machines,
   AppDestination.clients,
   AppDestination.bookings,
+  AppDestination.finances,
+  if (state.declaredCollaboratorCount > 0) AppDestination.employees,
   if (state.hasFleet) AppDestination.vehicles,
+  AppDestination.tasks,
 ];
