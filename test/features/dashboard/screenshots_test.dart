@@ -240,6 +240,24 @@ void main() {
     );
   });
 
+  testWidgets('captura do diálogo da máquina em duas colunas', (tester) async {
+    await montarLandscape(
+      tester,
+      containerCom(estadoComMovimento()),
+      const MachinesPage(),
+      tamanho: const Size(1280, 800),
+    );
+    await tester.tap(find.text('Adicionar máquina'));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile(
+        '../../../docs/design/screenshots/v005/dialogo_maquina_largo.png',
+      ),
+    );
+  });
+
   testWidgets('captura da lista completa de métricas', (tester) async {
     await montarLandscape(
       tester,

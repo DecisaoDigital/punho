@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/supabase_config.dart';
+import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/media/machine_image_store.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/operations.dart';
@@ -1188,247 +1189,327 @@ Future<void> _machineDialog(
   BuildContext context,
   WidgetRef ref, [
   Machine? current,
-]) async {
-  final name = TextEditingController(text: current?.name);
-  final reference = TextEditingController(text: current?.reference);
-  final category = TextEditingController(text: current?.category);
-  final dailyRate = TextEditingController(
+]) => showDialog<void>(
+  context: context,
+  // Não fecha ao tocar fora: um toque ao lado deitava fora o formulário todo.
+  barrierDismissible: false,
+  builder: (_) => _FormularioDeMaquina(notifier: ref.read(operationsProvider.notifier), current: current),
+);
+
+/// O formulário é um widget com estado porque é ele quem tem de ser dono dos
+/// controladores.
+///
+/// Antes viviam na função e eram descartados depois do `await showDialog`, que
+/// devolve no instante do `Navigator.pop` — a animação de fecho ainda estava a
+/// correr e reconstruía os campos com controladores já mortos ("A
+/// TextEditingController was used after being disposed"). Com o estado aqui, o
+/// `dispose` acontece quando o widget sai de facto da árvore.
+class _FormularioDeMaquina extends StatefulWidget {
+  const _FormularioDeMaquina({required this.notifier, this.current});
+
+  final OperationsController notifier;
+  final Machine? current;
+
+  @override
+  State<_FormularioDeMaquina> createState() => _FormularioDeMaquinaState();
+}
+
+class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
+  late final Machine? current = widget.current;
+  late final name = TextEditingController(text: current?.name);
+  late final reference = TextEditingController(text: current?.reference);
+  late final category = TextEditingController(text: current?.category);
+  late final dailyRate = TextEditingController(
     text: current?.dailyRateCents == null
         ? ''
         : (current!.dailyRateCents! / 100).toStringAsFixed(2),
   );
-  final notes = TextEditingController(text: current?.notes);
-  var status = current?.status ?? MachineStatus.available;
-  final photoPaths = ValueNotifier<List<String>>(
+  late final notes = TextEditingController(text: current?.notes);
+  late final photoPaths = ValueNotifier<List<String>>(
     List<String>.of(current?.photoPaths ?? const []),
   );
-  await showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      scrollable: true,
-      title: Text(current == null ? 'Nova máquina' : 'Editar máquina'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: name,
-            decoration: const InputDecoration(labelText: 'Nome'),
-          ),
-          TextField(
-            controller: reference,
-            decoration: const InputDecoration(
-              labelText: 'Número interno ou série',
-            ),
-          ),
-          TextField(
-            controller: category,
-            decoration: const InputDecoration(labelText: 'Categoria'),
-          ),
-          TextField(
-            controller: dailyRate,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Preço diário de aluguer (€)',
-            ),
-          ),
-          TextField(
-            controller: notes,
-            maxLines: 2,
-            decoration: const InputDecoration(labelText: 'Notas / manutenção'),
-          ),
-          const SizedBox(height: 12),
-          ValueListenableBuilder<List<String>>(
-            valueListenable: photoPaths,
-            builder: (context, paths, _) => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  paths.isEmpty
-                      ? 'Fotografia principal pendente'
-                      : 'Fotografias da máquina (${paths.length})',
-                  style: Theme.of(context).textTheme.labelLarge,
+  // "Parada" saiu da app na v0.0.5: uma máquina que não está alugada nem em
+  // manutenção está disponível. Máquinas antigas gravadas como parada entram
+  // aqui já como disponíveis, senão o dropdown apanhava um valor fora da lista.
+  late var status = current?.status == MachineStatus.stopped
+      ? MachineStatus.available
+      : current?.status ?? MachineStatus.available;
+
+  @override
+  void dispose() {
+    name.dispose();
+    reference.dispose();
+    category.dispose();
+    dailyRate.dispose();
+    notes.dispose();
+    photoPaths.dispose();
+    super.dispose();
+  }
+
+  Widget _campo(
+    TextEditingController controlador,
+    String rotulo, {
+    bool autofocus = false,
+    TextInputType? teclado,
+    int maxLines = 1,
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: TextField(
+      controller: controlador,
+      autofocus: autofocus,
+      keyboardType: teclado,
+      maxLines: maxLines,
+      decoration: InputDecoration(labelText: rotulo),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final identificacao = <Widget>[
+      _campo(name, 'Nome', autofocus: true),
+      _campo(reference, 'Número interno ou série'),
+      _campo(category, 'Categoria'),
+      _campo(
+        dailyRate,
+        'Preço diário de aluguer (€)',
+        teclado: const TextInputType.numberWithOptions(decimal: true),
+      ),
+      DropdownButtonFormField<MachineStatus>(
+        value: status,
+        isExpanded: true,
+        decoration: const InputDecoration(labelText: 'Estado atual'),
+        items: estadosEscolhiveisDeMaquina
+            .map(
+              (value) => DropdownMenuItem(
+                value: value,
+                child: Text(machineStatusLabel(value)),
+              ),
+            )
+            .toList(),
+        onChanged: (v) => setState(() => status = v!),
+      ),
+    ];
+    final notasEFotos = <Widget>[
+      _campo(notes, 'Notas / manutenção', maxLines: 3),
+      const SizedBox(height: 12),
+      _FotografiasDaMaquina(photoPaths: photoPaths),
+    ];
+
+    return DialogoDeFormulario(
+      titulo: current == null ? 'Nova máquina' : 'Editar máquina',
+      // Em paisagem cabem duas colunas: os campos à esquerda, as notas e as
+      // fotografias à direita. Em retrato é tudo uma coluna.
+      larguraMaxima: 920,
+      rotuloGuardar: current?.placeholder == true
+          ? 'Guardar e identificar'
+          : 'Guardar',
+      corpo: LayoutBuilder(
+        builder: (context, constraints) {
+          final duasColunas = constraints.maxWidth >= 640;
+          if (!duasColunas) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [...identificacao, ...notasEFotos],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: identificacao,
                 ),
-                const SizedBox(height: 8),
-                if (paths.isNotEmpty)
-                  SizedBox(
-                    height: 78,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: paths.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 8),
-                      itemBuilder: (context, index) => Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: _MachinePhoto(
-                              path: paths[index],
-                              width: 78,
-                              height: 78,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: Material(
-                              color: Colors.black54,
-                              shape: const CircleBorder(),
-                              child: InkWell(
-                                customBorder: const CircleBorder(),
-                                onTap: () => photoPaths.value = [
-                                  for (var i = 0; i < paths.length; i++)
-                                    if (i != index) paths[i],
-                                ],
-                                child: const Padding(
-                                  padding: EdgeInsets.all(4),
-                                  child: Icon(
-                                    Icons.close,
-                                    size: 14,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: notasEFotos,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+      aoGuardar: () {
+        if (name.text.trim().isEmpty) {
+          // Antes fechava o diálogo em silêncio e deitava fora o que tinha
+          // sido escrito.
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Indica o nome da máquina.')),
+          );
+          return;
+        }
+        final anterior = current;
+        // A editar usa-se copyWith: construir um Machine novo apagava a data
+        // de aquisição e desarquivava máquinas arquivadas.
+        final machine = anterior != null
+            ? anterior.copyWith(
+                name: name.text.trim(),
+                reference: reference.text,
+                category: category.text,
+                status: status,
+                dailyRateCents: _moneyCents(dailyRate.text),
+                notes: notes.text.trim(),
+                photoPaths: photoPaths.value,
+                // Quem edita, identifica: qualquer gravação a partir deste
+                // diálogo tira a máquina do estado "por identificar",
+                // independentemente do que tenha mudado.
+                placeholder: false,
+              )
+            : Machine(
+                id: 'm${DateTime.now().microsecondsSinceEpoch}',
+                name: name.text.trim(),
+                reference: reference.text,
+                category: category.text,
+                status: status,
+                dailyRateCents: _moneyCents(dailyRate.text),
+                notes: notes.text.trim(),
+                photoPaths: photoPaths.value,
+              );
+        widget.notifier.saveMachine(machine);
+        Navigator.pop(context);
+      },
+    );
+  }
+}
+
+/// Tira do corpo do diálogo o bloco das fotografias, que era metade dele.
+class _FotografiasDaMaquina extends StatelessWidget {
+  const _FotografiasDaMaquina({required this.photoPaths});
+
+  final ValueNotifier<List<String>> photoPaths;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<List<String>>(
+      valueListenable: photoPaths,
+      builder: (context, paths, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            paths.isEmpty
+                ? 'Fotografia principal pendente'
+                : 'Fotografias da máquina (${paths.length})',
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          const SizedBox(height: 8),
+          if (paths.isNotEmpty)
+            SizedBox(
+              // 112 dp em vez de 78: à largura de uma coluna do diálogo em
+              // paisagem, uma miniatura de 78 não deixa reconhecer a máquina.
+              height: 112,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: paths.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, index) => Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: _MachinePhoto(
+                        path: paths[index],
+                        width: 112,
+                        height: 112,
+                        fit: BoxFit.cover,
                       ),
                     ),
-                  ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (Platform.isAndroid || Platform.isIOS)
-                      OutlinedButton.icon(
-                        onPressed: () async {
-                          try {
-                            final path = await MachineImageStore.pickFromCamera();
-                            if (path != null) photoPaths.value = [...paths, path];
-                          } catch (_) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('NÃ£o foi possÃ­vel enviar a fotografia para o arquivo da empresa.'),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        icon: const Icon(Icons.photo_camera_outlined),
-                        label: const Text('Tirar foto'),
-                      ),
-                    OutlinedButton.icon(
-                        onPressed: () async {
-                        try {
-                          final path = Platform.isAndroid || Platform.isIOS
-                              ? await MachineImageStore.pickFromGallery()
-                              : await MachineImageStore.pickFromFiles();
-                          if (path != null) photoPaths.value = [...paths, path];
-                        } catch (_) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('NÃ£o foi possÃ­vel enviar a fotografia para o arquivo da empresa.'),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      icon: const Icon(Icons.add_photo_alternate_outlined),
-                      label: Text(
-                        Platform.isAndroid || Platform.isIOS
-                            ? 'Galeria'
-                            : 'Escolher imagem',
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Material(
+                        color: Colors.black54,
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () => photoPaths.value = [
+                            for (var i = 0; i < paths.length; i++)
+                              if (i != index) paths[i],
+                          ],
+                          child: const Padding(
+                            padding: EdgeInsets.all(4),
+                            child: Icon(
+                              Icons.close,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-                if (paths.isNotEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 6),
-                    child: Text(
-                      'A primeira fotografia é usada como identificação principal.',
-                    ),
+              ),
+            ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (Platform.isAndroid || Platform.isIOS)
+                OutlinedButton.icon(
+                  onPressed: () => _acrescentarFotografia(
+                    context,
+                    photoPaths,
+                    MachineImageStore.pickFromCamera,
                   ),
-              ],
-            ),
+                  icon: const Icon(Icons.photo_camera_outlined),
+                  label: const Text('Tirar foto'),
+                ),
+              OutlinedButton.icon(
+                onPressed: () => _acrescentarFotografia(
+                  context,
+                  photoPaths,
+                  Platform.isAndroid || Platform.isIOS
+                      ? MachineImageStore.pickFromGallery
+                      : MachineImageStore.pickFromFiles,
+                ),
+                icon: const Icon(Icons.add_photo_alternate_outlined),
+                label: Text(
+                  Platform.isAndroid || Platform.isIOS
+                      ? 'Galeria'
+                      : 'Escolher imagem',
+                ),
+              ),
+            ],
           ),
-          StatefulBuilder(
-            builder: (_, set) => DropdownButtonFormField<MachineStatus>(
-              value: status,
-              decoration: const InputDecoration(labelText: 'Estado atual'),
-              items: MachineStatus.values
-                  .map(
-                    (value) => DropdownMenuItem(
-                      value: value,
-                      child: Text(machineStatusLabel(value)),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (v) => set(() => status = v!),
+          if (paths.isNotEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text(
+                'A primeira fotografia é usada como identificação principal.',
+              ),
             ),
-          ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
+    );
+  }
+}
+
+/// Escolhe uma fotografia e junta-a à lista.
+///
+/// A mensagem de erro estava com os acentos estragados ("NÃ£o foi possÃ­vel") —
+/// o ficheiro foi gravado noutra codificação em algum momento. Fica aqui num
+/// sítio só para não haver duas cópias a divergir.
+Future<void> _acrescentarFotografia(
+  BuildContext context,
+  ValueNotifier<List<String>> photoPaths,
+  Future<String?> Function() escolher,
+) async {
+  try {
+    final path = await escolher();
+    if (path != null) photoPaths.value = [...photoPaths.value, path];
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Não foi possível enviar a fotografia para o arquivo da empresa.',
         ),
-        FilledButton(
-          onPressed: () {
-            if (name.text.trim().isEmpty) {
-              // Antes fechava o diálogo em silêncio e deitava fora o que
-              // tinha sido escrito.
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Indica o nome da máquina.')),
-              );
-              return;
-            }
-            // A editar usa-se copyWith: construir um Machine novo apagava a
-            // data de aquisição e desarquivava máquinas arquivadas.
-            final machine = current != null
-                ? current.copyWith(
-                    name: name.text.trim(),
-                    reference: reference.text,
-                    category: category.text,
-                    status: status,
-                    dailyRateCents: _moneyCents(dailyRate.text),
-                    notes: notes.text.trim(),
-                    photoPaths: photoPaths.value,
-                    // Quem edita, identifica: qualquer gravação a partir deste
-                    // diálogo tira a máquina do estado "por identificar",
-                    // independentemente do que tenha mudado.
-                    placeholder: false,
-                  )
-                : Machine(
-                    id: 'm${DateTime.now().microsecondsSinceEpoch}',
-                    name: name.text.trim(),
-                    reference: reference.text,
-                    category: category.text,
-                    status: status,
-                    dailyRateCents: _moneyCents(dailyRate.text),
-                    notes: notes.text.trim(),
-                    photoPaths: photoPaths.value,
-                  );
-            ref.read(operationsProvider.notifier).saveMachine(machine);
-            Navigator.pop(context);
-          },
-          // Deixa claro que esta gravação também tira o "por identificar".
-          child: Text(
-            current?.placeholder == true ? 'Guardar e identificar' : 'Guardar',
-          ),
-        ),
-      ],
-    ),
-  );
-  name.dispose();
-  reference.dispose();
-  category.dispose();
-  dailyRate.dispose();
-  notes.dispose();
-  photoPaths.dispose();
+      ),
+    );
+  }
 }
 
 class ClientsPage extends ConsumerWidget {

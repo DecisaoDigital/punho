@@ -3,8 +3,22 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../config/supabase_config.dart';
 
 abstract final class MachineImageStore {
+  static const _remotePrefix = 'remote://';
+
+  static bool isRemotePath(String path) => path.startsWith(_remotePrefix);
+
+  static Future<String?> signedUrl(String path) async {
+    if (!isRemotePath(path) || !SupabaseConfig.enabled) return null;
+    return Supabase.instance.client.storage
+        .from('punho-documentos')
+        .createSignedUrl(path.substring(_remotePrefix.length), 3600);
+  }
+
   static Future<String?> pickFromCamera() async {
     final image = await ImagePicker().pickImage(
       source: ImageSource.camera,
@@ -12,7 +26,7 @@ abstract final class MachineImageStore {
       maxWidth: 1800,
     );
     if (image == null) return null;
-    return _storeFile(path: image.path, filename: image.name);
+    return _publish(await _storeFile(path: image.path, filename: image.name));
   }
 
   static Future<String?> pickFromGallery() async {
@@ -22,7 +36,7 @@ abstract final class MachineImageStore {
       maxWidth: 1800,
     );
     if (image == null) return null;
-    return _storeFile(path: image.path, filename: image.name);
+    return _publish(await _storeFile(path: image.path, filename: image.name));
   }
 
   static Future<String?> pickFromFiles() async {
@@ -33,7 +47,32 @@ abstract final class MachineImageStore {
     );
     final file = result?.files.single;
     if (file == null) return null;
-    return _storeFile(path: file.path, bytes: file.bytes, filename: file.name);
+    return _publish(
+      await _storeFile(path: file.path, bytes: file.bytes, filename: file.name),
+    );
+  }
+
+  /// Envia para o arquivo privado da empresa. O caminho remoto é guardado na
+  /// máquina, permitindo que qualquer membro da empresa veja a fotografia.
+  static Future<String> _publish(String localPath) async {
+    if (!SupabaseConfig.enabled) return localPath;
+    final client = Supabase.instance.client;
+    if (client.auth.currentUser == null) {
+      throw StateError('Inicie sessão para enviar a fotografia da máquina.');
+    }
+    final empresaId = await client.rpc('punho_empresa_atual') as String?;
+    if (empresaId == null || empresaId.isEmpty) {
+      throw StateError('Não foi encontrada uma empresa para esta conta.');
+    }
+    final extension = localPath.contains('.') ? localPath.split('.').last : 'jpg';
+    final objectPath =
+        '$empresaId/machines/${DateTime.now().microsecondsSinceEpoch}.$extension';
+    await client.storage.from('punho-documentos').upload(
+      objectPath,
+      File(localPath),
+      fileOptions: const FileOptions(cacheControl: '31536000', upsert: false),
+    );
+    return '$_remotePrefix$objectPath';
   }
 
   static Future<String> _storeFile({
