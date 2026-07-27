@@ -12,6 +12,7 @@ import '../../../core/theme/punho_theme.dart';
 import '../../../shared/widgets/brand_lockup.dart';
 import '../../auth/acesso_providers.dart';
 import '../../collaborator/presentation/collaborator_shell.dart';
+import '../../conta/presentation/perfil_popup.dart';
 import '../../dashboard/presentation/dashboard_page.dart';
 import '../../finance/presentation/financas_page.dart';
 import '../../gestao/presentation/convites_screen.dart';
@@ -25,6 +26,10 @@ import '../../workforce/presentation/workforce_pages.dart';
 /// repetem-se nos nomes dos slides do painel: sem ela os testes não sabiam
 /// distinguir o rótulo da barra do nome do slide.
 const chaveDaBarraLateral = Key('barra-lateral');
+
+/// O avatar do fundo da barra lateral, que abre o Perfil. Tem chave própria
+/// porque há outros ícones de pessoa no ecrã e os testes precisam deste.
+const chaveDoAvatarDoPerfil = Key('avatar-do-perfil');
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -147,13 +152,11 @@ class _ConvitesButton extends ConsumerWidget {
 }
 
 class _SignOutButton extends StatelessWidget {
-  const _SignOutButton({this.onDarkBackground = false});
-  final bool onDarkBackground;
+  const _SignOutButton();
 
   @override
   Widget build(BuildContext context) => IconButton(
     tooltip: 'Terminar sessão',
-    color: onDarkBackground ? const Color(0xFFB7C5CE) : null,
     icon: const Icon(Icons.logout),
     onPressed: () => Supabase.instance.client.auth.signOut(),
   );
@@ -229,29 +232,36 @@ class _Sidebar extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Column(
               children: [
+                // O avatar era decorativo: só tooltip, sem `onTap`. Agora abre o
+                // Perfil, que é onde vive o terminar sessão.
+                //
+                // `Material` + `InkWell` com a mesma forma: a área que recebe o
+                // toque é exactamente o círculo desenhado. Era isto que faltava
+                // — um `Container` colorido não recebe toque nenhum.
                 Tooltip(
-                  message: SupabaseConfig.enabled
-                      ? 'Sessão activa'
-                      : 'Demonstração local',
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF1D3A4E),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.person_outline_rounded,
-                      size: 18,
-                      color: Color(0xFFCEDAE1),
+                  message: 'Perfil',
+                  child: Material(
+                    color: const Color(0xFF1D3A4E),
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      key: chaveDoAvatarDoPerfil,
+                      customBorder: const CircleBorder(),
+                      onTap: () => mostrarPerfil(context),
+                      child: const SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: Icon(
+                          Icons.person_outline_rounded,
+                          size: 18,
+                          color: Color(0xFFCEDAE1),
+                        ),
+                      ),
                     ),
                   ),
                 ),
                 if (SupabaseConfig.enabled) ...[
                   const SizedBox(height: 8),
                   const _ConvitesButton(onDarkBackground: true),
-                  const _SignOutButton(onDarkBackground: true),
                 ],
               ],
             ),
