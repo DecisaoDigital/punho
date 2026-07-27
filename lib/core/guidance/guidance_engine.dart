@@ -14,6 +14,24 @@ enum GuidanceLever {
   final String label;
 }
 
+/// Quanto é que a recomendação aperta. Dá a cor do bordo do card no painel.
+enum GravidadeRecomendacao {
+  /// Há dinheiro a fazer. Verde: é convite, não aviso.
+  oportunidade(0),
+
+  /// Algo a melhorar, sem urgência. Laranja.
+  atencao(1),
+
+  /// Risco financeiro ou operacional imediato. Vermelho.
+  urgente(2);
+
+  const GravidadeRecomendacao(this.prioridade);
+
+  /// Ordem de apresentação: o painel mostra **uma** recomendação, e é a mais
+  /// grave que está por resolver.
+  final int prioridade;
+}
+
 class Recommendation {
   const Recommendation({
     required this.id,
@@ -25,10 +43,15 @@ class Recommendation {
     this.measure = 'Confirma o resultado depois de executar a ação.',
     this.lever = GuidanceLever.utilization,
     this.state = RecommendationState.newItem,
+    this.gravidade = GravidadeRecomendacao.atencao,
   });
   final String id, title, explanation, impact, quality, action, measure;
   final GuidanceLever lever;
   final RecommendationState state;
+
+  /// Por omissão `atencao`: uma recomendação sem gravidade atribuída não deve
+  /// passar por oportunidade nem alarmar como urgente.
+  final GravidadeRecomendacao gravidade;
 }
 
 class WeeklyManagementNote {
@@ -160,6 +183,8 @@ class GuidanceEngine {
           action: 'Confirmar recebimentos e criar leads',
           measure: 'Compara o valor por receber no início e no fim da semana.',
           lever: GuidanceLever.cash,
+          // Dinheiro que já era da empresa e não entrou: é o que aperta mais.
+          gravidade: GravidadeRecomendacao.urgente,
         ),
       );
     }
@@ -200,6 +225,8 @@ class GuidanceEngine {
           measure:
               'Compara reservas, receita e margem com uma quarta-feira normal.',
           lever: GuidanceLever.demand,
+          // Máquina parada é receita que não se faz, não é prejuízo a acontecer.
+          gravidade: GravidadeRecomendacao.oportunidade,
         ),
       );
     }
@@ -222,6 +249,7 @@ class GuidanceEngine {
           action: 'Ver despesas',
           measure: 'Compara refeições com os recebimentos do mesmo período.',
           lever: GuidanceLever.margin,
+          gravidade: GravidadeRecomendacao.atencao,
         ),
       );
     }
