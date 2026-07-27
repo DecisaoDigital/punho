@@ -10,6 +10,7 @@ import '../../../tarefas/data/tarefas_service.dart';
 import '../../../tarefas/domain/tarefa.dart';
 import '../../recomendacao_providers.dart';
 import '../widgets/kpi_grid_2x2.dart';
+import '../widgets/recomendacao_card.dart';
 import '../widgets/slide_header.dart';
 
 /// Slide 5 — A minha semana.
@@ -62,15 +63,6 @@ class SemanaSlide extends ConsumerWidget {
     );
   }
 }
-
-/// Cor do bordo por gravidade. Verde é convite, laranja é aviso, vermelho é
-/// risco a acontecer agora.
-Color corDaGravidade(GravidadeRecomendacao? gravidade) => switch (gravidade) {
-  GravidadeRecomendacao.oportunidade => const Color(0xFF639922),
-  GravidadeRecomendacao.atencao => const Color(0xFFE0A32B),
-  GravidadeRecomendacao.urgente => const Color(0xFFE24B4A),
-  null => const Color(0xFF9AA5AC),
-};
 
 class _Recomendacao extends ConsumerWidget {
   const _Recomendacao({required this.recomendacao, required this.agora});
@@ -132,11 +124,7 @@ class _Recomendacao extends ConsumerWidget {
                   r.gravidade,
                 ).withValues(alpha: 0.16),
                 side: BorderSide.none,
-                label: Text(switch (r.gravidade) {
-                  GravidadeRecomendacao.oportunidade => 'Oportunidade',
-                  GravidadeRecomendacao.atencao => 'Atenção',
-                  GravidadeRecomendacao.urgente => 'Urgente',
-                }),
+                label: Text(etiquetaDaGravidade(r.gravidade)),
                 labelStyle: const TextStyle(fontSize: 11),
               ),
             ],
