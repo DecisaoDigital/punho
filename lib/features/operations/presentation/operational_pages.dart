@@ -86,19 +86,28 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       'Quanto gastou em manutenção no ano passado?',
       'Quais são os custos fixos mensais?',
     ];
+    // Critério dos sub-textos, depois do smoke da v0.0.5: só existe se **ajudar
+    // a preencher aquele campo** — formato esperado, o que conta, o que
+    // acontece se ficar vazio. Filosofia do produto, missão e "no próximo ecrã
+    // vamos…" saem. O Cesar leu o antigo primeiro sub-texto ("O Punho orienta a
+    // pessoa responsável por decidir e agir na empresa") a seguir a "Como te
+    // chamas?" e a reacção foi: "que raio de frase é aquela?". Era o pitch, não
+    // era ajuda.
+    //
+    // String vazia = sem sub-texto; o widget colapsa em vez de abrir buraco.
     const helpsFull = [
-      'O Punho orienta a pessoa responsável por decidir e agir na empresa.',
-      'Usamos este nome para personalizar o espaço de gestão.',
+      '',
+      '',
       'O gestor decide e vê tudo. O colaborador só regista o seu próprio trabalho.',
       'A forma jurídica pode ser alterada mais tarde. O NIF é importante para a identificação — se não souber agora, ficará como tarefa aberta.',
       'Morada, código-postal e localidade + telemóvel e email. Não é pedido país.',
       'Número de colaboradores e de veículos (podem ser 0). Os separadores Funcionários e Veículos ficam activos quando forem maiores que 0.',
-      'Sem os próximos dados (máquinas, faturação, custos), a app abre e podes explorar, mas o Punho não consegue mostrar recomendações reais nem tirar todo o potencial. Podes preencher agora ou deixar para depois.',
-      'Uma estimativa é suficiente; não precisa de ser exata. Podes adicionar cada máquina em detalhe mais tarde na secção Máquinas.',
-      'Pode indicar um número redondo. Se não souber, avance: o Punho irá lembrar-lhe.',
-      'Indique o acumulado deste ano até ao momento. Pode preencher mais tarde.',
-      'Mesmo uma estimativa ajuda a perceber o peso real das avarias e revisões.',
-      'Renda, eletricidade, água, seguros, programas e outros custos recorrentes. Uma estimativa chega.',
+      'Podes saltar e preencher depois, em Definições. Sem estes números o painel mostra "Por apurar" em vez de recomendações.',
+      'Uma estimativa chega. Criamos uma linha por máquina para lhes dares nome e foto aos poucos.',
+      'Um número redondo serve. Fica em branco se não souberes.',
+      'O acumulado deste ano até hoje.',
+      'Avarias e revisões pagas no ano passado. Uma estimativa chega.',
+      'Renda, eletricidade, água, seguros, programas e outros custos que se repetem todos os meses.',
     ];
     // Colaborador: 4 passos (nome, empresa, cargo, contacto telefónico
     // pessoal — para o gestor o poder contactar). O resto — dados fiscais,
@@ -110,8 +119,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       'Qual é o teu contacto telefónico?',
     ];
     const helpsColab = [
-      'O Punho orienta a pessoa responsável por decidir e agir na empresa.',
-      'Usamos este nome para personalizar o espaço de gestão.',
+      '',
+      '',
       'O gestor decide e vê tudo. O colaborador só regista o seu próprio trabalho.',
       'O gestor precisa deste contacto para te chegar quando for preciso.',
     ];
@@ -171,6 +180,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               children: [
                 DropdownButtonFormField<String>(
                   value: legal,
+                  // "Empresário em Nome Individual" não cabe na largura do
+                  // cartão de onboarding e rebentava a linha em 52 px. Com
+                  // isExpanded o texto encurta com reticências.
+                  isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Forma jurídica',
                     border: OutlineInputBorder(),
@@ -336,8 +349,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   titles[step],
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                const SizedBox(height: 8),
-                Text(helps[step]),
+                // Sub-texto vazio colapsa de facto: sem isto ficava um
+                // SizedBox fantasma a abrir buraco entre a pergunta e o campo.
+                if (helps[step].isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(helps[step]),
+                ],
                 const SizedBox(height: 24),
                 input,
                 const SizedBox(height: 28),

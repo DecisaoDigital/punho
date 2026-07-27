@@ -157,6 +157,22 @@ void main() {
     });
   });
 
+  testWidgets('captura do primeiro passo do onboarding', (tester) async {
+    await montarLandscape(
+      tester,
+      containerCom(estadoSemMovimento().copyWith(onboarded: false)),
+      const OnboardingPage(),
+      tamanho: const Size(1280, 800),
+    );
+
+    await expectLater(
+      find.byType(OnboardingPage),
+      matchesGoldenFile(
+        '../../../docs/design/screenshots/v005/onboarding_passo1_limpo.png',
+      ),
+    );
+  });
+
   testWidgets('captura das máquinas com placeholders', (tester) async {
     final estado = estadoComMovimento().copyWith(
       totalMachinesDeclared: 8,
