@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/operations/operations_controller.dart';
-import '../../../core/layout/phone_orientation_lock.dart';
+import '../../../core/orientacao/orientacao_do_contexto.dart';
 import '../../../core/session/demo_session.dart';
 import '../../../domain/models/operations.dart';
 import '../../finance/presentation/finance_pages.dart';
 import '../../operations/presentation/operational_pages.dart';
 
-class CollaboratorShell extends ConsumerWidget {
+class CollaboratorShell extends ConsumerStatefulWidget {
   const CollaboratorShell({super.key, this.collaboratorId, this.titulo});
 
   /// Identidade do colaborador autenticado. Quando é nula cai-se na sessão de
@@ -16,60 +16,70 @@ class CollaboratorShell extends ConsumerWidget {
   final String? titulo;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CollaboratorShell> createState() => _CollaboratorShellState();
+}
+
+class _CollaboratorShellState extends ConsumerState<CollaboratorShell> {
+  @override
+  void initState() {
+    super.initState();
+    // Telemóvel na mão, no terreno, seis botões grandes. Portrait, como todo o
+    // resto da app fora do painel do gestor (Decisão 13).
+    OrientacaoDoContexto.portraitJa();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final session = ref.watch(demoSessionProvider);
     // Era `session.collaboratorId!`: com Supabase ligado a sessão de
     // demonstração é sempre `manager`, cujo id é nulo, e o `!` rebentava.
-    final id = collaboratorId ?? session.collaboratorId;
+    final id = widget.collaboratorId ?? session.collaboratorId;
     if (id == null) return const _SemColaborador();
-    return PhoneOrientationLock(
-      orientation: PhoneOrientation.portrait,
-      child: Scaffold(
-        appBar: AppBar(title: Text(titulo ?? session.label)),
-        body: SafeArea(
-          // ListView e não Column: seis botões de 76 dp não cabem numa janela
-          // baixa (Windows, ou telemóvel em paisagem) e o ecrã aparecia com as
-          // barras amarelas e pretas de overflow.
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              Text(
-                'O que quer registar?',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 20),
-              _Action(
-                'Nova marcação',
-                Icons.add_task,
-                () => _newBooking(context, ref, id),
-              ),
-              _Action(
-                'Registar recebimento',
-                Icons.payments,
-                () => _receipt(context, ref, id),
-              ),
-              _Action(
-                'Registar despesa / fatura',
-                Icons.receipt_long_outlined,
-                () => _expense(context, id),
-              ),
-              _Action(
-                'Nova lead',
-                Icons.person_add_alt_1,
-                () => _newLead(context, ref, id),
-              ),
-              _Action(
-                'As minhas marcações',
-                Icons.calendar_month,
-                () => _mine(context, ref, id),
-              ),
-              _Action(
-                'A minha atividade',
-                Icons.timeline,
-                () => _activity(context, ref, id),
-              ),
-            ],
-          ),
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.titulo ?? session.label)),
+      body: SafeArea(
+        // ListView e não Column: seis botões de 76 dp não cabem numa janela
+        // baixa (Windows, ou telemóvel em paisagem) e o ecrã aparecia com as
+        // barras amarelas e pretas de overflow.
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Text(
+              'O que quer registar?',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 20),
+            _Action(
+              'Nova marcação',
+              Icons.add_task,
+              () => _newBooking(context, ref, id),
+            ),
+            _Action(
+              'Registar recebimento',
+              Icons.payments,
+              () => _receipt(context, ref, id),
+            ),
+            _Action(
+              'Registar despesa / fatura',
+              Icons.receipt_long_outlined,
+              () => _expense(context, id),
+            ),
+            _Action(
+              'Nova lead',
+              Icons.person_add_alt_1,
+              () => _newLead(context, ref, id),
+            ),
+            _Action(
+              'As minhas marcações',
+              Icons.calendar_month,
+              () => _mine(context, ref, id),
+            ),
+            _Action(
+              'A minha atividade',
+              Icons.timeline,
+              () => _activity(context, ref, id),
+            ),
+          ],
         ),
       ),
     );

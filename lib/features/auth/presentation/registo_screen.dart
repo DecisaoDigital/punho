@@ -1,3 +1,4 @@
+import '../../../core/orientacao/orientacao_do_contexto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -20,6 +21,12 @@ class RegistoScreen extends ConsumerStatefulWidget {
 }
 
 class _RegistoScreenState extends ConsumerState<RegistoScreen> {
+  @override
+  void initState() {
+    super.initState();
+    OrientacaoDoContexto.portraitJa();
+  }
+
   final _nome = TextEditingController();
   final _email = TextEditingController();
   final _palavraPasse = TextEditingController();

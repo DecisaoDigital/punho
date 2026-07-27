@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
-import '../../../core/layout/phone_orientation_lock.dart';
+import '../../../core/orientacao/orientacao_do_contexto.dart';
 import '../../../core/navigation/app_destination.dart';
 import '../../../core/navigation/navigation_controller.dart';
 import '../../../core/operations/operations_controller.dart';
@@ -26,11 +26,25 @@ import '../../workforce/presentation/workforce_pages.dart';
 /// distinguir o rótulo da barra do nome do slide.
 const chaveDaBarraLateral = Key('barra-lateral');
 
-class AppShell extends ConsumerWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell> {
+  @override
+  void initState() {
+    super.initState();
+    // O único ecrã da app que leva landscape (Decisão 13). Aqui e em mais
+    // nenhum: o painel são cinco slides de quatro KPIs lado a lado, e em
+    // portrait não caberia sem espremer os números até não se lerem.
+    OrientacaoDoContexto.landscapeJa();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final operational = ref.watch(operationsProvider);
     final session = ref.watch(demoSessionProvider);
     if (!operational.onboarded) return const OnboardingPage();
@@ -53,38 +67,32 @@ class AppShell extends ConsumerWidget {
       ],
     );
 
+    // Sem widget de bloqueio à volta: a orientação é decidida no `initState`,
+    // uma vez, em vez de ser reaplicada a cada rebuild do layout.
     if (isDesktop) {
-      return PhoneOrientationLock(
-        orientation: PhoneOrientation.landscape,
-        lockOnTablets: true,
-        child: Scaffold(
-          body: Row(
-            children: [
-              _Sidebar(destinations: destinations, selected: destination),
-              Expanded(child: content),
-            ],
-          ),
+      return Scaffold(
+        body: Row(
+          children: [
+            _Sidebar(destinations: destinations, selected: destination),
+            Expanded(child: content),
+          ],
         ),
       );
     }
 
-    return PhoneOrientationLock(
-      orientation: PhoneOrientation.landscape,
-      lockOnTablets: true,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Punho'),
-          actions: [
-            if (!SupabaseConfig.enabled) const _ProfileSelector(),
-            if (SupabaseConfig.enabled) const _ConvitesButton(),
-            if (SupabaseConfig.enabled) const _SignOutButton(),
-          ],
-        ),
-        drawer: Drawer(
-          child: _MobileMenu(destinations: destinations, selected: destination),
-        ),
-        body: content,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Punho'),
+        actions: [
+          if (!SupabaseConfig.enabled) const _ProfileSelector(),
+          if (SupabaseConfig.enabled) const _ConvitesButton(),
+          if (SupabaseConfig.enabled) const _SignOutButton(),
+        ],
       ),
+      drawer: Drawer(
+        child: _MobileMenu(destinations: destinations, selected: destination),
+      ),
+      body: content,
     );
   }
 }
@@ -124,15 +132,16 @@ class _ConvitesButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final gestor = ref.watch(estadoAcessoProvider).valueOrNull?.eGestor ?? false;
+    final gestor =
+        ref.watch(estadoAcessoProvider).valueOrNull?.eGestor ?? false;
     if (!gestor) return const SizedBox.shrink();
     return IconButton(
       tooltip: 'Convites',
       color: onDarkBackground ? const Color(0xFFB7C5CE) : null,
       icon: const Icon(Icons.person_add_alt),
-      onPressed: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const ConvitesScreen()),
-      ),
+      onPressed: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const ConvitesScreen())),
     );
   }
 }
@@ -271,8 +280,8 @@ class _SidebarItem extends ConsumerWidget {
     final pendentes = item == AppDestination.tasks
         ? ref.watch(contagemTarefasPendentesProvider)
         : 0;
-    final urgente = item == AppDestination.tasks &&
-        ref.watch(tarefasTemUrgenteProvider);
+    final urgente =
+        item == AppDestination.tasks && ref.watch(tarefasTemUrgenteProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Material(

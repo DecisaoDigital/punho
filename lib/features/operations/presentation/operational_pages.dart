@@ -7,6 +7,7 @@ import '../../../core/config/supabase_config.dart';
 import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/media/machine_image_store.dart';
 import '../../../core/operations/operations_controller.dart';
+import '../../../core/orientacao/orientacao_do_contexto.dart';
 import '../../../domain/models/operations.dart';
 import '../../../domain/models/historical_month.dart';
 import '../../auth/acesso_providers.dart';
@@ -48,6 +49,16 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   final revenueThisYear = TextEditingController();
   final maintenanceLastYear = TextEditingController();
   final fixedMonthlyCosts = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Portrait em todos os passos. O Cesar apanhou o passo 4 deitado num
+    // tablet: o `main.dart` bloqueava landscape no arranque e ninguém aqui
+    // dizia o contrário (Decisão 13).
+    OrientacaoDoContexto.portraitJa();
+  }
+
   @override
   void dispose() {
     for (final controller in [

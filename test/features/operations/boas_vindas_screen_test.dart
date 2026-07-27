@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/features/operations/presentation/boas_vindas_screen.dart';
 import 'package:punho/features/operations/presentation/mais_dados_screen.dart';
@@ -55,6 +54,7 @@ void main() {
       expect(find.textContaining('em cinco vistas'), findsOneWidget);
       expect(find.textContaining('por apurar'), findsOneWidget);
       expect(find.textContaining('modo horizontal'), findsOneWidget);
+      expect(find.textContaining('vai rodar sozinho'), findsOneWidget);
       expect(find.byIcon(Icons.screen_rotation), findsOneWidget);
       expect(find.text('Entrar na Punho →'), findsOneWidget);
 
@@ -76,34 +76,12 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('Entrar na Punho →'), findsOneWidget);
       expect(find.textContaining('modo horizontal'), findsOneWidget);
+      expect(find.textContaining('vai rodar sozinho'), findsOneWidget);
     });
 
-    testWidgets('não fixa orientação nenhuma', (tester) async {
-      // O bloqueio de paisagem entra com o completeOnboarding, não aqui: quem
-      // ainda não entrou na app tem de poder rodar à vontade. Se este ecrã
-      // chamasse setPreferredOrientations, apareceria aqui uma chamada ao
-      // canal de sistema.
-      final chamadas = <String>[];
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        (chamada) async {
-          chamadas.add(chamada.method);
-          return null;
-        },
-      );
-      addTearDown(
-        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-          SystemChannels.platform,
-          null,
-        ),
-      );
-
-      await montar(tester, BoasVindasScreen(aoEntrar: () {}));
-
-      expect(
-        chamadas.where((c) => c.contains('setPreferredOrientations')),
-        isEmpty,
-      );
-    });
+    // O teste "não fixa orientação nenhuma" saiu daqui e está invertido em
+    // `test/features/shell/orientacao_test.dart`: com a Decisão 13 este ecrã
+    // **tem** de pedir portrait ao abrir e landscape ao entrar. A orientação
+    // passou a ser um assunto só, e vive num ficheiro só.
   });
 }
