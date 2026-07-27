@@ -63,6 +63,57 @@ O Punho não é contabilidade e não toma decisões sozinho. Mostra o número, e
 - [x] Estrutura de atualizações remotas pelo WashInvoice Control.
 - [x] Cliente de licenciamento inicial ligado ao padrão multi-app do Control, com trial técnico. Ver `LICENCIAMENTO.md`.
 
+## 3.5 Decisoes e progressos — 27 de julho de 2026 (v0.0.5 + arranque v0.0.6)
+
+**v0.0.5 (Dashboard alavancas) — em curso na branch `feat/v005-dashboard-alavancas`, 338 testes verdes:**
+
+- [x] Dashboard reformulado: carrossel de **5 slides landscape × 4 KPIs**, cada slide responde a UMA pergunta de gestão (Dinheiro / Pipeline / Rentabilidade / Custos / Semana).
+- [x] Sidebar 88 dp com labels e novo destino **Tarefas**.
+- [x] Slide 1 Dinheiro com hero "Recebido este mês" (sparkline + setas ‹ › de mês), "Por receber" com CTA "Cobrar", "Pago", "Recomendação do dia" (bordo por gravidade verde/laranja/vermelho).
+- [x] `TodasMetricasPage` reescrita a consumir os mesmos KPIs puros, sem duplicar contas.
+- [x] Máquinas: chip de estado clicável como único controlo, "Parada" removida do menu (auto-Disponível se não em manutenção); botão **eliminar** (caixote) com confirmação + undo 6 s, só gestor.
+- [x] `_vehicleDialog` corrigido (título, validação, `barrierDismissible: false`, autofocus + Cancelar).
+- [x] **Backend:** trigger `AFTER INSERT ON punho_pedidos_acesso` chama Edge `enviar-push` — o gestor recebe push quando um novo empresário faz signUp. Task #196 fechada, verificada em produção.
+
+**v0.0.5 — continuação em curso (sprint 3+4 fundidas):**
+
+- [ ] Placeholders de máquinas a partir do onboarding (declara 20 → cria 20 linhas editáveis com flag `placeholder`).
+- [ ] `_machineDialog` largo em duas colunas landscape com foto maior.
+- [ ] `_collaboratorDialog` e `_vehicleDialog` sobem acima do teclado em portrait (`insetPadding`).
+- [ ] `BookingsPage` limpa: título "Reservas", botão "Reservar", `DropdownButton` de máquina, calendário sem scroll (7 colunas + Manhã/Tarde visíveis de relance).
+- [ ] Onboarding: sub-texto do passo 1 removido, revisão dos 12 (só fica o que ajuda a preencher).
+- [ ] Funcionários finalmente **editáveis** + botão eliminar (mesmo padrão das máquinas) + nova coluna "vendas do mês por colaborador".
+
+**v0.0.6 — sprint 1 preparada (`feat/v006-boas-vindas`):**
+
+- [ ] **Ecrãs de contexto no onboarding:** `MaisDadosScreen` (se escolheu preencher tudo) + `BoasVindasScreen` sempre no fim, ainda em portrait, com CTA "roda o tablet — a Punho passa a horizontal".
+- [ ] **Ecrã de conta** (tocar no avatar da sidebar) com identidade, chip `SESSÃO ACTIVA` / `MODO DEMONSTRAÇÃO`, dados da empresa editáveis inline (widget `EmpresaDadosForm` extraído da `CompanySettingsPage`), botão **Convidar por WhatsApp** (usa `mensagemConvite` + `wa.me`) e **Terminar sessão** com confirmação.
+- [ ] **Modelo contratual do funcionário:** enum `EmploymentType { recibosVerdes, contrato }` no `Collaborator`. Diálogo com `SegmentedButton` no topo; campos condicionais (recibos verdes → NIF+IBAN+morada; contrato → NISS+estado civil+dependentes+IBAN+morada). Bloco read-only "Estimativa" com líquido do trabalhador, TSU patronal 23,75% e **Custo total para a empresa** destacado.
+- [ ] **KPI "Custo real com pessoal"** no slide Custos: bruto pago + TSU patronal + custo real. Fica explícita a diferença entre o que o trabalhador vê e o que a empresa desembolsa.
+
+**v0.0.6 — sprint 2 preparada (self-service do colaborador):**
+
+- [ ] Colaborador recebe convite WhatsApp, entra na Punho, vê no shell portrait um card âmbar *"A tua ficha está incompleta"* e preenche o `FichaFiscalColaboradorForm` (mesmo widget que o gestor usa, reutilizado). Preenche NISS, IBAN, morada, data nasc.
+- [ ] Nova RPC Supabase `punho_atualizar_ficha_colaborador` (security definer, filtra pelo `auth.uid()`), só deixa mudar campos permitidos (não custo, não cargo).
+- [ ] Trigger `AFTER UPDATE` dispara push ao gestor **só na transição** `NISS null → preenchido` (evita spam).
+- [ ] `CollaboratorsPage`: chip verde `FICHA COMPLETA` vs âmbar `AGUARDA COLABORADOR` (mais accionável que "NISS em falta").
+
+Notas de arquitectura:
+
+- Diálogos com muitos campos (`_machineDialog`, `_collaboratorDialog`, `_vehicleDialog`) usam `Dialog` largo em landscape + `insetPadding.bottom = viewInsets.bottom + 16` em portrait + cabeçalho/rodapé fixos com `Expanded(SingleChildScrollView)` no meio.
+- Estimativas fiscais (`estimarSalarial`) são funções puras que **nunca guardam** o resultado — recalculam no build. Aviso obrigatório: *"Estimativa. Confirma com o teu contabilista antes de folhas oficiais."*
+- Regimes especiais (TSU reduzida para pensionistas, isenção IRS de jovens, subsídios de férias/Natal) explicitamente fora — sprints dedicadas quando o Cesar decidir.
+
+## 3.4 Decisoes recentes: faturas e fotografias (26 de julho de 2026)
+
+- [x] Uma despesa pode ser criada a partir de uma fotografia da fatura. O QR da AT e lido no dispositivo para sugerir data, total, NIF do fornecedor, numero do documento e ATCUD; o utilizador confirma os valores antes de guardar.
+- [x] O comprovativo da despesa e enviado para o arquivo remoto privado do Punho, associado a empresa e a despesa. A autoria e registada para auditoria, mas o ficheiro nao pertence ao dispositivo nem a conta individual de quem o captou.
+- [x] Acesso a comprovativos de despesas: quem o enviou e os gestores da mesma empresa.
+- [x] Fotografias de maquinas podem ser enviadas por qualquer membro e ficam disponiveis a todos os membros ativos da mesma empresa. A fotografia da maquina e um recurso da empresa.
+- [ ] Para ativar este comportamento no ambiente real, aplicar a migration `20260726_punho_documentos_privados.sql` no Supabase e configurar `SUPABASE_URL` e `SUPABASE_ANON_KEY` na compilacao da app.
+
+Decisao de arquitetura: os ficheiros binarios vivem no **Supabase Storage privado**, que e o arquivo remoto da aplicacao; a base de dados guarda a empresa, a autoria, a associacao a despesa e o caminho do ficheiro. Nao se guardam fotografias como dados binarios dentro das tabelas relacionais.
+
 ## 4. Dados que o Punho precisa de aprender
 
 ### 4.1 Primeiro uso sem cansar o empresário
