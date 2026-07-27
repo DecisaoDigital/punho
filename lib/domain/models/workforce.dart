@@ -38,7 +38,42 @@ class Collaborator {
   final int? costCents;
   final Map<int, WorkDay> schedule;
   final bool archived;
+
+  /// Editar um colaborador tem de manter o `id` e tudo o que o diálogo não
+  /// mostra. Sem isto, gravar uma edição construía um Collaborator novo e
+  /// perdia silenciosamente as notas e o histórico ligado ao id antigo.
+  ///
+  /// Os campos opcionais usam um sentinela em vez de `null`, para distinguir
+  /// **não mexer** de **apagar**: com `phone ?? this.phone` era impossível
+  /// limpar um telemóvel escrito errado, que é o defeito registado no P2-5 da
+  /// auditoria v0.0.3. É a mesma ideia do `Campo<T>` do controller, escrita à
+  /// mão aqui para o domínio não passar a depender dele.
+  Collaborator copyWith({
+    String? name,
+    Object? phone = _naoMexer,
+    Object? role = _naoMexer,
+    CollaboratorStatus? status,
+    CostFrequency? costFrequency,
+    Object? costCents = _naoMexer,
+    Map<int, WorkDay>? schedule,
+    String? notes,
+    bool? archived,
+  }) => Collaborator(
+    id: id,
+    name: name ?? this.name,
+    status: status ?? this.status,
+    phone: phone == _naoMexer ? this.phone : phone as String?,
+    role: role == _naoMexer ? this.role : role as String?,
+    costFrequency: costFrequency ?? this.costFrequency,
+    costCents: costCents == _naoMexer ? this.costCents : costCents as int?,
+    schedule: schedule ?? this.schedule,
+    notes: notes ?? this.notes,
+    archived: archived ?? this.archived,
+  );
 }
+
+/// Sentinela de "este parâmetro não foi passado".
+const Object _naoMexer = Object();
 
 class Vehicle {
   const Vehicle({

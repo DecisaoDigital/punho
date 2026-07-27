@@ -348,6 +348,54 @@ void main() {
     });
   });
 
+  group('Funcionários', () {
+    Future<void> abrir(WidgetTester tester) => montarLandscape(
+      tester,
+      containerCom(
+        estadoComMovimento().copyWith(
+          bookings: [
+            Booking(
+              id: 'b1',
+              customerId: 'cli-1',
+              machineIds: const ['m1'],
+              startsAt: DateTime(2026, 7, 3),
+              endsAt: DateTime(2026, 7, 6),
+              status: BookingStatus.completed,
+              expectedValueCents: 55500,
+              collaboratorResponsibleId: 'col-1',
+            ),
+          ],
+        ),
+      ),
+      CollaboratorsPage(agora: agoraFixa),
+      tamanho: const Size(1280, 800),
+    );
+
+    testWidgets('captura com editar, eliminar e vendas do mês', (tester) async {
+      await abrir(tester);
+
+      await expectLater(
+        find.byType(CollaboratorsPage),
+        matchesGoldenFile(
+          '../../../docs/design/screenshots/v005/funcionarios_com_editar_e_vendas.png',
+        ),
+      );
+    });
+
+    testWidgets('captura da confirmação de eliminar', (tester) async {
+      await abrir(tester);
+      await tester.tap(find.byTooltip('Eliminar colaborador').first);
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          '../../../docs/design/screenshots/v005/funcionarios_confirmar_eliminar.png',
+        ),
+      );
+    });
+  });
+
   testWidgets('captura da lista completa de métricas', (tester) async {
     await montarLandscape(
       tester,

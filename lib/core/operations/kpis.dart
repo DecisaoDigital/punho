@@ -621,3 +621,44 @@ Recommendation? recomendacaoDaSemana(
   );
   return elegiveis.first;
 }
+
+/// Quanto é que este colaborador trouxe para dentro no mês de [mes].
+///
+/// Conta as reservas de que ele é responsável e que chegaram a valer dinheiro:
+/// confirmadas, alugadas ou concluídas. Pedidos e propostas ficam de fora — uma
+/// proposta enviada não é uma venda, e contá-la dava a quem só envia propostas
+/// os mesmos números de quem fecha negócio. Canceladas idem.
+///
+/// A data que manda é o início da reserva: é aí que o trabalho foi colocado.
+///
+/// `valorCents` é `null` quando nenhuma das reservas do mês tem valor esperado
+/// preenchido — não é zero. Zero significaria "vendeu e não rendeu nada", e o
+/// que se passa é que não se sabe. Se algumas tiverem valor e outras não, soma
+/// as que têm: é a melhor estimativa disponível, e a contagem ao lado diz
+/// quantas reservas estão por trás do número.
+({int contagem, int? valorCents}) vendasDoMesDoColaborador(
+  OperationsState state,
+  String collaboratorId,
+  DateTime mes,
+) {
+  const contam = {
+    BookingStatus.confirmed,
+    BookingStatus.rented,
+    BookingStatus.completed,
+  };
+  final doMes = state.bookings.where(
+    (b) =>
+        b.collaboratorResponsibleId == collaboratorId &&
+        contam.contains(b.status) &&
+        b.startsAt.year == mes.year &&
+        b.startsAt.month == mes.month,
+  );
+  var contagem = 0;
+  int? valor;
+  for (final booking in doMes) {
+    contagem++;
+    final esperado = booking.expectedValueCents;
+    if (esperado != null) valor = (valor ?? 0) + esperado;
+  }
+  return (contagem: contagem, valorCents: valor);
+}

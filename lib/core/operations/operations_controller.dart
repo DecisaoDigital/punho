@@ -635,6 +635,26 @@ class OperationsController extends Notifier<OperationsState> {
     state = _fromRepo();
   }
 
+  /// Eliminar um colaborador é soft-delete, como nas máquinas: o utilizador lê
+  /// "Eliminar" e tem 6 segundos para anular, e por dentro nada se perde — as
+  /// reservas de que ele foi responsável continuam a apontar para um registo
+  /// que existe.
+  void archiveCollaborator(String id) {
+    final atual = state.collaborators.where((x) => x.id == id).firstOrNull;
+    if (atual == null) return;
+    _repo.saveCollaborator(atual.copyWith(archived: true));
+    state = _fromRepo();
+  }
+
+  /// O "Anular" do snackbar. Passa pelo [saveCollaborator] de propósito: se as
+  /// vagas contratadas encolheram nestes 6 segundos, desarquivar tem de bater
+  /// no mesmo limite que criar.
+  void unarchiveCollaborator(String id) {
+    final atual = state.collaborators.where((x) => x.id == id).firstOrNull;
+    if (atual == null) return;
+    saveCollaborator(atual.copyWith(archived: false));
+  }
+
   void saveVehicle(Vehicle item) {
     _repo.saveVehicle(item);
     state = _fromRepo();
