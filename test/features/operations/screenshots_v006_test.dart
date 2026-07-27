@@ -1,3 +1,6 @@
+@Tags(['screenshot'])
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/theme/punho_theme.dart';

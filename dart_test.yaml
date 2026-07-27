@@ -1,0 +1,11 @@
+# Tags dos testes.
+#
+# `screenshot` marca os goldens. São documentação — é o que se confronta com o
+# mockup — e não gate de release: dependem da versão do Flutter **e** das fontes
+# da máquina que os gerou (aqui, Segoe UI do Windows). No Ubuntu do CI falhariam
+# sempre, por renderizarem diferente, e não por estarem errados.
+#
+# O CI corre `flutter test --exclude-tags=screenshot` (task #202).
+tags:
+  screenshot:
+    description: Goldens de documentação, dependentes do ambiente de renderização.
