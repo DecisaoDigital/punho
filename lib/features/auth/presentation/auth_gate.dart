@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/orientacao/orientacao_do_contexto.dart';
 import '../../../core/auth/auth_rules.dart';
 import '../../collaborator/presentation/collaborator_shell.dart';
 import '../../shell/presentation/app_shell.dart';
@@ -24,6 +25,14 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   bool _registar = false;
   bool _busy = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    // Entrar e registar são formulários: portrait, como todo o resto da app
+    // fora do painel do gestor (Decisão 13).
+    OrientacaoDoContexto.portraitJa();
+  }
 
   @override
   void dispose() {

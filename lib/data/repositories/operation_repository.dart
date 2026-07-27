@@ -760,6 +760,11 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     ),
     'notes': item.notes,
     'archived': item.archived,
+    'employmentType': item.employmentType.name,
+    'socialSecurityNumber': item.socialSecurityNumber,
+    'taxId': item.taxId,
+    'maritalStatus': item.maritalStatus.name,
+    'dependents': item.dependents,
   };
 
   static Collaborator _collaboratorFromJson(Map<String, dynamic> data) =>
@@ -778,6 +783,17 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
         schedule: _scheduleFromJson(data['schedule']),
         notes: _string(data, 'notes'),
         archived: _bool(data, 'archived'),
+        // Ausentes nos registos gravados antes destes campos existirem: ficam
+        // com o default, que é contrato — a intenção com que foram criados.
+        employmentType: EmploymentType.values.byName(
+          _string(data, 'employmentType', 'contrato'),
+        ),
+        socialSecurityNumber: _nullableString(data['socialSecurityNumber']),
+        taxId: _nullableString(data['taxId']),
+        maritalStatus: MaritalStatus.values.byName(
+          _string(data, 'maritalStatus', 'unmarried'),
+        ),
+        dependents: _nullableInt(data['dependents']) ?? 0,
       );
 
   static Map<int, WorkDay> _scheduleFromJson(Object? value) {

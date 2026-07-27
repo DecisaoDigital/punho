@@ -1,5 +1,35 @@
 enum CollaboratorStatus { active, inactive }
 
+/// Como a pessoa está ligada à empresa. Muda o que custa e o que se pede.
+///
+/// Em **recibos verdes** o que a empresa paga é o custo total: não há TSU da
+/// entidade patronal a somar, e os dados fiscais do prestador (NISS, estado
+/// civil, dependentes) não afectam o custo da empresa — logo não se pedem.
+///
+/// Em **contrato** ao bruto acresce a TSU patronal, que é o custo que mais se
+/// esquece, e aí faz sentido pedir os dados que permitem estimar o líquido do
+/// trabalhador.
+enum EmploymentType { recibosVerdes, contrato }
+
+String rotuloDeVinculo(EmploymentType tipo) => switch (tipo) {
+  EmploymentType.recibosVerdes => 'Recibos verdes',
+  EmploymentType.contrato => 'Contrato de trabalho',
+};
+
+/// Situação familiar, para a tabela de retenção de IRS.
+///
+/// Só é relevante em [EmploymentType.contrato]: em recibos verdes o prestador
+/// é responsável pelos próprios descontos e a empresa não tem de saber com
+/// quem ele é casado.
+enum MaritalStatus { unmarried, married1Holder, married2Holders, other }
+
+String rotuloDeEstadoCivil(MaritalStatus estado) => switch (estado) {
+  MaritalStatus.unmarried => 'Solteiro',
+  MaritalStatus.married1Holder => 'Casado — 1 titular',
+  MaritalStatus.married2Holders => 'Casado — 2 titulares',
+  MaritalStatus.other => 'Outro',
+};
+
 enum CostFrequency { monthly, weekly }
 
 enum VehicleStatus { active, maintenance, inactive }
@@ -30,6 +60,14 @@ class Collaborator {
     this.schedule = const {},
     this.notes = '',
     this.archived = false,
+    // Contrato por omissão: é o vínculo mais comum, e é o que preserva a
+    // intenção dos registos criados antes de este campo existir — foram todos
+    // pensados como pessoal da casa.
+    this.employmentType = EmploymentType.contrato,
+    this.socialSecurityNumber,
+    this.taxId,
+    this.maritalStatus = MaritalStatus.unmarried,
+    this.dependents = 0,
   });
   final String id, name, notes;
   final String? phone, role;
@@ -38,6 +76,21 @@ class Collaborator {
   final int? costCents;
   final Map<int, WorkDay> schedule;
   final bool archived;
+
+  final EmploymentType employmentType;
+
+  /// NISS. Texto e não número: são 11 dígitos mas escrevem-se com espaços, e
+  /// guardar como int perdia zeros à esquerda. Só se pede em contrato.
+  final String? socialSecurityNumber;
+
+  /// NIF do prestador. Só se pede em recibos verdes, para a empresa poder
+  /// lançar a despesa contra alguém.
+  final String? taxId;
+
+  final MaritalStatus maritalStatus;
+
+  /// Dependentes fiscais. Só conta para a estimativa de IRS do trabalhador.
+  final int dependents;
 
   /// Editar um colaborador tem de manter o `id` e tudo o que o diálogo não
   /// mostra. Sem isto, gravar uma edição construía um Collaborator novo e
@@ -58,6 +111,11 @@ class Collaborator {
     Map<int, WorkDay>? schedule,
     String? notes,
     bool? archived,
+    EmploymentType? employmentType,
+    Object? socialSecurityNumber = _naoMexer,
+    Object? taxId = _naoMexer,
+    MaritalStatus? maritalStatus,
+    int? dependents,
   }) => Collaborator(
     id: id,
     name: name ?? this.name,
@@ -69,6 +127,15 @@ class Collaborator {
     schedule: schedule ?? this.schedule,
     notes: notes ?? this.notes,
     archived: archived ?? this.archived,
+    employmentType: employmentType ?? this.employmentType,
+    // Sentinela também aqui: trocar de contrato para recibos verdes tem de
+    // poder limpar o NISS, e vice-versa para o NIF.
+    socialSecurityNumber: socialSecurityNumber == _naoMexer
+        ? this.socialSecurityNumber
+        : socialSecurityNumber as String?,
+    taxId: taxId == _naoMexer ? this.taxId : taxId as String?,
+    maritalStatus: maritalStatus ?? this.maritalStatus,
+    dependents: dependents ?? this.dependents,
   );
 }
 

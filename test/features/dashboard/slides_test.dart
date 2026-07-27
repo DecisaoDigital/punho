@@ -286,8 +286,12 @@ void main() {
       );
 
       expect(find.text('Estou dentro do orçamento? Onde posso cortar?'), findsOneWidget);
-      expect(find.text('Custo da equipa'), findsOneWidget);
-      expect(find.text('1100 €'), findsOneWidget);
+      expect(find.text('Custo real com pessoal'), findsOneWidget);
+      // 1.100 € de bruto declarado passaram a 1.361 €: o KPI passou a incluir a
+      // TSU da entidade patronal, que não aparece em vencimento nenhum. O
+      // número subir é o objectivo da mudança, não um efeito secundário.
+      expect(find.text('1361 €'), findsOneWidget);
+      expect(find.textContaining('Bruto pago: 1100 €'), findsOneWidget);
       expect(find.text('Custo da frota'), findsOneWidget);
       expect(find.text('Manutenção paga'), findsOneWidget);
       expect(find.text('Custos sobre a receita'), findsOneWidget);

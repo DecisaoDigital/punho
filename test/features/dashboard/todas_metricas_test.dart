@@ -71,7 +71,7 @@ void main() {
         'Máquinas disponíveis',
         'Sem alugar há mais de 7 dias',
         'Colaboradores ativos / vagas',
-        'Custo estimado da equipa no mês',
+        'Custo real com pessoal',
         'Custo estimado mensal de frota',
       ]) {
         expect(find.text(metrica), findsOneWidget, reason: metrica);

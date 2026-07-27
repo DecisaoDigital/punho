@@ -8,7 +8,14 @@ plugins {
 android {
     namespace = "com.example.punho"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Fixo e não `flutter.ndkVersion`: cinco plugins (image_picker,
+    // package_info_plus, path_provider, shared_preferences, url_launcher) pedem
+    // o 27, e o que o Flutter escolhe é mais antigo. No build local dá aviso; no
+    // Ubuntu do CI parte por incompatibilidade de toolchain (task #197).
+    //
+    // As versões de NDK são retrocompatíveis, portanto fixar a mais alta que
+    // algum plugin pede é o que a própria mensagem do Gradle recomenda.
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

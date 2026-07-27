@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/guidance/guidance_engine.dart';
+import 'package:punho/core/finance/regime_fiscal.dart';
 import 'package:punho/core/operations/kpis.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/finance.dart';
@@ -176,12 +177,21 @@ void main() {
   });
 
   group('Custos do mês', () {
-    test('soma equipa declarada, frota e manutenção paga', () {
-      final custos = custosMesAgregados(estado, agoraFixa);
+    test('soma pessoal ao custo real, frota e manutenção paga', () {
+      final custos = custosMesAgregados(
+        estado,
+        agoraFixa,
+        regime: RegimeFiscal.ldaIrc,
+      );
 
-      expect(custos.colaboradoresCents, 110000);
+      // 1.100 € de bruto declarado + 23,75% de TSU patronal (Decisão 12): o
+      // agregado passou a somar o que sai da empresa, não o que o colaborador
+      // recebe. Contar só o bruto fazia este total contradizer o KPI do slide.
+      expect(custos.pessoalBrutoCents, 110000);
+      expect(custos.tsuPatronalCents, 26125);
+      expect(custos.custoRealPessoalCents, 136125);
       expect(custos.colaboradoresActivos, 2);
-      expect(custos.custoMedioPorColaborador, 55000);
+      expect(custos.custoMedioPorColaborador, 136125 ~/ 2);
       // Prestação 110 € + seguro anual 1080 €/12 = 90 €.
       expect(custos.frotaCents, 11000 + 9000);
       expect(custos.manutencaoPagaCents, 25000);
@@ -189,16 +199,16 @@ void main() {
     });
 
     test('média de manutenção usa só os meses com despesas', () {
-      final custos = custosMesAgregados(estado, agoraFixa);
+      final custos = custosMesAgregados(estado, agoraFixa, regime: RegimeFiscal.ldaIrc);
       expect(custos.manutencaoMedia6MesesCents, (40000 + 20000) ~/ 2);
     });
 
     test('peso na receita é nulo sem receita', () {
-      expect(custosMesAgregados(vazio, agoraFixa).percentDaReceita, isNull);
+      expect(custosMesAgregados(vazio, agoraFixa, regime: RegimeFiscal.ldaIrc).percentDaReceita, isNull);
     });
 
     test('peso na receita compara custos com o que entrou', () {
-      final custos = custosMesAgregados(estado, agoraFixa);
+      final custos = custosMesAgregados(estado, agoraFixa, regime: RegimeFiscal.ldaIrc);
       expect(
         custos.percentDaReceita,
         closeTo(custos.totalCents / 132000 * 100, 0.01),

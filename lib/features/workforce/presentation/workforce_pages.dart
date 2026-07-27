@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart' hide TimeOfDay;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/finance/regime_fiscal.dart';
+import '../../../core/finance/retencao_irs.dart';
 import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/operations/kpis.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/workforce.dart';
+import 'ficha_fiscal_form.dart';
 
 class CollaboratorsPage extends ConsumerWidget {
   const CollaboratorsPage({super.key, this.agora});
@@ -46,8 +49,26 @@ class CollaboratorsPage extends ConsumerWidget {
                         // Tocar na linha edita: era o gesto que o Cesar tentou
                         // primeiro e não fazia nada.
                         onTap: () => _collaboratorDialog(context, ref, c),
-                        title: Text(c.name),
-                        subtitle: Text(_subtitulo(c, s, mes)),
+                        title: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                c.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (_dadoEmFalta(c) != null)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 8),
+                                child: _ChipDeFalta(texto: _dadoEmFalta(c)!),
+                              ),
+                          ],
+                        ),
+                        subtitle: Text(
+                          '${_subtitulo(c, s, mes)}\n'
+                          '${_linhaDoVinculo(c, regimeDaFormaJuridica(s.legalForm))}',
+                        ),
                         trailing: Wrap(
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
@@ -161,14 +182,22 @@ Future<void> _collaboratorDialog(
   barrierDismissible: false,
   builder: (_) => _FormularioDeColaborador(
     notifier: ref.read(operationsProvider.notifier),
+    // O regime vem da forma jurídica da empresa, não de um valor assumido
+    // (Decisão 1). É ele que decide se há estimativa e qual.
+    regime: regimeDaFormaJuridica(ref.read(operationsProvider).legalForm),
     current: current,
   ),
 );
 
 class _FormularioDeColaborador extends StatefulWidget {
-  const _FormularioDeColaborador({required this.notifier, this.current});
+  const _FormularioDeColaborador({
+    required this.notifier,
+    required this.regime,
+    this.current,
+  });
 
   final OperationsController notifier;
+  final RegimeFiscal regime;
   final Collaborator? current;
 
   @override
@@ -190,6 +219,9 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
   late final phone = TextEditingController(text: current?.phone);
   late final role = TextEditingController(text: current?.role);
   late var frequency = current?.costFrequency ?? CostFrequency.monthly;
+  late var vinculo = current?.employmentType ?? EmploymentType.contrato;
+  late var estadoCivil = current?.maritalStatus ?? MaritalStatus.unmarried;
+  late final ficha = ControladoresDaFicha(de: current);
 
   @override
   void dispose() {
@@ -198,7 +230,19 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
     hours.dispose();
     phone.dispose();
     role.dispose();
+    ficha.dispose();
     super.dispose();
+  }
+
+  /// O bruto escrito no campo, em cêntimos. `null` enquanto estiver vazio — a
+  /// estimativa mostra "por apurar" em vez de zeros.
+  int? get _brutoCents {
+    final valor = double.tryParse(cost.text.replaceAll(',', '.'));
+    if (valor == null || valor <= 0) return null;
+    return frequency == CostFrequency.monthly
+        ? (valor * 100).round()
+        // O custo semanal mensaliza-se para a estimativa: as taxas são mensais.
+        : (valor * 100 * 52 / 12).round();
   }
 
   @override
@@ -209,58 +253,112 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
       titulo: current == null
           ? 'Adicionar colaborador'
           : 'Editar colaborador',
-      corpo: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            controller: name,
-            autofocus: true,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(labelText: 'Nome'),
-          ),
-          TextField(
-            controller: cost,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Custo estimado para a empresa (€)',
+      larguraMaxima: 920,
+      corpo: LayoutBuilder(
+        builder: (context, constraints) {
+          final identificacao = <Widget>[
+            TextField(
+              controller: name,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(labelText: 'Nome'),
             ),
-          ),
-          TextField(
-            controller: phone,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Telemóvel'),
-          ),
-          TextField(
-            controller: role,
-            decoration: const InputDecoration(labelText: 'Função'),
-          ),
-          DropdownButtonFormField<CostFrequency>(
-            value: frequency,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Periodicidade do custo',
+            TextField(
+              controller: cost,
+              keyboardType: TextInputType.number,
+              // Recalcula a estimativa a cada tecla: o gestor vê o custo real
+              // subir enquanto escreve o vencimento, que é o ponto todo.
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'Custo estimado para a empresa (€)',
+              ),
             ),
-            items: const [
-              DropdownMenuItem(
-                value: CostFrequency.monthly,
-                child: Text('Custo mensal'),
+            TextField(
+              controller: phone,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(labelText: 'Telemóvel'),
+            ),
+            TextField(
+              controller: role,
+              decoration: const InputDecoration(labelText: 'Função'),
+            ),
+            DropdownButtonFormField<CostFrequency>(
+              value: frequency,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'Periodicidade do custo',
               ),
-              DropdownMenuItem(
-                value: CostFrequency.weekly,
-                child: Text('Custo semanal'),
+              items: const [
+                DropdownMenuItem(
+                  value: CostFrequency.monthly,
+                  child: Text('Custo mensal'),
+                ),
+                DropdownMenuItem(
+                  value: CostFrequency.weekly,
+                  child: Text('Custo semanal'),
+                ),
+              ],
+              onChanged: (value) => setState(() => frequency = value!),
+            ),
+            TextField(
+              controller: hours,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Horas semanais previstas',
+                helperText: 'Usadas para calcular o custo/hora estimado.',
               ),
+            ),
+          ];
+          final fiscal = <Widget>[
+            FichaFiscalColaboradorForm(
+              tipo: vinculo,
+              controladores: ficha,
+              estadoCivil: estadoCivil,
+              aoMudarEstadoCivil: (v) => setState(() => estadoCivil = v),
+            ),
+            const SizedBox(height: 16),
+            BlocoDeEstimativa(
+              regime: widget.regime,
+              tipo: vinculo,
+              estadoCivil: estadoCivil,
+              dependentes: int.tryParse(ficha.dependentes.text.trim()) ?? 0,
+              brutoMensalCents: _brutoCents,
+            ),
+          ];
+
+          final duasColunas = constraints.maxWidth >= 640;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _EscolhaDeVinculo(
+                valor: vinculo,
+                aoEscolher: (v) => setState(() => vinculo = v),
+              ),
+              const SizedBox(height: 12),
+              if (!duasColunas)
+                ...[...identificacao, const SizedBox(height: 16), ...fiscal]
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: identificacao,
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: fiscal,
+                      ),
+                    ),
+                  ],
+                ),
             ],
-            onChanged: (value) => setState(() => frequency = value!),
-          ),
-          TextField(
-            controller: hours,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Horas semanais previstas',
-              helperText: 'Usadas para calcular o custo/hora estimado.',
-            ),
-          ),
-        ],
+          );
+        },
       ),
       aoGuardar: () {
         // Validação: nome é obrigatório. Sem isto, um tap por engano criava um
@@ -279,6 +377,23 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
         final horario = _scheduleFromWeeklyHours(
           int.tryParse(hours.text.trim()) ?? 0,
         );
+        // Só se guarda o que o vínculo usa. Trocar de contrato para recibos
+        // verdes limpa o NISS de facto — é para isso que o `copyWith` tem
+        // sentinela em vez de `??`. Guardar um NISS num prestador de serviços
+        // seria guardar um dado que ninguém pediu e que não se pode justificar.
+        final campos = camposDaFicha(vinculo);
+        final niss = campos.contains(CampoDaFichaFiscal.niss)
+            ? _semVazio(ficha.niss.text)
+            : null;
+        final nif = campos.contains(CampoDaFichaFiscal.nif)
+            ? _semVazio(ficha.nif.text)
+            : null;
+        final dependentes = campos.contains(CampoDaFichaFiscal.dependentes)
+            ? int.tryParse(ficha.dependentes.text.trim()) ?? 0
+            : 0;
+        final estado = campos.contains(CampoDaFichaFiscal.estadoCivil)
+            ? estadoCivil
+            : MaritalStatus.unmarried;
         try {
           // A editar mantém-se o mesmo id e passa-se por copyWith: construir um
           // Collaborator novo criava um segundo registo e deixava o antigo na
@@ -287,21 +402,31 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
             anterior != null
                 ? anterior.copyWith(
                     name: name.text.trim(),
-                    phone: phone.text.trim().isEmpty ? null : phone.text.trim(),
-                    role: role.text.trim().isEmpty ? null : role.text.trim(),
+                    phone: _semVazio(phone.text),
+                    role: _semVazio(role.text),
                     costFrequency: frequency,
                     costCents: custoCents,
                     schedule: horario,
+                    employmentType: vinculo,
+                    socialSecurityNumber: niss,
+                    taxId: nif,
+                    maritalStatus: estado,
+                    dependents: dependentes,
                   )
                 : Collaborator(
                     id: 'co${DateTime.now().microsecondsSinceEpoch}',
                     name: name.text.trim(),
                     status: CollaboratorStatus.active,
-                    phone: phone.text.trim().isEmpty ? null : phone.text.trim(),
-                    role: role.text.trim().isEmpty ? null : role.text.trim(),
+                    phone: _semVazio(phone.text),
+                    role: _semVazio(role.text),
                     costFrequency: frequency,
                     costCents: custoCents,
                     schedule: horario,
+                    employmentType: vinculo,
+                    socialSecurityNumber: niss,
+                    taxId: nif,
+                    maritalStatus: estado,
+                    dependents: dependentes,
                   ),
           );
           Navigator.pop(context);
@@ -315,6 +440,104 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
       },
     );
   }
+}
+
+/// O dado que falta na ficha, ou `null` quando está completa.
+///
+/// Um por vínculo, porque é um por vínculo que interessa: sem NISS não se
+/// declara um contrato, sem NIF não se lança a despesa de um prestador. Não se
+/// bloqueia a gravação por isto — a app aceita dados parciais e sinaliza.
+String? _dadoEmFalta(Collaborator c) => switch (c.employmentType) {
+  EmploymentType.contrato when (c.socialSecurityNumber ?? '').trim().isEmpty =>
+    'NISS em falta',
+  EmploymentType.recibosVerdes when (c.taxId ?? '').trim().isEmpty =>
+    'NIF em falta',
+  _ => null,
+};
+
+/// Segunda linha do subtítulo: o vínculo e o que ele custa de facto.
+String _linhaDoVinculo(Collaborator c, RegimeFiscal regime) {
+  final bruto = monthlyCollaboratorCost(c);
+  final estimativa = estimarSalarial(
+    regime: regime,
+    tipo: c.employmentType,
+    estado: c.maritalStatus,
+    dependentes: c.dependents,
+    brutoMensalCents: bruto,
+  );
+  final partes = <String>[rotuloDeVinculo(c.employmentType)];
+  if (c.employmentType == EmploymentType.contrato) {
+    partes.add(rotuloDeEstadoCivil(c.maritalStatus));
+    if (c.dependents > 0) partes.add('${c.dependents} dep.');
+  }
+  final custo = estimativa?.custoEmpresaCents;
+  partes.add(
+    custo == null
+        // Sem bruto declarado, ou regime não modelado: não se inventa.
+        ? 'custo por apurar'
+        : '${c.employmentType == EmploymentType.contrato ? 'custo real' : 'custo'} '
+              '${(custo / 100).toStringAsFixed(2)} €/mês',
+  );
+  return partes.join(' · ');
+}
+
+/// Chip âmbar de dado em falta. O mesmo tom do "Por identificar" das máquinas —
+/// é a mesma ideia: está registado, falta acabar.
+class _ChipDeFalta extends StatelessWidget {
+  const _ChipDeFalta({required this.texto});
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) => Chip(
+    visualDensity: VisualDensity.compact,
+    label: Text(texto),
+    labelStyle: const TextStyle(fontSize: 11),
+    backgroundColor: const Color(0xFFFFF1DA),
+    side: BorderSide.none,
+  );
+}
+
+/// Texto aparado, ou `null` quando não sobra nada.
+///
+/// Devolver `null` e não `''` é o que permite ao `copyWith` distinguir "apaga
+/// isto" de "não sei": uma string vazia gravada é um campo preenchido com nada.
+String? _semVazio(String valor) {
+  final aparado = valor.trim();
+  return aparado.isEmpty ? null : aparado;
+}
+
+/// Escolha do vínculo, no topo do diálogo.
+///
+/// É a primeira pergunta porque é a que decide o resto: o que se pede a seguir,
+/// e se há TSU patronal a somar. Trocar de vínculo a meio do preenchimento não
+/// perde o que já está escrito — os controladores são os mesmos, só deixam de
+/// ser mostrados os campos que aquele vínculo não usa.
+///
+/// Hit target: o `SegmentedButton` do Material já garante que a área que recebe o
+/// toque é a área desenhada — o `Material` pinta e o `InkWell` recebe, com a
+/// mesma bounding box. Não se hand-rola nada aqui de propósito; o problema que a
+/// auditoria do hit target persegue é o contrário disto (um `Container` colorido
+/// com um `InkWell` menor por dentro).
+class _EscolhaDeVinculo extends StatelessWidget {
+  const _EscolhaDeVinculo({required this.valor, required this.aoEscolher});
+
+  final EmploymentType valor;
+  final ValueChanged<EmploymentType> aoEscolher;
+
+  @override
+  Widget build(BuildContext context) => SegmentedButton<EmploymentType>(
+    segments: EmploymentType.values
+        .map(
+          (tipo) => ButtonSegment(
+            value: tipo,
+            label: Text(rotuloDeVinculo(tipo)),
+          ),
+        )
+        .toList(),
+    selected: {valor},
+    showSelectedIcon: false,
+    onSelectionChanged: (escolha) => aoEscolher(escolha.first),
+  );
 }
 
 /// O inverso do [_scheduleFromWeeklyHours], para o diálogo de edição mostrar as

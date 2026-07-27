@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/guidance/guidance_engine.dart';
+import '../../../core/finance/regime_fiscal.dart';
 import '../../../core/operations/kpis.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/finance.dart';
@@ -39,7 +40,11 @@ class TodasMetricasPage extends ConsumerWidget {
     final ocupacao = ocupacaoMaquinasSemana(state, now);
     final semAlugar = maquinasSemAluguerHaMaisDe(state, 7, now);
     final top = topMaquinasMaisAlugadas(state, 3);
-    final custos = custosMesAgregados(state, now);
+    final custos = custosMesAgregados(
+      state,
+      now,
+      regime: regimeDaFormaJuridica(state.legalForm),
+    );
     final rubricas = rubricasFrota(state, now);
     final recomendacao = recomendacaoDaSemana(state, now);
     final tarefas = ref.watch(tarefasProvider);
@@ -183,10 +188,25 @@ class TodasMetricasPage extends ConsumerWidget {
                   'Colaboradores ativos / vagas',
                   '${state.activeCollaborators} / ${state.activeCollaboratorLimit}',
                 ),
-                _Linha(
-                  'Custo estimado da equipa no mês',
-                  euros(custos.colaboradoresCents),
-                ),
+                // `if` e não `_Linha.opcional`: aqui `null` significa "não se
+                // aplica a este regime", e a Decisão 1 manda esconder o que não
+                // se aplica. "Por apurar" leria-se como "falta preencher", e
+                // não há nada que o gestor possa preencher para isto aparecer.
+                if (custos.tsuPatronalCents != null) ...[
+                  _Linha('Bruto pago', euros(custos.pessoalBrutoCents)),
+                  _Linha(
+                    'TSU patronal (contratados)',
+                    euros(custos.tsuPatronalCents!),
+                    sub: '23,75% sobre o bruto de quem tem contrato. Em '
+                        'recibos verdes não se aplica. Estimativa.',
+                  ),
+                  _Linha(
+                    'Custo real com pessoal',
+                    euros(custos.custoRealPessoalCents),
+                    sub: 'Bruto mais a carga social da entidade patronal — o '
+                        'que sai mesmo da empresa.',
+                  ),
+                ],
                 _Linha.opcional(
                   'Custo médio por colaborador',
                   custos.custoMedioPorColaborador,

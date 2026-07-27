@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/finance/regime_fiscal.dart';
 import '../../../../core/operations/kpis.dart';
 import '../../../../core/operations/operations_controller.dart';
 import '../todas_metricas_page.dart';
@@ -22,7 +23,11 @@ class CustosSlide extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(operationsProvider);
-    final custos = custosMesAgregados(state, agora);
+    final custos = custosMesAgregados(
+      state,
+      agora,
+      regime: regimeDaFormaJuridica(state.legalForm),
+    );
     final temFrota =
         state.hasFleet && state.vehicles.where((v) => !v.archived).isNotEmpty;
 
@@ -37,6 +42,9 @@ class CustosSlide extends ConsumerWidget {
         const SizedBox(height: 12),
         Expanded(
           child: KpiGrid2x2(
+            // Uma fonte só: o card lê do agregado, que já traz o pessoal ao
+            // custo real. Antes calculava por fora e os dois cards deste slide
+            // davam números diferentes para a mesma pessoa.
             heroi: _Colaboradores(custos: custos),
             cimaDireita: temFrota
                 ? _Frota(custos: custos, rubricas: rubricasFrota(state, agora))
@@ -55,38 +63,57 @@ class _Colaboradores extends StatelessWidget {
   final CustosMes custos;
 
   @override
-  Widget build(BuildContext context) => KpiCard(
-    titulo: 'Custo da equipa',
-    hint: 'por mês',
-    child: custos.colaboradoresActivos == 0
-        ? const KpiPorApurar(
-            explicacao: 'Sem colaboradores activos registados.',
-          )
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              KpiValor(euros(custos.colaboradoresCents), tamanho: 40),
-              const SizedBox(height: 6),
-              Text(
-                '${custos.colaboradoresActivos} '
-                '${custos.colaboradoresActivos == 1 ? 'colaborador activo' : 'colaboradores activos'}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                custos.custoMedioPorColaborador == null
-                    ? 'Custo médio por apurar'
-                    : '${euros(custos.custoMedioPorColaborador!)} em média por colaborador',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const Spacer(),
-              Text(
-                'Valor declarado nas fichas da equipa, não o que já foi pago.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
-  );
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final tsu = custos.tsuPatronalCents;
+    // `null` na TSU significa regime não modelado: o custo real não se sabe, e
+    // o que o agregado traz é só o bruto.
+    final total = tsu == null ? null : custos.custoRealPessoalCents;
+    return KpiCard(
+      // "Custo real" e não "Custo da equipa": o número grande passou a incluir
+      // a TSU patronal, que não aparece em vencimento nenhum. Sem o "real" o
+      // gestor lia o valor antigo com o mesmo nome e um número maior.
+      titulo: 'Custo real com pessoal',
+      hint: 'por mês',
+      child: switch ((custos.colaboradoresActivos, total)) {
+        (0, _) => const KpiPorApurar(
+          explicacao: 'Sem colaboradores activos registados.',
+        ),
+        // Regime não modelado: não se mostra 0 €, diz-se que não se sabe.
+        (_, null) => const KpiPorApurar(
+          explicacao:
+              'A forma jurídica da empresa não permite estimar a carga '
+              'social. Indica-a nas Definições da Empresa.',
+        ),
+        _ => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            KpiValor(euros(total!), tamanho: 40),
+            const SizedBox(height: 6),
+            Text(
+              'Bruto pago: ${euros(custos.pessoalBrutoCents)}'
+              '${tsu == null || tsu == 0 ? '' : ' · TSU patronal: ${euros(tsu)}'}',
+              style: textos.bodySmall,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${custos.colaboradoresActivos} '
+              '${custos.colaboradoresActivos == 1 ? 'colaborador activo' : 'colaboradores activos'}',
+              style: textos.bodySmall,
+            ),
+            const Spacer(),
+            Text(
+              tsu == null || tsu == 0
+                  ? 'Valor declarado nas fichas da equipa, não o que já foi pago.'
+                  : 'Inclui a carga social da entidade patronal, que não '
+                        'aparece no vencimento. Estimativa.',
+              style: textos.bodySmall,
+            ),
+          ],
+        ),
+      },
+    );
+  }
 }
 
 class _Frota extends StatelessWidget {

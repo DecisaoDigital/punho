@@ -1,3 +1,4 @@
+import '../../../core/finance/regime_fiscal.dart';
 import '../../../core/guidance/guidance_engine.dart';
 import '../../../core/operations/kpis.dart';
 import '../../../core/operations/operations_controller.dart';
@@ -78,7 +79,16 @@ RecomendacaoDoDia? recomendacaoDoDia(OperationsState state, DateTime now) {
   }
 
   // 2. Os custos a levar quase tudo o que entra.
-  final custos = custosMesAgregados(state, now);
+  //
+  // O peso é calculado sobre o custo **real** do pessoal, com a carga social
+  // incluída (Decisão 12). Isto faz a regra disparar mais cedo do que antes, e
+  // é o que se pretende: uma equipa a 82% da receita estava a ler-se como 74%
+  // porque faltava a TSU patronal. Não é falso positivo — era falso negativo.
+  final custos = custosMesAgregados(
+    state,
+    now,
+    regime: regimeDaFormaJuridica(state.legalForm),
+  );
   final peso = custos.percentDaReceita;
   if (peso != null && peso >= percentCustosCritica) {
     return RecomendacaoDoDia(

@@ -22,22 +22,38 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - name: Get version from tag
+      - name: Get version
         id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        # Por tag usa-se a tag; por dispatch manual não há tag nenhuma e o
+        # `GITHUB_REF_NAME` traz o nome da branch — que tem barras e rebentava o
+        # nome do ficheiro do APK. Nesse caso lê-se a versão do pubspec, que é a
+        # fonte de verdade de qualquer maneira.
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            versao="${GITHUB_REF_NAME#v}"
+          else
+            versao="$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')"
+          fi
+          echo "version=$versao" >> "$GITHUB_OUTPUT"
       - run: flutter pub get
-      - run: flutter test
+      # Goldens excluídos: dependem das fontes do sistema onde foram gerados
+      # (Windows). No Ubuntu do CI o rendering difere e os pixels não batem —
+      # são documentação para revisão humana, não gate de release (#202).
+      - run: flutter test --exclude-tags=screenshot
       - run: |
           flutter build apk --release \
             --build-name=${{ steps.version.outputs.version }} \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
       - name: Rename APK
-        run: mv build/app/outputs/flutter-apk/app-release.apk punho-android-${{ github.ref_name }}.apk
+        # Da versão e não do `ref_name`: numa dispatch manual o `ref_name` é o
+        # nome da branch, e `punho-android-feat/v006-boas-vindas.apk` não é um
+        # caminho válido. Assim o nome sai igual nos dois casos.
+        run: mv build/app/outputs/flutter-apk/app-release.apk punho-android-v${{ steps.version.outputs.version }}.apk
       - uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: punho-android-${{ github.ref_name }}.apk
+          path: punho-android-v${{ steps.version.outputs.version }}.apk
 
   build-windows:
     name: Build Windows Installer
@@ -50,12 +66,18 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - name: Get version from tag
+      - name: Get version
         id: version
         shell: bash
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            versao="${GITHUB_REF_NAME#v}"
+          else
+            versao="$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')"
+          fi
+          echo "version=$versao" >> "$GITHUB_OUTPUT"
       - run: flutter pub get
-      - run: flutter test
+      - run: flutter test --exclude-tags=screenshot
       - shell: pwsh
         run: |
           flutter build windows --release `
@@ -78,16 +100,20 @@ jobs:
         shell: pwsh
         run: |
           $src = "installer_output\Punho_Setup_v${{ steps.version.outputs.version }}.exe"
-          $dst = "Punho_Setup_${{ github.ref_name }}.exe"
-          Move-Item -Path $src -Destination $dst
+          $dst = "Punho_Setup_v${{ steps.version.outputs.version }}.exe"
+          if ($src -ne $dst) { Move-Item -Path $src -Destination $dst }
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: Punho_Setup_${{ github.ref_name }}.exe
+          path: Punho_Setup_v${{ steps.version.outputs.version }}.exe
 
   release:
     name: Publish GitHub Release
     needs: [build-android, build-windows]
+    # Só por tag. Um dispatch manual serve para validar que compila, testa e
+    # assina — e tem de poder correr sem publicar nada. Sem esta guarda, o
+    # dry-run criava um release com o nome da branch.
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     permissions:
       contents: write
