@@ -37,6 +37,20 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    // O ficheiro sai com o nome e a versão em vez de "app-release.apk":
+    // Punho_v0.0.4.apk. Assim o que se instala por USB diz-se a si próprio, e
+    // segue o mesmo padrão do instalador Windows (Punho_Setup_v0.0.2.exe).
+    // `applicationVariants` está depreciado no AGP 8 mas continua a funcionar;
+    // quando sair (AGP 9) o substituto é a Variant API nova.
+    @Suppress("DEPRECATION")
+    applicationVariants.all {
+        val versao = versionName
+        outputs.all {
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl)
+                .outputFileName = "Punho_v$versao.apk"
+        }
+    }
 }
 
 flutter {
