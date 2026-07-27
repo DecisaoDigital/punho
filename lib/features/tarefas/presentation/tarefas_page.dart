@@ -137,7 +137,12 @@ class _LinhaTarefa extends ConsumerWidget {
             ),
             const SizedBox(width: 12),
             TextButton(
-              onPressed: () => abrirDestinoDaTarefa(context, ref, tarefa.destino),
+              onPressed: () => abrirDestinoDaTarefa(
+                context,
+                ref,
+                tarefa.destino,
+                referencia: tarefa.referencia,
+              ),
               child: Text('${tarefa.cta} →'),
             ),
           ],
@@ -153,8 +158,9 @@ class _LinhaTarefa extends ConsumerWidget {
 void abrirDestinoDaTarefa(
   BuildContext context,
   WidgetRef ref,
-  DestinoTarefa destino,
-) {
+  DestinoTarefa destino, {
+  String? referencia,
+}) {
   void irPara(AppDestination area) =>
       ref.read(navigationProvider.notifier).goTo(area);
   switch (destino) {
@@ -163,9 +169,13 @@ void abrirDestinoDaTarefa(
         MaterialPageRoute<void>(builder: (_) => const CompanySettingsPage()),
       );
     case DestinoTarefa.convites:
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const ConvitesScreen()));
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          // O código vai à frente para o ecrã destacar a linha: numa lista de
+          // dez convites, abrir sem dizer qual não resolve a tarefa.
+          builder: (_) => ConvitesScreen(destacarCodigo: referencia),
+        ),
+      );
     case DestinoTarefa.clientes:
       irPara(AppDestination.clients);
     case DestinoTarefa.maquinas:

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/navigation/app_destination.dart';
 import 'package:punho/core/navigation/navigation_controller.dart';
+import 'package:punho/features/auth/data/acesso_service.dart';
 import 'package:punho/domain/models/historical_month.dart';
 import 'package:punho/features/company/presentation/company_settings_page.dart';
 import 'package:punho/features/tarefas/data/tarefas_service.dart';
@@ -96,6 +97,62 @@ void main() {
     });
   });
 
+  group('Convites por responder', () {
+    Convite convite(String codigo, Duration falta, {bool usado = false}) =>
+        Convite(
+          codigo: codigo,
+          email: '$codigo@exemplo.pt',
+          perfil: 'colaborador',
+          expiraEm: agoraFixa.add(falta),
+          usado: usado,
+        );
+
+    test('a expirar em 12 h é urgente; a 5 dias fica a completar', () {
+      final tarefas = tarefasPendentes(
+        estadoComMovimento(),
+        agoraFixa,
+        convites: [
+          convite('URGENTE01', const Duration(hours: 12)),
+          convite('CALMO0002', const Duration(days: 5)),
+        ],
+      );
+
+      final urgente = tarefas.firstWhere((t) => t.id == 'convite-URGENTE01');
+      final calmo = tarefas.firstWhere((t) => t.id == 'convite-CALMO0002');
+
+      expect(urgente.severidade, SeveridadeTarefa.urgente);
+      expect(urgente.subtitulo, contains('Expira em 12 horas'));
+      expect(calmo.severidade, SeveridadeTarefa.aCompletar);
+      expect(calmo.destino, DestinoTarefa.convites);
+      // O código viaja com a tarefa para o ecrã destacar a linha certa.
+      expect(calmo.referencia, 'CALMO0002');
+    });
+
+    test('convite já usado ou expirado não é tarefa', () {
+      final tarefas = tarefasPendentes(
+        estadoComMovimento(),
+        agoraFixa,
+        convites: [
+          convite('USADO0001', const Duration(days: 5), usado: true),
+          convite('EXPIRADO1', const Duration(days: -1)),
+        ],
+      );
+
+      expect(
+        tarefas.where((t) => t.id.startsWith('convite-')),
+        isEmpty,
+      );
+    });
+
+    test('sem convites a fonte não contribui — nem erro', () {
+      // É o caso do modo de demonstração: sem Supabase a lista chega vazia.
+      final tarefas = tarefasPendentes(estadoComMovimento(), agoraFixa);
+
+      expect(tarefas.where((t) => t.id.startsWith('convite-')), isEmpty);
+      expect(tarefas, isNotEmpty);
+    });
+  });
+
   group('Página de Tarefas', () {
     testWidgets('conta as tarefas e agrupa-as por severidade', (tester) async {
       final container = containerCom(estadoComMovimento());
@@ -134,6 +191,47 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(container.read(navigationProvider), AppDestination.clients);
+    });
+
+    testWidgets('os convites aparecem nos dois grupos e abrem o ecrã certo', (
+      tester,
+    ) async {
+      final container = containerCom(
+        estadoComMovimento(),
+        convites: [
+          Convite(
+            codigo: 'URGENTE01',
+            email: 'apressado@exemplo.pt',
+            perfil: 'colaborador',
+            expiraEm: DateTime.now().add(const Duration(hours: 12)),
+          ),
+          Convite(
+            codigo: 'CALMO0002',
+            email: 'tranquilo@exemplo.pt',
+            perfil: 'gestor',
+            expiraEm: DateTime.now().add(const Duration(days: 5)),
+          ),
+        ],
+      );
+      await montarLandscape(tester, container, const TarefasPage());
+
+      expect(
+        find.text('Convite sem resposta: apressado@exemplo.pt'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Convite sem resposta: tranquilo@exemplo.pt'),
+        findsOneWidget,
+      );
+      final tarefas = container.read(tarefasProvider);
+      expect(
+        tarefas.firstWhere((t) => t.id == 'convite-URGENTE01').severidade,
+        SeveridadeTarefa.urgente,
+      );
+      expect(
+        tarefas.firstWhere((t) => t.id == 'convite-CALMO0002').severidade,
+        SeveridadeTarefa.aCompletar,
+      );
     });
 
     testWidgets('sem nada pendente mostra o estado vazio', (tester) async {

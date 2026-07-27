@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/auth/auth_rules.dart';
+import '../../../core/theme/punho_theme.dart';
 import '../../auth/acesso_providers.dart';
 import '../../auth/data/acesso_service.dart';
 
@@ -46,7 +47,11 @@ String mensagemConvite(Convite convite) {
 /// fora. Quem se registar com ele fica ligado a esta empresa, mas continua a
 /// precisar da aprovação manual do Control.
 class ConvitesScreen extends ConsumerStatefulWidget {
-  const ConvitesScreen({super.key});
+  const ConvitesScreen({super.key, this.destacarCodigo});
+
+  /// Código a destacar na lista. Vem das Tarefas: quando se abre este ecrã a
+  /// partir de "convite sem resposta", tem de se ver logo qual é.
+  final String? destacarCodigo;
 
   @override
   ConsumerState<ConvitesScreen> createState() => _ConvitesScreenState();
@@ -222,7 +227,11 @@ class _ConvitesScreenState extends ConsumerState<ConvitesScreen> {
                 ? const Text('Ainda não emitiu convites.')
                 : Column(
                     children: [
-                      for (final c in lista) _LinhaConvite(convite: c),
+                      for (final c in lista)
+                        _LinhaConvite(
+                          convite: c,
+                          destacado: c.codigo == widget.destacarCodigo,
+                        ),
                     ],
                   ),
           ),
@@ -233,8 +242,9 @@ class _ConvitesScreenState extends ConsumerState<ConvitesScreen> {
 }
 
 class _LinhaConvite extends StatelessWidget {
-  const _LinhaConvite({required this.convite});
+  const _LinhaConvite({required this.convite, this.destacado = false});
   final Convite convite;
+  final bool destacado;
 
   @override
   Widget build(BuildContext context) {
@@ -249,7 +259,16 @@ class _LinhaConvite extends StatelessWidget {
     }
     final expira = convite.expiraEm.toLocal();
     return ListTile(
-      contentPadding: EdgeInsets.zero,
+      contentPadding: destacado
+          ? const EdgeInsets.symmetric(horizontal: 8)
+          : EdgeInsets.zero,
+      tileColor: destacado ? const Color(0xFFFFF1DA) : null,
+      shape: destacado
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: const BorderSide(color: PunhoTheme.orange),
+            )
+          : null,
       title: Text(convite.email),
       subtitle: Text(
         '${convite.perfil == 'gestor' ? 'Gestor' : 'Colaborador'} · $estado · '

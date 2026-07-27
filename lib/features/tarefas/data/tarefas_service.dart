@@ -4,11 +4,17 @@ import '../../../core/guidance/guidance_engine.dart';
 import '../../../core/operations/kpis.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/workforce.dart';
+import '../../auth/acesso_providers.dart';
+import '../../auth/data/acesso_service.dart';
 import '../../dashboard/recomendacao_providers.dart';
 import '../domain/tarefa.dart';
 
 /// Dias de atraso a partir dos quais uma cobrança passa a urgente.
 const diasParaCobrancaUrgente = 15;
+
+/// Um convite que expira dentro deste prazo passa a urgente: perdido o prazo, o
+/// gestor tem de emitir outro e o convidado leva outra volta.
+const horasParaConviteUrgente = 48;
 
 /// Junta as pendências que estavam dispersas em alertas do painel.
 ///
@@ -18,6 +24,7 @@ List<Tarefa> tarefasPendentes(
   OperationsState state,
   DateTime now, {
   Map<String, DateTime> recomendacoesAdiadas = const {},
+  List<Convite> convites = const [],
 }) {
   final tarefas = <Tarefa>[];
 
@@ -115,7 +122,32 @@ List<Tarefa> tarefasPendentes(
     );
   }
 
-  // 6. Recomendações adiadas que já voltaram a estar dentro do prazo ficam no
+  // 6. Convites emitidos e ainda sem resposta. A lista chega de fora (é
+  // assíncrona e só existe com Supabase ligado); em modo de demonstração vem
+  // vazia e esta fonte simplesmente não contribui.
+  for (final convite in convites.where((c) => c.disponivelEm(now))) {
+    final horas = convite.expiraEm.difference(now).inHours;
+    final aExpirar = horas <= horasParaConviteUrgente;
+    tarefas.add(
+      Tarefa(
+        id: 'convite-${convite.codigo}',
+        severidade: aExpirar
+            ? SeveridadeTarefa.urgente
+            : SeveridadeTarefa.aCompletar,
+        titulo: 'Convite sem resposta: ${convite.email}',
+        subtitulo: aExpirar
+            ? 'Expira em ${horas <= 1 ? 'menos de uma hora' : '$horas horas'} — '
+                  'depois disso é preciso emitir outro'
+            : '${convite.perfil == 'gestor' ? 'Gestor' : 'Colaborador'} · '
+                  'válido até ${_data(convite.expiraEm)}',
+        cta: 'Abrir convite',
+        destino: DestinoTarefa.convites,
+        referencia: convite.codigo,
+      ),
+    );
+  }
+
+  // 7. Recomendações adiadas que já voltaram a estar dentro do prazo ficam no
   // painel; as que ainda estão adiadas aparecem aqui, para não se perderem.
   final todas = GuidanceEngine().evaluate(
     GuidanceInput(
@@ -157,7 +189,16 @@ String _data(DateTime data) =>
 final tarefasProvider = Provider<List<Tarefa>>((ref) {
   final state = ref.watch(operationsProvider);
   final adiadas = ref.watch(recomendacoesAdiadasProvider);
-  return tarefasPendentes(state, DateTime.now(), recomendacoesAdiadas: adiadas);
+  // `valueOrNull` de propósito: sem Supabase o provider dos convites fica em
+  // erro (não há `Supabase.instance`) e a lista de tarefas não pode rebentar
+  // por causa disso — nem mostrar erro de rede a quem está em demonstração.
+  final convites = ref.watch(convitesProvider).valueOrNull ?? const <Convite>[];
+  return tarefasPendentes(
+    state,
+    DateTime.now(),
+    recomendacoesAdiadas: adiadas,
+    convites: convites,
+  );
 });
 
 /// Contagem para o badge da barra lateral.

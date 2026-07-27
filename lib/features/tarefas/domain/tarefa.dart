@@ -41,6 +41,7 @@ class Tarefa {
     required this.subtitulo,
     required this.cta,
     required this.destino,
+    this.referencia,
   });
 
   final String id;
@@ -51,4 +52,9 @@ class Tarefa {
   /// Texto do botão, já com o verbo ("Preencher NIF", "Cobrar João Silva").
   final String cta;
   final DestinoTarefa destino;
+
+  /// Identificador do que a tarefa aponta, quando o destino precisa de saber
+  /// qual — o código do convite, por exemplo. A página passa-o ao ecrã de
+  /// destino para ele destacar a linha certa.
+  final String? referencia;
 }
