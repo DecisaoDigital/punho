@@ -64,7 +64,9 @@ OperationsState estadoComMovimento() => OperationsState(
       name: 'Martelo demolidor',
       reference: 'MD-03',
       category: 'Demolição',
-      status: MachineStatus.stopped,
+      // O estado Parada saiu na v0.0.5: uma máquina sem aluguer está
+      // disponível. Continua a ser a que nunca foi alugada.
+      status: MachineStatus.available,
     ),
   ],
   customers: const [

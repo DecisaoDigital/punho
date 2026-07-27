@@ -86,12 +86,18 @@ void main() {
     expect(state.leads.single.status, LeadStatus.converted);
   });
 
-  test('calcula máquinas disponíveis e paradas', () {
+  test('calcula máquinas disponíveis e sem trabalhar', () {
+    // As duas máquinas de demonstração estão ambas disponíveis desde a v0.0.5:
+    // a segunda era `stopped`, estado que deixou de existir para o utilizador.
     final c = container();
     addTearDown(c.dispose);
     final state = c.read(operationsProvider);
-    expect(availableMachines(state, DateTime.now()), 1);
-    expect(stoppedMachines(state), 1);
+    expect(availableMachines(state, DateTime.now()), 2);
+    expect(
+      stoppedMachines(state),
+      2,
+      reason: 'nenhuma está alugada, reservada ou em manutenção',
+    );
   });
 
   test('15 declaradas e 0 registadas não produz 15 disponíveis', () {
@@ -117,7 +123,7 @@ void main() {
           name: 'B',
           reference: '2',
           category: 'X',
-          status: MachineStatus.stopped,
+          status: MachineStatus.maintenance,
         ),
       ],
     );
@@ -201,7 +207,9 @@ void main() {
   });
 
   test('estados de máquina são apresentados em português', () {
-    expect(machineStatusLabel(MachineStatus.stopped), 'Parada');
+    // O estado Parada saiu da app na v0.0.5: dados antigos leem-se como
+    // disponíveis em vez de mostrarem um estado que já não se explica.
+    expect(machineStatusLabel(MachineStatus.stopped), 'Disponível');
     expect(machineStatusLabel(MachineStatus.available), 'Disponível');
     expect(machineStatusLabel(MachineStatus.maintenance), 'Em manutenção');
   });
@@ -265,7 +273,7 @@ void main() {
     final c = container();
     addTearDown(c.dispose);
     final controller = c.read(operationsProvider.notifier);
-    controller.updateMachineStatus('m1', MachineStatus.stopped);
+    controller.updateMachineStatus('m1', MachineStatus.maintenance);
 
     expect(
       controller.machineAvailable(

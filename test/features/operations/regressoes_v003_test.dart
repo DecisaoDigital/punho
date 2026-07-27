@@ -125,7 +125,8 @@ void main() {
   });
 
   group('P1-6 · máquina parada ou em manutenção não se reserva', () {
-    for (final estado in [MachineStatus.maintenance, MachineStatus.stopped]) {
+    // Só a manutenção sobrou como estado que impede reservar — Parada saiu.
+    for (final estado in [MachineStatus.maintenance]) {
       test('recusa reserva de máquina em ${machineStatusLabel(estado)}', () {
         final c = container();
         addTearDown(c.dispose);

@@ -133,8 +133,8 @@ void main() {
       // de 21 dias-máquina possíveis (3 máquinas × 7 dias).
       expect(ocupacao.percent, closeTo(2 / 21 * 100, 0.01));
       expect(ocupacao.alugadas, 1);
-      expect(ocupacao.paradas, 1);
-      expect(ocupacao.disponiveis, 1);
+      expect(ocupacao.emManutencao, 0, reason: 'nenhuma em manutenção');
+      expect(ocupacao.disponiveis, 2, reason: 'a m3 passou a disponível');
     });
 
     test('sem máquinas não há percentagem', () {

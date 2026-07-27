@@ -1,11 +1,29 @@
+/// Estado de uma máquina.
+///
+/// `stopped` está **deprecated** desde a v0.0.5 e deixou de ser observável pelo
+/// utilizador: uma máquina que não está alugada, reservada nem em manutenção
+/// está disponível, e ponto. "Fora de serviço" já tem `Machine.archived`, que é
+/// outra coisa. Fica no enum para não partir serialização antiga (backups,
+/// payloads sincronizados, séries de dados) — em qualquer interpretação nova,
+/// mapear para `available`.
 enum MachineStatus { available, reserved, rented, maintenance, stopped }
+
+/// Estados que o utilizador pode escolher. Sem `stopped`, de propósito.
+const estadosEscolhiveisDeMaquina = [
+  MachineStatus.available,
+  MachineStatus.reserved,
+  MachineStatus.rented,
+  MachineStatus.maintenance,
+];
 
 String machineStatusLabel(MachineStatus status) => switch (status) {
   MachineStatus.available => 'Disponível',
   MachineStatus.reserved => 'Reservada',
   MachineStatus.rented => 'Alugada',
   MachineStatus.maintenance => 'Em manutenção',
-  MachineStatus.stopped => 'Parada',
+  // Mesmo label do `available`: dados antigos com este estado leem-se como
+  // disponíveis em vez de mostrarem um estado que já não existe.
+  MachineStatus.stopped => 'Disponível',
 };
 
 enum LeadStatus { newLead, contacted, proposal, lost, converted }

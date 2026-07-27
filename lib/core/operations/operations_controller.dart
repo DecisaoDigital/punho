@@ -491,6 +491,20 @@ class OperationsController extends Notifier<OperationsState> {
     state = _fromRepo();
   }
 
+  /// Desfaz o arquivo — é o "Anular" dos 6 segundos depois de eliminar.
+  ///
+  /// Idempotente e sem memória de quando a máquina foi arquivada: restaurar uma
+  /// que estava arquivada há dias é aceitável e não vale a complexidade de
+  /// distinguir os dois casos.
+  void unarchiveMachine(String id) {
+    for (final machine in _repo.machines) {
+      if (machine.id != id) continue;
+      _repo.saveMachine(machine.copyWith(archived: false));
+      break;
+    }
+    state = _fromRepo();
+  }
+
   bool updateMachineStatus(String id, MachineStatus status) {
     final machine = _repo.machines.where((item) => item.id == id).firstOrNull;
     if (machine == null || machine.archived) return false;
@@ -645,7 +659,6 @@ class OperationsController extends Notifier<OperationsState> {
     final m = state.machines.firstWhere((x) => x.id == id);
     return !m.archived &&
         m.status != MachineStatus.maintenance &&
-        m.status != MachineStatus.stopped &&
         m.status != MachineStatus.rented &&
         conflictFor(machineIds: [id], startsAt: start, endsAt: end) == null;
   }
@@ -667,8 +680,7 @@ class OperationsController extends Notifier<OperationsState> {
     final indisponiveis = state.machines.where(
       (machine) =>
           booking.machineIds.contains(machine.id) &&
-          (machine.status == MachineStatus.maintenance ||
-              machine.status == MachineStatus.stopped),
+          machine.status == MachineStatus.maintenance,
     );
     if (indisponiveis.isNotEmpty) {
       throw ArgumentError(
@@ -752,11 +764,8 @@ class OperationsController extends Notifier<OperationsState> {
       );
       if (machineMatches.isEmpty) continue;
       final machine = machineMatches.first;
-      // Uma decisão explícita de manutenção/paragem nunca é anulada por uma reserva.
-      if (machine.status == MachineStatus.maintenance ||
-          machine.status == MachineStatus.stopped) {
-        continue;
-      }
+      // Uma decisão explícita de manutenção nunca é anulada por uma reserva.
+      if (machine.status == MachineStatus.maintenance) continue;
       final related = _repo.bookings.where(
         (booking) =>
             booking.machineIds.contains(id) &&
@@ -816,6 +825,17 @@ int availableMachines(OperationsState state, DateTime now) => state.machines
               .isEmpty,
     )
     .length;
+/// Máquinas que não estão a trabalhar nem prometidas a ninguém.
+///
+/// Media o estado `stopped` até à v0.0.5; esse estado deixou de existir para o
+/// utilizador, e o que interessa saber é quantas estão paradas **de facto** —
+/// nem alugadas, nem reservadas, nem em manutenção.
 int stoppedMachines(OperationsState state) => state.machines
-    .where((m) => !m.archived && m.status == MachineStatus.stopped)
+    .where(
+      (m) =>
+          !m.archived &&
+          m.status != MachineStatus.rented &&
+          m.status != MachineStatus.reserved &&
+          m.status != MachineStatus.maintenance,
+    )
     .length;

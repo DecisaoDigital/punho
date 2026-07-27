@@ -277,7 +277,7 @@ class OcupacaoSemana {
     required this.percent,
     required this.percentSemanaAnterior,
     required this.alugadas,
-    required this.paradas,
+    required this.emManutencao,
     required this.disponiveis,
   });
 
@@ -285,7 +285,9 @@ class OcupacaoSemana {
   /// percentagem, e 0% diria que está tudo parado.
   final double? percent;
   final double? percentSemanaAnterior;
-  final int alugadas, paradas, disponiveis;
+  /// `emManutencao` e não `paradas`: o estado "Parada" saiu da app na v0.0.5 —
+  /// uma máquina que não está alugada nem em manutenção está disponível.
+  final int alugadas, emManutencao, disponiveis;
 
   double? get tendenciaVsAnterior =>
       percent == null || percentSemanaAnterior == null
@@ -328,12 +330,8 @@ OcupacaoSemana ocupacaoMaquinasSemana(OperationsState state, DateTime now) {
       segunda.subtract(const Duration(days: 7)),
     ),
     alugadas: maquinas.where((m) => m.status == MachineStatus.rented).length,
-    paradas: maquinas
-        .where(
-          (m) =>
-              m.status == MachineStatus.stopped ||
-              m.status == MachineStatus.maintenance,
-        )
+    emManutencao: maquinas
+        .where((m) => m.status == MachineStatus.maintenance)
         .length,
     disponiveis: maquinas
         .where((m) => m.status == MachineStatus.available)

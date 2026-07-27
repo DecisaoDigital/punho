@@ -127,7 +127,7 @@ class LocalDemoOperationRepository implements OperationRepository {
       name: 'Plataforma elevatória',
       reference: 'PE-002',
       category: 'Elevação',
-      status: MachineStatus.stopped,
+      status: MachineStatus.available,
     ),
   ];
   final List<Customer> _customers = [
@@ -142,7 +142,17 @@ class LocalDemoOperationRepository implements OperationRepository {
   final List<HistoricalMonth> _historicalMonths = [];
   OnboardingData? _onboarding;
   @override
-  List<Machine> get machines => List.unmodifiable(_machines);
+  List<Machine> get machines =>
+      List.unmodifiable(_machines.map(_semEstadoParada));
+
+  /// Projecção defensiva: uma máquina gravada como `stopped` lê-se como
+  /// disponível. O estado "Parada" saiu da app na v0.0.5 e não vale a pena
+  /// mostrar dados antigos num estado que já não se explica. A correcção na base
+  /// acontece na próxima escrita — `saveMachine` guarda o que a UI mandar.
+  static Machine _semEstadoParada(Machine machine) =>
+      machine.status == MachineStatus.stopped
+      ? machine.copyWith(status: MachineStatus.available)
+      : machine;
   @override
   List<Customer> get customers => List.unmodifiable(_customers);
   @override

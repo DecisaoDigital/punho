@@ -85,7 +85,7 @@ class _Ocupacao extends StatelessWidget {
                     Text(
                       '${ocupacao.alugadas} alugadas · '
                       '${ocupacao.disponiveis} disponíveis · '
-                      '${ocupacao.paradas} paradas',
+                      '${ocupacao.emManutencao} em manutenção',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 6),

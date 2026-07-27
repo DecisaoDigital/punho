@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/supabase_config.dart';
 import '../../../core/media/machine_image_store.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/operations.dart';
 import '../../../domain/models/historical_month.dart';
+import '../../auth/acesso_providers.dart';
 
 class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key});
@@ -913,67 +915,33 @@ class MachinesPage extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                // Um só controlo de estado: o chip. Havia três (o chip, um
+                // PopupMenuButton com `swap_horiz` que o Cesar leu como "duas
+                // setas", e um botão "Disponível" quando estava parada) — todos
+                // para o mesmo fim.
                 trailing: Wrap(
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    _MachineStatusChip(status: m.status),
-                    if (m.status == MachineStatus.stopped)
-                      TextButton.icon(
-                        onPressed: () {
-                          final changed = ref
-                              .read(operationsProvider.notifier)
-                              .updateMachineStatus(
-                                m.id,
-                                MachineStatus.available,
-                              );
-                          if (!changed) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'A máquina tem uma reserva ativa e não pode ficar disponível.',
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.play_circle_outline),
-                        label: const Text('Disponível'),
-                      ),
-                    PopupMenuButton<MachineStatus>(
-                      tooltip: 'Mudar estado',
-                      icon: const Icon(Icons.swap_horiz),
-                      onSelected: (status) {
-                        final changed = ref
-                            .read(operationsProvider.notifier)
-                            .updateMachineStatus(m.id, status);
-                        if (!changed) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'A máquina tem uma reserva ativa e não pode ficar disponível.',
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      itemBuilder: (_) => [
-                        for (final status in MachineStatus.values)
-                          PopupMenuItem(
-                            value: status,
-                            child: Text(machineStatusLabel(status)),
-                          ),
-                      ],
-                    ),
+                    _MachineStatusChip(machine: m),
                     IconButton(
                       icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Editar máquina',
                       onPressed: () => _machineDialog(context, ref, m),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.archive_outlined),
-                      onPressed: () => ref
-                          .read(operationsProvider.notifier)
-                          .archiveMachine(m.id),
-                    ),
+                    if (podeEliminarMaquinas(ref))
+                      IconButton(
+                        // Caixote e não `archive_outlined`: o Cesar leu o ícone
+                        // de arquivo como "mover de sítio" e tocou sem querer.
+                        // Por dentro continua a ser soft-delete (`archived`),
+                        // mas o utilizador lê "Eliminar" em todo o lado.
+                        icon: const Icon(Icons.delete_outline),
+                        tooltip: 'Eliminar máquina',
+                        onPressed: () => _confirmarEliminarMaquina(
+                          context,
+                          ref,
+                          m,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -984,22 +952,128 @@ class MachinesPage extends ConsumerWidget {
   }
 }
 
-class _MachineStatusChip extends StatelessWidget {
-  const _MachineStatusChip({required this.status});
-  final MachineStatus status;
+/// A regra, isolada do Riverpod e do `SupabaseConfig` para ser testável: o
+/// `enabled` é uma constante de compilação (`--dart-define`) e não se pode
+/// mudar num teste.
+///
+/// Sem Supabase (modo de demonstração) assume-se gestor — senão o único perfil
+/// disponível ficava sem acesso a nada.
+bool podeEliminar({required bool comSupabase, required bool eGestor}) =>
+    !comSupabase || eGestor;
+
+/// Quem pode eliminar máquinas: só o gestor.
+bool podeEliminarMaquinas(WidgetRef ref) => podeEliminar(
+  comSupabase: SupabaseConfig.enabled,
+  eGestor: ref.watch(estadoAcessoProvider).valueOrNull?.eGestor ?? false,
+);
+
+/// Confirmação + 6 segundos para anular.
+///
+/// O botão antigo chamava `archiveMachine` directamente, sem perguntar nada: o
+/// Cesar tocou a pensar que movia a máquina de sítio e ela desapareceu.
+Future<void> _confirmarEliminarMaquina(
+  BuildContext context,
+  WidgetRef ref,
+  Machine machine,
+) async {
+  final confirmado = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Eliminar máquina?'),
+      content: Text(
+        '"${machine.name}" vai desaparecer da lista. Podes reverter durante 6 '
+        'segundos depois de confirmares.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Eliminar'),
+        ),
+      ],
+    ),
+  );
+  if (confirmado != true || !context.mounted) return;
+
+  final notifier = ref.read(operationsProvider.notifier);
+  // Elimina já — feedback instantâneo — e deixa a porta aberta 6 segundos.
+  notifier.archiveMachine(machine.id);
+  if (!context.mounted) return;
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.showSnackBar(
+    SnackBar(
+      content: const Text('Máquina eliminada.'),
+      duration: const Duration(seconds: 6),
+      action: SnackBarAction(
+        label: 'Anular',
+        onPressed: () {
+          notifier.unarchiveMachine(machine.id);
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Máquina restaurada.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+      ),
+    ),
+  );
+}
+
+/// O chip é o **único** controlo de estado: toca-se nele e escolhe-se.
+class _MachineStatusChip extends ConsumerWidget {
+  const _MachineStatusChip({required this.machine});
+  final Machine machine;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = machine.status;
     final color = switch (status) {
       MachineStatus.available => Colors.green.shade700,
       MachineStatus.reserved => Colors.blue.shade700,
       MachineStatus.rented => Colors.deepPurple.shade700,
       MachineStatus.maintenance => Colors.orange.shade800,
-      MachineStatus.stopped => Theme.of(context).colorScheme.error,
+      // Dados antigos: lê-se como disponível (ver MachineStatus.stopped).
+      MachineStatus.stopped => Colors.green.shade700,
     };
-    return Chip(
-      avatar: Icon(Icons.circle, size: 10, color: color),
-      label: Text(machineStatusLabel(status)),
+    return PopupMenuButton<MachineStatus>(
+      tooltip: 'Mudar estado',
+      position: PopupMenuPosition.under,
+      onSelected: (escolhido) {
+        final changed = ref
+            .read(operationsProvider.notifier)
+            .updateMachineStatus(machine.id, escolhido);
+        if (!changed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'A máquina tem uma reserva ativa e não pode ficar disponível.',
+              ),
+            ),
+          );
+        }
+      },
+      itemBuilder: (_) => [
+        // Sem "Parada": uma máquina que não está alugada nem em manutenção está
+        // disponível, automaticamente.
+        for (final opcao in estadosEscolhiveisDeMaquina)
+          PopupMenuItem(value: opcao, child: Text(machineStatusLabel(opcao))),
+      ],
+      child: Chip(
+        avatar: Icon(Icons.circle, size: 10, color: color),
+        label: Text(machineStatusLabel(status)),
+        // A seta diz que se pode tocar; sem ela o chip parece só um rótulo.
+        deleteIcon: const Icon(Icons.arrow_drop_down, size: 18),
+        onDeleted: null,
+      ),
     );
   }
 }
@@ -1572,7 +1646,6 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
 
   bool _machineCanReceiveReservation(Machine machine) =>
       machine.status != MachineStatus.maintenance &&
-      machine.status != MachineStatus.stopped &&
       machine.status != MachineStatus.rented;
 
   void _toggleSlot(BuildContext context, DateTime startsAt) {
