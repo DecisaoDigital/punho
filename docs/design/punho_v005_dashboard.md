@@ -338,3 +338,188 @@ está montado.
   isolada em `_ResultadoProvisorio`, portanto é uma troca de widget.
 - Navegação temporal nos outros KPIs do slide 1 — v0.0.6.
 - Personalização, sincronização, dark mode, animações elaboradas.
+
+---
+
+# Sprints 3 e 4: o que o smoke apanhou
+
+As sprints 3 e 4 foram planeadas em separado e acabaram fundidas: as frentes A a
+D da 3 saíram primeiro, e o resto da 3 (placeholders de máquinas, diálogos,
+Reservas) tocava exactamente nos mesmos ficheiros que a 4. Separá-las obrigava a
+mexer duas vezes no mesmo sítio, por isso vão pela ordem em que se resolvem e não
+pela ordem em que foram escritas.
+
+O fio comum é que quase tudo aqui veio de o Cesar usar a app no telemóvel e
+tropeçar. Não são melhorias inventadas: são coisas que não funcionavam.
+
+## Declarar N máquinas cria N linhas por identificar
+
+"Um gestor com 200 máquinas não vai lá numerar e fotografar todas ao mesmo
+tempo." Declarar 20 no onboarding cria `Máquina 1…20`, categoria "Por
+identificar", disponíveis, prontas a serem baptizadas aos poucos. `Machine`
+ganhou o campo `placeholder`, com `false` por omissão para os registos antigos.
+
+Qualquer gravação pelo diálogo desliga o flag — daí o botão dizer **"Guardar e
+identificar"** quando se está a baptizar uma. Subir o total nas Definições cria
+as que faltam; **descer não apaga nada**, porque eliminar é decisão explícita,
+pelo caixote da lista, e não efeito secundário de mexer num contador.
+
+O que isto deu à vista: as Tarefas contavam o delta `declaradas − registadas`
+para dizer "máquinas por identificar". Com placeholders esse delta é **zero**
+mesmo havendo vinte linhas chamadas "Máquina 7" — a fonte tinha deixado de
+funcionar sem se notar. Passa a contar placeholders, e o delta fica exposto à
+parte para reconciliar o contador.
+
+## Sub-textos do onboarding
+
+O passo 1 pergunta o nome e tinha por baixo "O Punho orienta a pessoa
+responsável por decidir e agir na empresa." — o pitch do produto, a meio de um
+formulário. Critério aplicado aos 12 passos: **o sub-texto só fica se disser algo
+sobre aquele campo**. Ficaram 7 dos 12, e os que ficaram foram reescritos mais
+curtos. O do passo 7 passou a explicar a consequência concreta ("sem estes
+números o painel mostra Por apurar") em vez de vender potencial.
+
+O vazio colapsa de facto: sem isso ficava um `SizedBox` fantasma a abrir um
+buraco entre a pergunta e o campo.
+
+Os sub-textos que ficaram, por passo:
+
+| Passo | Sub-texto |
+|---|---|
+| 1 · nome, 2 · empresa | *(nenhum)* |
+| 3 · perfil | O gestor decide e vê tudo. O colaborador só regista o seu próprio trabalho. |
+| 4 · forma jurídica e NIF | A forma jurídica pode ser alterada mais tarde. O NIF é importante para a identificação — se não souber agora, ficará como tarefa aberta. |
+| 5 · contactos | Morada, código-postal e localidade + telemóvel e email. Não é pedido país. |
+| 6 · equipa e frota | Número de colaboradores e de veículos (podem ser 0). Os separadores Funcionários e Veículos ficam activos quando forem maiores que 0. |
+| 7 · tempo agora | Podes saltar e preencher depois, em Definições. Sem estes números o painel mostra "Por apurar" em vez de recomendações. |
+| 8 · total de máquinas | Uma estimativa chega. Criamos uma linha por máquina para lhes dares nome e foto aos poucos. |
+| 9–12 · números | *(uma linha cada, do género "Um número redondo serve. Fica em branco se não souberes.")* |
+
+**Um bug que o teste apanhou de graça:** "Empresário em Nome Individual" não cabe
+na largura do cartão e **rebentava a linha em 52 px** — no onboarding *e* nas
+Definições da empresa. Estava lá desde a v0.0.2. Resolvido com `isExpanded` nos
+dois dropdowns.
+
+## Os três diálogos de registo
+
+Máquina, veículo e colaborador tinham todos o mesmo defeito no telemóvel: o
+teclado abre, come metade do ecrã, e o botão *Guardar* fica debaixo dele. Como o
+corpo também não rolava, os últimos campos simplesmente não existiam — a
+periodicidade do seguro e as horas semanais não eram alcançáveis.
+
+A correcção vive num sítio só, o `DialogoDeFormulario` em `core/layout`:
+cabeçalho e rodapé fixos, corpo num `SingleChildScrollView` dentro de um
+`Flexible`, e o *Guardar* fora do scroll.
+
+**O que se aprendeu a fazer mal primeiro:** a primeira versão descontava
+`viewInsets.bottom` ao `insetPadding` à mão. O `Dialog` já lhe soma `viewInsets`
+por dentro — o teclado era contado duas vezes e o diálogo ficava com 220 dp de
+altura num ecrã com 532 livres. O teste passava, porque só verificava que o
+*Guardar* estava acima do teclado, e estava. Foi a **captura** que deu o erro à
+vista. É um argumento a favor das capturas como documentação: um teste verifica o
+que lhe pedimos, uma imagem mostra o que lá está.
+
+O diálogo da máquina é o único com duas colunas em paisagem (identificação à
+esquerda, notas e fotografias à direita, miniaturas de 112 dp em vez de 78 — a
+78 não se reconhece a máquina). Os outros dois são de uma coluna.
+
+De caminho:
+
+- **Controladores descartados cedo.** Ficavam na função e eram descartados depois
+  do `await showDialog`, que devolve no instante do `pop` — com a animação de
+  fecho ainda a correr e a reconstruir campos com controladores mortos. Os três
+  formulários passaram a `StatefulWidget`, que é quem deve ser dono deles. Nos de
+  veículo e colaborador nem eram descartados: fugiam.
+- **O diálogo do colaborador não tinha saída.** Sem *Cancelar* e com
+  `barrierDismissible: false`: quem o abrisse por engano tinha de criar um
+  colaborador para se ver livre dele. O `DialogoDeFormulario` traz o *Cancelar* de
+  série, e só agora é que o `barrierDismissible: false` é honesto.
+- **"Parada" ainda era escolhível** no dropdown de estado da máquina, um sprint
+  depois de sair da app. Máquinas antigas gravadas nesse estado entram como
+  disponíveis — senão o valor caía fora da lista de opções.
+- **Acentos estragados.** A mensagem de erro das fotografias dizia "NÃ£o foi
+  possÃ­vel", em duas cópias. O ficheiro foi gravado noutra codificação em algum
+  momento.
+
+Capturas: `dialogo_maquina_largo.png`, `dialogo_veiculo_portrait_teclado.png`,
+`dialogo_colaborador_portrait_teclado.png`.
+
+## Reservas: a semana toda num ecrã
+
+O calendário forçava 860 dp de largura mínima e vivia dentro de **dois**
+`SingleChildScrollView`. Para ver a sexta-feira rolava-se na horizontal; para ver
+a tarde, na vertical. Uma semana são sete dias: ou cabem, ou o ecrã é pequeno e
+são as células que encolhem — não a semana que se corta.
+
+- As duas metades do dia entram por `Expanded`; o cabeçalho passa a uma linha
+  ("Seg 27/7" em vez de duas); a célula perdeu o `minHeight` de 116 dp que
+  obrigava ao scroll; o `+` é de 24 dp.
+- Uma célula com várias reservas rola **por dentro**, em vez de transbordar para
+  cima da célula de baixo.
+- O `IntrinsicHeight` da linha saiu: era preciso para sobreviver à altura
+  infinita do scroll vertical, e agora estorva.
+- A máquina escolhia-se numa fila horizontal de `ChoiceChip` com 64 dp de altura.
+  Com vinte máquinas era uma lista para rolar às cegas, e aqueles 64 dp faltavam
+  ao calendário. Passa a um `DropdownButton` de 240 dp **dentro da própria
+  barra**: três linhas passam a uma.
+- Nomes: o ecrã era "Marcações / Reservas" — duas palavras para a mesma coisa,
+  quando a barra lateral já diz "Reservas". O botão diz "Reservar" / "Reservar
+  (N)".
+- A frase de contexto tinha um `SizedBox` de 10 dp de cada lado, fixos: sem nada
+  a dizer ficava um buraco de 20 dp. Agora ou há frase com margem, ou não há nada.
+
+Capturas: `reservas_landscape.png`, `reservas_semana_sem_scroll.png`.
+
+## Funcionários: editar, eliminar, e o que cada um traz para dentro
+
+A lista era só de leitura, e o único número visível era o custo — o que fazia da
+página uma folha de despesas.
+
+- **Editar** pela linha ou pelo lápis, sobre o mesmo id. O `Collaborator` ganhou
+  `copyWith` com **sentinela** nos campos opcionais em vez de `??`: com
+  `phone ?? this.phone` era impossível limpar um telemóvel escrito errado. É o
+  defeito P2-5 da auditoria da v0.0.3 outra vez, e fica testado que "não mexer" e
+  "apagar" são coisas diferentes. A mesma ideia do `Campo<T>` do controller,
+  escrita à mão no domínio para ele não passar a depender do controller.
+- **Eliminar** com confirmação e 6 segundos para anular, como nas máquinas. Por
+  dentro é soft-delete: as reservas de que a pessoa foi responsável continuam a
+  apontar para um registo que existe. A lista filtra arquivados — senão eliminar
+  não fazia a linha desaparecer, e ninguém acredita que tenha eliminado.
+- **Vendas do mês**, novo KPI puro `vendasDoMesDoColaborador`, no subtítulo e à
+  frente do custo. Conta confirmadas, alugadas e concluídas; uma proposta enviada
+  **não** é uma venda, senão quem só envia propostas tinha os números de quem
+  fecha negócio. Sem valor esperado preenchido diz "valor por apurar" e não 0 € —
+  a mesma regra dos falsos zeros do painel.
+- **Desarquivar passa pelo `saveCollaborator`** de propósito: se as vagas
+  contratadas encolheram nestes 6 segundos, o "Anular" tem de bater no mesmo
+  limite que criar.
+
+Duas coisas que a captura deu à vista, outra vez:
+
+- o estado aparecia como **`active`** — o nome do valor do enum a chegar ao ecrã;
+- o custo/hora vem em **cêntimos**, como o mensal, e era mostrado tal e qual: um
+  colaborador a 14,10 €/hora lia-se "custo/hora: 1410.26".
+
+Capturas: `funcionarios_com_editar_e_vendas.png`,
+`funcionarios_confirmar_eliminar.png`.
+
+## Estado no fim destas sprints
+
+- **393 testes** verdes, `flutter analyze` limpo. Eram 338 no início da
+  continuação.
+- **23 capturas** em `docs/design/screenshots/v005/`.
+- Sem bump de versão, sem tag, sem APK: o release não foi autorizado nesta
+  continuação. O `pubspec` de outra sessão trazia `0.0.4+4` e ficou por commitar
+  — mudar a versão é acto de release. A dependência nova do QR das faturas
+  (`google_mlkit_barcode_scanning`) foi commitada sozinha, porque sem ela o
+  código não compila.
+
+## Registado, não feito
+
+- Os rótulos dos botões saem como blocos negros nas capturas de golden. É o
+  renderizador de testes, não a app.
+- `applicationVariants` no Gradle está depreciado no AGP 8; quando sair no AGP 9,
+  o substituto é a Variant API nova.
+- As células do calendário da semana ficam altas (~300 dp) num ecrã de 1280×800.
+  Cabe tudo e o alvo de toque é generoso, mas há espaço vazio a mais — vale uma
+  segunda vista quando houver reservas reais lá dentro para ver.
