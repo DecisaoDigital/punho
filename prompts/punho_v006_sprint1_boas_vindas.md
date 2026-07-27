@@ -1,5 +1,26 @@
 # Punho v0.0.6 — sprint 1 (Boas-vindas + ecrã de conta + ficha do funcionário + KPI custo real)
 
+> **Contexto do arranque:** a v0.0.5 fechou por completo (393 testes
+> verdes, `feat/v005-dashboard-alavancas`, sem push). Ficaram três
+> peças transversais para esta sprint aproveitar em vez de reinventar:
+>
+> 1. **`DialogoDeFormulario` em `lib/core/layout/`** — widget partilhado
+>    que resolveu o problema de teclado/scroll nos três diálogos
+>    (máquina, veículo, colaborador). O `_collaboratorDialog` desta
+>    sprint 1 (Frente C, agora com `SegmentedButton` no topo e coluna
+>    condicional) **usa-o directamente**. O mini-diálogo de convite
+>    WhatsApp (Frente B) idem. Zero `AlertDialog` novo nesta sprint.
+> 2. **Regra do `copyWith` com sentinela**, não `?? this` — anti-pattern
+>    P2-5 apanhado pelo Code duas vezes já; se um campo tem de poder
+>    ficar `null`, o `copyWith` recebe sentinela ou objecto `Campo<T>`.
+>    Aplica-se a todos os modelos novos desta sprint (`EmploymentType`
+>    no `Collaborator`, campos fiscais).
+> 3. **`TextEditingController` descartados durante animação de fecho**
+>    causaram três bugs na 0.0.5. Regra: `dispose` **depois** de
+>    `Navigator.pop` retornar, ou usar `StatefulBuilder` que trata do
+>    ciclo. Aplica-se ao mini-diálogo de convite da Frente B.
+
+
 > **Ciclo novo: v0.0.6 ongoing.** Só fecha quando o Cesar disser. Sem
 > push, sem bump, sem APK.
 >
