@@ -8,8 +8,7 @@
 >    que resolveu o problema de teclado/scroll nos três diálogos
 >    (máquina, veículo, colaborador). O `_collaboratorDialog` desta
 >    sprint 1 (Frente C, agora com `SegmentedButton` no topo e coluna
->    condicional) **usa-o directamente**. O mini-diálogo de convite
->    WhatsApp (Frente B) idem. Zero `AlertDialog` novo nesta sprint.
+>    condicional) **usa-o directamente**.
 > 2. **Regra do `copyWith` com sentinela**, não `?? this` — anti-pattern
 >    P2-5 apanhado pelo Code duas vezes já; se um campo tem de poder
 >    ficar `null`, o `copyWith` recebe sentinela ou objecto `Campo<T>`.
@@ -18,7 +17,9 @@
 > 3. **`TextEditingController` descartados durante animação de fecho**
 >    causaram três bugs na 0.0.5. Regra: `dispose` **depois** de
 >    `Navigator.pop` retornar, ou usar `StatefulBuilder` que trata do
->    ciclo. Aplica-se ao mini-diálogo de convite da Frente B.
+>    ciclo. Melhor ainda, e foi o que a 0.0.5 acabou por fazer nos três
+>    diálogos: o formulário é um `StatefulWidget` e é ele o dono dos
+>    controladores, que morrem no `dispose` dele.
 
 
 > **Ciclo novo: v0.0.6 ongoing.** Só fecha quando o Cesar disser. Sem
@@ -44,9 +45,10 @@ Quatro frentes independentes. Commit por frente.
 
 - **Frente A** — ecrãs `MaisDadosScreen` e `BoasVindasScreen` no fluxo
   de onboarding.
-- **Frente B** — ecrã de conta (`ContaScreen`) ligado ao avatar da
-  sidebar, com edição dos dados da empresa, convite WhatsApp e
-  terminar sessão.
+- **Frente B** — popup Perfil no avatar da sidebar: identidade, estado
+  da sessão e terminar sessão. Minimalista. O convite WhatsApp e a
+  edição dos dados da empresa saíram para a sprint dedicada do destino
+  Empresa (task #199).
 - **Frente C** — modelo contratual do funcionário (recibos verdes vs
   contrato), com os campos que cada modelo exige e estimativa de
   descontos do trabalhador quando aplicável.
@@ -207,7 +209,20 @@ por widget test.
 
 ---
 
-## Frente B — Ecrã de conta (`ContaScreen`) e terminar sessão
+## Frente B — Popup Perfil (versão minimalista desta sprint)
+
+> **Recalibrada em 27/07/2026** à luz da Decisão 2 do
+> `docs/GUIAO_DE_PERCURSO_PRIMEIRO_EMPRESARIO.md`. A versão original
+> desta Frente montava uma `ContaScreen` com dados da empresa +
+> convite WhatsApp + terminar sessão numa única tela. Isso desapareceu:
+> os dados da empresa e o convite WhatsApp vão para um novo destino
+> **Empresa** (com tabs), que é sprint dedicada da 0.0.6 (task #199).
+>
+> **Nesta sprint 1 fica só o popup Perfil no avatar**, minimalista.
+> O `EmpresaDadosForm` continua a ser extraído (para a sprint dedicada
+> o usar), mas não é apresentado nem ligado a nenhum ecrã ainda.
+> A `CompanySettingsPage` existente continua a viver onde está — não
+> se mexe.
 
 ### Contexto
 
@@ -231,7 +246,29 @@ não-admin: sem `logout` o dispositivo fica preso à conta antiga.
 3. **Não** adicionar destino "Conta" na sidebar — o avatar é o ponto
    de entrada. Um só caminho.
 
-### Conteúdo do `ContaScreen`
+### Conteúdo do popup Perfil (versão minimalista)
+
+**Tocar no avatar da sidebar abre um `showDialog` pequeno (não uma
+página nova)** com:
+
+- Avatar grande (círculo com iniciais do `ownerName` ou ícone
+  `person_outline`).
+- Nome do gestor + email da conta.
+- Chip `SESSÃO ACTIVA` (verde) ou `MODO DEMONSTRAÇÃO` (cinza).
+- Botão **`Terminar sessão`** com confirmação (`AlertDialog`
+  aninhado ou `showDialog` sequencial), só se `SupabaseConfig.enabled
+  && auth.currentUser != null`.
+- Sem convite WhatsApp aqui (vai para destino Empresa na sprint
+  dedicada #199).
+- Sem edição de dados da empresa aqui (idem).
+- Rodapé fino: versão da app.
+
+**Não fazer nesta sprint**: nem `EmpresaDadosForm` visível, nem tab
+Empresa, nem renomeação de destinos. O `EmpresaDadosForm` pode ser
+extraído em ficheiro próprio (é útil para a sprint 199) mas fica
+sem uso — não referenciar em nenhuma tela.
+
+### O antigo conteúdo desta Frente (para referência da sprint #199)
 
 Três blocos, dispostos em duas colunas landscape (uma em portrait):
 
@@ -700,8 +737,9 @@ Dashboard.
 1. `flutter test` verde. Reportar contagem antes/depois (esperado +24
    a +34 testes ao total das quatro frentes).
 2. `flutter analyze` limpo.
-3. Screenshots gerados (3 da Frente A + 4 da Frente B + 4 da Frente C +
-   1 da Frente D).
+3. Screenshots gerados (3 da Frente A + 2 da Frente B — popup com sessão
+   activa e confirmação de terminar sessão + 4 da Frente C + 1 da
+   Frente D).
 4. Doc novo: `docs/design/punho_v006_sprint1.md` com racional das
    quatro frentes, fluxos e screenshots.
 
@@ -710,9 +748,8 @@ Dashboard.
 Branch nova `feat/v006-boas-vindas`, quatro grupos de commits:
 
 - **Frente A**: 3 commits (um por widget + wire do fluxo).
-- **Frente B**: 2 commits (widget `ContaScreen` + wire do avatar da
-  sidebar). O `EmpresaDadosForm` reutilizável entra num terceiro
-  commit próprio se ficar grande.
+- **Frente B**: 1–2 commits (popup Perfil + wire do avatar da sidebar).
+  Sem `EmpresaDadosForm` em uso, sem convite — isso é a #199.
 - **Frente C**: 3–4 commits (modelo + tabela IRS + `estimarSalarial` +
   `_collaboratorDialog` com `SegmentedButton`, ou split equivalente
   se ficar mais limpo).
