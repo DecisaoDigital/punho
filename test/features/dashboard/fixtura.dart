@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/core/theme/punho_theme.dart';
+import 'package:punho/features/auth/acesso_providers.dart';
+import 'package:punho/features/auth/data/acesso_service.dart';
 import 'package:punho/domain/models/finance.dart';
 import 'package:punho/domain/models/operations.dart';
 // O modelo tem o seu próprio TimeOfDay (sem depender do Flutter); com prefixo
@@ -235,6 +237,102 @@ OperationsState estadoSemMovimento() => const OperationsState(
   totalMachinesDeclared: 0,
 );
 
+/// Empresa com um cliente em dívida há 45 dias — o caso vermelho da
+/// recomendação do dia.
+OperationsState estadoComDividaAntiga() => OperationsState(
+  onboarded: true,
+  ownerName: 'Alfredo',
+  companyName: 'Alugueres Norte',
+  legalForm: 'Lda.',
+  machines: const [
+    Machine(
+      id: 'm1',
+      name: 'Mini escavadora',
+      reference: 'ME-01',
+      category: 'Escavação',
+      status: MachineStatus.available,
+    ),
+  ],
+  customers: const [
+    Customer(id: 'c-devedor', name: 'Manuel Antunes', phone: '912 333 333'),
+  ],
+  bookings: [
+    Booking(
+      id: 'b-antiga',
+      customerId: 'c-devedor',
+      customerNameSnapshot: 'Manuel Antunes',
+      machineIds: const ['m1'],
+      startsAt: agoraFixa.subtract(const Duration(days: 50)),
+      endsAt: agoraFixa.subtract(const Duration(days: 45)),
+      status: BookingStatus.completed,
+      expectedValueCents: 62000,
+    ),
+  ],
+  receipts: [
+    Receipt(
+      id: 'r1',
+      date: agoraFixa.subtract(const Duration(days: 3)),
+      amountCents: 150000,
+      customerId: 'c-devedor',
+      method: PaymentMethod.transfer,
+    ),
+  ],
+);
+
+/// Empresa em que nenhuma das cinco regras se aplica: sem dívidas, sem custos
+/// desproporcionados, sem histórico homólogo e sem conversão notável.
+OperationsState estadoSemRecomendacao() => OperationsState(
+  onboarded: true,
+  ownerName: 'Alfredo',
+  companyName: 'Alugueres Norte',
+  legalForm: 'Lda.',
+  receipts: [
+    Receipt(
+      id: 'r1',
+      date: agoraFixa.subtract(const Duration(days: 2)),
+      amountCents: 80000,
+      customerId: 'c1',
+      method: PaymentMethod.cash,
+    ),
+  ],
+);
+
+/// Empresa a converter 40% das leads e sem problemas de dinheiro — o caso verde
+/// da recomendação do dia.
+OperationsState estadoComBoaConversao() => OperationsState(
+  onboarded: true,
+  ownerName: 'Alfredo',
+  companyName: 'Alugueres Norte',
+  legalForm: 'Lda.',
+  receipts: [
+    Receipt(
+      id: 'r1',
+      date: agoraFixa.subtract(const Duration(days: 4)),
+      amountCents: 210000,
+      customerId: 'c1',
+      method: PaymentMethod.transfer,
+    ),
+  ],
+  leads: [
+    for (var i = 0; i < 2; i++)
+      Lead(
+        id: 'convertida-$i',
+        name: 'Cliente ${i + 1}',
+        phone: '910 000 00$i',
+        status: LeadStatus.converted,
+        createdAt: agoraFixa.subtract(Duration(days: 6 + i)),
+      ),
+    for (var i = 0; i < 3; i++)
+      Lead(
+        id: 'nova-$i',
+        name: 'Lead ${i + 1}',
+        phone: '911 000 00$i',
+        status: LeadStatus.newLead,
+        createdAt: agoraFixa.subtract(Duration(days: 2 + i)),
+      ),
+  ],
+);
+
 /// Controller que devolve um estado fixo, sem repositório por trás.
 class ControllerFixo extends OperationsController {
   ControllerFixo(this.fixo);
@@ -244,9 +342,18 @@ class ControllerFixo extends OperationsController {
   OperationsState build() => fixo;
 }
 
-ProviderContainer containerCom(OperationsState estado) {
+ProviderContainer containerCom(
+  OperationsState estado, {
+  List<Convite>? convites,
+}) {
   final container = ProviderContainer(
-    overrides: [operationsProvider.overrideWith(() => ControllerFixo(estado))],
+    overrides: [
+      operationsProvider.overrideWith(() => ControllerFixo(estado)),
+      // Sem override, o provider dos convites tenta o `Supabase.instance` e fica
+      // em erro — que é exactamente o comportamento do modo de demonstração.
+      if (convites != null)
+        convitesProvider.overrideWith((ref) async => convites),
+    ],
   );
   addTearDown(container.dispose);
   return container;

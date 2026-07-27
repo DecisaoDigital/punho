@@ -6,12 +6,15 @@ import 'package:punho/features/dashboard/presentation/slides/pipeline_slide.dart
 import 'package:punho/features/dashboard/presentation/slides/rentabilidade_slide.dart';
 import 'package:punho/features/dashboard/presentation/slides/semana_slide.dart';
 import 'package:punho/features/dashboard/presentation/widgets/kpi_grid_2x2.dart';
+import 'package:punho/features/dashboard/presentation/widgets/recomendacao_card.dart';
 
 import 'fixtura.dart';
 
 void main() {
   group('Slide 1 · Dinheiro', () {
-    testWidgets('mostra recebido, por receber, pago e resultado', (tester) async {
+    testWidgets('mostra três KPIs de dinheiro e a recomendação do dia', (
+      tester,
+    ) async {
       await montarLandscape(
         tester,
         containerCom(estadoComMovimento()),
@@ -23,25 +26,79 @@ void main() {
       expect(find.text('1320 €'), findsOneWidget);
       expect(find.text('Por receber'), findsOneWidget);
       expect(find.text('Pago este mês'), findsOneWidget);
-      expect(find.text('Resultado provisório'), findsOneWidget);
-      // 1320 − 430.
-      expect(find.text('890,00 €'), findsOneWidget);
+      // A quarta célula deixou de ser o "Resultado provisório".
+      expect(find.text('Recomendação do dia'), findsOneWidget);
+      expect(find.text('Resultado provisório'), findsNothing);
     });
 
-    testWidgets('as setas navegam o mês dentro do próprio card', (tester) async {
+    testWidgets('as setas mudam o mês nos KPIs de recebido e pago', (
+      tester,
+    ) async {
       await montarLandscape(
         tester,
         containerCom(estadoComMovimento()),
         DinheiroSlide(agora: agoraFixa),
       );
 
-      await tester.tap(find.byTooltip('Mês anterior'));
+      // Duas setas para trás: uma em cada card, com o mesmo estado por trás.
+      expect(find.byTooltip('Mês anterior'), findsNWidgets(2));
+      await tester.tap(find.byTooltip('Mês anterior').first);
       await tester.pumpAndSettle();
 
       expect(find.text('Recebido em Junho'), findsOneWidget);
       expect(find.text('1100 €'), findsOneWidget);
-      // Os outros cards continuam no mês actual.
-      expect(find.text('Pago este mês'), findsOneWidget);
+      // O "Pago" acompanha: um mês diferente em cada card dava duas verdades no
+      // mesmo ecrã.
+      expect(find.text('Pago em Junho'), findsOneWidget);
+      expect(find.text('Pago este mês'), findsNothing);
+    });
+
+    testWidgets('a recomendação do dia não muda ao navegar no tempo', (
+      tester,
+    ) async {
+      await montarLandscape(
+        tester,
+        containerCom(estadoComMovimento()),
+        DinheiroSlide(agora: agoraFixa),
+      );
+      final antes = tester
+          .widgetList<Text>(find.descendant(
+            of: find.byType(RecomendacaoCard),
+            matching: find.byType(Text),
+          ))
+          .map((t) => t.data)
+          .toList();
+
+      await tester.tap(find.byTooltip('Mês anterior').last);
+      await tester.pumpAndSettle();
+
+      final depois = tester
+          .widgetList<Text>(find.descendant(
+            of: find.byType(RecomendacaoCard),
+            matching: find.byType(Text),
+          ))
+          .map((t) => t.data)
+          .toList();
+      expect(depois, antes, reason: 'recomendar sobre um mês passado não faz sentido');
+    });
+
+    testWidgets('o "Por receber" assume que só sabe o mês actual', (
+      tester,
+    ) async {
+      await montarLandscape(
+        tester,
+        containerCom(estadoComMovimento()),
+        DinheiroSlide(agora: agoraFixa),
+      );
+
+      expect(find.text('só o mês actual'), findsNothing);
+
+      await tester.tap(find.byTooltip('Mês anterior').first);
+      await tester.pumpAndSettle();
+
+      // O modelo não guarda como a dívida estava no fim de cada mês; o card
+      // diz-lo em vez de mostrar um número que não sabe.
+      expect(find.text('só o mês actual'), findsOneWidget);
     });
 
     testWidgets('no mês actual não se pode avançar', (tester) async {
@@ -51,13 +108,82 @@ void main() {
         DinheiroSlide(agora: agoraFixa),
       );
 
-      final seta = tester.widget<IconButton>(
-        find.ancestor(
-          of: find.byTooltip('Mês seguinte'),
-          matching: find.byType(IconButton),
-        ),
+      for (final seta in tester.widgetList<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.chevron_right),
+      )) {
+        expect(seta.onPressed, isNull);
+      }
+    });
+
+    testWidgets('não recua para antes do primeiro registo', (tester) async {
+      await montarLandscape(
+        tester,
+        containerCom(estadoComMovimento()),
+        DinheiroSlide(agora: agoraFixa),
       );
-      expect(seta.onPressed, isNull);
+
+      // O registo mais antigo da fixture é de Maio.
+      for (var i = 0; i < 3; i++) {
+        final recuar = tester
+            .widgetList<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.chevron_left),
+            )
+            .first;
+        if (recuar.onPressed == null) break;
+        await tester.tap(find.byTooltip('Mês anterior').first);
+        await tester.pumpAndSettle();
+      }
+
+      expect(find.text('Recebido em Maio'), findsOneWidget);
+      for (final seta in tester.widgetList<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.chevron_left),
+      )) {
+        expect(seta.onPressed, isNull, reason: 'antes de Maio não há registos');
+      }
+    });
+
+    testWidgets('recomendação vermelha aparece com bordo de urgente', (
+      tester,
+    ) async {
+      await montarLandscape(
+        tester,
+        containerCom(estadoComDividaAntiga()),
+        DinheiroSlide(agora: agoraFixa),
+      );
+
+      expect(find.text('Urgente'), findsOneWidget);
+      expect(
+        find.textContaining('Cobrar Manuel Antunes — 45 dias em atraso'),
+        findsOneWidget,
+      );
+      expect(find.text('Abrir ficha →'), findsOneWidget);
+    });
+
+    testWidgets('sem uma única despesa registada o "Pago" não mostra 0 €', (
+      tester,
+    ) async {
+      await montarLandscape(
+        tester,
+        containerCom(estadoComDividaAntiga()),
+        DinheiroSlide(agora: agoraFixa),
+      );
+
+      expect(find.text('Ainda não registaste nenhuma despesa.'), findsOneWidget);
+      expect(find.text('0,00 €'), findsNothing);
+    });
+
+    testWidgets('sem regra aplicável mostra o vazio, não um card em falta', (
+      tester,
+    ) async {
+      await montarLandscape(
+        tester,
+        containerCom(estadoSemRecomendacao()),
+        DinheiroSlide(agora: agoraFixa),
+      );
+
+      expect(find.text('Recomendação do dia'), findsOneWidget);
+      expect(find.text('Sem sugestão para hoje'), findsOneWidget);
+      expect(find.text('Urgente'), findsNothing);
     });
 
     testWidgets('empresa sem movimentos não mostra zeros, mostra o convite', (

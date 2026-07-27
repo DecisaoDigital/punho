@@ -67,7 +67,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final agora = widget.agora ?? DateTime.now();
     final state = ref.watch(operationsProvider);
     final slides = [
-      DinheiroSlide(agora: agora),
+      // A recomendação do dia manda para os custos ou para o pipeline: é o
+      // painel que sabe navegar entre slides, não o slide.
+      DinheiroSlide(agora: agora, aoIrParaSlide: _irPara),
       PipelineSlide(agora: agora),
       RentabilidadeSlide(agora: agora),
       CustosSlide(agora: agora),
