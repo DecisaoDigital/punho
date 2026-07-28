@@ -142,35 +142,40 @@ void main() {
   });
 
   group('Consequências na navegação', () {
-    test('zero colaboradores e zero veículos tiram as áreas do menu', () {
-      // Regra 4: guardar zeros não pode deixar a app a apontar para áreas que
-      // já não fazem sentido.
+    test('a barra tem sempre os mesmos sete destinos', () {
+      // Mudou na v0.0.8 (Decisão 2). Antes, guardar zero colaboradores tirava
+      // "Funcionários" do menu e zero veículos tirava "Frota": a barra mudava
+      // de forma conforme os dados, e uma barra que muda não se decora.
+      //
+      // Este teste era o inverso — exigia que as áreas desaparecessem. Foi
+      // reescrito e não ajustado, porque o comportamento certo passou a ser o
+      // oposto do que ele fixava.
       final c = _cenario();
-      expect(
-        visibleOperationalDestinations(c.container.read(operationsProvider)),
-        containsAll([AppDestination.employees, AppDestination.vehicles]),
+      final antes = visibleOperationalDestinations(
+        c.container.read(operationsProvider),
       );
 
       c.notifier.updateCompanySettings(collaborators: 0, vehicles: 0);
 
-      final destinos = visibleOperationalDestinations(
+      final depois = visibleOperationalDestinations(
         c.container.read(operationsProvider),
       );
-      expect(destinos, isNot(contains(AppDestination.employees)));
-      expect(destinos, isNot(contains(AppDestination.vehicles)));
-      expect(destinos, contains(AppDestination.management));
+      expect(depois, antes);
+      expect(depois, hasLength(7));
+      expect(depois, contains(AppDestination.employees));
+      expect(depois, contains(AppDestination.empresa));
     });
 
-    test('voltar a pôr um veículo devolve a Frota ao menu', () {
-      final c = _cenario();
-      c.notifier.updateCompanySettings(vehicles: 0);
-
-      c.notifier.updateCompanySettings(vehicles: 1);
-
-      expect(
-        visibleOperationalDestinations(c.container.read(operationsProvider)),
-        contains(AppDestination.vehicles),
+    test('Veículos e Finanças saíram da barra para dentro de Empresa', () {
+      final destinos = visibleOperationalDestinations(
+        _cenario().container.read(operationsProvider),
       );
+
+      expect(destinos, isNot(contains(AppDestination.vehicles)));
+      expect(destinos, isNot(contains(AppDestination.finances)));
+      // Continuam a saber a que aba pertencem, para os saltos antigos.
+      expect(AppDestination.vehicles.abaDeEmpresa, AbaDaEmpresa.veiculos);
+      expect(AppDestination.finances.abaDeEmpresa, AbaDaEmpresa.financas);
     });
   });
 

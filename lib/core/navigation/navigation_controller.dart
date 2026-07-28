@@ -34,13 +34,21 @@ List<AppDestination> visibleDestinations(CompanySettings settings) => [
   if (settings.hasFleet) AppDestination.vehicles,
 ];
 
-List<AppDestination> visibleOperationalDestinations(OperationsState state) => [
-  AppDestination.management,
-  AppDestination.machines,
-  AppDestination.clients,
-  AppDestination.bookings,
-  AppDestination.finances,
-  if (state.declaredCollaboratorCount > 0) AppDestination.employees,
-  if (state.hasFleet) AppDestination.vehicles,
-  AppDestination.tasks,
-];
+/// Os sete destinos da barra lateral, **sempre os mesmos** (Decisão 2).
+///
+/// Deixou de haver destinos condicionais. Antes, "Funcionários" só aparecia com
+/// colaboradores declarados e "Frota" só com frota — o que fazia a barra mudar
+/// de forma consoante o estado dos dados, e o gestor aprendia uma navegação que
+/// depois se mexia. Uma barra que muda não se decora.
+///
+/// Finanças e Veículos saíram da barra e são agora abas de **Empresa**.
+List<AppDestination> visibleOperationalDestinations(OperationsState state) =>
+    const [
+      AppDestination.management,
+      AppDestination.machines,
+      AppDestination.bookings,
+      AppDestination.clients,
+      AppDestination.employees,
+      AppDestination.empresa,
+      AppDestination.tasks,
+    ];

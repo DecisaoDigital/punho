@@ -10,33 +10,38 @@ import '../dashboard/fixtura.dart';
 
 void main() {
   group('Destinos visíveis', () {
-    test('Tarefas e Finanças estão sempre lá', () {
+    test('sete destinos, sempre os mesmos, sempre na mesma ordem', () {
+      // Decisão 2. Estes testes exigiam o contrário — que Frota e Funcionários
+      // aparecessem e desaparecessem conforme os dados. Reescritos, não
+      // ajustados: o comportamento certo é agora o oposto.
+      expect(visibleOperationalDestinations(estadoComMovimento()), const [
+        AppDestination.management,
+        AppDestination.machines,
+        AppDestination.bookings,
+        AppDestination.clients,
+        AppDestination.employees,
+        AppDestination.empresa,
+        AppDestination.tasks,
+      ]);
+    });
+
+    test('não muda com o estado dos dados', () {
+      final semNada = estadoComMovimento().copyWith(
+        hasFleet: false,
+        declaredCollaboratorCount: 0,
+      );
+
+      expect(
+        visibleOperationalDestinations(semNada),
+        visibleOperationalDestinations(estadoComMovimento()),
+      );
+    });
+
+    test('Veículos e Finanças deixaram de ser destinos da barra', () {
       final destinos = visibleOperationalDestinations(estadoComMovimento());
 
-      expect(destinos, contains(AppDestination.tasks));
-      expect(destinos, contains(AppDestination.finances));
-    });
-
-    test('Frota só aparece com frota declarada', () {
-      expect(
-        visibleOperationalDestinations(estadoComMovimento()),
-        contains(AppDestination.vehicles),
-      );
-      expect(
-        visibleOperationalDestinations(
-          estadoComMovimento().copyWith(hasFleet: false),
-        ),
-        isNot(contains(AppDestination.vehicles)),
-      );
-    });
-
-    test('Funcionários continua condicionado aos colaboradores declarados', () {
-      expect(
-        visibleOperationalDestinations(
-          estadoComMovimento().copyWith(declaredCollaboratorCount: 0),
-        ),
-        isNot(contains(AppDestination.employees)),
-      );
+      expect(destinos, isNot(contains(AppDestination.vehicles)));
+      expect(destinos, isNot(contains(AppDestination.finances)));
     });
   });
 
@@ -49,13 +54,18 @@ void main() {
       );
 
       // Rótulos visíveis, não só tooltips.
-      expect(_naBarra('Gestão'), findsOneWidget);
+      expect(_naBarra('Painel'), findsOneWidget);
       expect(_naBarra('Máquinas'), findsOneWidget);
-      expect(_naBarra('Clientes'), findsOneWidget);
       expect(_naBarra('Reservas'), findsOneWidget);
-      expect(_naBarra('Finanças'), findsOneWidget);
+      expect(_naBarra('Clientes'), findsOneWidget);
+      expect(_naBarra('Colaboradores'), findsOneWidget);
+      expect(_naBarra('Empresa'), findsOneWidget);
       expect(_naBarra('Tarefas'), findsOneWidget);
-      expect(_naBarra('Frota'), findsOneWidget);
+      // Os nomes antigos saíram: "Gestão" dizia o que a app faz, não o que o
+      // ecrã mostra, e "Frota" era jargão de quem já sabe.
+      expect(_naBarra('Gestão'), findsNothing);
+      expect(_naBarra('Frota'), findsNothing);
+      expect(_naBarra('Funcionários'), findsNothing);
     });
 
     testWidgets('o badge de Tarefas mostra a contagem de pendentes', (

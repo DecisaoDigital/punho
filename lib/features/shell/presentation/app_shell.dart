@@ -14,7 +14,7 @@ import '../../auth/acesso_providers.dart';
 import '../../collaborator/presentation/collaborator_shell.dart';
 import '../../conta/presentation/perfil_popup.dart';
 import '../../dashboard/presentation/dashboard_page.dart';
-import '../../finance/presentation/financas_page.dart';
+import '../../empresa/presentation/empresa_page.dart';
 import '../../gestao/presentation/convites_screen.dart';
 import '../../licenca/presentation/licenca_banner.dart';
 import '../../operations/presentation/operational_pages.dart';
@@ -429,12 +429,16 @@ class _DestinationContent extends StatelessWidget {
     if (destination == AppDestination.machines) return const MachinesPage();
     if (destination == AppDestination.clients) return const ClientsPage();
     if (destination == AppDestination.bookings) return const BookingsPage();
-    if (destination == AppDestination.finances) return const FinancasPage();
     if (destination == AppDestination.tasks) return const TarefasPage();
     if (destination == AppDestination.employees) {
       return const CollaboratorsPage();
     }
-    if (destination == AppDestination.vehicles) return const VehiclesPage();
+    if (destination == AppDestination.empresa) return const EmpresaPage();
+    // Finanças e Veículos deixaram de ser destinos da barra, mas quem lá for
+    // ter — por uma tarefa antiga, por código que ainda os nomeie — abre a
+    // Empresa na aba certa, em vez de encontrar um ecrã vazio.
+    final aba = destination.abaDeEmpresa;
+    if (aba != null) return EmpresaPage(abaInicial: aba);
     return _EmptyPage(destination: destination);
   }
 }

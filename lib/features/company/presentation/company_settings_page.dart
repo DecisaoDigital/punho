@@ -16,7 +16,15 @@ const _formasJuridicas = ['Empresário em Nome Individual', 'Lda.'];
 /// lado nenhum — quem escrevia a facturação ou a morada ficava sem forma de
 /// confirmar o que tinha escrito, e muito menos de corrigir.
 class CompanySettingsPage extends ConsumerStatefulWidget {
-  const CompanySettingsPage({super.key});
+  const CompanySettingsPage({super.key, this.embutida = false});
+
+  /// A página vive em dois sítios: como ecrã próprio (navegável, com AppBar) e
+  /// como aba **Dados** do destino Empresa. Embutida dispensa o Scaffold e a
+  /// AppBar, que de outro modo empilhariam dois cabeçalhos.
+  ///
+  /// É reutilização e não duplicação: o formulário é o mesmo, com uma só fonte
+  /// de verdade sobre o que se pede e como se grava.
+  final bool embutida;
 
   @override
   ConsumerState<CompanySettingsPage> createState() =>
@@ -160,10 +168,17 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
   @override
   Widget build(BuildContext context) {
     if (!_podeEditar(ref)) return const _SoGestor();
+    // Embutida numa aba de Empresa, o Scaffold e a AppBar sobram: já há um
+    // título por cima. Sem isto ficavam dois cabeçalhos empilhados a dizer
+    // quase o mesmo.
+    if (widget.embutida) return SafeArea(child: _corpo(context));
     return Scaffold(
       appBar: AppBar(title: const Text('Dados da empresa')),
-      body: SafeArea(
-        child: ListView(
+      body: SafeArea(child: _corpo(context)),
+    );
+  }
+
+  Widget _corpo(BuildContext context) => ListView(
           padding: const EdgeInsets.all(20),
           children: [
             Text(
@@ -294,10 +309,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
+        );
 
   Widget _campo(
     TextEditingController controller,
