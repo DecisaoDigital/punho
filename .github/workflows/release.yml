@@ -55,61 +55,15 @@ jobs:
           name: android-apk
           path: punho-android-v${{ steps.version.outputs.version }}.apk
 
-  build-windows:
-    name: Build Windows Installer
-    runs-on: windows-latest
-    env:
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-      - name: Get version
-        id: version
-        shell: bash
-        run: |
-          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
-            versao="${GITHUB_REF_NAME#v}"
-          else
-            versao="$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')"
-          fi
-          echo "version=$versao" >> "$GITHUB_OUTPUT"
-      - run: flutter pub get
-      - run: flutter test --exclude-tags=screenshot
-      - shell: pwsh
-        run: |
-          flutter build windows --release `
-            --build-name=${{ steps.version.outputs.version }} `
-            --dart-define=SUPABASE_URL=$env:SUPABASE_URL `
-            --dart-define=SUPABASE_ANON_KEY=$env:SUPABASE_ANON_KEY
-      - name: Verify Inno Setup is available
-        shell: pwsh
-        run: |
-          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          if (!(Test-Path $iscc)) {
-            choco install innosetup -y --no-progress
-          }
-      - name: Compile installer (Inno Setup)
-        shell: pwsh
-        run: |
-          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          & $iscc "/DMyAppVersion=${{ steps.version.outputs.version }}" installer\punho_setup.iss
-      - name: Rename installer
-        shell: pwsh
-        run: |
-          $src = "installer_output\Punho_Setup_v${{ steps.version.outputs.version }}.exe"
-          $dst = "Punho_Setup_v${{ steps.version.outputs.version }}.exe"
-          if ($src -ne $dst) { Move-Item -Path $src -Destination $dst }
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-installer
-          path: Punho_Setup_v${{ steps.version.outputs.version }}.exe
+  # build-windows removido nesta fase — o Punho hoje é uma app mobile e o
+  # tempo de runner windows-latest não é gratuito. Quando fizer sentido
+  # voltar a distribuir build Windows, recuperar do histórico deste
+  # ficheiro (última versão activa em 3368cbc/e73b678). Ver task no
+  # backlog Cowork.
 
   release:
     name: Publish GitHub Release
-    needs: [build-android, build-windows]
+    needs: [build-android]
     # Só por tag. Um dispatch manual serve para validar que compila, testa e
     # assina — e tem de poder correr sem publicar nada. Sem esta guarda, o
     # dry-run criava um release com o nome da branch.
@@ -126,7 +80,6 @@ jobs:
         with:
           files: |
             artifacts/android-apk/*.apk
-            artifacts/windows-installer/*.exe
           generate_release_notes: true
           draft: false
           prerelease: false
