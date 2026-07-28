@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,7 +42,15 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
     });
     // Sem Supabase configurado (modo demonstração, testes) não há nada a
     // consultar — e `Supabase.instance` rebentaria por não estar inicializado.
-    if (!SupabaseConfig.enabled) return null;
+    if (!SupabaseConfig.enabled) {
+      // Grita nos logs em vez de ficar calado: uma app compilada sem os
+      // `--dart-define` do Supabase comporta-se exactamente como uma sem
+      // ligação, e foi assim que a v0.0.5 do Cesar passou despercebida.
+      debugPrint(
+        '[PunhoUpdate] Supabase desactivado (defines em falta) — sem verificação',
+      );
+      return null;
+    }
     unawaited(verificar());
     _ouvirGanhoDeSessao();
     _timer = Timer.periodic(

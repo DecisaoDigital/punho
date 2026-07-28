@@ -121,95 +121,139 @@ class _RegistoScreenState extends ConsumerState<RegistoScreen> {
           constraints: const BoxConstraints(maxWidth: 420),
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Criar conta',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _nome,
-                  decoration: const InputDecoration(labelText: 'Nome'),
-                ),
-                TextField(
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                ),
-                TextField(
-                  controller: _palavraPasse,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Palavra-passe',
-                    helperText: 'Pelo menos 8 caracteres.',
+            // Depois de a conta ser criada o formulário desaparece. Ficava lá,
+            // preenchido, com o botão a dizer "Pedir acesso" — e quem acabara de
+            // pedir não tinha como saber se devia carregar outra vez. O ecrã
+            // passa a ter um estado só: ou se pede, ou já se pediu.
+            child: _sucesso != null
+                ? _Concluido(
+                    mensagem: _sucesso!,
+                    aoVoltarParaLogin: widget.aoVoltarParaLogin,
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Criar conta',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _nome,
+                        decoration: const InputDecoration(labelText: 'Nome'),
+                      ),
+                      TextField(
+                        controller: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(labelText: 'Email'),
+                      ),
+                      TextField(
+                        controller: _palavraPasse,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Palavra-passe',
+                          helperText: 'Pelo menos 8 caracteres.',
+                        ),
+                      ),
+                      TextField(
+                        controller: _empresa,
+                        decoration: const InputDecoration(
+                          labelText: 'Empresa / organização',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: _perfil,
+                        decoration: const InputDecoration(
+                          labelText: 'Cargo pretendido',
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'gestor',
+                            child: Text('Gestor'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'colaborador',
+                            child: Text('Colaborador'),
+                          ),
+                        ],
+                        onChanged: _ocupado
+                            ? null
+                            : (v) =>
+                                  setState(() => _perfil = v ?? 'colaborador'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _convite,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: const InputDecoration(
+                          labelText: 'Código de convite (opcional)',
+                        ),
+                      ),
+                      if (_erro != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            _erro!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: _ocupado ? null : _submeter,
+                        child: Text(_ocupado ? 'A criar...' : 'Pedir acesso'),
+                      ),
+                      if (widget.aoVoltarParaLogin != null)
+                        TextButton(
+                          onPressed: _ocupado ? null : widget.aoVoltarParaLogin,
+                          child: const Text('Já tenho conta'),
+                        ),
+                    ],
                   ),
-                ),
-                TextField(
-                  controller: _empresa,
-                  decoration: const InputDecoration(
-                    labelText: 'Empresa / organização',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: _perfil,
-                  decoration: const InputDecoration(
-                    labelText: 'Cargo pretendido',
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'gestor',
-                      child: Text('Gestor'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'colaborador',
-                      child: Text('Colaborador'),
-                    ),
-                  ],
-                  onChanged: _ocupado
-                      ? null
-                      : (v) => setState(() => _perfil = v ?? 'colaborador'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _convite,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(
-                    labelText: 'Código de convite (opcional)',
-                  ),
-                ),
-                if (_erro != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Text(
-                      _erro!,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  ),
-                if (_sucesso != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Text(_sucesso!),
-                  ),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: _ocupado ? null : _submeter,
-                  child: Text(_ocupado ? 'A criar...' : 'Pedir acesso'),
-                ),
-                if (widget.aoVoltarParaLogin != null)
-                  TextButton(
-                    onPressed: _ocupado ? null : widget.aoVoltarParaLogin,
-                    child: const Text('Já tenho conta'),
-                  ),
-              ],
-            ),
           ),
         ),
       ),
     ),
+  );
+}
+
+/// O que se vê depois de o pedido de acesso ficar registado.
+///
+/// Sem temporizador nem salto automático: quem acabou de pedir acesso tem de
+/// poder ler o que aconteceu ao seu ritmo. O único caminho em frente é
+/// explícito.
+class _Concluido extends StatelessWidget {
+  const _Concluido({required this.mensagem, this.aoVoltarParaLogin});
+
+  final String mensagem;
+  final VoidCallback? aoVoltarParaLogin;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Icon(
+        Icons.check_circle_outline,
+        size: 56,
+        color: Theme.of(context).colorScheme.primary,
+      ),
+      const SizedBox(height: 20),
+      Text(
+        'Conta criada',
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.headlineSmall,
+      ),
+      const SizedBox(height: 12),
+      Text(mensagem, textAlign: TextAlign.center),
+      const SizedBox(height: 28),
+      if (aoVoltarParaLogin != null)
+        FilledButton(
+          onPressed: aoVoltarParaLogin,
+          child: const Text('Voltar ao início de sessão'),
+        ),
+    ],
   );
 }

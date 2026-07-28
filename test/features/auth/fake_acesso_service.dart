@@ -11,6 +11,7 @@ class FakeAcessoService implements AcessoService {
     EstadoAcesso? acesso,
     this.validacao = ValidacaoConvite.valido,
     this.convites = const [],
+    this.erroAoRegistar,
     this.erroAoCriarConvite,
     this.erroAoLerAcesso,
     this.utilizadorId = 'user-1',
@@ -22,6 +23,7 @@ class FakeAcessoService implements AcessoService {
   EstadoAcesso acesso;
   ValidacaoConvite validacao;
   List<Convite> convites;
+  Object? erroAoRegistar;
   Object? erroAoCriarConvite;
   Object? erroAoLerAcesso;
 
@@ -51,6 +53,7 @@ class FakeAcessoService implements AcessoService {
     required String perfil,
     String? codigoConvite,
   }) async {
+    if (erroAoRegistar != null) throw erroAoRegistar!;
     registos.add({
       'email': email,
       'nome': nome,

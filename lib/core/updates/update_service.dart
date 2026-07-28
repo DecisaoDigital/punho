@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -66,7 +67,15 @@ class PunhoUpdateService {
         return null;
       }
       return PunhoUpdateInfo.fromJson(Map<String, dynamic>.from(dados));
-    } catch (_) {
+    } catch (erro) {
+      // Continua a devolver `null` — um erro de rede no arranque não pode
+      // aparecer ao utilizador, e essa parte estava certa.
+      //
+      // O que muda é deixar rasto. O `catch (_)` mudo escondeu durante duas
+      // versões que a app do Cesar tinha sido compilada sem os `--dart-define`
+      // do Supabase: o serviço falhava a cada arranque e ninguém sabia. Falha
+      // silenciosa em cima de falha silenciosa não se diagnostica.
+      debugPrint('[PunhoUpdate] check falhou: ${erro.runtimeType} · $erro');
       return null;
     }
   }
