@@ -115,3 +115,8 @@ installer_output/
 
 # Artefactos de comparação de goldens (gerados quando um golden falha)
 **/test/**/failures/
+
+# Tarballs do próprio código, feitos à mão para partilhar (punho_src.tar.gz e
+# afins). São dezenas de MB e o repositório já é a fonte — se entrassem, ficavam
+# no histórico para sempre.
+*.tar.gz
