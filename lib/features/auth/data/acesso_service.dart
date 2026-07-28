@@ -34,6 +34,29 @@ class Convite {
 /// Resultado da validação de um código de convite, antes do registo.
 enum ValidacaoConvite { valido, invalido, expirado, usado }
 
+/// Código próprio para "este email já tem conta".
+///
+/// Não é um código do Supabase: é nosso, porque o Supabase **não devolve erro
+/// nenhum** neste caso (ver [emailJaRegistado]). Serve para o `AuthException`
+/// que criamos entrar no mesmo caminho de tradução de mensagens que os erros
+/// reais, em vez de haver dois sítios a decidir o que se mostra.
+const codigoEmailJaRegistado = 'punho_email_ja_registado';
+
+/// O Supabase respondeu "sucesso" a um registo de um email que já existe?
+///
+/// Com a confirmação de email ligada, um `signUp` de um email já registado
+/// devolve `200` com um utilizador obfuscado e **`identities` vazio** — é a
+/// protecção contra enumeração de contas. Uma conta genuinamente nova traz
+/// sempre pelo menos uma identidade.
+///
+/// Função separada e pública para se poder testar sem falar com o Supabase.
+bool emailJaRegistado(AuthResponse resposta) {
+  final utilizador = resposta.user;
+  if (utilizador == null) return false;
+  final identidades = utilizador.identities;
+  return identidades != null && identidades.isEmpty;
+}
+
 extension ValidacaoConviteMensagem on ValidacaoConvite {
   /// Mensagem para o utilizador. Não distingue "não existe" de "de outra
   /// empresa" — não há nada a ganhar em dizê-lo.
@@ -115,7 +138,7 @@ class SupabaseAcessoService implements AcessoService {
   }) async {
     // `app: 'punho'` é o que o trigger de auth.users usa para distinguir este
     // registo dos do POS, que partilham o mesmo projecto Supabase.
-    await _client.auth.signUp(
+    final resposta = await _client.auth.signUp(
       email: email,
       password: palavraPasse,
       data: {
@@ -127,6 +150,23 @@ class SupabaseAcessoService implements AcessoService {
           'convite': codigoConvite,
       },
     );
+    // Email já registado **não vem como erro**.
+    //
+    // Com a confirmação de email ligada, o Supabase protege-se contra
+    // enumeração de contas: em vez de recusar, devolve sucesso com um
+    // utilizador obfuscado e a lista de identidades **vazia**. Sem isto, quem
+    // se tentasse registar com um email que já tem conta via "Conta criada" e
+    // ficava à espera de um email que nunca chega.
+    //
+    // É esta a razão de o `mensagemSegura('user_already_exists')` nunca ter
+    // disparado: o código estava lá, mas não havia excepção nenhuma para o
+    // trazer.
+    if (emailJaRegistado(resposta)) {
+      throw const AuthException(
+        'Email já registado',
+        code: codigoEmailJaRegistado,
+      );
+    }
   }
 
   @override
