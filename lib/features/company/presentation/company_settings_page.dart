@@ -179,7 +179,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
                 _campo(_ownerName, 'Nome do responsável'),
                 _campo(_companyName, 'Nome da empresa'),
                 DropdownButtonFormField<String>(
-                  value: _legalForm,
+                  initialValue: _legalForm,
                   // Mesma razão do onboarding: a forma jurídica mais longa não
                   // cabe e rebentaria a linha.
                   isExpanded: true,
