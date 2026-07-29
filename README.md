@@ -1,92 +1,92 @@
 # Punho
 
-Aplicação Flutter multi-plataforma (Android + Windows) desenvolvida pela **Decisão Digital**.
+Aplicação Flutter de gestão operacional e apoio à decisão para pequenas
+empresas, desenvolvida pela **Decisão Digital**.
 
-> _Descrição funcional a preencher._
+O Punho transforma registos do trabalho diário — clientes, reservas, máquinas,
+recebimentos, despesas e equipa — em métricas, explicações e ações
+recomendadas. A primeira vertical aprofundada é o aluguer de máquinas.
 
-## Regra obrigatória de trabalho
+## Começar por aqui
 
-Antes de alterar código, leia [AGENTS.md](AGENTS.md).
+- [Estado actual da aplicação](docs/ESTADO_ATUAL_DA_APP.md)
+- [O que é o Punho](docs/O_QUE_E_O_PUNHO.md)
+- [Decisões e roadmap vivo](docs/DECISOES_E_ROADMAP_VIVO.md)
+- [Processo de release (runbook)](docs/PROCESSO_DE_RELEASE.md) ← **ler antes de cortar tag**
+- [Smoke manual v0.0.8](docs/SMOKE_v0.0.8_CHECKLIST.md)
+- [Índice da documentação](docs/README.md)
 
-O repositório de trabalho oficial está no servidor i9:
+## Plataformas
 
-```text
-Máquina: home-lab-claude
-Repositório: /home/cesar/punho
-Acesso: ssh cesar@home-lab-claude
-```
+- **Android** — plataforma principal e única publicada actualmente pelo CI.
+- **Windows** — suportado para desenvolvimento e builds locais; job Windows
+  do GitHub Actions está suspenso.
+- **iOS** — suspenso.
 
-Todo o código, gestão de branches, commits, instalação de dependências, análise,
-testes, compilações e validação de artefactos é feito nesse servidor.
+## Preparar o ambiente
 
-O GitHub só recebe código e binários depois de todas as validações ficarem
-verdes no i9. **GitHub Actions não é usado para analisar, testar, compilar,
-assinar ou gerar artefactos do Punho.**
+Requer Flutter stable compatível com o requisito Dart do `pubspec.yaml`,
+JDK 21, Android SDK.
 
-## Plataformas alvo
-
-- **Android** — APK assinado e compilado no i9; GitHub Releases serve apenas
-  para distribuição;
-- **Windows** — instalador Inno Setup compilado num ambiente Windows alojado no
-  i9; nunca usar GitHub Actions como substituto;
-- iOS — **suspenso até nova ordem**.
-
-## Requisitos
-
-- servidor i9 `home-lab-claude`;
-- Flutter 3.24+ (canal stable);
-- Dart 3.5+;
-- Android SDK e JDK instalados no i9;
-- ambiente Windows no i9 com Visual Studio 2022 e Inno Setup 6, quando for
-  necessário gerar o instalador Windows.
-
-## Desenvolvimento
-
-```bash
-ssh cesar@home-lab-claude
-cd ~/punho
+```powershell
+Copy-Item .env.example .env
 flutter pub get
 flutter run
 ```
 
-A configuração Supabase e a chave de assinatura são carregadas apenas a partir
-dos ficheiros/segredos locais protegidos do servidor. Nunca são escritas no
-código, nos logs ou num commit. Os caminhos autorizados e a forma de validar as
-sessões Supabase/GitHub estão documentados em [AGENTS.md](AGENTS.md).
+Preenche `.env` com `SUPABASE_URL` e `SUPABASE_ANON_KEY`. Ficheiro local,
+ignorado pelo Git, nunca partilhado.
 
-## Validação obrigatória
+Windows:
 
-No i9, antes de qualquer push:
-
-```bash
-flutter pub get
-flutter analyze
-flutter test --exclude-tags=screenshot
-git diff --check
+```powershell
+flutter run -d windows
 ```
 
-Além destes comandos, têm de ser compilados e verificados localmente no i9 os
-artefactos das plataformas afetadas. Um push para o GitHub nunca pode ser usado
-como ensaio.
+> **Nota:** `.env` só serve para desenvolvimento. Builds de release **têm de
+> passar as chaves por `--dart-define`** (ver [PROCESSO_DE_RELEASE.md](docs/PROCESSO_DE_RELEASE.md)).
+> O CI bloqueia releases sem estes defines (guard-rail #236).
+
+## Qualidade
+
+```powershell
+flutter analyze
+flutter test --exclude-tags=screenshot
+```
+
+Testes marcados `screenshot` são goldens dependentes de fontes/rendering
+Windows — excluídos no CI, corridos localmente quando se toca em UI.
+
+## Fluxo de trabalho
+
+- Branch principal: `main`. Push directo é permitido para fixes pequenos;
+  features estruturais em `feat/*` com merge por PR.
+- Antes de cortar tag: **smoke manual dos 9 fluxos** (`docs/SMOKE_*.md`).
+- Ver [PROCESSO_DE_RELEASE.md](docs/PROCESSO_DE_RELEASE.md) para a sequência
+  exacta de release (bump → workflow_dispatch → tag → APK → catálogo).
 
 ## Releases
 
-A compilação e assinatura acontecem primeiro no i9. Só depois de os testes e os
-artefactos estarem verdes é permitido:
+Não é apenas criar uma tag. **Ler o
+[PROCESSO_DE_RELEASE.md](docs/PROCESSO_DE_RELEASE.md) antes de qualquer
+release** — captura lições reais (a v0.0.8 teve 3 falhas até publicar).
 
-1. criar o commit no i9;
-2. enviar o código para o GitHub;
-3. criar a tag/release;
-4. carregar para a release os binários já compilados e verificados no i9;
-5. atualizar o catálogo de versões.
+Resumo:
+1. `workflow_dispatch` verde primeiro (build + testes sem tag).
+2. Só depois tag `vX.Y.Z` no commit certo → publica APK Android no GitHub Releases.
+3. Só depois de APK público e testado, inserir linha em `versoes_apps`
+   do Supabase para os clientes verem o update.
 
-O GitHub funciona como repositório remoto e canal de distribuição, não como
-máquina de compilação. Consulte [docs/PUBLICAR_RELEASE.md](docs/PUBLICAR_RELEASE.md).
+Instalador Windows: `installer/punho_setup.iss` (Inno Setup, local).
 
-## Licenciamento
+## Segurança
 
-Copyright © Decisão Digital. Todos os direitos reservados. Ver `LICENSE`.
+- Nunca commitar `.env`, chaves, tokens, keystones ou credenciais.
+- Keystore de release: `D:\Seguro\keystores\punho_release.jks` (fora do repo).
+  Nos secrets do GitHub Actions: `PUNHO_KEYSTORE_BASE64` (jks em base64) +
+  `PUNHO_KEYSTORE_PASSWORD` (password da chave).
+- Antes de trabalhar no backend, consultar [Segurança e RLS](docs/SEGURANCA_E_RLS.md).
+- Valores públicos em `.env.example` (URL + anon key), nunca a service_role.
 
-## Suporte
-
-`cesarmendes78@gmail.com`
+Repositório **público** em `github.com/DecisaoDigital/punho`.
+Copyright © Decisão Digital. Todos os direitos reservados.
