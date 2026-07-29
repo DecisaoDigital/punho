@@ -6,6 +6,10 @@ on:
       - 'v*.*.*'
   workflow_dispatch:
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-android:
     name: Build Android APK
@@ -13,6 +17,7 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      PUNHO_CERT_SHA256: 33386ff0dd95bb57818aaabc32b37e378da9febb1fb905b2388c4b5aa0f70205
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -27,18 +32,19 @@ jobs:
           KEYSTORE_B64: ${{ secrets.PUNHO_KEYSTORE_BASE64 }}
           KEYSTORE_PW: ${{ secrets.PUNHO_KEYSTORE_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > android/app/punho_release.jks
-            cat > android/key.properties << EOF
+          set -euo pipefail
+          : "${KEYSTORE_B64:?Secret PUNHO_KEYSTORE_BASE64 em falta}"
+          : "${KEYSTORE_PW:?Secret PUNHO_KEYSTORE_PASSWORD em falta}"
+          printf '%s' "$KEYSTORE_B64" | base64 -d > android/app/punho_release.jks
+          test -s android/app/punho_release.jks
+          cat > android/key.properties << EOF
           storeFile=punho_release.jks
           storePassword=$KEYSTORE_PW
           keyAlias=punho
           keyPassword=$KEYSTORE_PW
           EOF
-            echo "Keystore + key.properties criados. Release APK sera assinado."
-          else
-            echo "::warning::PUNHO_KEYSTORE_BASE64 nao configurado. APK sai com debug key."
-          fi
+          chmod 600 android/app/punho_release.jks android/key.properties
+          echo "Keystore de release configurada."
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -49,34 +55,76 @@ jobs:
         # nome do ficheiro do APK. Nesse caso lê-se a versão do pubspec, que é a
         # fonte de verdade de qualquer maneira.
         run: |
+          set -euo pipefail
+          pubspec_versao="$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')"
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             versao="${GITHUB_REF_NAME#v}"
+            if [ "$versao" != "$pubspec_versao" ]; then
+              echo "::error::Tag $versao não coincide com pubspec $pubspec_versao"
+              exit 1
+            fi
           else
-            versao="$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')"
+            versao="$pubspec_versao"
           fi
+          [[ "$versao" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           echo "version=$versao" >> "$GITHUB_OUTPUT"
       - run: flutter pub get
+      - run: flutter analyze
       # Goldens excluídos: dependem das fontes do sistema onde foram gerados
       # (Windows). No Ubuntu do CI o rendering difere e os pixels não batem —
       # são documentação para revisão humana, não gate de release (#202).
       - run: flutter test --exclude-tags=screenshot
-      - run: |
-          # --split-per-abi: gera 3 APKs (arm64-v8a, armeabi-v7a, x86_64) em
-          # vez de um fat APK com as 3 arquitecturas. A partir de compileSdk
-          # 36 as libs .so ficam Stored (0% compressao) para memory-mapping;
-          # o fat APK dobrou de 33 -> 69 MB entre v0.0.5 e v0.0.6 por essa
-          # razao (task #209). Com split, cada APK volta a ~29 MB.
+      - name: Build split and universal APKs
+        run: |
+          set -euo pipefail
+          versao="${{ steps.version.outputs.version }}"
+
+          # Os APKs split ficam pequenos para instalações manuais específicas.
           flutter build apk --release --split-per-abi \
-            --build-name=${{ steps.version.outputs.version }} \
+            --build-name="$versao" \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
-      - name: Copy APKs to workspace root
-        # applicationVariants.all no build.gradle.kts ja renomeia para
-        # Punho_v{versao}_{abi}.apk. Aqui so movemos para o workspace root
-        # para o glob do upload-artifact apanhar.
-        run: |
-          cp build/app/outputs/apk/release/Punho_v*.apk build/app/outputs/flutter-apk/Punho_v*.apk . 2>/dev/null; ls -la build/app/outputs/apk/release/ 2>/dev/null; ls -la build/app/outputs/flutter-apk/ 2>/dev/null; cp build/app/outputs/apk/release/*.apk . 2>/dev/null || cp build/app/outputs/flutter-apk/*.apk .
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk \
+            "Punho_v${versao}_armeabi-v7a.apk"
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk \
+            "Punho_v${versao}_arm64-v8a.apk"
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk \
+            "Punho_v${versao}_x86_64.apk"
+
+          # O catálogo Supabase tem um único URL Android. O APK universal é o
+          # instalador recomendado e funciona em todas as arquiteturas.
+          flutter build apk --release \
+            --build-name="$versao" \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            "Punho_v${versao}_universal.apk"
+
           ls -lh Punho_v*.apk
+      - name: Guard-rail — pacote, versão e assinatura definitiva
+        run: |
+          set -euo pipefail
+          versao="${{ steps.version.outputs.version }}"
+          apk="Punho_v${versao}_universal.apk"
+          build="$(grep -m1 '^version:' pubspec.yaml | sed 's/.*+//')"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          aapt="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -x "$apksigner"
+          test -x "$aapt"
+
+          cert_output="$("$apksigner" verify --print-certs "$apk")"
+          cert="$(printf '%s\n' "$cert_output" |
+            awk -F ': ' '/certificate SHA-256 digest:/ {print tolower($NF); exit}')"
+          if [ "$cert" != "$PUNHO_CERT_SHA256" ]; then
+            echo "::error::Certificado de assinatura inesperado: $cert"
+            exit 1
+          fi
+
+          badging="$("$aapt" dump badging "$apk" | head -n 1)"
+          grep -F "name='com.example.punho'" <<< "$badging"
+          grep -F "versionName='$versao'" <<< "$badging"
+          grep -F "versionCode='$build'" <<< "$badging"
+          echo "Pacote, versão e certificado definitivos confirmados."
       - name: Guard-rail — APK contem dart-defines Supabase
         # A v0.0.5 saiu sem SUPABASE_URL/ANON_KEY no APK e o auto-update ficou
         # mudo. Este step le libapp.so (onde as constantes ficam no AOT) e falha
@@ -112,11 +160,18 @@ jobs:
         id: version
         shell: bash
         run: |
+          set -euo pipefail
+          pubspec_versao="$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')"
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             versao="${GITHUB_REF_NAME#v}"
+            if [ "$versao" != "$pubspec_versao" ]; then
+              echo "::error::Tag $versao não coincide com pubspec $pubspec_versao"
+              exit 1
+            fi
           else
-            versao="$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')"
+            versao="$pubspec_versao"
           fi
+          [[ "$versao" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           echo "version=$versao" >> "$GITHUB_OUTPUT"
       - run: flutter pub get
       - run: flutter test --exclude-tags=screenshot
