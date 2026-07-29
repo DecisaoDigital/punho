@@ -1,4 +1,4 @@
 # Marca Punho
 
-Reservado para o ficheiro final do logótipo. Este projeto usa temporariamente
-um símbolo Material no interface e não presume um formato ou nome de ficheiro.
+`punho_elo_operacao_v010.png` é o símbolo introduzido na v0.0.10. É usado na
+barra lateral e no cabeçalho móvel.

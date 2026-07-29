@@ -48,7 +48,7 @@ void main() {
       expect(find.byType(PerfilPopup), findsOneWidget);
     });
 
-    testWidgets('a área tocável é o círculo desenhado', (tester) async {
+    testWidgets('a área tocável ocupa o item de Perfil', (tester) async {
       // O `Container` colorido não recebia toque nenhum. Com `Material` +
       // `InkWell` da mesma forma, tocar dentro do desenho abre — inclusive junto
       // ao bordo, que é onde um hit target menor falharia.
@@ -60,12 +60,9 @@ void main() {
       );
 
       final caixa = tester.getRect(find.byKey(chaveDoAvatarDoPerfil));
-      expect(caixa.width, 32);
-      expect(caixa.height, 32);
-      // Junto ao bordo esquerdo, à altura do centro: dentro do círculo, e é
-      // onde um hit target menor do que o desenho falharia. O canto do
-      // quadrado **não** se testa — num avatar redondo o canto não é área
-      // desenhada, portanto não ser tocável é o comportamento certo.
+      expect(caixa.width, 80);
+      expect(caixa.height, greaterThan(32));
+      // Junto ao bordo esquerdo, à altura do centro: dentro do item desenhado.
       await tester.tapAt(Offset(caixa.left + 2, caixa.center.dy));
       await tester.pumpAndSettle();
 

@@ -66,6 +66,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget build(BuildContext context) {
     final agora = widget.agora ?? DateTime.now();
     final state = ref.watch(operationsProvider);
+    // Em landscape, a largura de um telefone parece a de um desktop. A menor
+    // dimensão é que identifica o dispositivo e evita desperdiçar altura no
+    // cabeçalho antes dos indicadores importantes.
+    final cabecalhoCompacto = MediaQuery.sizeOf(context).shortestSide < 600;
     final slides = [
       // A recomendação do dia manda para os custos ou para o pipeline: é o
       // painel que sabe navegar entre slides, não o slide.
@@ -96,11 +100,17 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           return KeyEventResult.ignored;
         },
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          padding: cabecalhoCompacto
+              ? const EdgeInsets.fromLTRB(12, 6, 12, 6)
+              : const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Column(
             children: [
-              _Saudacao(state: state, agora: agora),
-              const SizedBox(height: 10),
+              _Saudacao(
+                state: state,
+                agora: agora,
+                compacto: cabecalhoCompacto,
+              ),
+              SizedBox(height: cabecalhoCompacto ? 4 : 10),
               Expanded(
                 child: Row(
                   children: [
@@ -148,9 +158,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
 /// Cabeçalho fixo: quem é, que dia é, e a entrada para os dados da empresa.
 class _Saudacao extends StatelessWidget {
-  const _Saudacao({required this.state, required this.agora});
+  const _Saudacao({
+    required this.state,
+    required this.agora,
+    required this.compacto,
+  });
   final OperationsState state;
   final DateTime agora;
+  final bool compacto;
 
   static const _diasDaSemana = [
     'Segunda-feira',
@@ -176,11 +191,14 @@ class _Saudacao extends StatelessWidget {
     'Dezembro',
   ];
 
-  String get _saudacao => switch (agora.hour) {
-    < 13 => 'Bom dia',
-    < 20 => 'Boa tarde',
-    _ => 'Boa noite',
-  };
+  String get _nome => state.ownerName ?? state.companyName;
+
+  String get _data => '${_diasDaSemana[agora.weekday - 1]}, ${agora.day} '
+      '${_meses[agora.month - 1]} ${agora.year}';
+
+  String get _dataCurta =>
+      '${_diasDaSemana[agora.weekday - 1].substring(0, 3)}., ${agora.day} '
+      '${_meses[agora.month - 1].substring(0, 3).toLowerCase()}. ${agora.year}';
 
   @override
   Widget build(BuildContext context) => Row(
@@ -190,19 +208,27 @@ class _Saudacao extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              '$_saudacao, ${state.ownerName ?? state.companyName}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            Text(
-              '${_diasDaSemana[agora.weekday - 1]}, ${agora.day} '
-              '${_meses[agora.month - 1]} ${agora.year}',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            if (compacto) ...[
+              Text(
+                '$_nome · $_dataCurta',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ] else ...[
+              Text(
+                _nome,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(_data, style: Theme.of(context).textTheme.bodySmall),
+            ],
           ],
         ),
       ),

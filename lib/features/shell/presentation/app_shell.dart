@@ -90,8 +90,11 @@ class _AppShellState extends ConsumerState<AppShell> {
         title: const Text('Punho'),
         actions: [
           if (!SupabaseConfig.enabled) const _ProfileSelector(),
-          if (SupabaseConfig.enabled) const _ConvitesButton(),
-          if (SupabaseConfig.enabled) const _SignOutButton(),
+          IconButton(
+            tooltip: 'Conta',
+            icon: const Icon(Icons.person_outline_rounded),
+            onPressed: () => mostrarPerfil(context),
+          ),
         ],
       ),
       drawer: Drawer(
@@ -180,20 +183,24 @@ class _Sidebar extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
+            // Sobe 8 dp para dar mais altura útil à navegação, sem encostar a
+            // marca à margem segura superior.
+            padding: const EdgeInsets.fromLTRB(0, 12, 0, 16),
             child: Center(
-              child: Container(
+              child: SizedBox(
                 width: 40,
                 height: 40,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: PunhoTheme.orange,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.pan_tool_alt,
-                  color: Colors.white,
-                  size: 22,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(11),
+                  child: Transform.scale(
+                    // Remove a margem branca do ficheiro de conceito sem
+                    // alterar o tamanho reservado para a marca.
+                    scale: 1.12,
+                    child: Image.asset(
+                      'assets/brand/punho_elo_operacao_v010.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -201,72 +208,69 @@ class _Sidebar extends ConsumerWidget {
           // Labels de secção ("CENTRO DE COMANDO", "OPERAÇÃO") removidos:
           // Cesar validou no smoke que os ícones + rótulos já são suficientes
           // e as labels só ocupavam altura sem valor informativo real.
-          _SidebarItem(
-            item: AppDestination.management,
-            selected: selected == AppDestination.management,
-            onTap: () => ref
-                .read(navigationProvider.notifier)
-                .goTo(AppDestination.management),
-          ),
-          const SizedBox(height: 8),
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
                 for (final item in destinations)
-                  if (item != AppDestination.management)
-                    _SidebarItem(
-                      item: item,
-                      selected: selected == item,
-                      onTap: () =>
-                          ref.read(navigationProvider.notifier).goTo(item),
-                    ),
-              ],
-            ),
-          ),
-          Container(height: 1, color: const Color(0xFF203A4D)),
-          // Footer compacto: avatar (com tooltip do estado) empilhado em cima
-          // dos ícones de acção. O texto "Sessão activa / Demonstração local"
-          // saiu do ecrã — leva-se pelo tooltip do avatar.
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Column(
-              children: [
-                // O avatar era decorativo: só tooltip, sem `onTap`. Agora abre o
-                // Perfil, que é onde vive o terminar sessão.
-                //
-                // `Material` + `InkWell` com a mesma forma: a área que recebe o
-                // toque é exactamente o círculo desenhado. Era isto que faltava
-                // — um `Container` colorido não recebe toque nenhum.
-                Tooltip(
-                  message: 'Perfil',
-                  child: Material(
-                    color: const Color(0xFF1D3A4E),
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      key: chaveDoAvatarDoPerfil,
-                      customBorder: const CircleBorder(),
-                      onTap: () => mostrarPerfil(context),
-                      child: const SizedBox(
-                        width: 32,
-                        height: 32,
-                        child: Icon(
-                          Icons.person_outline_rounded,
-                          size: 18,
-                          color: Color(0xFFCEDAE1),
-                        ),
-                      ),
-                    ),
+                  _SidebarItem(
+                    item: item,
+                    selected: selected == item,
+                    onTap: () =>
+                        ref.read(navigationProvider.notifier).goTo(item),
                   ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Divider(height: 1, color: Color(0xFF203A4D)),
                 ),
-                if (SupabaseConfig.enabled) ...[
-                  const SizedBox(height: 8),
-                  const _ConvitesButton(onDarkBackground: true),
-                ],
+                const _PerfilSidebarItem(),
               ],
             ),
           ),
         ],
+      ),
+    ),
+  );
+}
+
+class _PerfilSidebarItem extends StatelessWidget {
+  const _PerfilSidebarItem();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+    child: Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        key: chaveDoAvatarDoPerfil,
+        onTap: () => mostrarPerfil(context),
+        borderRadius: BorderRadius.circular(10),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+          child: Column(
+            children: [
+              Icon(
+                Icons.person_outline_rounded,
+                size: 22,
+                color: Color(0xFFB7C7D1),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Perfil',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 10,
+                  height: 1.1,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFFB7C7D1),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     ),
   );

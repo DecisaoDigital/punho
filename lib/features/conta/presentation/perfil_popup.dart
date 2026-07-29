@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/auth/auth_rules.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../auth/acesso_providers.dart';
+import '../../gestao/presentation/convites_screen.dart';
 
 /// Quem está autenticado, e como sair.
 ///
@@ -49,7 +51,10 @@ class PerfilPopup extends ConsumerWidget {
     );
     final cores = Theme.of(context).colorScheme;
     final textos = Theme.of(context).textTheme;
-    final nome = estado.ownerName?.trim().isNotEmpty == true
+    final nomeDaConta = utilizador?.userMetadata?['nome'] as String?;
+    final nome = nomeDaConta?.trim().isNotEmpty == true
+        ? nomeDaConta!.trim()
+        : estado.ownerName?.trim().isNotEmpty == true
         ? estado.ownerName!.trim()
         // Sem nome de responsável, o email identifica melhor do que "Gestor".
         : utilizador?.email ?? 'Gestor';
@@ -102,6 +107,28 @@ class PerfilPopup extends ConsumerWidget {
                 const _Linha(rotulo: 'Perfil', valor: 'Gestor (demonstração)'),
               ],
               const SizedBox(height: 20),
+              if (comSessao) ...[
+                OutlinedButton.icon(
+                  onPressed: () => _editarDados(context, utilizador!),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Editar dados'),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () => _mudarPalavraPasse(context),
+                  icon: const Icon(Icons.lock_outline),
+                  label: const Text('Mudar palavra-passe'),
+                ),
+                if (acesso?.eGestor ?? false) ...[
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    onPressed: () => _abrirConvites(context),
+                    icon: const Icon(Icons.person_add_alt),
+                    label: const Text('Convidar membros'),
+                  ),
+                ],
+                const SizedBox(height: 8),
+              ],
               if (comSessao)
                 OutlinedButton.icon(
                   onPressed: () => _terminarSessao(context, ref),
@@ -142,6 +169,25 @@ class PerfilPopup extends ConsumerWidget {
   /// `onAuthStateChange` — não se chama `Navigator` à mão daqui. O
   /// `invalidate` força o estado de acesso a ser relido, para o gate não
   /// decidir com a adesão antiga em cache.
+  Future<void> _editarDados(BuildContext context, User utilizador) =>
+      showDialog<void>(
+        context: context,
+        builder: (_) => _EditarDadosDialog(utilizador: utilizador),
+      );
+
+  Future<void> _mudarPalavraPasse(BuildContext context) => showDialog<void>(
+    context: context,
+    builder: (_) => const _MudarPalavraPasseDialog(),
+  );
+
+  void _abrirConvites(BuildContext context) {
+    final navegador = Navigator.of(context, rootNavigator: true);
+    navegador.pop();
+    navegador.push(
+      MaterialPageRoute<void>(builder: (_) => const ConvitesScreen()),
+    );
+  }
+
   Future<void> _terminarSessao(BuildContext context, WidgetRef ref) async {
     final confirmado = await showDialog<bool>(
       context: context,
@@ -183,6 +229,167 @@ class PerfilPopup extends ConsumerWidget {
       );
     }
   }
+}
+
+class _EditarDadosDialog extends StatefulWidget {
+  const _EditarDadosDialog({required this.utilizador});
+  final User utilizador;
+
+  @override
+  State<_EditarDadosDialog> createState() => _EditarDadosDialogState();
+}
+
+class _EditarDadosDialogState extends State<_EditarDadosDialog> {
+  late final TextEditingController _nome;
+  late final TextEditingController _email;
+  bool _aGuardar = false;
+  String? _erro;
+
+  @override
+  void initState() {
+    super.initState();
+    _nome = TextEditingController(
+      text: (widget.utilizador.userMetadata?['nome'] as String?) ?? '',
+    );
+    _email = TextEditingController(text: widget.utilizador.email ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nome.dispose();
+    _email.dispose();
+    super.dispose();
+  }
+
+  Future<void> _guardar() async {
+    final nome = _nome.text.trim();
+    final email = _email.text.trim();
+    final erroEmail = AuthRules.validarEmail(email);
+    if (nome.isEmpty || erroEmail != null) {
+      setState(() => _erro = nome.isEmpty ? 'Indica o teu nome.' : erroEmail);
+      return;
+    }
+    setState(() {
+      _aGuardar = true;
+      _erro = null;
+    });
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(
+          email: email == widget.utilizador.email ? null : email,
+          data: {...?widget.utilizador.userMetadata, 'nome': nome},
+        ),
+      );
+      if (mounted) Navigator.pop(context);
+    } on AuthException catch (erro) {
+      if (mounted) setState(() => _erro = AuthRules.mensagemSegura(erro.code));
+    } catch (_) {
+      if (mounted) setState(() => _erro = 'Não foi possível guardar os teus dados.');
+    } finally {
+      if (mounted) setState(() => _aGuardar = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Editar dados'),
+    content: SizedBox(
+      width: 360,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _nome,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(labelText: 'Nome'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(labelText: 'Email'),
+          ),
+          if (_erro != null) ...[
+            const SizedBox(height: 12),
+            Text(_erro!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ],
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(onPressed: _aGuardar ? null : () => Navigator.pop(context), child: const Text('Cancelar')),
+      FilledButton(onPressed: _aGuardar ? null : _guardar, child: Text(_aGuardar ? 'A guardar…' : 'Guardar')),
+    ],
+  );
+}
+
+class _MudarPalavraPasseDialog extends StatefulWidget {
+  const _MudarPalavraPasseDialog();
+
+  @override
+  State<_MudarPalavraPasseDialog> createState() => _MudarPalavraPasseDialogState();
+}
+
+class _MudarPalavraPasseDialogState extends State<_MudarPalavraPasseDialog> {
+  final _nova = TextEditingController();
+  final _confirmacao = TextEditingController();
+  bool _aGuardar = false;
+  String? _erro;
+
+  @override
+  void dispose() {
+    _nova.dispose();
+    _confirmacao.dispose();
+    super.dispose();
+  }
+
+  Future<void> _guardar() async {
+    final erro = AuthRules.validarPalavraPasse(_nova.text);
+    if (erro != null || _nova.text != _confirmacao.text) {
+      setState(() => _erro = erro ?? 'As palavras-passe não coincidem.');
+      return;
+    }
+    setState(() {
+      _aGuardar = true;
+      _erro = null;
+    });
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: _nova.text),
+      );
+      if (mounted) Navigator.pop(context);
+    } on AuthException catch (erro) {
+      if (mounted) setState(() => _erro = AuthRules.mensagemSegura(erro.code));
+    } catch (_) {
+      if (mounted) setState(() => _erro = 'Não foi possível mudar a palavra-passe.');
+    } finally {
+      if (mounted) setState(() => _aGuardar = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Mudar palavra-passe'),
+    content: SizedBox(
+      width: 360,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(controller: _nova, obscureText: true, decoration: const InputDecoration(labelText: 'Nova palavra-passe')),
+          const SizedBox(height: 12),
+          TextField(controller: _confirmacao, obscureText: true, decoration: const InputDecoration(labelText: 'Confirmar palavra-passe')),
+          if (_erro != null) ...[
+            const SizedBox(height: 12),
+            Text(_erro!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ],
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(onPressed: _aGuardar ? null : () => Navigator.pop(context), child: const Text('Cancelar')),
+      FilledButton(onPressed: _aGuardar ? null : _guardar, child: Text(_aGuardar ? 'A guardar…' : 'Atualizar')),
+    ],
+  );
 }
 
 class _Avatar extends StatelessWidget {

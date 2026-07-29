@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -17,6 +18,18 @@ import 'features/updates/presentation/update_banner_wrapper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // A área das notificações pertence visualmente à moldura da app. Sem esta
+  // definição, alguns Android desenham ícones claros sobre o fundo claro do
+  // conteúdo, sobretudo quando o telemóvel está em landscape.
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: PunhoTheme.navyDeep,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.black,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
   if (SupabaseConfig.enabled) {
     await Supabase.initialize(
       url: SupabaseConfig.url,

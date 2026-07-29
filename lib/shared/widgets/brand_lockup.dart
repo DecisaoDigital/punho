@@ -8,15 +8,19 @@ class BrandLockup extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Container(
+      SizedBox(
         width: 38,
         height: 38,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF2A23A),
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(10),
+          child: Transform.scale(
+            scale: 1.12,
+            child: Image.asset(
+              'assets/brand/punho_elo_operacao_v010.png',
+              fit: BoxFit.cover,
+            ),
+          ),
         ),
-        child: const Icon(Icons.front_hand_outlined, color: Color(0xFF10283A)),
       ),
       if (!compact) ...[
         const SizedBox(width: 10),
