@@ -55,7 +55,7 @@ jobs:
         # Punho_v{versao}_{abi}.apk. Aqui so movemos para o workspace root
         # para o glob do upload-artifact apanhar.
         run: |
-          cp build/app/outputs/flutter-apk/Punho_v*.apk .
+          cp build/app/outputs/apk/release/Punho_v*.apk build/app/outputs/flutter-apk/Punho_v*.apk . 2>/dev/null; ls -la build/app/outputs/apk/release/ 2>/dev/null; ls -la build/app/outputs/flutter-apk/ 2>/dev/null; cp build/app/outputs/apk/release/*.apk . 2>/dev/null || cp build/app/outputs/flutter-apk/*.apk .
           ls -lh Punho_v*.apk
       - name: Guard-rail — APK contem dart-defines Supabase
         # A v0.0.5 saiu sem SUPABASE_URL/ANON_KEY no APK e o auto-update ficou
