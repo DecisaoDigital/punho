@@ -80,6 +80,80 @@ void main() {
     expect(find.byType(BoasVindasScreen), findsOneWidget);
   });
 
+  testWidgets('campos financeiros recebem foco em cada avanço', (tester) async {
+    await abrir(tester, containerVazio());
+    await irAteAoSwitch(tester);
+    await continuar(tester);
+    await tester.tap(find.text('Continuar →'));
+    await tester.pumpAndSettle();
+
+    // Máquinas → volume de negócios do ano passado.
+    await continuar(tester);
+    expect(
+      find.text('Qual foi o volume de negócios no ano passado?'),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
+      isTrue,
+    );
+    tester.testTextInput.enterText('100000');
+    await tester.pump();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller?.text,
+      '100000',
+    );
+
+    // O utilizador só toca em Continuar. O campo seguinte deve aceitar texto
+    // imediatamente, sem um toque adicional dentro do campo.
+    await continuar(tester);
+    expect(
+      find.text(
+        'Qual é o volume de negócios acumulado desde o início do ano até hoje?',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
+      isTrue,
+    );
+    tester.testTextInput.enterText('65000');
+    await tester.pump();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller?.text,
+      '65000',
+    );
+
+    await continuar(tester);
+    expect(
+      find.text('Quanto gastou em manutenção no ano passado?'),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
+      isTrue,
+    );
+    tester.testTextInput.enterText('5000');
+    await tester.pump();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller?.text,
+      '5000',
+    );
+
+    await continuar(tester);
+    expect(find.text('Quais são os custos fixos mensais?'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
+      isTrue,
+    );
+    tester.testTextInput.enterText('2500');
+    await tester.pump();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller?.text,
+      '2500',
+    );
+  });
+
   testWidgets('caminho curto: o switch leva directo ao BoasVindas', (
     tester,
   ) async {
