@@ -105,6 +105,10 @@ class _AuthGateState extends ConsumerState<AuthGate> {
                 child: const Text('Entrar'),
               ),
               TextButton(
+                onPressed: _busy ? null : _recuperarPalavraPasse,
+                child: const Text('Esqueci a palavra-passe'),
+              ),
+              TextButton(
                 onPressed: _busy
                     ? null
                     : () => setState(() {
@@ -119,6 +123,73 @@ class _AuthGateState extends ConsumerState<AuthGate> {
       ),
     ),
   );
+
+  Future<void> _recuperarPalavraPasse() async {
+    // Nao bloqueamos o email se estiver vazio — pedimo-lo primeiro para o
+    // utilizador nao ter de tocar em nada nem sair do sitio.
+    final controller = TextEditingController(text: _email.text.trim());
+    final email = await showDialog<String?>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Recuperar palavra-passe'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Envio-te um email com o link para definir uma nova palavra-passe.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Enviar'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (email == null || email.isEmpty) return;
+
+    final erroEmail = AuthRules.validarEmail(email);
+    if (erroEmail != null) {
+      setState(() => _error = erroEmail);
+      return;
+    }
+
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Se existir uma conta com esse email, receberas o link em breve.',
+          ),
+        ),
+      );
+    } on AuthException catch (e) {
+      if (mounted) setState(() => _error = AuthRules.mensagemSegura(e.code));
+    } catch (_) {
+      if (mounted) setState(() => _error = AuthRules.mensagemSegura(null));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   Future<void> _entrar() async {
     final emailError = AuthRules.validarEmail(_email.text);
