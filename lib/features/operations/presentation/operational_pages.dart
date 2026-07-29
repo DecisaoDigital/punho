@@ -288,6 +288,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: taxId,
+                  autofocus: true,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText: 'NIF da empresa',
@@ -302,6 +303,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         children: [
           TextField(
             controller: address,
+            autofocus: true,
             decoration: const InputDecoration(
               labelText: 'Morada',
               border: OutlineInputBorder(),

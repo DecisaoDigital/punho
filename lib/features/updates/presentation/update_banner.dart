@@ -42,7 +42,30 @@ class PunhoUpdateBanner extends ConsumerWidget {
                   ),
                   if (update.releaseNotes?.trim().isNotEmpty ?? false) ...[
                     const SizedBox(height: 4),
-                    Text(update.releaseNotes!),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        alignment: Alignment.centerLeft,
+                      ),
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text('Novidades da versão ${update.version}'),
+                          content: SingleChildScrollView(
+                            child: Text(update.releaseNotes!),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Fechar'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      child: const Text('Ver detalhes'),
+                    ),
                   ],
                 ],
               ),
