@@ -19,6 +19,26 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Decode release keystore
+        # Secret PUNHO_KEYSTORE_BASE64 = base64 de D:\Seguro\keystores\punho_release.jks
+        # Secret PUNHO_KEYSTORE_PASSWORD = senha da keystore
+        # Ambas configuradas em Settings > Secrets > Actions do repo.
+        env:
+          KEYSTORE_B64: ${{ secrets.PUNHO_KEYSTORE_BASE64 }}
+          KEYSTORE_PW: ${{ secrets.PUNHO_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > android/app/punho_release.jks
+            cat > android/key.properties << EOF
+          storeFile=punho_release.jks
+          storePassword=$KEYSTORE_PW
+          keyAlias=punho
+          keyPassword=$KEYSTORE_PW
+          EOF
+            echo "Keystore + key.properties criados. Release APK sera assinado."
+          else
+            echo "::warning::PUNHO_KEYSTORE_BASE64 nao configurado. APK sai com debug key."
+          fi
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
