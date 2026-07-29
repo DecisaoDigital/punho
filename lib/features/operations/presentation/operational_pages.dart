@@ -68,6 +68,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   ///
   /// Em modo demo (sem sessão) ou vinda com metadata incompleto, nada muda.
   void _preencherDoRegistoSeExistir() {
+    // Em modo demo (SupabaseConfig.enabled=false) ou em testes que nao
+    // inicializam o Supabase, sair sem tocar em Supabase.instance — ler
+    // .instance sem init lança assertion.
+    if (!SupabaseConfig.enabled) return;
     final utilizador = Supabase.instance.client.auth.currentUser;
     if (utilizador == null) return;
     final meta = utilizador.userMetadata ?? const <String, dynamic>{};

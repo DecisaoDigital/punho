@@ -377,7 +377,8 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
                           }),
                         ),
                 ),
-                TextButton.icon(
+                IconButton(
+                  tooltip: 'Novo cliente',
                   onPressed: () async {
                     final criado = await customerDialog(context, ref);
                     if (criado != null) {
@@ -388,7 +389,6 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
                     }
                   },
                   icon: const Icon(Icons.person_add_alt),
-                  label: const Text('Novo'),
                 ),
               ],
             ),
