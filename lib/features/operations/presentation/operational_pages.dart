@@ -167,8 +167,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       'Equipa e frota',
       'Continuar com os dados operacionais?',
       'Quantas máquinas tem aproximadamente?',
-      'Quanto faturou no ano passado?',
-      'Quanto faturou este ano até hoje?',
+      'Qual foi o volume de negócios no ano passado?',
+      'Qual é o volume de negócios acumulado desde o início do ano até hoje?',
       'Quanto gastou em manutenção no ano passado?',
       'Quais são os custos fixos mensais?',
     ];
@@ -190,8 +190,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       'Número de colaboradores e de veículos (podem ser 0). Os separadores Funcionários e Veículos ficam activos quando forem maiores que 0.',
       'Podes saltar e preencher depois, em Definições. Sem estes números o painel mostra "Por apurar" em vez de recomendações.',
       'Uma estimativa chega. Criamos uma linha por máquina para lhes dares nome e foto aos poucos.',
-      'Um número redondo serve. Fica em branco se não souberes.',
-      'O acumulado deste ano até hoje.',
+      'Indica o total faturado no ano passado. Uma estimativa é suficiente; deixa em branco se não souberes.',
+      'Indica o total faturado desde 1 de janeiro até hoje. Uma estimativa é suficiente.',
       'Avarias e revisões pagas no ano passado. Uma estimativa chega.',
       'Renda, eletricidade, água, seguros, programas e outros custos que se repetem todos os meses.',
     ];
@@ -243,10 +243,23 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     // Focar o campo do passo actual apos o frame — cobre step++, voltar,
     // e o salto _preencherDoRegistoSeExistir para step 3. autofocus so
     // dispara na 1a montagem; isto garante que o cursor acompanha o passo.
-    if (passoDeDados >= 0 && passoDeDados != _passoFocado) {
+    final passoTemInputFocado =
+        passoDeDados == 0 ||
+        passoDeDados == 1 ||
+        passoDeDados == 3 ||
+        passoDeDados == 4 ||
+        passoDeDados >= 8;
+    if (passoTemInputFocado && passoDeDados != _passoFocado) {
       _passoFocado = passoDeDados;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _focoInput.requestFocus();
+        if (!mounted) return;
+        // Os passos financeiros reutilizam o mesmo FocusNode. Primeiro
+        // desligamos a ligação ao EditableText anterior; só no frame seguinte
+        // pedimos o foco, para o teclado ficar associado ao campo novo.
+        _focoInput.unfocus();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _focoInput.requestFocus();
+        });
       });
     }
 
@@ -442,12 +455,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       ),
       8 => _EuroInput(
         controller: revenueLastYear,
-        label: 'Faturação no ano passado (€)',
+        label: 'Volume de negócios no ano passado (€)',
         focusNode: _focoInput,
       ),
       9 => _EuroInput(
         controller: revenueThisYear,
-        label: 'Faturação deste ano até hoje (€)',
+        label: 'Volume de negócios acumulado este ano (€)',
         focusNode: _focoInput,
       ),
       10 => _EuroInput(
@@ -503,7 +516,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   Text(helps[passoDeDados]),
                 ],
                 const SizedBox(height: 24),
-                input,
+                // Cada passo recebe uma subárvore nova. Os campos financeiros
+                // têm a mesma estrutura e partilham o FocusNode; sem uma chave,
+                // o Flutter podia reutilizar o TextField anterior e considerar
+                // que o foco não tinha mudado. Assim o campo visível fica
+                // imediatamente ligado ao teclado em cada avanço.
+                KeyedSubtree(key: ValueKey(passoDeDados), child: input),
                 const SizedBox(height: 28),
                 Row(
                   children: [
