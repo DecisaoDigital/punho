@@ -102,7 +102,15 @@ void main() {
     testWidgets('mostra quem está ligado e a empresa', (tester) async {
       await abrirPerfil(tester);
 
-      expect(find.text('Alfredo'), findsOneWidget);
+      // O nome aparece no avatar e como título; ambos pertencem ao perfil.
+      expect(
+        find.descendant(
+          of: find.byType(PerfilPopup),
+          matching: find.text('Alfredo'),
+        ),
+        findsNWidgets(2),
+      );
+      expect(find.text('Alugueres Norte'), findsOneWidget);
       expect(find.text('Gestor (demonstração)'), findsOneWidget);
     });
 

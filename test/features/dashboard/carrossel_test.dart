@@ -20,8 +20,8 @@ void main() {
 
       expect(find.text('1/5 · Dinheiro'), findsOneWidget);
       expect(find.byType(DinheiroSlide), findsOneWidget);
-      // Saudação com o nome e a data.
-      expect(find.text('Bom dia, Alfredo'), findsOneWidget);
+      // Cabeçalho com o responsável e a data, sem uma saudação artificial.
+      expect(find.text('Alfredo'), findsOneWidget);
       expect(find.text('Quarta-feira, 15 Julho 2026'), findsOneWidget);
     });
 
