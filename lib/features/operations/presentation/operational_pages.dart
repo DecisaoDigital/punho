@@ -38,6 +38,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   // Quando a app for para Supabase real, o cargo autoritativo vem de
   // punho_membros — este é ignorado ou usado só como sugestão.
   String role = 'gestor';
+  /// Foco partilhado por todos os passos de dados. Sem isto o `autofocus: true`
+  /// so dispara na primeira montagem do FocusScope; avancar de passo constrói
+  /// TextField novo mas o cursor ficava sem casa e o teclado do Android
+  /// aparecia "solto" — o utilizador escrevia e as letras nao iam a lado nenhum.
+  final FocusNode _focoInput = FocusNode();
+  int _passoFocado = -1;
   final ownerName = TextEditingController();
   final name = TextEditingController();
   final taxId = TextEditingController();
@@ -89,6 +95,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
   @override
   void dispose() {
+    _focoInput.dispose();
     for (final controller in [
       name,
       ownerName,
@@ -233,6 +240,16 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final ecraActual = percurso[step.clamp(0, percurso.length - 1)];
     final passoDeDados = ecraActual is int ? ecraActual : -1;
 
+    // Focar o campo do passo actual apos o frame — cobre step++, voltar,
+    // e o salto _preencherDoRegistoSeExistir para step 3. autofocus so
+    // dispara na 1a montagem; isto garante que o cursor acompanha o passo.
+    if (passoDeDados >= 0 && passoDeDados != _passoFocado) {
+      _passoFocado = passoDeDados;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focoInput.requestFocus();
+      });
+    }
+
     if (ecraActual is _EcraDeContexto) {
       void voltar() => setState(() => step--);
       return switch (ecraActual) {
@@ -250,7 +267,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final input = switch (passoDeDados) {
       0 => TextField(
         controller: ownerName,
-        autofocus: true,
+        focusNode: _focoInput,
         textCapitalization: TextCapitalization.words,
         decoration: const InputDecoration(
           labelText: 'Nome',
@@ -259,7 +276,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       ),
       1 => TextField(
         controller: name,
-        autofocus: true,
+        focusNode: _focoInput,
         decoration: const InputDecoration(
           labelText: 'Nome da empresa',
           border: OutlineInputBorder(),
@@ -284,7 +301,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       3 => role == 'colaborador'
           ? TextField(
               controller: phone,
-              autofocus: true,
+              focusNode: _focoInput,
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(
                 labelText: 'Telemóvel',
@@ -316,7 +333,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: taxId,
-                  autofocus: true,
+                  focusNode: _focoInput,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText: 'NIF da empresa',
@@ -331,7 +348,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         children: [
           TextField(
             controller: address,
-            autofocus: true,
+            focusNode: _focoInput,
             decoration: const InputDecoration(
               labelText: 'Morada',
               border: OutlineInputBorder(),
@@ -426,14 +443,17 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       8 => _EuroInput(
         controller: revenueLastYear,
         label: 'Faturação no ano passado (€)',
+        focusNode: _focoInput,
       ),
       9 => _EuroInput(
         controller: revenueThisYear,
         label: 'Faturação deste ano até hoje (€)',
+        focusNode: _focoInput,
       ),
       10 => _EuroInput(
         controller: maintenanceLastYear,
         label: 'Manutenção paga no ano passado (€)',
+        focusNode: _focoInput,
       ),
       // Custos fixos é o último passo do onboarding completo — daqui vai
       // directo para a app, sem passar por "quer inserir máquinas agora?".
@@ -442,6 +462,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       _ => _EuroInput(
         controller: fixedMonthlyCosts,
         label: 'Custos fixos mensais (€)',
+        focusNode: _focoInput,
       ),
     };
     return Scaffold(
@@ -534,16 +555,19 @@ int? _euroCents(String value) {
 }
 
 class _EuroInput extends StatelessWidget {
-  const _EuroInput({required this.controller, required this.label});
+  const _EuroInput({required this.controller, required this.label, this.focusNode});
   final TextEditingController controller;
   final String label;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) => TextField(
     controller: controller,
+    focusNode: focusNode,
     // Foco imediato para o utilizador escrever logo sem ter de tocar primeiro
-    // no campo. Como o input é o único widget do passo, não há ambiguidade.
-    autofocus: true,
+    // no campo. Se focusNode veio de fora, é o dono a chamar requestFocus
+    // sempre que muda de passo (fix 1c smoke v0.0.8).
+    autofocus: focusNode == null,
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
     decoration: InputDecoration(
       labelText: label,
@@ -628,6 +652,7 @@ class _InitialDataTasksPageState extends ConsumerState<InitialDataTasksPage> {
 
   @override
   void dispose() {
+    _focoInput.dispose();
     for (final controller in [
       taxId,
       ownerName,
@@ -901,6 +926,7 @@ class _HistoricalMonthEditorState
 
   @override
   void dispose() {
+    _focoInput.dispose();
     for (final controller in [
       revenue,
       expenses,
