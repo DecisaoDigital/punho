@@ -652,7 +652,6 @@ class _InitialDataTasksPageState extends ConsumerState<InitialDataTasksPage> {
 
   @override
   void dispose() {
-    _focoInput.dispose();
     for (final controller in [
       taxId,
       ownerName,
@@ -926,7 +925,6 @@ class _HistoricalMonthEditorState
 
   @override
   void dispose() {
-    _focoInput.dispose();
     for (final controller in [
       revenue,
       expenses,
