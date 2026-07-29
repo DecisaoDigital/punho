@@ -112,8 +112,9 @@ jobs:
           test -x "$apksigner"
           test -x "$aapt"
 
-          cert="$("$apksigner" verify --print-certs "$apk" |
-            sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          cert_output="$("$apksigner" verify --print-certs "$apk")"
+          cert="$(printf '%s\n' "$cert_output" |
+            awk -F ': ' '/certificate SHA-256 digest:/ {print tolower($NF); exit}')"
           if [ "$cert" != "$PUNHO_CERT_SHA256" ]; then
             echo "::error::Certificado de assinatura inesperado: $cert"
             exit 1
