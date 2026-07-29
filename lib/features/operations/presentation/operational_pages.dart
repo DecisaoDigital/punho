@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/supabase_config.dart';
@@ -57,6 +58,29 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     // tablet: o `main.dart` bloqueava landscape no arranque e ninguém aqui
     // dizia o contrário (Decisão 13).
     OrientacaoDoContexto.portraitJa();
+    _preencherDoRegistoSeExistir();
+  }
+
+  /// Quem chegou por signUp já forneceu nome/empresa/cargo no `RegistoScreen`;
+  /// esses dados vivem em `user_metadata` do Supabase. Se estiverem todos lá,
+  /// pré-preenchemos os controllers e saltamos directo para o passo 3 — não
+  /// vale a pena obrigar a re-escrever o que acabou de escrever há 30s.
+  ///
+  /// Em modo demo (sem sessão) ou vinda com metadata incompleto, nada muda.
+  void _preencherDoRegistoSeExistir() {
+    final utilizador = Supabase.instance.client.auth.currentUser;
+    if (utilizador == null) return;
+    final meta = utilizador.userMetadata ?? const <String, dynamic>{};
+    final nomeMeta = (meta['nome'] as String?)?.trim();
+    final empresaMeta = (meta['empresa'] as String?)?.trim();
+    final perfilMeta = (meta['perfil'] as String?)?.trim();
+    if (nomeMeta == null || nomeMeta.isEmpty) return;
+    if (empresaMeta == null || empresaMeta.isEmpty) return;
+    if (perfilMeta == null || perfilMeta.isEmpty) return;
+    ownerName.text = nomeMeta;
+    name.text = empresaMeta;
+    role = perfilMeta == 'gestor' ? 'gestor' : 'colaborador';
+    step = 3;
   }
 
   @override
