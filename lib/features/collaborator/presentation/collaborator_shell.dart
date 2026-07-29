@@ -172,6 +172,8 @@ Future<void> _newLead(BuildContext c, WidgetRef ref, String id) async {
         children: [
           TextField(
             controller: name,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
             decoration: const InputDecoration(labelText: 'Nome'),
           ),
           TextField(

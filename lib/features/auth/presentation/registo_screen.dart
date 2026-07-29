@@ -142,6 +142,8 @@ class _RegistoScreenState extends ConsumerState<RegistoScreen> {
                       const SizedBox(height: 16),
                       TextField(
                         controller: _nome,
+                        autofocus: true,
+                        textCapitalization: TextCapitalization.words,
                         decoration: const InputDecoration(labelText: 'Nome'),
                       ),
                       TextField(

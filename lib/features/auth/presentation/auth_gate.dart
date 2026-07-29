@@ -88,6 +88,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
               const SizedBox(height: 16),
               TextField(
                 controller: _email,
+                autofocus: true,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(labelText: 'Email'),
               ),
