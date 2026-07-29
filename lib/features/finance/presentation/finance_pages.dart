@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../operations/presentation/operational_pages.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../core/documents/at_invoice_qr.dart';
@@ -332,8 +334,8 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
         .toList();
     return Scaffold(
       appBar: AppBar(title: const Text('Registar recebimento')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
         child: Column(
           children: [
             TextField(
@@ -341,23 +343,49 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'Valor (€)'),
             ),
-            DropdownButtonFormField<String>(
-              initialValue: selectedCustomerId,
-              decoration: const InputDecoration(labelText: 'Cliente'),
-              items: customers
-                  .map(
-                    (customer) => DropdownMenuItem(
-                      value: customer.id,
-                      child: Text(customer.name),
-                    ),
-                  )
-                  .toList(),
-              onChanged: customers.isEmpty
-                  ? null
-                  : (value) => setState(() {
-                      customerId = value;
-                      bookingId = null;
-                    }),
+            Row(
+              children: [
+                Expanded(
+                  child: customers.isEmpty
+                      ? const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Text(
+                            'Sem clientes ainda — usa “Novo” para adicionar.',
+                          ),
+                        )
+                      : DropdownButtonFormField<String>(
+                          initialValue: selectedCustomerId,
+                          decoration: const InputDecoration(
+                            labelText: 'Cliente',
+                          ),
+                          items: customers
+                              .map(
+                                (customer) => DropdownMenuItem(
+                                  value: customer.id,
+                                  child: Text(customer.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) => setState(() {
+                            customerId = value;
+                            bookingId = null;
+                          }),
+                        ),
+                ),
+                TextButton.icon(
+                  onPressed: () async {
+                    final criado = await customerDialog(context, ref);
+                    if (criado != null) {
+                      setState(() {
+                        customerId = criado.id;
+                        bookingId = null;
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.person_add_alt),
+                  label: const Text('Novo'),
+                ),
+              ],
             ),
             DropdownButtonFormField<String?>(
               initialValue: bookingId,

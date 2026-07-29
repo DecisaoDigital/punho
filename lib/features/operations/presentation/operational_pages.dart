@@ -1581,7 +1581,7 @@ class ClientsPage extends ConsumerWidget {
         spacing: 8,
         children: [
           OutlinedButton.icon(
-            onPressed: () => _customerDialog(context, ref),
+            onPressed: () => customerDialog(context, ref),
             icon: const Icon(Icons.person_add_alt_1),
             label: const Text('Novo cliente'),
           ),
@@ -1643,7 +1643,8 @@ class ClientsPage extends ConsumerWidget {
   }
 }
 
-Future<void> _customerDialog(BuildContext context, WidgetRef ref) async {
+Future<Customer?> customerDialog(BuildContext context, WidgetRef ref) async {
+  Customer? criado;
   final name = TextEditingController();
   final phone = TextEditingController();
   final taxId = TextEditingController();
@@ -1711,11 +1712,8 @@ Future<void> _customerDialog(BuildContext context, WidgetRef ref) async {
           onPressed: () {
             if (name.text.trim().isEmpty) return;
             try {
-              ref
-                  .read(operationsProvider.notifier)
-                  .addCustomer(
-                    Customer(
-                      id: 'c${DateTime.now().microsecondsSinceEpoch}',
+              final novo = Customer(
+                id: 'c${DateTime.now().microsecondsSinceEpoch}',
                       name: name.text.trim(),
                       phone: phone.text.trim(),
                       taxId: taxId.text.trim().isEmpty
@@ -1733,9 +1731,10 @@ Future<void> _customerDialog(BuildContext context, WidgetRef ref) async {
                       locality: locality.text.trim().isEmpty
                           ? null
                           : locality.text.trim(),
-                      notes: notes.text.trim(),
-                    ),
-                  );
+                notes: notes.text.trim(),
+              );
+              ref.read(operationsProvider.notifier).addCustomer(novo);
+              criado = novo;
               Navigator.pop(dialogContext);
             } on StateError catch (error) {
               ScaffoldMessenger.of(
@@ -1753,6 +1752,7 @@ Future<void> _customerDialog(BuildContext context, WidgetRef ref) async {
   taxId.dispose();
   email.dispose();
   notes.dispose();
+  return criado;
 }
 
 Future<void> _leadDialog(BuildContext context, WidgetRef ref) async {
