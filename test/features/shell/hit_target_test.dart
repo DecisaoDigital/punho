@@ -133,9 +133,9 @@ void main() {
         DashboardPage(agora: agoraFixa),
       );
 
-      await tocarNoBordo(tester, find.widgetWithText(TextButton, 'Custos'));
+      await tocarNoBordo(tester, find.widgetWithText(TextButton, 'Pipeline'));
 
-      expect(find.text('Custo real com pessoal'), findsOneWidget);
+      expect(find.text('Pipeline e compromissos'), findsOneWidget);
     });
   });
 

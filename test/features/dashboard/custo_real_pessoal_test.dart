@@ -148,8 +148,10 @@ void main() {
         DashboardPage(agora: agoraFixa),
         tamanho: const Size(1280, 800),
       );
-      await tester.tap(find.widgetWithText(TextButton, 'Custos'));
-      await tester.pumpAndSettle();
+      for (var i = 0; i < 3; i++) {
+        await tester.tap(find.byTooltip('Slide seguinte'));
+        await tester.pumpAndSettle();
+      }
     }
 
     testWidgets('mostra o custo real e as duas parcelas', (tester) async {
