@@ -41,22 +41,32 @@ jobs:
       # são documentação para revisão humana, não gate de release (#202).
       - run: flutter test --exclude-tags=screenshot
       - run: |
-          flutter build apk --release \
+          # --split-per-abi: gera 3 APKs (arm64-v8a, armeabi-v7a, x86_64) em
+          # vez de um fat APK com as 3 arquitecturas. A partir de compileSdk
+          # 36 as libs .so ficam Stored (0% compressao) para memory-mapping;
+          # o fat APK dobrou de 33 -> 69 MB entre v0.0.5 e v0.0.6 por essa
+          # razao (task #209). Com split, cada APK volta a ~29 MB.
+          flutter build apk --release --split-per-abi \
             --build-name=${{ steps.version.outputs.version }} \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
-      - name: Rename APK
-        # Da versão e não do `ref_name`: numa dispatch manual o `ref_name` é o
-        # nome da branch, e `punho-android-feat/v006-boas-vindas.apk` não é um
-        # caminho válido. Assim o nome sai igual nos dois casos.
-        run: mv build/app/outputs/flutter-apk/app-release.apk punho-android-v${{ steps.version.outputs.version }}.apk
+      - name: Rename APKs
+        # Com --split-per-abi o Flutter emite 3 ficheiros. Renomeados com
+        # versao no nome para ficarem legiveis no GitHub Release.
+        run: |
+          v="${{ steps.version.outputs.version }}"
+          mv build/app/outputs/flutter-apk/app-arm64-v8a-release.apk    "punho-android-arm64-v8a-v$v.apk"
+          mv build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk  "punho-android-armeabi-v7a-v$v.apk"
+          mv build/app/outputs/flutter-apk/app-x86_64-release.apk       "punho-android-x86_64-v$v.apk"
+          ls -lh punho-android-*.apk
       - name: Guard-rail — APK contem dart-defines Supabase
         # A v0.0.5 saiu sem SUPABASE_URL/ANON_KEY no APK e o auto-update ficou
         # mudo. Este step le libapp.so (onde as constantes ficam no AOT) e falha
         # o CI se os hostname/chave nao aparecerem. Ver task #210/#236.
         run: |
           set -eu
-          apk="punho-android-v${{ steps.version.outputs.version }}.apk"
+          apk="punho-android-arm64-v8a-v${{ steps.version.outputs.version }}.apk"
+          # A libapp.so e' o mesmo Dart AOT em todos os 3 APKs; verificar um chega.
           unzip -p "$apk" lib/arm64-v8a/libapp.so > /tmp/libapp.so
           if ! grep -aoE "supabase\.co" /tmp/libapp.so > /dev/null; then
             echo "::error::libapp.so nao contem supabase.co — dart-defines em falta!"
@@ -67,7 +77,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: punho-android-v${{ steps.version.outputs.version }}.apk
+          path: punho-android-*.apk
 
   build-windows:
     name: Build Windows Installer
