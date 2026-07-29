@@ -27,18 +27,18 @@ jobs:
           KEYSTORE_B64: ${{ secrets.PUNHO_KEYSTORE_BASE64 }}
           KEYSTORE_PW: ${{ secrets.PUNHO_KEYSTORE_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > android/app/punho_release.jks
-            cat > android/key.properties << EOF
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PW" ]; then
+            echo "::error::Faltam PUNHO_KEYSTORE_BASE64 ou PUNHO_KEYSTORE_PASSWORD. Uma release nao pode ser assinada com debug."
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > android/app/punho_release.jks
+          cat > android/key.properties << EOF
           storeFile=punho_release.jks
           storePassword=$KEYSTORE_PW
           keyAlias=punho
           keyPassword=$KEYSTORE_PW
           EOF
-            echo "Keystore + key.properties criados. Release APK sera assinado."
-          else
-            echo "::warning::PUNHO_KEYSTORE_BASE64 nao configurado. APK sai com debug key."
-          fi
+          echo "Keystore + key.properties criados. Release APK sera assinado."
       - uses: subosito/flutter-action@v2
         with:
           channel: stable

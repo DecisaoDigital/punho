@@ -12,7 +12,9 @@ Punho e um aviso de nova versao; a ligacao ao Control nao e apresentada.
 
 ## Publicar uma versao do Punho
 
-1. Gerar e colocar o instalador/APK num URL de download estavel.
+1. Gerar e publicar o instalador/APK assinado num URL de download estavel.
+   Para Android, confirmar primeiro a GitHub Release e o APK num dispositivo.
+   Não catalogar uma versão sem artefacto publicamente descarregável.
 2. Inserir a versao no catalogo remoto, usando sempre um `build_number` maior:
 
 ```sql
