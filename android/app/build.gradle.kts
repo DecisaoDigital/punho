@@ -54,8 +54,9 @@ android {
     applicationVariants.all {
         val versao = versionName
         outputs.all {
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl)
-                .outputFileName = "Punho_v$versao.apk"
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            val abi = output.getFilter("ABI") ?: "universal"
+            output.outputFileName = "Punho_v${versao}_${abi}.apk"
         }
     }
 }
