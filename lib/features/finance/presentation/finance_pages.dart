@@ -100,8 +100,13 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
     final operations = ref.watch(operationsProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Registar despesa')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          MediaQuery.viewInsetsOf(context).bottom + 24,
+        ),
         child: Column(
           children: [
             TextField(

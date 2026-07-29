@@ -444,8 +444,13 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
-          child: Padding(
-            padding: const EdgeInsets.all(28),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              28,
+              28,
+              28,
+              MediaQuery.viewInsetsOf(context).bottom + 28,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
