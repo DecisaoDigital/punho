@@ -141,6 +141,7 @@ class SupabaseAcessoService implements AcessoService {
     final resposta = await _client.auth.signUp(
       email: email,
       password: palavraPasse,
+      emailRedirectTo: 'punho://auth/callback',
       data: {
         'app': 'punho',
         'nome': nome,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -24,6 +25,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   final _password = TextEditingController();
   bool _registar = false;
   bool _busy = false;
+  bool _obscurarPass = true;
   String? _error;
 
   @override
@@ -86,16 +88,40 @@ class _AuthGateState extends ConsumerState<AuthGate> {
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 16),
-              TextField(
-                controller: _email,
-                autofocus: true,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email'),
-              ),
-              TextField(
-                controller: _password,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Palavra-passe'),
+              AutofillGroup(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: _email,
+                      autofocus: true,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.username, AutofillHints.email],
+                      decoration: const InputDecoration(labelText: 'Email'),
+                    ),
+                    TextField(
+                      controller: _password,
+                      obscureText: _obscurarPass,
+                      textInputAction: TextInputAction.done,
+                      autofillHints: const [AutofillHints.password],
+                      onSubmitted: (_) => _busy ? null : _entrar(),
+                      decoration: InputDecoration(
+                        labelText: 'Palavra-passe',
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurarPass
+                              ? Icons.visibility
+                              : Icons.visibility_off),
+                          tooltip: _obscurarPass
+                              ? 'Mostrar palavra-passe'
+                              : 'Esconder palavra-passe',
+                          onPressed: () => setState(
+                              () => _obscurarPass = !_obscurarPass),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               if (_error != null)
                 Padding(
@@ -179,7 +205,12 @@ class _AuthGateState extends ConsumerState<AuthGate> {
       _error = null;
     });
     try {
-      await Supabase.instance.client.auth.resetPasswordForEmail(email);
+      // redirectTo punho:// — sem isto o Supabase usa o default `washinvoice://`
+      // (esquema do POS), o utilizador clica no link e cai numa pagina em branco.
+      await Supabase.instance.client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: 'punho://auth/callback',
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -213,6 +244,9 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         email: _email.text.trim(),
         password: _password.text,
       );
+      // Confirmar ao Android/iOS que o autofill foi commitado — sem isto o
+      // gestor de passwords nao oferece guardar/decorar a combinacao.
+      TextInput.finishAutofillContext();
     } on AuthException catch (e) {
       if (mounted) setState(() => _error = AuthRules.mensagemSegura(e.code));
     } catch (_) {

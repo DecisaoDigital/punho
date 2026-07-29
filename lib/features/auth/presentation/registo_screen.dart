@@ -148,11 +148,13 @@ class _RegistoScreenState extends ConsumerState<RegistoScreen> {
                       ),
                       TextField(
                         controller: _email,
+                        autofillHints: const [AutofillHints.username, AutofillHints.newUsername, AutofillHints.email],
                         keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(labelText: 'Email'),
                       ),
                       TextField(
                         controller: _palavraPasse,
+                        autofillHints: const [AutofillHints.newPassword],
                         obscureText: true,
                         decoration: const InputDecoration(
                           labelText: 'Palavra-passe',
