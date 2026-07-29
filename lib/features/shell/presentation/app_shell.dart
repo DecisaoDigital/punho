@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -75,12 +76,35 @@ class _AppShellState extends ConsumerState<AppShell> {
     // Sem widget de bloqueio à volta: a orientação é decidida no `initState`,
     // uma vez, em vez de ser reaplicada a cada rebuild do layout.
     if (isDesktop) {
-      return Scaffold(
-        body: Row(
-          children: [
-            _Sidebar(destinations: destinations, selected: destination),
-            Expanded(child: content),
-          ],
+      // Em Android landscape, a área das notificações pode desenhar-se por
+      // cima do Scaffold. A faixa é deliberadamente parte do layout (e não
+      // apenas `statusBarColor`), para nunca deixar ícones claros sobre o
+      // fundo claro do painel.
+      final topInset = MediaQuery.paddingOf(context).top;
+      return AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
+          statusBarColor: PunhoTheme.navyDeep,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+        child: Scaffold(
+          body: Column(
+            children: [
+              if (topInset > 0)
+                SizedBox(
+                  height: topInset,
+                  child: const ColoredBox(color: PunhoTheme.navyDeep),
+                ),
+              Expanded(
+                child: Row(
+                  children: [
+                    _Sidebar(destinations: destinations, selected: destination),
+                    Expanded(child: content),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -179,6 +203,7 @@ class _Sidebar extends ConsumerWidget {
     width: 88,
     color: PunhoTheme.navyDeep,
     child: SafeArea(
+      top: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -248,27 +273,31 @@ class _PerfilSidebarItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         child: const Padding(
           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-          child: Column(
-            children: [
-              Icon(
-                Icons.person_outline_rounded,
-                size: 22,
-                color: Color(0xFFB7C7D1),
-              ),
-              SizedBox(height: 4),
-              Text(
-                'Perfil',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 10,
-                  height: 1.1,
-                  fontWeight: FontWeight.w500,
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.person_outline_rounded,
+                  size: 22,
                   color: Color(0xFFB7C7D1),
                 ),
-              ),
-            ],
+                SizedBox(height: 4),
+                Text(
+                  'Perfil',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10,
+                    height: 1.1,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFFB7C7D1),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -316,44 +345,51 @@ class _SidebarItem extends ConsumerWidget {
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Column(
-                    children: [
-                      Icon(
-                        item.icon,
-                        size: 22,
-                        color: selected
-                            ? PunhoTheme.orange
-                            : const Color(0xFFB7C7D1),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 10,
-                          height: 1.1,
-                          fontWeight: selected
-                              ? FontWeight.w800
-                              : FontWeight.w500,
+              child: SizedBox(
+                width: double.infinity,
+                child: Stack(
+                  alignment: Alignment.center,
+                  clipBehavior: Clip.none,
+                  children: [
+                    Column(
+                      children: [
+                        Icon(
+                          item.icon,
+                          size: 22,
                           color: selected
                               ? PunhoTheme.orange
                               : const Color(0xFFB7C7D1),
                         ),
-                      ),
-                    ],
-                  ),
-                  if (pendentes > 0)
-                    Positioned(
-                      top: -2,
-                      right: 4,
-                      child: _Badge(quantidade: pendentes, urgente: urgente),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 10,
+                            height: 1.1,
+                            fontWeight: selected
+                                ? FontWeight.w800
+                                : FontWeight.w500,
+                            color: selected
+                                ? PunhoTheme.orange
+                                : const Color(0xFFB7C7D1),
+                          ),
+                        ),
+                      ],
                     ),
-                ],
+                    if (pendentes > 0)
+                      Positioned(
+                        top: -2,
+                        right: 4,
+                        child: _Badge(
+                          quantidade: pendentes,
+                          urgente: urgente,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),

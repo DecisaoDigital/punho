@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/features/dashboard/presentation/dashboard_page.dart';
 import 'package:punho/features/dashboard/presentation/slides/dinheiro_slide.dart';
 import 'package:punho/features/dashboard/presentation/slides/pipeline_slide.dart';
-import 'package:punho/features/dashboard/presentation/slides/semana_slide.dart';
 import 'package:punho/features/dashboard/presentation/todas_metricas_page.dart';
 
 import 'fixtura.dart';
@@ -62,11 +61,11 @@ void main() {
         DashboardPage(agora: agoraFixa),
       );
 
-      await tester.tap(find.widgetWithText(TextButton, 'Semana'));
+      await tester.tap(find.widgetWithText(TextButton, 'Pipeline'));
       await tester.pumpAndSettle();
 
-      expect(find.text('5/5 · Semana'), findsOneWidget);
-      expect(find.byType(SemanaSlide), findsOneWidget);
+      expect(find.text('2/5 · Pipeline'), findsOneWidget);
+      expect(find.byType(PipelineSlide), findsOneWidget);
     });
 
     testWidgets('arrastar para o lado muda de slide', (tester) async {
@@ -105,8 +104,10 @@ void main() {
         DashboardPage(agora: agoraFixa),
       );
 
-      await tester.tap(find.widgetWithText(TextButton, 'Semana'));
-      await tester.pumpAndSettle();
+      for (var i = 0; i < 4; i++) {
+        await tester.tap(find.byTooltip('Slide seguinte'));
+        await tester.pumpAndSettle();
+      }
 
       final seta = tester.widget<IconButton>(
         find.ancestor(

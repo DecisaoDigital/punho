@@ -80,7 +80,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       SemanaSlide(agora: agora),
     ];
 
+    // A moldura superior é desenhada pela shell. Não reservar novamente a
+    // mesma área aqui: o cabeçalho deve ficar imediatamente abaixo dela.
     return SafeArea(
+      top: false,
       child: Focus(
         focusNode: _foco,
         autofocus: true,

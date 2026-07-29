@@ -32,31 +32,68 @@ class DotsIndicator extends StatelessWidget {
           padding: const EdgeInsets.only(right: 5),
           child: _Ponto(activo: i == activo, onTap: () => onEscolher(i)),
         ),
-      const Spacer(),
-      Flexible(
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          reverse: true,
-          child: Row(
-            children: [
-              for (var i = 0; i < nomes.length; i++)
-                if (i != activo)
-                  TextButton(
-                    onPressed: () => onEscolher(i),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      minimumSize: const Size(0, 32),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      foregroundColor: const Color(0xFF6B6A64),
-                    ),
-                    child: Text(nomes[i]),
+      Expanded(
+        child: Row(
+          children: [
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _NomeDoSlide(
+                  nome: activo > 0 ? nomes[activo - 1] : null,
+                  onTap: activo > 0 ? () => onEscolher(activo - 1) : null,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  nomes[activo],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: PunhoTheme.navyDeep,
                   ),
-            ],
-          ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: _NomeDoSlide(
+                  nome: activo < nomes.length - 1 ? nomes[activo + 1] : null,
+                  onTap: activo < nomes.length - 1
+                      ? () => onEscolher(activo + 1)
+                      : null,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     ],
   );
+}
+
+class _NomeDoSlide extends StatelessWidget {
+  const _NomeDoSlide({required this.nome, required this.onTap});
+  final String? nome;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (nome == null) return const SizedBox(height: 32);
+    return TextButton(
+      onPressed: onTap,
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        minimumSize: const Size(0, 32),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        foregroundColor: const Color(0xFF6B6A64),
+      ),
+      child: Text(nome!, maxLines: 1, overflow: TextOverflow.ellipsis),
+    );
+  }
 }
 
 class _Ponto extends StatelessWidget {
