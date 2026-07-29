@@ -50,6 +50,20 @@ jobs:
         # nome da branch, e `punho-android-feat/v006-boas-vindas.apk` não é um
         # caminho válido. Assim o nome sai igual nos dois casos.
         run: mv build/app/outputs/flutter-apk/app-release.apk punho-android-v${{ steps.version.outputs.version }}.apk
+      - name: Guard-rail — APK contem dart-defines Supabase
+        # A v0.0.5 saiu sem SUPABASE_URL/ANON_KEY no APK e o auto-update ficou
+        # mudo. Este step le libapp.so (onde as constantes ficam no AOT) e falha
+        # o CI se os hostname/chave nao aparecerem. Ver task #210/#236.
+        run: |
+          set -eu
+          apk="punho-android-v${{ steps.version.outputs.version }}.apk"
+          unzip -p "$apk" lib/arm64-v8a/libapp.so > /tmp/libapp.so
+          if ! grep -aoE "supabase\.co" /tmp/libapp.so > /dev/null; then
+            echo "::error::libapp.so nao contem supabase.co — dart-defines em falta!"
+            exit 1
+          fi
+          echo "libapp.so contem strings Supabase (defines OK)"
+
       - uses: actions/upload-artifact@v4
         with:
           name: android-apk

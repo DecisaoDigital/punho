@@ -17,6 +17,10 @@ import 'features/updates/presentation/update_banner_wrapper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Guard-rail antes de qualquer coisa: em release mode, se os dart-defines
+  // do Supabase nao vieram no build, damos crash com mensagem util em vez
+  // de continuar mudo (bug #210 da v0.0.5).
+  SupabaseConfig.assertConfiguredOrCrash();
   if (SupabaseConfig.enabled) {
     await Supabase.initialize(
       url: SupabaseConfig.url,
