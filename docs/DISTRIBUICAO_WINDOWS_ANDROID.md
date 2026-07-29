@@ -1,5 +1,8 @@
 # Distribuição Windows e Android
 
+Para o procedimento completo e a prevenção de falhas de release, consultar
+[Processo de release Android](PROCESSO_DE_RELEASE_ANDROID.md).
+
 ## Android: checklist de uma release publicável
 
 1. Confirmar no `pubspec.yaml` a versão e o `build number` seguintes.

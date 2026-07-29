@@ -40,5 +40,6 @@ Usar `obrigatoria = true` apenas para uma correcao critica. A app mostra o aviso
 ## Seguranca
 
 - O Punho nunca inclui `service_role`.
-- A verificacao exige uma sessao Supabase autenticada.
+- A verificação usa a configuração pública Supabase e pode ocorrer sem sessão
+  autenticada, para também avisar no ecrã de início de sessão.
 - A Edge Function le o catalogo com permissao de servidor e nao expoe dados de licencas.
