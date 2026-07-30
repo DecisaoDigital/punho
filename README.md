@@ -65,6 +65,33 @@ Windows — excluídos no CI, corridos localmente quando se toca em UI.
 - Ver [PROCESSO_DE_RELEASE.md](docs/PROCESSO_DE_RELEASE.md) para a sequência
   exacta de release (bump → workflow_dispatch → tag → APK → catálogo).
 
+## Infra de trabalho
+
+- **Máquina de trabalho preferida: i9 do Home Lab** (Ubuntu Server 24.04),
+  hostname Tailscale `home-lab-claude` (IP fixo `100.92.206.22`). Compila
+  Flutter, corre `analyze` e `test`, produz APKs assinados. É onde deve
+  arrancar qualquer build ou tarefa demorada — o mount NTFS do PC Windows
+  via sandbox Cowork é impraticável (task #229): `flutter --version` já não
+  cabe no timeout de 45 s.
+
+  ```bash
+  ssh cesar@home-lab-claude       # via Tailscale MagicDNS (preferido)
+  ssh cesar@100.92.206.22         # IP fixo Tailscale (fallback)
+  ssh cesar@192.168.1.253         # LAN local (DHCP — pode mudar)
+  ```
+
+  Chave SSH ed25519 já autorizada em `~/.ssh/authorized_keys` (chaves
+  `cowork-sandbox` e `cd_me@Portatil-CD`). **Sudo sem password.**
+  Repos já clonados: `~/punho`, `~/washinvoice-control`. Keystores em
+  `~/keystores/` (permissão 600, passwords em `D:\Seguro\`).
+  Estado completo do i9 em `D:\Claude\infra\maquina_linux_i9.md`.
+- **Self-hosted GitHub Actions runner** — no i9 (plano B quando CI cloud
+  falhar, task #234).
+- **PC Windows do Cesar** — desenvolvimento visual, smoke manual no
+  telemóvel via cabo USB, build do instalador Windows (Inno Setup).
+- **Supabase project `oefqbkhioncakojipqyx`** — partilhado com POS e Control
+  (multi-app com coluna `app`).
+
 ## Releases
 
 Não é apenas criar uma tag. **Ler o

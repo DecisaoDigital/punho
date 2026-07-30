@@ -152,21 +152,35 @@ Nunca colocar nenhum destes no repo. `.env.example` só tem `SUPABASE_URL` +
 
 ## Build local (fallback quando CI falhar)
 
-Quando o CI falhar e for urgente publicar:
+**Preferir sempre o i9** (Home Lab, Ubuntu Server 24.04, SSH via Tailscale) —
+é a máquina de trabalho oficial para builds Flutter. O PC Windows do Cesar
+via mount NTFS no sandbox Cowork é impraticável (task #229). Reservar
+Windows para o build do instalador (Inno Setup) e smoke manual via USB.
+
+### No i9 (preferido)
+
+```bash
+ssh cesar@home-lab-claude   # Tailscale MagicDNS; alternativas: 100.92.206.22 (Tailscale fixo) ou 192.168.1.253 (LAN)
+cd ~/punho
+git pull
+flutter build apk --release --split-per-abi \
+  --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+  --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+
+# APKs em build/app/outputs/flutter-apk/
+# Upload manual para github.com/DecisaoDigital/punho/releases/tag/vX.Y.Z
+# (arrastar app-arm64-v8a-release.apk + os outros 2 ABIs)
+```
+
+### No PC Windows (só se i9 indisponível)
 
 ```powershell
-# 1. Build assinado com dart-defines
 flutter build apk --release --split-per-abi `
   --dart-define=SUPABASE_URL=$env:SUPABASE_URL `
   --dart-define=SUPABASE_ANON_KEY=$env:SUPABASE_ANON_KEY
 
-# 2. Upload manual para uma release existente
-# Ir a github.com/DecisaoDigital/punho/releases/tag/vX.Y.Z
-# → Edit release → arrastar os 3 APKs de build/app/outputs/flutter-apk/
+# Upload manual como acima.
 ```
-
-Alternativa: build no i9 via SSH (`~/scripts/build_punho.sh` — TODO documentar
-quando arrancar o self-hosted runner #234).
 
 ---
 
