@@ -30,6 +30,14 @@ void main() {
         tamanho: tamanho,
       );
 
+  Future<void> abrirClientes(WidgetTester tester, Size tamanho) =>
+      montarLandscape(
+        tester,
+        containerCom(estadoComMovimento()),
+        const ClientsPage(),
+        tamanho: tamanho,
+      );
+
   group('Diálogo da máquina', () {
     testWidgets('em paisagem parte os campos em duas colunas', (tester) async {
       await abrirMaquinas(tester, const Size(1280, 800));
@@ -156,6 +164,32 @@ void main() {
           .firstWhere((m) => m.id == 'placeholder-7');
       expect(guardada.name, 'Mini escavadora 1.8T');
       expect(guardada.placeholder, isFalse);
+    });
+  });
+
+  group('Diálogo de lead', () {
+    testWidgets('fica largo e mantém o campo e Guardar acima do teclado', (
+      tester,
+    ) async {
+      await abrirClientes(tester, const Size(900, 500));
+      await tester.tap(find.text('Novo lead'));
+      await tester.pumpAndSettle();
+      abrirTeclado(tester, altura: 220);
+      await tester.pumpAndSettle();
+
+      final nome = find.widgetWithText(TextField, 'Nome');
+      final telefone = find.widgetWithText(TextField, 'Telemóvel');
+      final guardar = find.widgetWithText(FilledButton, 'Guardar');
+
+      expect(find.byType(DialogoDeFormulario), findsOneWidget);
+      expect(tester.getTopLeft(telefone).dx, greaterThan(tester.getTopLeft(nome).dx));
+      expect(
+        (tester.getTopLeft(telefone).dy - tester.getTopLeft(nome).dy).abs(),
+        lessThan(8),
+        reason: 'em paisagem os dois campos devem caber lado a lado',
+      );
+      expect(tester.getRect(nome).bottom, lessThanOrEqualTo(500 - 220));
+      expect(tester.getRect(guardar).bottom, lessThanOrEqualTo(500 - 220));
     });
   });
 }

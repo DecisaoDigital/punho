@@ -25,7 +25,7 @@ class DialogoDeFormulario extends StatelessWidget {
     required this.corpo,
     required this.aoGuardar,
     this.rotuloGuardar = 'Guardar',
-    this.larguraMaxima = 560,
+    this.larguraMaxima = 640,
   });
 
   final String titulo;
@@ -36,8 +36,8 @@ class DialogoDeFormulario extends StatelessWidget {
   /// uma linha criada pelo total declarado no onboarding.
   final String rotuloGuardar;
 
-  /// 560 dp serve um formulário de uma coluna. O diálogo da máquina pede mais,
-  /// porque em paisagem divide os campos em duas colunas.
+  /// 640 dp deixa os formulários curtos mais largos em paisagem. O diálogo da
+  /// máquina pede mais, porque divide os campos em duas colunas.
   final double larguraMaxima;
 
   @override
@@ -46,40 +46,43 @@ class DialogoDeFormulario extends StatelessWidget {
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: larguraMaxima),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-              child: Text(
-                titulo,
-                style: Theme.of(context).textTheme.titleLarge,
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+                child: Text(
+                  titulo,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
               ),
-            ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: corpo,
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: corpo,
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: Row(
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancelar'),
-                  ),
-                  const Spacer(),
-                  FilledButton(
-                    onPressed: aoGuardar,
-                    child: Text(rotuloGuardar),
-                  ),
-                ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancelar'),
+                    ),
+                    const Spacer(),
+                    FilledButton(
+                      onPressed: aoGuardar,
+                      child: Text(rotuloGuardar),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

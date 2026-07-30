@@ -1654,10 +1654,10 @@ Future<void> _customerDialog(BuildContext context, WidgetRef ref) async {
   final notes = TextEditingController();
   await showDialog<void>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('Novo cliente'),
-      content: SingleChildScrollView(
-        child: Column(
+    barrierDismissible: false,
+    builder: (dialogContext) => DialogoDeFormulario(
+      titulo: 'Novo cliente',
+      corpo: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
@@ -1701,14 +1701,7 @@ Future<void> _customerDialog(BuildContext context, WidgetRef ref) async {
             ),
           ],
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(dialogContext),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () {
+      aoGuardar: () {
             if (name.text.trim().isEmpty) return;
             try {
               ref
@@ -1743,15 +1736,15 @@ Future<void> _customerDialog(BuildContext context, WidgetRef ref) async {
               ).showSnackBar(SnackBar(content: Text(error.message.toString())));
             }
           },
-          child: const Text('Guardar'),
-        ),
-      ],
     ),
   );
   name.dispose();
   phone.dispose();
   taxId.dispose();
   email.dispose();
+  address.dispose();
+  postalCode.dispose();
+  locality.dispose();
   notes.dispose();
 }
 
@@ -1760,28 +1753,58 @@ Future<void> _leadDialog(BuildContext context, WidgetRef ref) async {
   final phone = TextEditingController();
   await showDialog(
     context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Novo lead'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: name,
-            decoration: const InputDecoration(labelText: 'Nome'),
-          ),
-          TextField(
-            controller: phone,
-            decoration: const InputDecoration(labelText: 'Telemóvel'),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
+    barrierDismissible: false,
+    builder: (dialogContext) => DialogoDeFormulario(
+      titulo: 'Novo lead',
+      corpo: LayoutBuilder(
+        builder: (context, constraints) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Regista o contacto agora. Podes completar a oportunidade depois.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            if (constraints.maxWidth >= 480)
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: name,
+                      autofocus: true,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(labelText: 'Nome'),
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: TextField(
+                      controller: phone,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Telemóvel',
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else ...[
+              TextField(
+                controller: name,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(labelText: 'Nome'),
+              ),
+              TextField(
+                controller: phone,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: 'Telemóvel'),
+              ),
+            ],
+          ],
         ),
-        FilledButton(
-          onPressed: () {
+      ),
+      aoGuardar: () {
             if (name.text.isNotEmpty && phone.text.isNotEmpty) {
               ref
                   .read(operationsProvider.notifier)
@@ -1795,13 +1818,12 @@ Future<void> _leadDialog(BuildContext context, WidgetRef ref) async {
                     ),
                   );
             }
-            Navigator.pop(context);
+            Navigator.pop(dialogContext);
           },
-          child: const Text('Guardar'),
-        ),
-      ],
     ),
   );
+  name.dispose();
+  phone.dispose();
 }
 
 class BookingsPage extends ConsumerStatefulWidget {
