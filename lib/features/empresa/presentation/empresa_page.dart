@@ -44,14 +44,27 @@ class _EmpresaPageState extends ConsumerState<EmpresaPage>
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('Empresa'),
+      toolbarHeight: 40,
+      title: Text(
+        'Empresa',
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
       bottom: TabBar(
         controller: _abas,
         isScrollable: true,
         tabAlignment: TabAlignment.start,
+        dividerHeight: 0,
         tabs: [
           for (final aba in AbaDaEmpresa.values)
-            Tab(icon: Icon(aba.icon), text: aba.label),
+            Tab(
+              height: 52,
+              iconMargin: const EdgeInsets.only(bottom: 2),
+              icon: Icon(aba.icon, size: 23),
+              text: aba.label,
+            ),
         ],
       ),
     ),

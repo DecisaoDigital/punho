@@ -179,7 +179,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
   }
 
   Widget _corpo(BuildContext context) => ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
           children: [
             Text(
               'Isto é o que indicou no arranque. Pode corrigir e guardar quando '
