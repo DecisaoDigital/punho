@@ -45,9 +45,9 @@ List<AppDestination> visibleDestinations(CompanySettings settings) => [
 List<AppDestination> visibleOperationalDestinations(OperationsState state) =>
     const [
       AppDestination.management,
-      AppDestination.machines,
       AppDestination.bookings,
       AppDestination.clients,
+      AppDestination.machines,
       AppDestination.employees,
       AppDestination.empresa,
       AppDestination.tasks,

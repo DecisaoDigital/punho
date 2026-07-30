@@ -16,9 +16,9 @@ void main() {
       // ajustados: o comportamento certo é agora o oposto.
       expect(visibleOperationalDestinations(estadoComMovimento()), const [
         AppDestination.management,
-        AppDestination.machines,
         AppDestination.bookings,
         AppDestination.clients,
+        AppDestination.machines,
         AppDestination.employees,
         AppDestination.empresa,
         AppDestination.tasks,
