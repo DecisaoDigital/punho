@@ -33,42 +33,48 @@ class DotsIndicator extends StatelessWidget {
           child: _Ponto(activo: i == activo, onTap: () => onEscolher(i)),
         ),
       Expanded(
-        child: Row(
-          children: [
-            Expanded(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: _NomeDoSlide(
-                  nome: activo > 0 ? nomes[activo - 1] : null,
-                  onTap: activo > 0 ? () => onEscolher(activo - 1) : null,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Center(
-                child: Text(
-                  nomes[activo],
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: PunhoTheme.navyDeep,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 300),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: _NomeDoSlide(
+                      nome: activo > 0 ? nomes[activo - 1] : null,
+                      onTap: activo > 0 ? () => onEscolher(activo - 1) : null,
+                    ),
                   ),
                 ),
-              ),
-            ),
-            Expanded(
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: _NomeDoSlide(
-                  nome: activo < nomes.length - 1 ? nomes[activo + 1] : null,
-                  onTap: activo < nomes.length - 1
-                      ? () => onEscolher(activo + 1)
-                      : null,
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      nomes[activo],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: PunhoTheme.navyDeep,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: _NomeDoSlide(
+                      nome:
+                          activo < nomes.length - 1 ? nomes[activo + 1] : null,
+                      onTap: activo < nomes.length - 1
+                          ? () => onEscolher(activo + 1)
+                          : null,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     ],

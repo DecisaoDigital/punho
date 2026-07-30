@@ -104,7 +104,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         },
         child: Padding(
           padding: cabecalhoCompacto
-              ? const EdgeInsets.fromLTRB(12, 6, 12, 6)
+              ? const EdgeInsets.fromLTRB(12, 1, 12, 6)
               : const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Column(
             children: [
@@ -113,7 +113,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 agora: agora,
                 compacto: cabecalhoCompacto,
               ),
-              SizedBox(height: cabecalhoCompacto ? 4 : 10),
+              SizedBox(height: cabecalhoCompacto ? 2 : 10),
               Expanded(
                 child: Row(
                   children: [

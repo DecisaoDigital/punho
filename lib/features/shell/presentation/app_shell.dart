@@ -69,7 +69,16 @@ class _AppShellState extends ConsumerState<AppShell> {
     final content = Column(
       children: [
         const LicencaBanner(),
-        Expanded(child: _DestinationContent(destination: destination)),
+        Expanded(
+          // A moldura da shell já protege a área das notificações. Os ecrãs
+          // podem começar logo abaixo dela, sem cada um reservar o topo outra
+          // vez através de um SafeArea próprio.
+          child: MediaQuery.removePadding(
+            context: context,
+            removeTop: isDesktop,
+            child: _DestinationContent(destination: destination),
+          ),
+        ),
       ],
     );
 
@@ -81,6 +90,9 @@ class _AppShellState extends ConsumerState<AppShell> {
       // apenas `statusBarColor`), para nunca deixar ícones claros sobre o
       // fundo claro do painel.
       final topInset = MediaQuery.paddingOf(context).top;
+      // Mantém margem suficiente para os ícones do sistema, mas elimina o
+      // último espaço visual que fazia a moldura parecer demasiado alta.
+      final alturaDaMoldura = topInset > 2 ? topInset - 2 : topInset;
       return AnnotatedRegion<SystemUiOverlayStyle>(
         value: const SystemUiOverlayStyle(
           statusBarColor: PunhoTheme.navyDeep,
@@ -90,9 +102,9 @@ class _AppShellState extends ConsumerState<AppShell> {
         child: Scaffold(
           body: Column(
             children: [
-              if (topInset > 0)
+              if (alturaDaMoldura > 0)
                 SizedBox(
-                  height: topInset,
+                  height: alturaDaMoldura,
                   child: const ColoredBox(color: PunhoTheme.navyDeep),
                 ),
               Expanded(
@@ -210,7 +222,7 @@ class _Sidebar extends ConsumerWidget {
           Padding(
             // Sobe 8 dp para dar mais altura útil à navegação, sem encostar a
             // marca à margem segura superior.
-            padding: const EdgeInsets.fromLTRB(0, 12, 0, 16),
+            padding: const EdgeInsets.fromLTRB(0, 4, 0, 16),
             child: Center(
               child: SizedBox(
                 width: 40,
