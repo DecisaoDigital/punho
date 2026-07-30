@@ -116,7 +116,7 @@ class FichaFiscalColaboradorForm extends StatelessWidget {
           ),
         if (mostrar.contains(CampoDaFichaFiscal.estadoCivil))
           DropdownButtonFormField<MaritalStatus>(
-            value: estadoCivil,
+            initialValue: estadoCivil,
             isExpanded: true,
             decoration: const InputDecoration(labelText: 'Estado civil'),
             items: MaritalStatus.values

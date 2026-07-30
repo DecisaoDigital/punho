@@ -238,7 +238,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         ),
       ),
       2 => DropdownButtonFormField<String>(
-        value: role,
+        initialValue: role,
         decoration: const InputDecoration(
           labelText: 'O teu cargo',
           border: OutlineInputBorder(),
@@ -267,7 +267,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  value: legal,
+                  initialValue: legal,
                   // "Empresário em Nome Individual" não cabe na largura do
                   // cartão de onboarding e rebentava a linha em 52 px. Com
                   // isExpanded o texto encurta com reticências.
@@ -384,7 +384,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               : 'Não, entro na app e preencho depois',
         ),
         value: wantsFullSetup,
-        activeColor: Colors.green.shade600,
+        activeThumbColor: Colors.green.shade600,
         activeTrackColor: Colors.green.shade200,
         onChanged: (v) => setState(() => wantsFullSetup = v),
       ),
@@ -797,7 +797,7 @@ class _HistoricalDataPageState extends ConsumerState<HistoricalDataPage> {
             ),
             const SizedBox(height: 18),
             DropdownButtonFormField<int>(
-              value: year,
+              initialValue: year,
               decoration: const InputDecoration(labelText: 'Ano'),
               items: [
                 for (final item in years)
@@ -1333,7 +1333,7 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
         teclado: const TextInputType.numberWithOptions(decimal: true),
       ),
       DropdownButtonFormField<MachineStatus>(
-        value: status,
+        initialValue: status,
         isExpanded: true,
         decoration: const InputDecoration(labelText: 'Estado atual'),
         items: estadosEscolhiveisDeMaquina
@@ -2576,7 +2576,7 @@ Future<bool> _showCalendarBookingConfirmation(
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: customerId,
+                initialValue: customerId,
                 isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Cliente'),
                 items: state.customers
@@ -2593,7 +2593,7 @@ Future<bool> _showCalendarBookingConfirmation(
                 onChanged: (value) => setDialogState(() => customerId = value!),
               ),
               DropdownButtonFormField<BookingStatus>(
-                value: status,
+                initialValue: status,
                 decoration: const InputDecoration(labelText: 'Estado inicial'),
                 items: const [
                   DropdownMenuItem(
@@ -2748,7 +2748,7 @@ Future<void> _showBookingForm(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
-                    value: customerId,
+                    initialValue: customerId,
                     decoration: const InputDecoration(labelText: 'Cliente'),
                     items: state.customers
                         .map(
@@ -2762,7 +2762,7 @@ Future<void> _showBookingForm(
                         setDialogState(() => customerId = value!),
                   ),
                   DropdownButtonFormField<String>(
-                    value: machineId,
+                    initialValue: machineId,
                     decoration: const InputDecoration(labelText: 'Máquina'),
                     items:
                         (availableMachines.isEmpty
@@ -2784,7 +2784,7 @@ Future<void> _showBookingForm(
                         : (value) => setDialogState(() => machineId = value!),
                   ),
                   DropdownButtonFormField<_BookingDuration>(
-                    value: duration,
+                    initialValue: duration,
                     decoration: const InputDecoration(labelText: 'Duração'),
                     items: const [
                       DropdownMenuItem(
@@ -2809,7 +2809,7 @@ Future<void> _showBookingForm(
                   ),
                   if (duration == _BookingDuration.halfDay)
                     DropdownButtonFormField<_HalfDay>(
-                      value: halfDay,
+                      initialValue: halfDay,
                       decoration: const InputDecoration(labelText: 'Período'),
                       items: const [
                         DropdownMenuItem(
@@ -2869,7 +2869,7 @@ Future<void> _showBookingForm(
                     },
                   ),
                   DropdownButtonFormField<BookingStatus>(
-                    value: status,
+                    initialValue: status,
                     decoration: const InputDecoration(
                       labelText: 'Estado inicial',
                     ),
@@ -2891,7 +2891,7 @@ Future<void> _showBookingForm(
                   ),
                   if (responsibleId == null)
                     DropdownButtonFormField<String?>(
-                      value: collaboratorId,
+                      initialValue: collaboratorId,
                       decoration: const InputDecoration(
                         labelText: 'Responsável',
                       ),

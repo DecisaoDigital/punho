@@ -165,7 +165,7 @@ class _RegistoScreenState extends ConsumerState<RegistoScreen> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: _perfil,
+                        initialValue: _perfil,
                         decoration: const InputDecoration(
                           labelText: 'Cargo pretendido',
                         ),

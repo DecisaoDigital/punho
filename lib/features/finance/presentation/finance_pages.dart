@@ -139,14 +139,14 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
               style: TextStyle(fontSize: 12),
             ),
             DropdownButtonFormField(
-              value: category,
+              initialValue: category,
               items: ExpenseCategory.values
                   .map((x) => DropdownMenuItem(value: x, child: Text(x.name)))
                   .toList(),
               onChanged: (v) => setState(() => category = v!),
             ),
             DropdownButtonFormField<String?>(
-              value: machineId,
+              initialValue: machineId,
               decoration: const InputDecoration(
                 labelText: 'Máquina associada (opcional)',
               ),
@@ -167,7 +167,7 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
               onChanged: (value) => setState(() => machineId = value),
             ),
             DropdownButtonFormField<String?>(
-              value: vehicleId,
+              initialValue: vehicleId,
               decoration: const InputDecoration(
                 labelText: 'Veículo associado (opcional)',
               ),
@@ -193,7 +193,7 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
             ),
             if (widget.recordedByCollaboratorId == null)
               DropdownButtonFormField(
-                value: status,
+                initialValue: status,
                 items: ExpensePaymentStatus.values
                     .map(
                       (x) => DropdownMenuItem(
@@ -342,7 +342,7 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
               decoration: const InputDecoration(labelText: 'Valor (€)'),
             ),
             DropdownButtonFormField<String>(
-              value: selectedCustomerId,
+              initialValue: selectedCustomerId,
               decoration: const InputDecoration(labelText: 'Cliente'),
               items: customers
                   .map(
@@ -360,7 +360,7 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
                     }),
             ),
             DropdownButtonFormField<String?>(
-              value: bookingId,
+              initialValue: bookingId,
               decoration: const InputDecoration(
                 labelText: 'Associar a reserva (opcional)',
               ),
@@ -381,7 +381,7 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
               onChanged: (value) => setState(() => bookingId = value),
             ),
             DropdownButtonFormField(
-              value: method,
+              initialValue: method,
               items: PaymentMethod.values
                   .map((x) => DropdownMenuItem(value: x, child: Text(x.name)))
                   .toList(),

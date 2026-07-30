@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
 import '../../../core/orientacao/orientacao_do_contexto.dart';
@@ -11,12 +10,10 @@ import '../../../core/operations/operations_controller.dart';
 import '../../../core/session/demo_session.dart';
 import '../../../core/theme/punho_theme.dart';
 import '../../../shared/widgets/brand_lockup.dart';
-import '../../auth/acesso_providers.dart';
 import '../../collaborator/presentation/collaborator_shell.dart';
 import '../../conta/presentation/perfil_popup.dart';
 import '../../dashboard/presentation/dashboard_page.dart';
 import '../../empresa/presentation/empresa_page.dart';
-import '../../gestao/presentation/convites_screen.dart';
 import '../../licenca/presentation/licenca_banner.dart';
 import '../../operations/presentation/operational_pages.dart';
 import '../../tarefas/data/tarefas_service.dart';
@@ -168,38 +165,6 @@ class _ProfileSelector extends ConsumerWidget {
   }
 }
 
-/// Atalho para os convites da empresa. Só aparece a quem está aprovado como
-/// gestor — um colaborador não gere acessos.
-class _ConvitesButton extends ConsumerWidget {
-  const _ConvitesButton({this.onDarkBackground = false});
-  final bool onDarkBackground;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final gestor =
-        ref.watch(estadoAcessoProvider).valueOrNull?.eGestor ?? false;
-    if (!gestor) return const SizedBox.shrink();
-    return IconButton(
-      tooltip: 'Convites',
-      color: onDarkBackground ? const Color(0xFFB7C5CE) : null,
-      icon: const Icon(Icons.person_add_alt),
-      onPressed: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const ConvitesScreen())),
-    );
-  }
-}
-
-class _SignOutButton extends StatelessWidget {
-  const _SignOutButton();
-
-  @override
-  Widget build(BuildContext context) => IconButton(
-    tooltip: 'Terminar sessão',
-    icon: const Icon(Icons.logout),
-    onPressed: () => Supabase.instance.client.auth.signOut(),
-  );
-}
 
 class _Sidebar extends ConsumerWidget {
   const _Sidebar({required this.destinations, required this.selected});

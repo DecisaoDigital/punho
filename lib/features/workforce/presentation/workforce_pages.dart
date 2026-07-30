@@ -283,7 +283,7 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
               decoration: const InputDecoration(labelText: 'Função'),
             ),
             DropdownButtonFormField<CostFrequency>(
-              value: frequency,
+              initialValue: frequency,
               isExpanded: true,
               decoration: const InputDecoration(
                 labelText: 'Periodicidade do custo',
@@ -693,7 +693,7 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
             decoration: const InputDecoration(labelText: 'Seguro (€)'),
           ),
           DropdownButtonFormField<InsuranceFrequency>(
-            value: insuranceFrequency,
+            initialValue: insuranceFrequency,
             isExpanded: true,
             decoration: const InputDecoration(
               labelText: 'Periodicidade do seguro',
