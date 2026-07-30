@@ -273,6 +273,17 @@ class _PerfilSidebarItem extends StatelessWidget {
                     color: Color(0xFFB7C7D1),
                   ),
                 ),
+                SizedBox(height: 1),
+                Text(
+                  'v 0.0.13',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 8,
+                    height: 1.0,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF7F98A8),
+                  ),
+                ),
               ],
             ),
           ),

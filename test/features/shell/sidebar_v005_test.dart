@@ -61,6 +61,7 @@ void main() {
       expect(_naBarra('Colaboradores'), findsOneWidget);
       expect(_naBarra('Empresa'), findsOneWidget);
       expect(_naBarra('Tarefas'), findsOneWidget);
+      expect(_naBarra('v 0.0.13'), findsOneWidget);
       // Os nomes antigos saíram: "Gestão" dizia o que a app faz, não o que o
       // ecrã mostra, e "Frota" era jargão de quem já sabe.
       expect(_naBarra('Gestão'), findsNothing);
