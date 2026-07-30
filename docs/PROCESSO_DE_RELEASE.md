@@ -150,14 +150,36 @@ Nunca colocar nenhum destes no repo. `.env.example` só tem `SUPABASE_URL` +
 
 ---
 
-## Build local (fallback quando CI falhar)
+## GH CI vs i9 — quando usar cada um
 
-**Preferir sempre o i9** (Home Lab, Ubuntu Server 24.04, SSH via Tailscale) —
-é a máquina de trabalho oficial para builds Flutter. O PC Windows do Cesar
-via mount NTFS no sandbox Cowork é impraticável (task #229). Reservar
-Windows para o build do instalador (Inno Setup) e smoke manual via USB.
+**Regra calibrada 2026-08-XX:**
 
-### No i9 (preferido)
+- **GH Actions (`workflow_dispatch` + tag) é o caminho por defeito** para
+  releases standard. Workflow bem definido, secrets configurados, `--split-per-abi`
+  automático, publicação no Releases automática. Overhead do sandbox Cowork é
+  mínimo (1 API call + polling curto). Este é o pipeline documentado nos passos
+  1–7 acima e é o que se usa 90 % das vezes.
+
+- **i9 (Home Lab, Ubuntu Server 24.04, SSH via Tailscale) para:**
+  - **Debug de builds partidos** — iterar `flutter analyze`/`build` sem esperar
+    3–5 min de setup ubuntu-latest cada vez
+  - **Hotfixes urgentes** quando CI está com fila ou parcialmente partido
+  - **Builds ad-hoc** para inspecção do APK antes de o assinar como release
+  - **Testes locais** que não fazem sentido correr no CI
+
+- **PC Windows do Cesar** — reservado ao build do instalador (Inno Setup),
+  smoke manual via USB e desenvolvimento visual. Mount NTFS via sandbox
+  Cowork é impraticável para Flutter (task #229): `flutter --version` não cabe
+  no timeout de 45 s.
+
+Cowork/Claude Code que dispare uma release: **usar GH CI**. Se falhar 2×
+seguidas ou o problema exigir logs completos do build, **passar ao i9**.
+
+## Build no i9 (debug e fallback)
+
+Quando cair no i9, os comandos são:
+
+### Passos
 
 ```bash
 ssh cesar@home-lab-claude   # Tailscale MagicDNS; alternativas: 100.92.206.22 (Tailscale fixo) ou 192.168.1.253 (LAN)
@@ -172,7 +194,7 @@ flutter build apk --release --split-per-abi \
 # (arrastar app-arm64-v8a-release.apk + os outros 2 ABIs)
 ```
 
-### No PC Windows (só se i9 indisponível)
+### No PC Windows (só se i9 indisponível — pouco usado)
 
 ```powershell
 flutter build apk --release --split-per-abi `
