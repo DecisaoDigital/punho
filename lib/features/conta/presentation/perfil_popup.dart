@@ -7,6 +7,7 @@ import '../../../core/auth/auth_rules.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../auth/acesso_providers.dart';
+import '../../company/presentation/company_settings_page.dart';
 import '../../gestao/presentation/convites_screen.dart';
 
 /// Quem está autenticado, e como sair.
@@ -61,8 +62,11 @@ class PerfilPopup extends ConsumerWidget {
 
     return Dialog(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 380),
-        child: Padding(
+        constraints: BoxConstraints(
+          maxWidth: 380,
+          maxHeight: MediaQuery.sizeOf(context).height - 24,
+        ),
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -109,9 +113,9 @@ class PerfilPopup extends ConsumerWidget {
               const SizedBox(height: 20),
               if (comSessao) ...[
                 OutlinedButton.icon(
-                  onPressed: () => _editarDados(context, utilizador!),
+                  onPressed: () => _abrirDadosDaEmpresa(context),
                   icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Editar dados'),
+                  label: const Text('Editar dados da empresa'),
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
@@ -169,11 +173,13 @@ class PerfilPopup extends ConsumerWidget {
   /// `onAuthStateChange` — não se chama `Navigator` à mão daqui. O
   /// `invalidate` força o estado de acesso a ser relido, para o gate não
   /// decidir com a adesão antiga em cache.
-  Future<void> _editarDados(BuildContext context, User utilizador) =>
-      showDialog<void>(
-        context: context,
-        builder: (_) => _EditarDadosDialog(utilizador: utilizador),
-      );
+  void _abrirDadosDaEmpresa(BuildContext context) {
+    final navegador = Navigator.of(context, rootNavigator: true);
+    navegador.pop();
+    navegador.push(
+      MaterialPageRoute<void>(builder: (_) => const CompanySettingsPage()),
+    );
+  }
 
   Future<void> _mudarPalavraPasse(BuildContext context) => showDialog<void>(
     context: context,

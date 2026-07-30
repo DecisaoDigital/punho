@@ -192,7 +192,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
               titulo: 'Identificação',
               children: [
                 _campo(_ownerName, 'Nome do responsável'),
-                _campo(_companyName, 'Nome da empresa'),
+                _campo(_companyName, 'Nome da empresa / nome comercial'),
                 DropdownButtonFormField<String>(
                   value: _legalForm,
                   // Mesma razão do onboarding: a forma jurídica mais longa não
