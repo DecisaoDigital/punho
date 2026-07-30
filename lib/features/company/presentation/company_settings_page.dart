@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../../core/format/campos.dart';
 import '../../../core/operations/operations_controller.dart';
+import '../../../core/empresa_sync/empresa_sync_service.dart';
 import '../../../core/session/demo_session.dart';
 
 /// Formas jurídicas oferecidas. As mesmas do onboarding.
@@ -48,6 +51,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
   late final TextEditingController _maintenanceLastYear;
   late final TextEditingController _fixedMonthlyCosts;
   late String _legalForm;
+  bool _sincronizando = false;
 
   @override
   void initState() {
@@ -133,7 +137,73 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Dados da empresa guardados.')),
     );
+    // Best-effort: envia para o Supabase em background; se falhar, o utilizador
+    // pode carregar em "Sincronizar com o Control" mais tarde.
+    unawaited(_disparaSyncSilencioso());
     Navigator.of(context).maybePop();
+  }
+
+  Future<void> _disparaSyncSilencioso() async {
+    final sync = ref.read(empresaSyncProvider);
+    if (sync == null) return;
+    await sync.sincronizar(_payloadSincronizacao());
+  }
+
+  Future<void> _sincronizarAgora() async {
+    final sync = ref.read(empresaSyncProvider);
+    if (sync == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Modo demonstração — não há Control para sincronizar.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _sincronizando = true);
+    final ok = await sync.sincronizar(_payloadSincronizacao());
+    if (!mounted) return;
+    setState(() => _sincronizando = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? 'Dados sincronizados com o Control.'
+              : 'Não foi possível sincronizar. Tenta outra vez daqui a pouco.',
+        ),
+      ),
+    );
+  }
+
+  /// Payload jsonb enviado à Edge Function `sincronizar-empresa-punho`.
+  /// Chaves são as que o trigger DB `punho_empresas_sync_licenca` lê:
+  /// `nif` é obrigatório para o trigger criar/actualizar a licença.
+  Map<String, dynamic> _payloadSincronizacao() {
+    final txt = (String v) => v.trim().isEmpty ? null : v.trim();
+    final n = (String v) {
+      final s = v.replaceAll(',', '.').trim();
+      if (s.isEmpty) return null;
+      final d = double.tryParse(s);
+      if (d == null) return null;
+      return (d * 100).round();
+    };
+    return {
+      'nif': _taxId.text.trim(),
+      'nome_comercial': _companyName.text.trim(),
+      'forma_juridica': _legalForm,
+      'nome_gestor': txt(_ownerName.text),
+      'morada': txt(_address.text),
+      'codigo_postal': txt(_postalCode.text),
+      'localidade': txt(_locality.text),
+      'telefone': txt(_phone.text),
+      'email': txt(_email.text),
+      'n_colaboradores': int.tryParse(_collaborators.text) ?? 0,
+      'n_veiculos': int.tryParse(_vehicles.text) ?? 0,
+      'n_maquinas': int.tryParse(_machines.text) ?? 0,
+      'facturacao_ano_passado_centavos': n(_revenueLastYear.text),
+      'facturacao_este_ano_centavos': n(_revenueThisYear.text),
+      'manutencao_ano_passado_centavos': n(_maintenanceLastYear.text),
+      'custos_fixos_mensais_centavos': n(_fixedMonthlyCosts.text),
+    };
   }
 
   Future<void> _reporDados() async {
@@ -284,6 +354,22 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
               onPressed: _guardar,
               icon: const Icon(Icons.save_outlined),
               label: const Text('Guardar'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _sincronizando ? null : _sincronizarAgora,
+              icon: _sincronizando
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.cloud_upload_outlined),
+              label: Text(
+                _sincronizando
+                    ? 'A sincronizar…'
+                    : 'Sincronizar com o Control',
+              ),
             ),
             const SizedBox(height: 8),
             OutlinedButton(
