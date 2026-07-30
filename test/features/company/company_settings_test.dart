@@ -94,7 +94,7 @@ void main() {
       // O problema original: isto entrava no onboarding e não voltava a
       // aparecer em lado nenhum.
       expect(_valorDoCampo(tester, 'Nome do responsável'), 'Cesar Mendes');
-      expect(_valorDoCampo(tester, 'Nome da empresa'), 'Alugueres Norte');
+      expect(_valorDoCampo(tester, 'Nome da empresa / nome comercial'), 'Alugueres Norte');
       expect(_valorDoCampo(tester, 'NIF da empresa'), '501234567');
       expect(_valorDoCampo(tester, 'Telemóvel'), '912 000 000');
       expect(_valorDoCampo(tester, 'Localidade'), 'Braga');
@@ -113,7 +113,7 @@ void main() {
     ) async {
       final container = await _montarDefinicoes(tester);
 
-      await _escrever(tester, 'Nome da empresa', 'Alugueres Norte II');
+      await _escrever(tester, 'Nome da empresa / nome comercial', 'Alugueres Norte II');
       await _escrever(tester, 'Localidade', 'Guimarães');
       await tester.ensureVisible(find.text('Guardar'));
       await tester.tap(find.text('Guardar'));
@@ -156,7 +156,7 @@ void main() {
       await tester.tap(find.text('abrir'));
       await tester.pumpAndSettle();
 
-      await _escrever(tester, 'Nome da empresa', 'Nome descartado');
+      await _escrever(tester, 'Nome da empresa / nome comercial', 'Nome descartado');
       await tester.ensureVisible(find.text('Cancelar'));
       await tester.tap(find.text('Cancelar'));
       await tester.pumpAndSettle();
