@@ -23,10 +23,24 @@ class PunhoUpdateInfo {
       );
 
   Map<String, dynamic> toJson() => {
-        'versao_actual': version,
-        'build_number': buildNumber,
-        'url_download': downloadUrl,
-        'obrigatoria': mandatory,
-        if (releaseNotes != null) 'notas_lancamento': releaseNotes,
-      };
+    'versao_actual': version,
+    'build_number': buildNumber,
+    'url_download': downloadUrl,
+    'obrigatoria': mandatory,
+    if (releaseNotes != null) 'notas_lancamento': releaseNotes,
+  };
+
+  /// A mesma versão, mas sem poder bloquear a app.
+  ///
+  /// Só uma resposta viva do servidor tem autoridade para prender o utilizador
+  /// fora da app. Um `obrigatoria: true` vindo do cache local significaria que
+  /// retirar a linha de `versoes_apps` deixava o telemóvel bloqueado para
+  /// sempre, sem forma de recuperar sem limpar os dados da app.
+  PunhoUpdateInfo semBloqueio() => PunhoUpdateInfo(
+    version: version,
+    buildNumber: buildNumber,
+    downloadUrl: downloadUrl,
+    mandatory: false,
+    releaseNotes: releaseNotes,
+  );
 }

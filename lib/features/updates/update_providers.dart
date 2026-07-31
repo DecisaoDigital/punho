@@ -65,15 +65,35 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
     return null;
   }
 
-  static const _kCache = 'punho_update.cache_v1';
+  /// `v2` porque o envelope passou a levar `guardado_em`: uma entrada do
+  /// formato antigo não tem data e seria tratada como eterna. Mudar de chave
+  /// descarta-a sem código de migração.
+  static const _kCache = 'punho_update.cache_v2';
+
+  /// Um aviso guardado não vale para sempre. Se a versão for retirada de
+  /// `versoes_apps`, `check()` passa a devolver `null` — e `null` também é o
+  /// que devolve quando não há rede, por isso não dá para distinguir os dois
+  /// casos e limpar o cache à conta disso. A validade resolve: ao fim de uma
+  /// semana o cache deixa de ser mostrado por si só.
+  static const _validadeCache = Duration(days: 7);
 
   Future<void> _carregarCache() async {
     try {
       final sp = await SharedPreferences.getInstance();
       final raw = sp.getString(_kCache);
       if (raw == null) return;
-      final json = Map<String, dynamic>.from(jsonDecode(raw) as Map);
-      final cached = PunhoUpdateInfo.fromJson(json);
+      final envelope = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+      final guardadoEm = DateTime.tryParse(
+        envelope['guardado_em'] as String? ?? '',
+      );
+      if (guardadoEm == null ||
+          DateTime.now().difference(guardadoEm) > _validadeCache) {
+        await sp.remove(_kCache);
+        return;
+      }
+      final cached = PunhoUpdateInfo.fromJson(
+        Map<String, dynamic>.from(envelope['info'] as Map),
+      );
       // Só mostra o cache se o build actual da app ainda for inferior — se ja
       // instalou a versao, cache está desactualizado e deve ser ignorado.
       final info = await PackageInfo.fromPlatform();
@@ -83,19 +103,31 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
         return;
       }
       if (!_vivo) return;
-      state = cached;
-      debugPrint('[PunhoUpdate] cache: v\${cached.version} apresentado imediatamente');
+      // A rede pode ter ganho a corrida: `_carregarCache` e `verificar` arrancam
+      // os dois no `build()` sem ordem garantida. Se já há estado, veio do
+      // servidor e é mais fresco do que isto — não o pisar.
+      if (state != null) return;
+      state = cached.semBloqueio();
+      debugPrint(
+        '[PunhoUpdate] cache: v${cached.version} apresentado imediatamente',
+      );
     } catch (e) {
-      debugPrint('[PunhoUpdate] cache load falhou: \$e');
+      debugPrint('[PunhoUpdate] cache load falhou: $e');
     }
   }
 
   Future<void> _guardarCache(PunhoUpdateInfo info) async {
     try {
       final sp = await SharedPreferences.getInstance();
-      await sp.setString(_kCache, jsonEncode(info.toJson()));
+      await sp.setString(
+        _kCache,
+        jsonEncode({
+          'guardado_em': DateTime.now().toIso8601String(),
+          'info': info.toJson(),
+        }),
+      );
     } catch (e) {
-      debugPrint('[PunhoUpdate] cache save falhou: \$e');
+      debugPrint('[PunhoUpdate] cache save falhou: $e');
     }
   }
 
