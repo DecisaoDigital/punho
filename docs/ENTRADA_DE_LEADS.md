@@ -126,6 +126,101 @@ WhatsApp, sem contar duas pessoas.
 
 ---
 
+## Como recolher só as leads válidas — recomendação
+
+A pergunta do Cesar: *como é que deve ser feita a colecta das leads válidas para
+dentro da app?*
+
+A resposta curta: **valida no servidor, aceita sem fricção o que é bom, segura o
+duvidoso numa caixa de entrada, e nunca apagues nada.**
+
+### 1. A validação é no servidor, nunca na app
+
+A Edge Function é o único sítio que vê tudo o que chega. A app pode estar
+fechada, sem rede, ou ser outra pessoa a olhar. Além disso, um endereço público
+é uma porta aberta para a base de dados dele — a filtragem tem de estar do lado
+que ele controla, antes de a linha existir.
+
+### 2. Três destinos, não dois
+
+Aceitar ou rejeitar é grosseiro de mais. O que funciona:
+
+| Classificação | Critério | O que acontece |
+|---|---|---|
+| **Aceite** | Telefone válido · não duplica lead aberta · ritmo normal | Vira `Lead` directamente. Aparece no pipeline sem ninguém aprovar |
+| **Retida** | Falta telefone · duplicado provável · rajada do mesmo IP · texto suspeito | Fica na caixa de entrada. Um toque aceita, um toque descarta |
+| **Descartada** | Honeypot preenchido · submetido em menos de 2 s · sem contacto nenhum utilizável | Não aparece. Fica gravada na mesma |
+
+**A maioria tem de cair em "Aceite".** Uma caixa de entrada que exige aprovar
+tudo é só outro sítio para acumular trabalho — e a razão de existir isto é
+poupar trabalho.
+
+### 3. Nunca apagar. Rejeitar é classificar
+
+Tudo aterra em `punho_leads_entrada` com o `payload_bruto` intacto, incluindo o
+que foi descartado. Sem isso não se distingue **"a campanha não trouxe nada"** de
+**"a campanha trouxe lixo que nós apagámos"** — e essa diferença decide se se
+volta a pagar por aquele canal.
+
+### 4. Normalizar o telefone é a peça que sustenta tudo
+
+`+351 912 345 678`, `912345678` e `912 345 678` são a mesma pessoa. Guardar em
+**E.164** no momento da entrada, e guardar o original ao lado.
+
+Sem isto a deduplicação não funciona; sem deduplicação a conversão do slide 3
+divide-se pelo número de canais. **É o passo mais barato com maior efeito nos
+números.**
+
+Um telefone que não normaliza é sinal forte de lixo — é o melhor critério de
+"válida" que há, e é mais fiável do que qualquer análise do texto.
+
+### 5. Contra robôs, antes de captcha
+
+Por ordem de custo para quem preenche a sério:
+
+1. **Honeypot** — campo escondido que só um robô preenche. Zero fricção.
+2. **Tempo até submeter** — menos de 2 segundos não é uma pessoa.
+3. **Limite por IP** — cinco submissões por hora chega e sobra.
+4. **Captcha** — só se os três primeiros não bastarem. Custa conversões reais.
+
+### 6. Uma lead que chega e ninguém vê é pior do que não existir
+
+Duas saídas, e as duas já existem no projecto:
+
+- **Notificação push** — a Edge Function `enviar-push` já está montada e a
+  funcionar para o Punho.
+- **Tarefas** — o `tarefas_service` já gera trabalho por fazer a partir do
+  estado. Uma lead por contactar é exactamente isso.
+
+### 7. O número que interessa medir é o tempo até ao primeiro contacto
+
+Não é quantas leads entram. É quanto tempo passa até alguém responder — é isso
+que converte.
+
+E a app já tem as peças: `leadsPorContactar` devolve-as ordenadas pela mais
+antiga, e a célula do slide 3 já mostra *"N sem contacto há mais de 5 dias"*.
+Com a origem agarrada, isso passa a ser **por canal**: se as leads do WhatsApp
+esperam duas horas e as da landing page dois dias, o problema não é o canal, é o
+hábito — e essa é uma recomendação que a app pode dar.
+
+### Em resumo
+
+O caminho de uma lead válida, do início ao fim:
+
+```
+landing page / WhatsApp / agenda
+        ↓  (Edge Function: normaliza · valida · classifica)
+punho_leads_entrada  ← payload_bruto guardado sempre
+        ↓  aceite                    ↓  retida
+   Lead no pipeline            caixa de entrada (1 toque)
+        ↓
+  push + tarefa "contactar"
+        ↓
+  mede tempo até ao 1º contacto → alavanca Procura
+```
+
+---
+
 ## Ordem sugerida
 
 1. **Tabela de entrada + consumo pela app** — a peça comum a tudo o resto.
