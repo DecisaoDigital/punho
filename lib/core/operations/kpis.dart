@@ -245,6 +245,39 @@ FunilProcura funilProcura(OperationsState state, DateTime now, int dias) {
 }
 
 /// Leads que ninguém tocou, da mais antiga para a mais recente.
+/// Clientes que entraram nos últimos [dias].
+///
+/// **Inferido da primeira reserva, não de uma data de criação.** O `Customer`
+/// não guarda quando foi criado, e acrescentar o campo agora só serviria para a
+/// frente: todos os clientes já registados ficariam sem data e a métrica nascia
+/// a mentir durante um mês. A data da primeira reserva é o momento em que a
+/// pessoa passou a ser cliente de facto — que é, no fundo, o que a pergunta
+/// quer saber.
+///
+/// Consequência assumida: um cliente registado mas que ainda não alugou nada
+/// não conta. É defensável — ainda não comprou — e evita inflar a conversão com
+/// contactos que nunca deram dinheiro.
+///
+/// Devolve `null` quando não há reservas nenhumas: sem elas não há como inferir
+/// data alguma, e `0` diria "não angariaste ninguém" em vez de "não sei".
+int? clientesNovos(OperationsState state, DateTime now, {int dias = 30}) {
+  if (state.bookings.isEmpty) return null;
+  final desde = _dia(now).subtract(Duration(days: dias));
+  final primeiraReserva = <String, DateTime>{};
+  for (final booking in state.bookings) {
+    if (booking.status == BookingStatus.cancelled) continue;
+    final actual = primeiraReserva[booking.customerId];
+    if (actual == null || booking.startsAt.isBefore(actual)) {
+      primeiraReserva[booking.customerId] = booking.startsAt;
+    }
+  }
+  return primeiraReserva.values
+      .where(
+        (data) => !_dia(data).isBefore(desde) && !_dia(data).isAfter(_dia(now)),
+      )
+      .length;
+}
+
 List<Lead> leadsPorContactar(OperationsState state) {
   final lista = state.leads
       .where((lead) => lead.status == LeadStatus.newLead)
