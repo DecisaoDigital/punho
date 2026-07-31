@@ -28,7 +28,38 @@ String machineStatusLabel(MachineStatus status) => switch (status) {
 
 enum LeadStatus { newLead, contacted, proposal, lost, converted }
 
-enum LeadSource { call, referral, facebook, google, other }
+/// De onde veio a lead. É o que torna o CAC por canal calculável — sem origem
+/// não há forma de dividir a publicidade pelos clientes que ela trouxe.
+///
+/// Serializado **por nome** (`LeadSource.values.byName`), portanto acrescentar
+/// valores no fim não parte dados antigos.
+enum LeadSource {
+  call,
+  referral,
+  facebook,
+  google,
+  other,
+
+  /// Chegou por formulário no site.
+  landingPage,
+
+  /// Chegou por WhatsApp.
+  whatsapp,
+
+  /// Importada da agenda do telemóvel.
+  agenda,
+}
+
+String leadSourceLabel(LeadSource origem) => switch (origem) {
+  LeadSource.call => 'Chamada',
+  LeadSource.referral => 'Recomendação',
+  LeadSource.facebook => 'Facebook',
+  LeadSource.google => 'Google',
+  LeadSource.landingPage => 'Site',
+  LeadSource.whatsapp => 'WhatsApp',
+  LeadSource.agenda => 'Agenda',
+  LeadSource.other => 'Outro',
+};
 
 enum BookingStatus {
   request,

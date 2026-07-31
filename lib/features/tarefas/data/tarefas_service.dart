@@ -7,6 +7,7 @@ import '../../../domain/models/workforce.dart';
 import '../../auth/acesso_providers.dart';
 import '../../auth/data/acesso_service.dart';
 import '../../dashboard/recomendacao_providers.dart';
+import '../../leads/leads_entrada_providers.dart';
 import '../domain/tarefa.dart';
 
 /// Dias de atraso a partir dos quais uma cobrança passa a urgente.
@@ -25,8 +26,28 @@ List<Tarefa> tarefasPendentes(
   DateTime now, {
   Map<String, DateTime> recomendacoesAdiadas = const {},
   List<Convite> convites = const [],
+  int leadsRetidas = 0,
 }) {
   final tarefas = <Tarefa>[];
+
+  // 0. Leads que chegaram de fora e o servidor não conseguiu aceitar sozinho —
+  // faltava o nome, o telefone não era reconhecível, ou o mesmo número já tinha
+  // entrado. Ficam à espera de um toque. Uma lead parada é procura já paga que
+  // ainda não foi trabalhada, por isso vem à frente de tudo o resto.
+  if (leadsRetidas > 0) {
+    tarefas.add(
+      Tarefa(
+        id: 'leads-retidas',
+        severidade: SeveridadeTarefa.urgente,
+        titulo: leadsRetidas == 1
+            ? '1 lead à espera de triagem'
+            : '$leadsRetidas leads à espera de triagem',
+        subtitulo: 'Chegaram de fora e precisam de confirmação',
+        cta: 'Ver leads',
+        destino: DestinoTarefa.clientes,
+      ),
+    );
+  }
 
   // 1. Cobranças com atraso — dinheiro que já era da empresa.
   for (final cobranca in cobrancasPorReceber(
@@ -239,11 +260,16 @@ final tarefasProvider = Provider<List<Tarefa>>((ref) {
   // erro (não há `Supabase.instance`) e a lista de tarefas não pode rebentar
   // por causa disso — nem mostrar erro de rede a quem está em demonstração.
   final convites = ref.watch(convitesProvider).valueOrNull ?? const <Convite>[];
+  // Observar aqui é também o que faz a caixa de entrada ser puxada: o provider
+  // vai buscar as leads novas ao construir-se, e as aceites entram sozinhas no
+  // pipeline. As Tarefas são o primeiro sítio da app que precisa de as saber.
+  final retidas = ref.watch(leadsRetidasProvider).length;
   return tarefasPendentes(
     state,
     DateTime.now(),
     recomendacoesAdiadas: adiadas,
     convites: convites,
+    leadsRetidas: retidas,
   );
 });
 
