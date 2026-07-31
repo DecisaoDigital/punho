@@ -216,8 +216,16 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   );
 }
 
-/// Os pontos do PIN. Seis posições fixas seria mentir sobre o comprimento —
-/// mostra-se um ponto cheio por dígito introduzido e um vazio para o próximo.
+/// Os pontos do PIN.
+///
+/// **Nunca seis posições fixas.** O PIN tem entre 4 e 6 dígitos e a app não sabe
+/// o comprimento do de quem está a desbloquear — só o hash. Seis círculos diziam
+/// "faltam-te dois" a quem tinha escrito os quatro certos, e o Cesar só percebeu
+/// que estava completo por carregar em Desbloquear à mesma.
+///
+/// Mostram-se quatro posições — o mínimo — e cresce até seis à medida que se
+/// escreve. Assim a promessa que o ecrã faz é verdadeira em qualquer caso: "pelo
+/// menos estes".
 class _Pontos extends StatelessWidget {
   const _Pontos({required this.preenchidos, required this.erro});
   final int preenchidos;
@@ -226,7 +234,9 @@ class _Pontos extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     mainAxisAlignment: MainAxisAlignment.center,
-    children: List.generate(_maximoDigitos, (i) {
+    children: List.generate(preenchidos.clamp(_minimoDigitos, _maximoDigitos), (
+      i,
+    ) {
       final cheio = i < preenchidos;
       return AnimatedContainer(
         duration: const Duration(milliseconds: 120),
