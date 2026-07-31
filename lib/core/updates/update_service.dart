@@ -53,11 +53,7 @@ class PunhoUpdateService {
       // se um dia isso for útil. Sem sessão não se manda header nenhum.
       final sessao = _client?.auth.currentSession;
       final resposta = await _invocar(
-        {
-          'app': 'punho',
-          'plataforma': _platform,
-          'build_number_local': build,
-        },
+        {'app': 'punho', 'plataforma': _platform, 'build_number_local': build},
         sessao == null
             ? null
             : {'Authorization': 'Bearer ${sessao.accessToken}'},

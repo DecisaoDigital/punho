@@ -2,6 +2,13 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+    <!-- Descarregar o APK da nova versão em segundo plano. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Instalar a actualização a partir da própria app, em vez de mandar o
+         utilizador ao browser e por seis ecrãs do sistema. O Android exige
+         ainda que ele autorize explicitamente nas definições — a app abre-as
+         quando for preciso, nunca no arranque. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:label="punho"

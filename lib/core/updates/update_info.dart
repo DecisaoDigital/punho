@@ -5,6 +5,7 @@ class PunhoUpdateInfo {
     required this.downloadUrl,
     required this.mandatory,
     this.releaseNotes,
+    this.sha256,
   });
 
   final String version;
@@ -13,6 +14,13 @@ class PunhoUpdateInfo {
   final bool mandatory;
   final String? releaseNotes;
 
+  /// Impressão digital do APK publicado.
+  ///
+  /// Sem ela a app **não instala automaticamente** — só oferece o caminho
+  /// antigo, pelo browser. O `url_download` vem de uma coluna editável, e uma
+  /// app que se instala a si própria tem de confirmar o que está a abrir.
+  final String? sha256;
+
   factory PunhoUpdateInfo.fromJson(Map<String, dynamic> json) =>
       PunhoUpdateInfo(
         version: json['versao_actual'] as String,
@@ -20,6 +28,7 @@ class PunhoUpdateInfo {
         downloadUrl: json['url_download'] as String,
         mandatory: json['obrigatoria'] as bool? ?? false,
         releaseNotes: json['notas_lancamento'] as String?,
+        sha256: json['sha256'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -28,6 +37,7 @@ class PunhoUpdateInfo {
     'url_download': downloadUrl,
     'obrigatoria': mandatory,
     if (releaseNotes != null) 'notas_lancamento': releaseNotes,
+    if (sha256 != null) 'sha256': sha256,
   };
 
   /// A mesma versão, mas sem poder bloquear a app.
@@ -42,5 +52,6 @@ class PunhoUpdateInfo {
     downloadUrl: downloadUrl,
     mandatory: false,
     releaseNotes: releaseNotes,
+    sha256: sha256,
   );
 }
