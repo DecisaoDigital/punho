@@ -361,6 +361,63 @@ Com esses dois campos:
 - o slide 2 deixa de ser uma contagem passiva e passa a ser **uma lista de
   trabalho por fechar**, que é o que o gestor abre a app para ver
 
+### O botão "Recolhida" do colaborador
+
+Decisão do Cesar: o colaborador tem de ter um botão **"Recolhida"** para carregar
+quando está a recolher a máquina em casa do cliente.
+
+É o sítio certo. A `CollaboratorShell` já é isso — telemóvel na mão, no terreno,
+seis botões grandes, portrait, *"O que quer registar?"*. Acrescentar **Entreguei**
+e **Recolhida** é coerente com o que lá está.
+
+**Mas o botão é a parte fácil, e sozinho não funciona.**
+
+Hoje a sincronização (`SupabaseOperationalSync`) empurra o **estado operacional
+completo** com uma revisão, e detecta conflitos em vez de os fundir. Ou seja:
+
+- o colaborador carrega em "Recolhida" → grava no estado **local dele**
+- para chegar ao gestor, tem de empurrar o estado **todo**
+- o gestor, que entretanto mexeu em qualquer coisa, empurra o dele
+- **um dos dois perde o trabalho**
+
+Um colaborador no terreno e um gestor no escritório a editarem em paralelo é
+precisamente o cenário que este modelo não aguenta. O botão existiria e a
+máquina continuaria a aparecer alugada — ou pior, o registo desaparecia no
+próximo sync.
+
+### O caminho mais curto que funciona: eventos em vez de estado
+
+Não é preciso resolver a sincronização granular toda para entregar isto. Basta
+uma coisa muito menor:
+
+**Uma tabela de eventos, só de acrescentar.**
+
+```
+punho_eventos_reserva
+  reserva_id · tipo ('entrega' | 'recolha') · em · por_colaborador · empresa_id
+```
+
+Porque é que isto resolve, e o estado completo não:
+
+- **Eventos não colidem.** Duas linhas escritas por dois telemóveis diferentes
+  sobrevivem as duas. Não há revisão, não há conflito, não há vencedor.
+- **É pequeno.** Uma tabela, uma política RLS, um `insert`. Não é o outbox
+  genérico nem a sincronização granular de tudo — é o caminho estreito que
+  entrega esta funcionalidade.
+- **Fila offline é trivial.** Em casa do cliente pode não haver rede. Guardar
+  eventos por enviar e reenviar depois é fácil quando o evento é imutável e só
+  se acrescenta — ao contrário de um estado completo, que tem de ser
+  reconciliado.
+- **A disponibilidade da máquina passa a derivar dos eventos**, não do relógio.
+  Há evento de recolha → livre. Não há → continua indisponível, por muito que o
+  `endsAt` já tenha passado.
+
+**Dois sítios a corrigir quando isto entrar**, ambos com o mesmo erro de usar o
+`endsAt` como se fosse a recolha:
+
+- `operations_controller.dart:845` — o estado da máquina
+- `availableMachines()` no mesmo ficheiro — a contagem de disponíveis
+
 ### Consequência para a célula do slide 2
 
 Já não é *"Devoluções hoje / 48h · 3 · 5"*. É:
