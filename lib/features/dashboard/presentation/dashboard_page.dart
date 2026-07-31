@@ -4,20 +4,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/operations/operations_controller.dart';
 import '../../company/presentation/company_settings_page.dart';
-import 'slides/custos_slide.dart';
-import 'slides/dinheiro_slide.dart';
-import 'slides/pipeline_slide.dart';
-import 'slides/rentabilidade_slide.dart';
-import 'slides/semana_slide.dart';
+import 'slides/operacional_slide.dart';
+import 'slides/procura_slide.dart';
+import 'slides/sintese_slide.dart';
 import 'widgets/dots_indicator.dart';
 
-/// Painel de gestão: cinco slides, cada um com quatro KPIs que respondem a uma
-/// pergunta.
+/// Painel de gestão: 3 primeiros slides do brainstorm 9-screens.
 ///
-/// O painel anterior punha 17 métricas num `Wrap`, todas do mesmo tamanho e sem
-/// ordem — o gestor tinha de escolher onde olhar e a app não ajudava. Aqui cada
-/// slide tem uma pergunta no cabeçalho e os quatro números que a respondem.
-/// A lista completa continua a existir em `TodasMetricasPage`.
+/// - Slide 1 · **Primeiro impulso** (síntese) — estou vivo hoje?
+/// - Slide 2 · **Operacional** — o que faço agora?
+/// - Slide 3 · **Procura e vendas** (alavanca) — que alavanca puxo?
+///
+/// Os restantes 6 (Tesouraria, Margem, Frota, Equipa, Objectivos,
+/// Previsibilidade Simulada) entram depois de a UX e integração de dados
+/// destes 3 estarem estáveis.
 ///
 /// `PageView` e não carrossel próprio: dá o swipe do tablet de graça, mantém só
 /// os slides vizinhos montados e a animação é a do sistema. Um carrossel
@@ -39,11 +39,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   int _slide = 0;
 
   static const _nomes = [
-    'Dinheiro',
-    'Pipeline',
-    'Máquinas',
-    'Custos',
-    'Semana',
+    'Primeiro impulso',
+    'Operacional',
+    'Procura e vendas',
   ];
 
   @override
@@ -70,14 +68,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     // dimensão é que identifica o dispositivo e evita desperdiçar altura no
     // cabeçalho antes dos indicadores importantes.
     final cabecalhoCompacto = MediaQuery.sizeOf(context).shortestSide < 600;
-    final slides = [
-      // A recomendação do dia manda para os custos ou para o pipeline: é o
-      // painel que sabe navegar entre slides, não o slide.
-      DinheiroSlide(agora: agora, aoIrParaSlide: _irPara),
-      PipelineSlide(agora: agora),
-      RentabilidadeSlide(agora: agora),
-      CustosSlide(agora: agora),
-      SemanaSlide(agora: agora),
+    // Painel refactorado para a arquitectura de 9 slides do brainstorm
+    // (BRAINSTORM_DASHBOARD_9_SCREENS). Nesta fase só os 3 primeiros estão
+    // visiveis (Sintese · Operacional · Procura), com dados placeholder para
+    // validar a UX. Integração real de dados vem na v0.0.16; alavancas
+    // restantes (Tesouraria, Margem, Frota, Equipa, Objectivos, Previsibilidade)
+    // entram depois de a UX estabilizar.
+    final slides = const [
+      SinteseSlide(),
+      OperacionalSlide(),
+      ProcuraSlide(),
     ];
 
     // A moldura superior é desenhada pela shell. Não reservar novamente a

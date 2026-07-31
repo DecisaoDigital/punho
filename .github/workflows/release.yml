@@ -14,8 +14,8 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -80,7 +80,7 @@ jobs:
         # nome da branch, e `punho-android-feat/v006-boas-vindas.apk` não é um
         # caminho válido. Assim o nome sai igual nos dois casos.
         run: mv build/app/outputs/flutter-apk/app-release.apk punho-android-v${{ steps.version.outputs.version }}.apk
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: android-apk
           path: punho-android-v${{ steps.version.outputs.version }}.apk
