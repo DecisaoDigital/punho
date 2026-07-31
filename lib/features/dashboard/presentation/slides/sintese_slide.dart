@@ -29,7 +29,7 @@ class SinteseSlide extends StatelessWidget {
           crossAxisCount: 2,
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
-          childAspectRatio: 1.6,
+          childAspectRatio: 2.2,
           children: const [
             CelulaSemaforo(
               nivel: NivelSemaforo.verde,

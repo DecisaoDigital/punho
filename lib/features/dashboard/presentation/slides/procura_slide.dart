@@ -38,7 +38,7 @@ class ProcuraSlide extends StatelessWidget {
                 crossAxisCount: 2,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                childAspectRatio: 1.4,
+                childAspectRatio: 1.8,
                 children: const [
                   CelulaSemaforo(
                     nivel: NivelSemaforo.verde,
