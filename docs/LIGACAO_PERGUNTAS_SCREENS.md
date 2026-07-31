@@ -306,7 +306,69 @@ Nenhuma destas é onboarding novo. São ecrãs que já existem.
 
 ---
 
-## Refinamento progressivo — "refinar este valor"
+## Recolhas, não devoluções — e o bug que isso destapa
+
+Correcção do Cesar a 31/07/2026: **não são devoluções, são recolhas.** As
+máquinas são alugadas e têm de ser **recuperadas** para voltarem a estar
+disponíveis para outro cliente.
+
+Não é vocabulário. É a diferença entre um acontecimento passivo do cliente e
+**trabalho que a empresa tem de fazer** — com deslocação, com custo, com alguém
+atribuído, e com atraso possível.
+
+### O bug
+
+`operations_controller.dart:845` decide o estado da máquina assim:
+
+```dart
+final hasRentedNow = related.any((booking) =>
+    booking.status == BookingStatus.rented &&
+    !now.isBefore(booking.startsAt) &&
+    now.isBefore(booking.endsAt));
+```
+
+**No instante em que `endsAt` passa, a máquina passa sozinha a `available`** —
+sem ninguém a ter ido buscar. A máquina está fisicamente no estaleiro do cliente
+e a app diz que está livre.
+
+Consequências reais:
+
+1. **Aluga-se uma máquina que não se tem.** O novo aluguer começa depois do
+   `endsAt` do anterior, portanto não há conflito de reservas — no papel. Na
+   rua, a máquina ainda está com o cliente anterior.
+2. **A ocupação fica subestimada.** O tempo entre o fim do aluguer e a recolha
+   efectiva não conta como ocupado, quando na prática a máquina não estava
+   disponível para mais ninguém. Isto contamina o KPI de utilização do slide 1.
+3. **"Recolha em atraso" não existe** — e é o alerta operacional que mais
+   importa no dia-a-dia de quem aluga.
+
+### O que falta no modelo
+
+`Booking` tem `startsAt` e `endsAt` — datas previstas. Não tem o registo dos
+dois acontecimentos que dizem o que aconteceu de facto:
+
+- **entregue em** — quando a máquina saiu
+- **recolhida em** — quando voltou
+
+Com esses dois campos:
+
+- a máquina só passa a `available` quando houver recolha registada
+- "recolhas a fazer" e "recolhas em atraso" tornam-se computáveis e verdadeiras
+- a ocupação passa a medir o tempo real de indisponibilidade
+- a deslocação ganha o seu acontecimento: são duas viagens por aluguer, e é
+  exactamente sobre elas que assenta o custo médio de deslocação da secção
+  anterior
+- o slide 2 deixa de ser uma contagem passiva e passa a ser **uma lista de
+  trabalho por fechar**, que é o que o gestor abre a app para ver
+
+### Consequência para a célula do slide 2
+
+Já não é *"Devoluções hoje / 48h · 3 · 5"*. É:
+
+> **Recolhas a fazer** · 3 hoje · 5 em 48h · **1 em atraso desde ontem**
+
+O atraso a vermelho, com o nome do cliente e um toque para marcar recolhida.
+E enquanto não estiver marcada, a máquina não aparece disponível a ninguém.
 
 Decisão do Cesar a 31/07/2026, e é o mecanismo que resolve a tensão entre
 "perguntar tudo à cabeça" e "não ter dados para calcular nada".

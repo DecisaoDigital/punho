@@ -5,7 +5,7 @@ import '../widgets/slide_header.dart';
 
 /// Slide 2 · Operacional (pulso do dia/semana).
 ///
-/// Pergunta: **o que faço agora?** Reservas, entregas, devoluções, cobranças.
+/// Pergunta: **o que faço agora?** Reservas, entregas, recolhas, cobranças.
 ///
 /// Estado actual: **layout com dados placeholder** — integração real vem em
 /// v0.0.16. Os alertas operacionais (a linha de rodapé) são a síntese dos 4
@@ -20,7 +20,7 @@ class OperacionalSlide extends StatelessWidget {
       const SlideHeader(
         icone: Icons.pending_actions_outlined,
         nome: 'O pulso do dia',
-        pergunta: 'O que faço agora? Reservas, entregas, devoluções, cobranças.',
+        pergunta: 'O que faço agora? Reservas, entregas, recolhas, cobranças.',
       ),
       const SizedBox(height: 12),
       Expanded(
@@ -46,7 +46,7 @@ class OperacionalSlide extends StatelessWidget {
             ),
             CelulaSemaforo(
               nivel: NivelSemaforo.vermelho,
-              rotulo: 'Devoluções hoje / 48h',
+              rotulo: 'Recolhas a fazer (hoje / 48h)',
               valor: '3',
               unidade: 'hoje · 5 em 48h',
               subtexto: '1 já em atraso — Sr. Costa',
