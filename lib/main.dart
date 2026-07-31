@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'shared/widgets/splash_punho.dart';
+
 import 'core/licenca/licenca_provider.dart';
 import 'core/licenca/licenca_service.dart';
 import 'core/licenca/machine_id.dart';
@@ -65,22 +67,29 @@ Future<void> _registarTerminal() async {
   }
 }
 
-class PunhoApp extends ConsumerWidget {
+class PunhoApp extends ConsumerStatefulWidget {
   const PunhoApp({super.key});
+  @override
+  ConsumerState<PunhoApp> createState() => _PunhoAppState();
+}
+
+class _PunhoAppState extends ConsumerState<PunhoApp> {
+  bool _splashTerminou = false;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     // Mantém o timer de revalidação vivo durante a vida da app.
     ref.watch(licencaRefreshProvider);
+    final destino = PunhoUpdateBannerWrapper(
+      child: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),
+    );
     return MaterialApp(
       title: 'Punho',
       debugShowCheckedModeBanner: false,
       theme: PunhoTheme.light,
-      // O aviso de nova versão envolve a raiz, e não um ecrã: tem de chegar a
-      // quem está preso no login ou no gate de acesso.
-      home: PunhoUpdateBannerWrapper(
-        child: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),
-      ),
+      home: _splashTerminou
+          ? destino
+          : SplashPunho(aoTerminar: () => setState(() => _splashTerminou = true)),
     );
   }
 }

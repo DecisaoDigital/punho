@@ -1,5 +1,7 @@
 import '../../../core/orientacao/orientacao_do_contexto.dart';
 import 'package:flutter/material.dart';
+
+import '../../../shared/widgets/brand_lockup.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -134,6 +136,8 @@ class _RegistoScreenState extends ConsumerState<RegistoScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      const BrandLockup(),
+                      const SizedBox(height: 20),
                       Text(
                         'Criar conta',
                         textAlign: TextAlign.center,

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../shared/widgets/brand_lockup.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -76,6 +78,8 @@ class _AuthGateState extends ConsumerState<AuthGate> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const BrandLockup(),
+              const SizedBox(height: 24),
               Text(
                 'Iniciar sessão',
                 style: Theme.of(context).textTheme.headlineMedium,

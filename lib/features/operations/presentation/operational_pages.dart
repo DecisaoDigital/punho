@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/widgets/brand_lockup.dart';
+
 import '../../../core/config/supabase_config.dart';
 import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/media/machine_image_store.dart';
@@ -424,12 +426,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Punho',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+                const BrandLockup(),
                 const SizedBox(height: 28),
                 // Conta passos de dados, não ecrãs: os de contexto não têm
                 // contador, e dizer "12 de 14" num percurso cujo contador nunca

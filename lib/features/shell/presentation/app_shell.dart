@@ -120,7 +120,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Punho'),
+        title: const BrandLockup(compact: true),
         actions: [
           if (!SupabaseConfig.enabled) const _ProfileSelector(),
           IconButton(
