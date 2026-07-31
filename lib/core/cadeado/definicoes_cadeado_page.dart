@@ -50,6 +50,7 @@ class _DefinicoesCadeadoPageState extends ConsumerState<DefinicoesCadeadoPage> {
   }
 
   Future<void> _definirOuMudarPin() async {
+    final eraNovo = !_temPin;
     final novo = await Navigator.of(context).push<String?>(
       MaterialPageRoute(builder: (_) => const _DefinirPinScreen()),
     );
@@ -57,6 +58,40 @@ class _DefinicoesCadeadoPageState extends ConsumerState<DefinicoesCadeadoPage> {
     await ref.read(cadeadoServiceProvider).guardarPin(novo);
     if (!mounted) return;
     setState(() => _temPin = true);
+
+    // Primeira definicao + biometria disponivel: perguntar explicitamente,
+    // em vez de activar sem avisar. A escolha grava-se no SharedPreferences,
+    // portanto so aparece uma vez.
+    if (eraNovo && _bioDisponivel) {
+      final querBiometria = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Usar biometria?'),
+          content: const Text(
+            'Além do PIN, podes desbloquear com a impressão digital ou o '
+            'rosto. É mais rápido no dia-a-dia. O PIN continua a servir de '
+            'alternativa.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Só PIN'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Sim, usar biometria'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      await ref
+          .read(cadeadoServiceProvider)
+          .setBiometriaActivada(querBiometria ?? false);
+      setState(() => _bioActivada = querBiometria ?? false);
+    }
+
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('PIN definido.')),
     );
