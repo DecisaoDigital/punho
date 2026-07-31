@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -33,6 +33,7 @@ final punhoUpdateProvider =
 class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
   StreamSubscription<AuthState>? _subscricaoAuth;
   Timer? _timer;
+  _ObservadorDeRegresso? _observador;
   bool _vivo = true;
   String? _ultimoUtilizador;
 
@@ -42,6 +43,10 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
       _vivo = false;
       _subscricaoAuth?.cancel();
       _timer?.cancel();
+      if (_observador != null) {
+        WidgetsBinding.instance.removeObserver(_observador!);
+        _observador = null;
+      }
     });
     // Sem Supabase configurado (modo demonstração, testes) não há nada a
     // consultar — e `Supabase.instance` rebentaria por não estar inicializado.
@@ -58,11 +63,26 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
     unawaited(_carregarCache());
     unawaited(verificar());
     _ouvirGanhoDeSessao();
+    _ouvirRegressoDoBackground();
     _timer = Timer.periodic(
       intervaloVerificacaoUpdate,
       (_) => unawaited(verificar()),
     );
     return null;
+  }
+
+  /// Voltar à app conta como momento de verificar.
+  ///
+  /// Sem isto havia só dois momentos: o arranque de raiz e o temporizador de 24
+  /// horas. Quem deixa a app em segundo plano e alterna para ela — que é como o
+  /// Cesar a usa — nunca apanhava uma versão publicada entretanto. Foi
+  /// exactamente o que aconteceu com a v0.0.17 e a v0.0.18: a Edge Function
+  /// respondia "há versão nova" e ninguém lhe perguntava.
+  void _ouvirRegressoDoBackground() {
+    _observador = _ObservadorDeRegresso(() {
+      if (_vivo) unawaited(verificar());
+    });
+    WidgetsBinding.instance.addObserver(_observador!);
   }
 
   /// `v2` porque o envelope passou a levar `guardado_em`: uma entrada do
@@ -155,5 +175,18 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
       _ultimoUtilizador = utilizador;
       unawaited(verificar());
     });
+  }
+}
+
+/// Observador mínimo do ciclo de vida. Existe como classe própria porque um
+/// `Notifier` do Riverpod não pode ele próprio ser um `WidgetsBindingObserver`
+/// sem arrastar o mixin e o `dispose` para dentro do provider.
+class _ObservadorDeRegresso extends WidgetsBindingObserver {
+  _ObservadorDeRegresso(this.aoRegressar);
+  final VoidCallback aoRegressar;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState estado) {
+    if (estado == AppLifecycleState.resumed) aoRegressar();
   }
 }
