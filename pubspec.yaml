@@ -56,6 +56,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.6
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -100,3 +102,38 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# ============================================================================
+# Launcher icon (Android + iOS) — gerado por flutter_launcher_icons
+# Correr: dart run flutter_launcher_icons
+# ============================================================================
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/brand/punho_elo_operacao_v010.png"
+  adaptive_icon_background: "#1E2A44"
+  adaptive_icon_foreground: "assets/brand/ic_launcher_foreground.png"
+  adaptive_icon_monochrome: "assets/brand/ic_launcher_monochrome.png"
+  web:
+    generate: false
+  windows:
+    generate: false
+  macos:
+    generate: false
+
+# ============================================================================
+# Splash nativo — gerado por flutter_native_splash
+# Correr: dart run flutter_native_splash:create
+# ============================================================================
+flutter_native_splash:
+  color: "#1E2A44"
+  image: "assets/brand/splash_symbol.png"
+  android: true
+  ios: true
+  android_12:
+    color: "#1E2A44"
+    image: "assets/brand/splash_symbol.png"
+    icon_background_color: "#1E2A44"
+  color_dark: "#1E2A44"
+  image_dark: "assets/brand/splash_symbol.png"
+

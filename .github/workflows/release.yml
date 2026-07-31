@@ -56,6 +56,16 @@ jobs:
           fi
           echo "version=$versao" >> "$GITHUB_OUTPUT"
       - run: flutter pub get
+
+      - name: Gerar launcher icons + native splash (flutter_launcher_icons + flutter_native_splash)
+        # gera launcher icons + native splash a partir dos assets em assets/brand/
+        # Vale a pena regenerar em cada build porque:
+        #   1. O source-of-truth vive em assets/brand/ (versionado)
+        #   2. Ninguem tem de correr comandos localmente antes de taggar
+        #   3. Nunca fica dessincronizado se o simbolo mudar
+        run: |
+          dart run flutter_launcher_icons
+          dart run flutter_native_splash:create
       # Goldens excluídos: dependem das fontes do sistema onde foram gerados
       # (Windows). No Ubuntu do CI o rendering difere e os pixels não batem —
       # são documentação para revisão humana, não gate de release (#202).
