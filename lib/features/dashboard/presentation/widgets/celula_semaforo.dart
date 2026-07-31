@@ -32,24 +32,41 @@ class CelulaSemaforo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
     final cor = switch (nivel) {
       NivelSemaforo.verde => const Color(0xFF3DC97A),
       NivelSemaforo.laranja => const Color(0xFFFFB246),
       NivelSemaforo.vermelho => const Color(0xFFFF5C6E),
     };
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+    // O bordo lateral é uma faixa dentro de um `ClipRRect`, e não um
+    // `Border(left: ...)` mais largo que os outros lados. Um bordo não-uniforme
+    // com `borderRadius` é inválido no Flutter: rebenta a asserção do
+    // `BoxDecoration` mal alguém pinte isto num teste. Em release as asserções
+    // estão desligadas, e foi por isso que passou despercebido enquanto os
+    // slides não tiveram teste nenhum.
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border(
-          left: BorderSide(color: cor, width: 4),
-          top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.4)),
-          right: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.4)),
-          bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(11),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 4, color: cor),
+            Expanded(child: _conteudo(context, cor)),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _conteudo(BuildContext context, Color cor) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 12, 14, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -187,7 +187,10 @@ FunilProcura funilProcura(OperationsState state, DateTime now, int dias) {
   bool noPeriodo(Lead lead, DateTime de, DateTime a) =>
       !lead.createdAt.isBefore(de) && lead.createdAt.isBefore(a);
   final doPeriodo = state.leads
-      .where((lead) => noPeriodo(lead, desde, _dia(now).add(const Duration(days: 1))))
+      .where(
+        (lead) =>
+            noPeriodo(lead, desde, _dia(now).add(const Duration(days: 1))),
+      )
       .toList();
   final anteriores = state.leads
       .where((lead) => noPeriodo(lead, anteriorDesde, desde))
@@ -271,6 +274,153 @@ List<Booking> proximasReservas(OperationsState state, DateTime now, int n) =>
     compromissosProximos(state, now, dias: 60).reservas.take(n).toList();
 
 // ---------------------------------------------------------------------------
+// Slide 2 — o pulso do dia (operacional)
+// ---------------------------------------------------------------------------
+
+/// O que há para fazer hoje e nas próximas 48 horas.
+///
+/// **Recolhas, não devoluções.** A máquina é alugada e tem de ser *recuperada*
+/// para voltar a estar disponível — é trabalho da empresa, com deslocação e com
+/// atraso possível, não um acto do cliente.
+///
+/// **Limite conhecido:** enquanto não existir o evento de recolha (ver
+/// `docs/LIGACAO_PERGUNTAS_SCREENS.md`), "recolha por fazer" é inferida do
+/// estado da reserva — uma reserva que continua `rented` depois de `endsAt` é
+/// uma máquina que ninguém deu por recolhida. É uma aproximação honesta, e
+/// deixa de ser aproximação no dia em que o colaborador tiver o botão.
+class PulsoOperacional {
+  const PulsoOperacional({
+    required this.semDados,
+    required this.reservasActivas,
+    required this.reservasATerminar48h,
+    required this.entregasHoje,
+    required this.entregasPorFazer,
+    required this.recolhasHoje,
+    required this.recolhasProximas48h,
+    required this.recolhasEmAtraso,
+    required this.diasDaRecolhaMaisAtrasada,
+    required this.cobrancasAVencerCents,
+    required this.clientesACobrar,
+    required this.venceHojeCents,
+  });
+
+  /// Não há reservas nenhumas registadas. Diferente de "hoje não há nada a
+  /// fazer": um é falta de dados, o outro é uma boa notícia. Quem desenha tem
+  /// de os separar, senão a app diz "0 entregas" a quem nunca registou nada e
+  /// parece que perdeu a informação.
+  final bool semDados;
+
+  final int reservasActivas, reservasATerminar48h;
+  final int entregasHoje, entregasPorFazer;
+  final int recolhasHoje, recolhasProximas48h, recolhasEmAtraso;
+
+  /// Dias de atraso da recolha mais antiga por fazer. `null` quando não há
+  /// nenhuma em atraso.
+  final int? diasDaRecolhaMaisAtrasada;
+
+  final int cobrancasAVencerCents, clientesACobrar, venceHojeCents;
+
+  /// A linha de rodapé: só o que exige acção, pela ordem em que dói.
+  ///
+  /// Devolve `null` quando não há nada a assinalar — em vez de "0 alertas", que
+  /// ocupa uma linha para não dizer nada.
+  String? get alertas {
+    final partes = <String>[
+      if (recolhasEmAtraso > 0)
+        recolhasEmAtraso == 1
+            ? '1 recolha em atraso'
+            : '$recolhasEmAtraso recolhas em atraso',
+      if (entregasPorFazer > 0)
+        entregasPorFazer == 1
+            ? '1 entrega por fazer'
+            : '$entregasPorFazer entregas por fazer',
+      if (venceHojeCents > 0)
+        'cobrança de ${_euros(venceHojeCents)} vence hoje',
+    ];
+    return partes.isEmpty ? null : partes.join(' · ');
+  }
+}
+
+String _euros(int cents) => '${(cents / 100).round()} €';
+
+/// Uma passagem pelas reservas, todas as contagens do slide 2.
+PulsoOperacional pulsoOperacional(OperationsState state, DateTime now) {
+  final hoje = _dia(now);
+  final daquiA48h = hoje.add(const Duration(days: 2));
+
+  var reservasActivas = 0, reservasATerminar48h = 0;
+  var entregasHoje = 0, entregasPorFazer = 0;
+  var recolhasHoje = 0, recolhasProximas48h = 0, recolhasEmAtraso = 0;
+  int? maiorAtraso;
+
+  for (final booking in state.bookings) {
+    // Canceladas e concluídas não geram trabalho nenhum.
+    if (booking.status == BookingStatus.cancelled ||
+        booking.status == BookingStatus.completed) {
+      continue;
+    }
+    final emCurso =
+        booking.status == BookingStatus.confirmed ||
+        booking.status == BookingStatus.rented;
+    if (!emCurso) continue;
+
+    final inicio = _dia(booking.startsAt);
+    final fim = _dia(booking.endsAt);
+
+    if (!inicio.isAfter(hoje) && !fim.isBefore(hoje)) {
+      reservasActivas++;
+      if (!fim.isAfter(daquiA48h)) reservasATerminar48h++;
+    }
+
+    if (inicio == hoje) {
+      entregasHoje++;
+      // Ainda marcada como confirmada no dia em que começa: a máquina não saiu.
+      if (booking.status == BookingStatus.confirmed) entregasPorFazer++;
+    }
+
+    if (fim.isBefore(hoje)) {
+      // Passou do fim e continua em curso — ninguém deu a máquina por recolhida.
+      if (booking.status == BookingStatus.rented) {
+        recolhasEmAtraso++;
+        final dias = hoje.difference(fim).inDays;
+        if (maiorAtraso == null || dias > maiorAtraso) maiorAtraso = dias;
+      }
+    } else {
+      if (fim == hoje) recolhasHoje++;
+      if (!fim.isAfter(daquiA48h)) recolhasProximas48h++;
+    }
+  }
+
+  // Cobranças: o que já está por receber mais o que vence dentro de 7 dias.
+  final limiteCobranca = hoje.add(const Duration(days: 7));
+  var cobrancasCents = 0, venceHojeCents = 0;
+  final clientes = <String>{};
+  for (final cobranca in cobrancasPorReceber(state, now)) {
+    if (_dia(cobranca.booking.endsAt).isAfter(limiteCobranca)) continue;
+    cobrancasCents += cobranca.emDividaCents;
+    clientes.add(cobranca.booking.customerId);
+    if (_dia(cobranca.booking.endsAt) == hoje) {
+      venceHojeCents += cobranca.emDividaCents;
+    }
+  }
+
+  return PulsoOperacional(
+    semDados: state.bookings.isEmpty,
+    reservasActivas: reservasActivas,
+    reservasATerminar48h: reservasATerminar48h,
+    entregasHoje: entregasHoje,
+    entregasPorFazer: entregasPorFazer,
+    recolhasHoje: recolhasHoje,
+    recolhasProximas48h: recolhasProximas48h,
+    recolhasEmAtraso: recolhasEmAtraso,
+    diasDaRecolhaMaisAtrasada: maiorAtraso,
+    cobrancasAVencerCents: cobrancasCents,
+    clientesACobrar: clientes.length,
+    venceHojeCents: venceHojeCents,
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Slide 3 — rentabilidade das máquinas
 // ---------------------------------------------------------------------------
 
@@ -287,6 +437,7 @@ class OcupacaoSemana {
   /// percentagem, e 0% diria que está tudo parado.
   final double? percent;
   final double? percentSemanaAnterior;
+
   /// `emManutencao` e não `paradas`: o estado "Parada" saiu da app na v0.0.5 —
   /// uma máquina que não está alugada nem em manutenção está disponível.
   final int alugadas, emManutencao, disponiveis;
@@ -371,7 +522,10 @@ List<MaquinaAlugueres> topMaquinasMaisAlugadas(
 }
 
 class MaquinaSemAluguer {
-  const MaquinaSemAluguer({required this.maquina, required this.diasSemAluguer});
+  const MaquinaSemAluguer({
+    required this.maquina,
+    required this.diasSemAluguer,
+  });
   final Machine maquina;
 
   /// `null` quando nunca teve aluguer nenhum — não é "há 0 dias", é "nunca".
@@ -415,7 +569,8 @@ List<MaquinaSemAluguer> maquinasSemAluguerHaMaisDe(
     }
   }
   resultado.sort(
-    (a, b) => (b.diasSemAluguer ?? 1 << 30).compareTo(a.diasSemAluguer ?? 1 << 30),
+    (a, b) =>
+        (b.diasSemAluguer ?? 1 << 30).compareTo(a.diasSemAluguer ?? 1 << 30),
   );
   return resultado;
 }
@@ -480,8 +635,11 @@ class CustosMes {
       ? null
       : custoRealPessoalCents ~/ colaboradoresActivos;
 
-  int get totalCents => custoRealPessoalCents + frotaCents +
-      manutencaoPagaCents + outrosCustosCents;
+  int get totalCents =>
+      custoRealPessoalCents +
+      frotaCents +
+      manutencaoPagaCents +
+      outrosCustosCents;
 
   /// Peso dos custos na receita do mês. `null` sem receita — sem denominador a
   /// percentagem não existe (e 0% seria uma boa notícia falsa).
@@ -511,19 +669,16 @@ CustosMes custosMesAgregados(
 }) {
   final inicio = _inicioDoMes(now);
   final fim = _fimDoMes(now);
-  int pagoNoPeriodo(
-    bool Function(Expense) filtro,
-    DateTime de,
-    DateTime a,
-  ) => state.expenses
-      .where(
-        (e) =>
-            !e.archived &&
-            e.status == ExpensePaymentStatus.paid &&
-            isInPeriod(e.date, de, a) &&
-            filtro(e),
-      )
-      .fold(0, (soma, e) => soma + e.amountCents);
+  int pagoNoPeriodo(bool Function(Expense) filtro, DateTime de, DateTime a) =>
+      state.expenses
+          .where(
+            (e) =>
+                !e.archived &&
+                e.status == ExpensePaymentStatus.paid &&
+                isInPeriod(e.date, de, a) &&
+                filtro(e),
+          )
+          .fold(0, (soma, e) => soma + e.amountCents);
 
   final activos = state.collaborators
       .where((c) => !c.archived && c.status == CollaboratorStatus.active)
@@ -558,7 +713,8 @@ CustosMes custosMesAgregados(
       final mes = DateTime(now.year, now.month - i);
       final temDespesas = state.expenses.any(
         (e) =>
-            !e.archived && isInPeriod(e.date, _inicioDoMes(mes), _fimDoMes(mes)),
+            !e.archived &&
+            isInPeriod(e.date, _inicioDoMes(mes), _fimDoMes(mes)),
       );
       if (!temDespesas) continue;
       total += pagoNoPeriodo(
