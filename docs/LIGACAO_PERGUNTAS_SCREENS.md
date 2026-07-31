@@ -304,6 +304,88 @@ foto, com mais duas linhas:
 
 Nenhuma destas é onboarding novo. São ecrãs que já existem.
 
+---
+
+## Refinamento progressivo — "refinar este valor"
+
+Decisão do Cesar a 31/07/2026, e é o mecanismo que resolve a tensão entre
+"perguntar tudo à cabeça" e "não ter dados para calcular nada".
+
+**A app começa com o número mais simples que consegue ser honesto, e oferece um
+botão que o aprofunda.** Cada toque em *Refinar este valor* faz só as perguntas
+necessárias para subir um degrau — e, ao responder, o gestor vê o número mudar e
+percebe porquê.
+
+É aqui que a app cumpre a promessa de *"ensina o empresário a perceber as
+alavancas"* (`O_QUE_E_O_PUNHO.md`). Não com um tutorial: com o número dele a
+mexer-se à frente dele, e a razão escrita ao lado.
+
+### A escada, no caso do lucro por máquina
+
+| Degrau | O que mostra | O que pergunta para subir |
+|---|---|---|
+| 0 | "Por apurar" | Valor de compra · preço/dia |
+| 1 | **Recuperação**: custou 8 000 €, já devolveu 5 200 € | — (usa reservas) |
+| 2 | **− reparações** | Nada, se as despesas já estiverem etiquetadas à máquina |
+| 3 | **− deslocações** | Custo médio de uma entrega + recolha |
+| 4 | **− estrutura** | Que custos fixos incluir · chave de repartição |
+
+O degrau 2 é o exemplo do que isto tem de bom: **muitas vezes não há pergunta
+nenhuma a fazer** — o dado já lá está, e o refinamento é só a app a mostrar que
+o sabe usar.
+
+### Regras que fazem a diferença entre pedagógico e confuso
+
+**1. O número diz sempre em que degrau está.**
+`5 200 € recuperados · antes de deslocações e estrutura`. Um valor de lucro sem
+o seu nível é um valor sem significado, e dois gestores a olhar para o mesmo
+ecrã tirariam conclusões diferentes.
+
+**2. Cada refinamento mostra o antes e o depois.**
+> *Era 5 200 €. Com as deslocações passou a 4 400 €.*
+> *Cada aluguer desta máquina custa-te 40 € de deslocação — em 20 alugueres,
+> 800 €.*
+
+É esta linha que ensina. Sem ela, o gestor responde a perguntas e não percebe
+para que serviram.
+
+**3. Uma resposta serve para sempre e para todas.**
+O custo médio de deslocação responde-se uma vez e aplica-se a toda a frota e a
+todos os períodos. Refinar não pode transformar-se num interrogatório mensal.
+
+**4. Refinamentos por fazer são Tarefas.**
+Cada degrau por subir vira uma entrada no `tarefas_service` — *"Sabe quanto te
+custa uma entrega? Refina o lucro das máquinas"* — com a severidade
+`aCompletar`. Liga-se à Decisão 11 e dá conteúdo real à página de Tarefas de
+quem ainda não tem operação nenhuma registada.
+
+**5. O gestor pode ver e desfazer o que respondeu.**
+Um ecrã com as respostas dadas e o efeito de cada uma. Um número que ele não
+consegue auditar é um número que ele deixa de usar para decidir.
+
+**6. Comparações só entre iguais.** ⚠️
+É a armadilha deste mecanismo. Se a Máquina 1 está no degrau 4 e a Máquina 3 no
+degrau 1, o ranking "máquina mais rentável" é mentira — a Máquina 3 parece
+melhor por ter menos custos descontados.
+
+Regra: **qualquer vista comparativa usa o degrau mais baixo entre as máquinas
+comparadas**, e diz que o está a fazer. Quando o gestor sobe o degrau de uma
+máquina, a app sugere subir o das outras — que é, por acaso, um bom empurrão
+pedagógico.
+
+### Aplica-se para lá das máquinas
+
+O mesmo padrão serve a alavanca Procura (CAC), a Margem (peso da estrutura) e o
+slide 8 (Objectivos):
+
+- **CAC no degrau 1**: `publicidade ÷ clientes novos`.
+- **CAC no degrau 2**: separa por canal — pergunta quanto foi para cada um.
+- **CAC no degrau 3**: contra o valor do cliente ao longo da vida, e aí a
+  pergunta é sobre recorrência.
+
+O widget é um só, partilhado, e nasce com o slide 2 mesmo que só seja usado a
+sério no slide 1.
+
 ### Decisões fechadas nesta ronda
 
 - **CAC e publicidade ficam na alavanca Procura**, não são imputados por
