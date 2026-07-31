@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../orientacao/orientacao_do_contexto.dart';
 import 'cadeado_service.dart';
 import 'lock_screen.dart';
 
@@ -39,18 +40,24 @@ class _CadeadoGateState extends ConsumerState<CadeadoGate>
     _iniciado = true;
     final svc = ref.read(cadeadoServiceProvider);
     if (await svc.temPinDefinido()) {
-      ref.read(cadeadoBloqueadoProvider.notifier).state = true;
+      _bloquear();
     }
   }
 
   @override
   Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
     final svc = ref.read(cadeadoServiceProvider);
-    // O prompt de biometria do sistema rouba o foco à app e o Flutter anuncia
-    // isso como saída. Se contarmos esse ciclo, estamos a cronometrar
-    // inactividade durante o próprio desbloqueio.
-    if (svc.aPedirBiometria) return;
     if (!await svc.temPinDefinido()) return;
+
+    // Já bloqueado não há nada a fazer, e é também assim que se ignora o
+    // ciclo do próprio prompt de biometria: ele rouba o foco à app e o Flutter
+    // anuncia isso como saída.
+    //
+    // Antes isto dependia de uma marca no serviço (`aPedirBiometria`). Uma
+    // marca que fica presa a `true` — e basta o prompt morrer de forma
+    // estranha — desligava o cadeado para sempre: era o "saio da app, volto, e
+    // não me pede o PIN". Ler o estado em vez de uma marca não pode encravar.
+    if (ref.read(cadeadoBloqueadoProvider)) return;
 
     // `inactive` de fora: dispara ao puxar a barra de notificações, ao receber
     // uma chamada, no multitarefa. Nada disso é sair da app, e carimbar o
@@ -61,14 +68,36 @@ class _CadeadoGateState extends ConsumerState<CadeadoGate>
     } else if (state == AppLifecycleState.resumed) {
       if (await svc.deveBloquearAoRetomar()) {
         if (!mounted) return;
-        ref.read(cadeadoBloqueadoProvider.notifier).state = true;
+        _bloquear();
       }
     }
+  }
+
+  void _bloquear() {
+    // Rearmar antes de mostrar: cada bloqueio novo merece uma tentativa
+    // automática de digital, mas só uma.
+    LockScreen.rearmar();
+    ref.read(cadeadoBloqueadoProvider.notifier).state = true;
   }
 
   @override
   Widget build(BuildContext context) {
     final bloqueado = ref.watch(cadeadoBloqueadoProvider);
+    // A orientação é decidida **aqui**, pelo estado, e não no `initState` /
+    // `dispose` do ecrã de bloqueio.
+    //
+    // Estava lá, e no primeiro arranque a app dava voltas: landscape, retrato,
+    // landscape, retrato, enquanto tentava ler a digital. O ecrã de bloqueio
+    // monta e desmonta mais vezes do que parece — a resolução do acesso, o
+    // banner de actualização e o próprio prompt do sistema mexem na árvore — e
+    // a orientação ia atrás de cada uma dessas voltas.
+    //
+    // Ligada ao estado, roda uma vez ao bloquear e uma vez ao abrir.
+    if (bloqueado) {
+      OrientacaoDoContexto.sobreporJa(Orientacao.portrait);
+    } else {
+      OrientacaoDoContexto.largarSobreposicaoJa();
+    }
     return Stack(children: [widget.child, if (bloqueado) const LockScreen()]);
   }
 }

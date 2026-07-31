@@ -96,7 +96,12 @@ class _AppShellState extends ConsumerState<AppShell> {
       // respeitado — é esta faixa desenhada no layout que põe as notificações
       // em fundo escuro. Encolhê-la é perder exactamente o que ela existe para
       // dar. Quem procurar aqui altura para poupar, procure noutro sítio.
-      final alturaDaMoldura = topInset > 2 ? topInset - 2 : topInset;
+      // Com tecto. Em landscape, um telemóvel com recorte de câmara reporta uma
+      // margem segura bem maior do que a barra de estado precisa, e a faixa
+      // ficava grossa — foi o que o Cesar viu. 24 dp chega para os ícones do
+      // sistema em qualquer telemóvel.
+      final semExcesso = topInset > 2 ? topInset - 2 : topInset;
+      final alturaDaMoldura = semExcesso > 24.0 ? 24.0 : semExcesso;
       return AnnotatedRegion<SystemUiOverlayStyle>(
         value: const SystemUiOverlayStyle(
           statusBarColor: PunhoTheme.navyDeep,
@@ -200,7 +205,7 @@ class _Sidebar extends ConsumerWidget {
             //
             // Isto é a barra **vertical**. A faixa escura do topo é outra coisa
             // e não encolhe: é ela que põe as notificações em fundo escuro.
-            padding: const EdgeInsets.fromLTRB(0, 12, 0, 14),
+            padding: const EdgeInsets.fromLTRB(0, 10, 0, 20),
             child: Center(
               child: SizedBox(
                 width: 40,

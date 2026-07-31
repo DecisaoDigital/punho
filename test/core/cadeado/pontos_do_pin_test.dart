@@ -14,6 +14,9 @@ void main() {
     // Sem biometria disponível (não há plataforma nos testes), o ecrã cai
     // directo no teclado do PIN — que é o que aqui interessa.
     SharedPreferences.setMockInitialValues({'cadeado.biometria': false});
+    // O disparo automático da digital é estático de propósito (o ecrã remonta
+    // muito). Entre testes tem de ser rearmado, como o gate faz ao bloquear.
+    LockScreen.rearmar();
   });
 
   Future<void> montar(WidgetTester tester) async {

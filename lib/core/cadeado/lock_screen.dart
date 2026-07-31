@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../shared/widgets/brand_lockup.dart';
 import '../config/supabase_config.dart';
-import '../orientacao/orientacao_do_contexto.dart';
 import 'cadeado_service.dart';
 
 /// Ecrã de bloqueio. Aparece sobreposto ao resto da app quando o
@@ -18,6 +17,14 @@ import 'cadeado_service.dart';
 ///   3. Após 5 tentativas falhadas → botão "Terminar sessão"
 class LockScreen extends ConsumerStatefulWidget {
   const LockScreen({super.key});
+
+  /// Rearma o disparo automático da digital.
+  ///
+  /// Chamado por quem bloqueia. Cada bloqueio novo merece uma tentativa
+  /// automática — mas só uma, senão o ecrã, que remonta mais do que parece,
+  /// pedia a digital em cadeia: o leitor a aceitar e a recusar sem nunca
+  /// chegar a lado nenhum.
+  static void rearmar() => _LockScreenState._jaTentouAutomaticamente = false;
 
   @override
   ConsumerState<LockScreen> createState() => _LockScreenState();
@@ -37,25 +44,20 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   int _falhas = 0;
   String? _erro;
 
+  /// Ver [LockScreen.rearmar].
+  static bool _jaTentouAutomaticamente = false;
+
   @override
   void initState() {
     super.initState();
-    // Retrato, sempre. O painel do gestor é landscape, mas isto é um teclado
-    // numérico e um dedo — deitado ficava com as teclas espalhadas de um lado ao
-    // outro do ecrã. A app só se deita depois de aberta.
-    //
-    // `sobrepor` e não `forcarPortrait`: o ecrã por baixo continua montado e
-    // pode ainda vir a pedir landscape enquanto está tapado (é o que o
-    // `AppShell` faz quando o acesso resolve com o cadeado à frente). Esse
-    // pedido fica guardado e passa a valer quando o cadeado sair.
-    OrientacaoDoContexto.sobreporJa(Orientacao.portrait);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _tentarBiometria());
-  }
-
-  @override
-  void dispose() {
-    OrientacaoDoContexto.largarSobreposicaoJa();
-    super.dispose();
+    // A orientação é do `CadeadoGate`, que a decide pelo estado. Aqui não se
+    // toca: era o `initState`/`dispose` deste ecrã a mexer nela que fazia a app
+    // dar voltas no primeiro arranque.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_jaTentouAutomaticamente) return;
+      _jaTentouAutomaticamente = true;
+      _tentarBiometria();
+    });
   }
 
   Future<void> _tentarBiometria() async {
