@@ -21,30 +21,41 @@ void main() {
     tamanho: tamanho,
   );
 
-  testWidgets('o botão diz Reservar, e "Marcações" não aparece em sítio nenhum', (
+  testWidgets(
+    'o botão diz Reservar, e "Marcações" não aparece em sítio nenhum',
+    (tester) async {
+      await abrirReservas(tester);
+
+      expect(find.text('Reservar'), findsOneWidget);
+      expect(find.text('Adicionar reserva'), findsNothing);
+      // O cabeçalho do _PageFrame já não se desenha desde a v0.0.5 (o item da
+      // barra lateral é que diz em que ecrã se está, e diz "Reservas"), mas o
+      // título continua no construtor — vale a pena não deixar lá "Marcações /
+      // Reservas" à espera de voltar a aparecer.
+      expect(find.textContaining('Marcações'), findsNothing);
+    },
+  );
+
+  testWidgets('máquina, datas e Reservar partilham a linha do topo', (
     tester,
   ) async {
-    await abrirReservas(tester);
-
-    expect(find.text('Reservar'), findsOneWidget);
-    expect(find.text('Adicionar reserva'), findsNothing);
-    // O cabeçalho do _PageFrame já não se desenha desde a v0.0.5 (o item da
-    // barra lateral é que diz em que ecrã se está, e diz "Reservas"), mas o
-    // título continua no construtor — vale a pena não deixar lá "Marcações /
-    // Reservas" à espera de voltar a aparecer.
-    expect(find.textContaining('Marcações'), findsNothing);
-  });
-
-  testWidgets('a máquina escolhe-se num dropdown na própria barra', (
-    tester,
-  ) async {
+    // O Cesar pediu: "máquina e data devem estar na mesma linha e alinhados
+    // pelo topo do botão + Reservar". Antes viviam numa segunda barra que, num
+    // telemóvel deitado, partia em duas ou três linhas e roubava altura ao
+    // calendário.
     await abrirReservas(tester);
 
     final dropdown = find.byType(DropdownButton<String>);
     expect(dropdown, findsOneWidget);
-    expect(tester.getSize(dropdown).width, 240);
-    // A fila de ChoiceChips desapareceu.
     expect(find.byType(ChoiceChip), findsNothing);
+
+    // Alinhados pelo topo: o dropdown e o botão começam à mesma altura.
+    final botao = find.widgetWithText(FilledButton, 'Reservar');
+    expect(botao, findsOneWidget);
+    expect(
+      (tester.getTopLeft(dropdown).dy - tester.getTopLeft(botao).dy).abs(),
+      lessThan(24),
+    );
   });
 
   testWidgets('as duas metades do dia e os sete dias cabem sem rolar', (
@@ -94,5 +105,32 @@ void main() {
 
     expect(find.text('Reservar (1)'), findsOneWidget);
     expect(find.text('Limpar seleção'), findsOneWidget);
+  });
+
+  testWidgets('o cliente escolhe-se no diálogo, e pode criar-se ali mesmo', (
+    tester,
+  ) async {
+    // O Cesar carregou em "+ Reservar" e concluiu que não havia campo de
+    // cliente. Havia — mas quando a empresa ainda não tinha clientes o diálogo
+    // nem chegava a abrir: mostrava um aviso e desistia. Agora abre sempre, e
+    // o cliente cria-se sem sair do calendário.
+    await abrirReservas(tester);
+    await tester.tap(find.byType(DropdownButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('PE-02').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.add_circle_outline).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Reservar (1)'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Confirmar reserva'), findsOneWidget);
+    expect(find.text('Cliente'), findsOneWidget);
+
+    // E a saída para criar um cliente novo está na própria lista.
+    await tester.tap(find.byType(DropdownButtonFormField<String>).first);
+    await tester.pumpAndSettle();
+    expect(find.text('Novo cliente…'), findsWidgets);
   });
 }

@@ -89,31 +89,33 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   /// não avança depois disto, portanto não há caminho para o chamar duas vezes:
   /// o ecrã seguinte é a app.
   void _concluirOnboarding() {
-    ref.read(operationsProvider.notifier).completeOnboarding(
-      ownerName: _optional(ownerName.text),
-      companyName: name.text.trim().isEmpty
-          ? 'A minha empresa'
-          : name.text.trim(),
-      legalForm: legal,
-      hasFleet: vehicles > 0,
-      declaredVehicleCount: vehicles,
-      collaborators: collaborators,
-      totalMachinesDeclared: machines,
-      // Sempre false: o passo "inserir máquinas agora" foi removido. O
-      // utilizador adiciona máquinas em detalhe (foto, referência) na secção
-      // Máquinas ao seu ritmo.
-      insertMachinesNow: false,
-      companyTaxId: _optional(taxId.text),
-      companyPhone: _optional(phone.text),
-      companyEmail: _optional(email.text),
-      companyAddress: _optional(address.text),
-      companyPostalCode: _optional(postalCode.text),
-      companyLocality: _optional(locality.text),
-      revenueLastYearCents: _euroCents(revenueLastYear.text),
-      revenueThisYearCents: _euroCents(revenueThisYear.text),
-      maintenanceLastYearCents: _euroCents(maintenanceLastYear.text),
-      fixedMonthlyCostsCents: _euroCents(fixedMonthlyCosts.text),
-    );
+    ref
+        .read(operationsProvider.notifier)
+        .completeOnboarding(
+          ownerName: _optional(ownerName.text),
+          companyName: name.text.trim().isEmpty
+              ? 'A minha empresa'
+              : name.text.trim(),
+          legalForm: legal,
+          hasFleet: vehicles > 0,
+          declaredVehicleCount: vehicles,
+          collaborators: collaborators,
+          totalMachinesDeclared: machines,
+          // Sempre false: o passo "inserir máquinas agora" foi removido. O
+          // utilizador adiciona máquinas em detalhe (foto, referência) na secção
+          // Máquinas ao seu ritmo.
+          insertMachinesNow: false,
+          companyTaxId: _optional(taxId.text),
+          companyPhone: _optional(phone.text),
+          companyEmail: _optional(email.text),
+          companyAddress: _optional(address.text),
+          companyPostalCode: _optional(postalCode.text),
+          companyLocality: _optional(locality.text),
+          revenueLastYearCents: _euroCents(revenueLastYear.text),
+          revenueThisYearCents: _euroCents(revenueThisYear.text),
+          maintenanceLastYearCents: _euroCents(maintenanceLastYear.text),
+          fixedMonthlyCostsCents: _euroCents(fixedMonthlyCosts.text),
+        );
   }
 
   @override
@@ -255,49 +257,50 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       //   colaborador → contacto pessoal (último passo dele)
       //   gestor → forma jurídica + NIF juntos (menos ecrãs para dados que
       //   pertencem ao mesmo bloco administrativo)
-      3 => role == 'colaborador'
-          ? TextField(
-              controller: phone,
-              autofocus: true,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Telemóvel',
-                border: OutlineInputBorder(),
-              ),
-            )
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: legal,
-                  // "Empresário em Nome Individual" não cabe na largura do
-                  // cartão de onboarding e rebentava a linha em 52 px. Com
-                  // isExpanded o texto encurta com reticências.
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Forma jurídica',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'Empresário em Nome Individual',
-                      child: Text('Empresário em Nome Individual'),
+      3 =>
+        role == 'colaborador'
+            ? TextField(
+                controller: phone,
+                autofocus: true,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Telemóvel',
+                  border: OutlineInputBorder(),
+                ),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: legal,
+                    // "Empresário em Nome Individual" não cabe na largura do
+                    // cartão de onboarding e rebentava a linha em 52 px. Com
+                    // isExpanded o texto encurta com reticências.
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Forma jurídica',
+                      border: OutlineInputBorder(),
                     ),
-                    DropdownMenuItem(value: 'Lda.', child: Text('Lda.')),
-                  ],
-                  onChanged: (v) => setState(() => legal = v!),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: taxId,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'NIF da empresa',
-                    border: OutlineInputBorder(),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'Empresário em Nome Individual',
+                        child: Text('Empresário em Nome Individual'),
+                      ),
+                      DropdownMenuItem(value: 'Lda.', child: Text('Lda.')),
+                    ],
+                    onChanged: (v) => setState(() => legal = v!),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: taxId,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'NIF da empresa',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
       // Passo 4 (só gestor): morada + contactos juntos.
       4 => Column(
         mainAxisSize: MainAxisSize.min,
@@ -960,7 +963,11 @@ class MachinesPage extends ConsumerWidget {
     // Identificadas primeiro: quem já baptizou algumas quer vê-las em cima, e
     // não perdidas entre vinte linhas "Máquina 7".
     final machines =
-        ref.watch(operationsProvider).machines.where((m) => !m.archived).toList()
+        ref
+            .watch(operationsProvider)
+            .machines
+            .where((m) => !m.archived)
+            .toList()
           ..sort((a, b) {
             if (a.placeholder == b.placeholder) return 0;
             return a.placeholder ? 1 : -1;
@@ -976,8 +983,20 @@ class MachinesPage extends ConsumerWidget {
         children: [
           for (final m in machines)
             Card(
+              // Compacto de propósito: em landscape mobile só cabiam três
+              // máquinas e meia, e quem tem vinte passava a vida a rolar. A
+              // altura da linha era dada pela miniatura de 64 dp e pelo
+              // espaçamento por omissão do ListTile — os dois encolheram.
+              margin: const EdgeInsets.symmetric(vertical: 3),
               child: ListTile(
-                minLeadingWidth: 70,
+                dense: true,
+                visualDensity: VisualDensity.compact,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 2,
+                ),
+                minLeadingWidth: 44,
+                minVerticalPadding: 4,
                 leading: _MachineThumbnail(machine: m),
                 // maxLines+ellipsis obrigatórios: sem eles o Flutter parte o
                 // texto em coluna vertical de caracteres quando o trailing
@@ -1029,11 +1048,8 @@ class MachinesPage extends ConsumerWidget {
                         // mas o utilizador lê "Eliminar" em todo o lado.
                         icon: const Icon(Icons.delete_outline),
                         tooltip: 'Eliminar máquina',
-                        onPressed: () => _confirmarEliminarMaquina(
-                          context,
-                          ref,
-                          m,
-                        ),
+                        onPressed: () =>
+                            _confirmarEliminarMaquina(context, ref, m),
                       ),
                   ],
                 ),
@@ -1181,8 +1197,10 @@ class _MachineThumbnail extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: SizedBox(
-        width: 64,
-        height: 64,
+        // 44 e não 64: é a miniatura que manda na altura da linha da lista, e
+        // 64 dp só cabia três máquinas e meia num telemóvel deitado.
+        width: 44,
+        height: 44,
         child: path == null
             ? ColoredBox(
                 color: const Color(0xFFFFE5BD),
@@ -1248,7 +1266,10 @@ Future<void> _machineDialog(
   context: context,
   // Não fecha ao tocar fora: um toque ao lado deitava fora o formulário todo.
   barrierDismissible: false,
-  builder: (_) => _FormularioDeMaquina(notifier: ref.read(operationsProvider.notifier), current: current),
+  builder: (_) => _FormularioDeMaquina(
+    notifier: ref.read(operationsProvider.notifier),
+    current: current,
+  ),
 );
 
 /// O formulário é um widget com estado porque é ele quem tem de ser dono dos
@@ -1640,7 +1661,12 @@ class ClientsPage extends ConsumerWidget {
   }
 }
 
-Future<void> _customerDialog(BuildContext context, WidgetRef ref) async {
+/// Devolve o id do cliente criado, ou `null` se desistiu.
+///
+/// Devolver o id é o que permite criar um cliente a meio de uma reserva e
+/// continuar de onde se estava, em vez de sair do ecrã e voltar a começar.
+Future<String?> _customerDialog(BuildContext context, WidgetRef ref) async {
+  String? criado;
   final name = TextEditingController();
   final phone = TextEditingController();
   final taxId = TextEditingController();
@@ -1655,84 +1681,82 @@ Future<void> _customerDialog(BuildContext context, WidgetRef ref) async {
     builder: (dialogContext) => DialogoDeFormulario(
       titulo: 'Novo cliente',
       corpo: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: name,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Nome *'),
-            ),
-            TextField(
-              controller: phone,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Telemóvel'),
-            ),
-            TextField(
-              controller: taxId,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'NIF'),
-            ),
-            TextField(
-              controller: email,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-            TextField(
-              controller: address,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Morada'),
-            ),
-            TextField(
-              controller: postalCode,
-              decoration: const InputDecoration(labelText: 'Código-postal'),
-            ),
-            TextField(
-              controller: locality,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Localidade'),
-            ),
-            TextField(
-              controller: notes,
-              maxLines: 2,
-              decoration: const InputDecoration(labelText: 'Notas'),
-            ),
-          ],
-        ),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: name,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(labelText: 'Nome *'),
+          ),
+          TextField(
+            controller: phone,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(labelText: 'Telemóvel'),
+          ),
+          TextField(
+            controller: taxId,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'NIF'),
+          ),
+          TextField(
+            controller: email,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(labelText: 'Email'),
+          ),
+          TextField(
+            controller: address,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(labelText: 'Morada'),
+          ),
+          TextField(
+            controller: postalCode,
+            decoration: const InputDecoration(labelText: 'Código-postal'),
+          ),
+          TextField(
+            controller: locality,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(labelText: 'Localidade'),
+          ),
+          TextField(
+            controller: notes,
+            maxLines: 2,
+            decoration: const InputDecoration(labelText: 'Notas'),
+          ),
+        ],
+      ),
       aoGuardar: () {
-            if (name.text.trim().isEmpty) return;
-            try {
-              ref
-                  .read(operationsProvider.notifier)
-                  .addCustomer(
-                    Customer(
-                      id: 'c${DateTime.now().microsecondsSinceEpoch}',
-                      name: name.text.trim(),
-                      phone: phone.text.trim(),
-                      taxId: taxId.text.trim().isEmpty
-                          ? null
-                          : taxId.text.trim(),
-                      email: email.text.trim().isEmpty
-                          ? null
-                          : email.text.trim(),
-                      address: address.text.trim().isEmpty
-                          ? null
-                          : address.text.trim(),
-                      postalCode: postalCode.text.trim().isEmpty
-                          ? null
-                          : postalCode.text.trim(),
-                      locality: locality.text.trim().isEmpty
-                          ? null
-                          : locality.text.trim(),
-                      notes: notes.text.trim(),
-                    ),
-                  );
-              Navigator.pop(dialogContext);
-            } on StateError catch (error) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(error.message.toString())));
-            }
-          },
+        if (name.text.trim().isEmpty) return;
+        try {
+          final novoId = 'c${DateTime.now().microsecondsSinceEpoch}';
+          ref
+              .read(operationsProvider.notifier)
+              .addCustomer(
+                Customer(
+                  id: novoId,
+                  name: name.text.trim(),
+                  phone: phone.text.trim(),
+                  taxId: taxId.text.trim().isEmpty ? null : taxId.text.trim(),
+                  email: email.text.trim().isEmpty ? null : email.text.trim(),
+                  address: address.text.trim().isEmpty
+                      ? null
+                      : address.text.trim(),
+                  postalCode: postalCode.text.trim().isEmpty
+                      ? null
+                      : postalCode.text.trim(),
+                  locality: locality.text.trim().isEmpty
+                      ? null
+                      : locality.text.trim(),
+                  notes: notes.text.trim(),
+                ),
+              );
+          criado = novoId;
+          Navigator.pop(dialogContext);
+        } on StateError catch (error) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(error.message.toString())));
+        }
+      },
     ),
   );
   name.dispose();
@@ -1743,6 +1767,7 @@ Future<void> _customerDialog(BuildContext context, WidgetRef ref) async {
   postalCode.dispose();
   locality.dispose();
   notes.dispose();
+  return criado;
 }
 
 Future<void> _leadDialog(BuildContext context, WidgetRef ref) async {
@@ -1778,9 +1803,7 @@ Future<void> _leadDialog(BuildContext context, WidgetRef ref) async {
                     child: TextField(
                       controller: phone,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Telemóvel',
-                      ),
+                      decoration: const InputDecoration(labelText: 'Telemóvel'),
                     ),
                   ),
                 ],
@@ -1802,21 +1825,21 @@ Future<void> _leadDialog(BuildContext context, WidgetRef ref) async {
         ),
       ),
       aoGuardar: () {
-            if (name.text.isNotEmpty && phone.text.isNotEmpty) {
-              ref
-                  .read(operationsProvider.notifier)
-                  .addLead(
-                    Lead(
-                      id: 'l${DateTime.now().microsecondsSinceEpoch}',
-                      name: name.text,
-                      phone: phone.text,
-                      status: LeadStatus.newLead,
-                      createdAt: DateTime.now(),
-                    ),
-                  );
-            }
-            Navigator.pop(dialogContext);
-          },
+        if (name.text.isNotEmpty && phone.text.isNotEmpty) {
+          ref
+              .read(operationsProvider.notifier)
+              .addLead(
+                Lead(
+                  id: 'l${DateTime.now().microsecondsSinceEpoch}',
+                  name: name.text,
+                  phone: phone.text,
+                  status: LeadStatus.newLead,
+                  createdAt: DateTime.now(),
+                ),
+              );
+        }
+        Navigator.pop(dialogContext);
+      },
     ),
   );
   name.dispose();
@@ -1904,10 +1927,53 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
       // "Marcações / Reservas" eram duas palavras para a mesma coisa, e a
       // barra lateral já diz "Reservas".
       title: 'Reservas',
+      // Tudo na linha do "+ Reservar", alinhado pelo topo dele.
+      //
+      // A máquina, a navegação de datas e o Semana/Mês viviam numa segunda
+      // barra por baixo, que num telemóvel deitado partia em duas ou três
+      // linhas e roubava altura ao calendário — que é o que interessa ver.
       action: Wrap(
         spacing: 8,
+        runSpacing: 4,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
+          SizedBox(
+            width: 190,
+            child: _EscolhaDeMaquina(
+              maquinas: state.machines
+                  .where((machine) => !machine.archived)
+                  .toList(),
+              escolhida: selectedMachine,
+              aoEscolher: (machineId) => setState(() {
+                _selectedMachineId = machineId;
+                _selectedSlotStarts.clear();
+              }),
+            ),
+          ),
+          _NavegacaoDeDatas(
+            focus: _focus,
+            view: _view,
+            onPrevious: () => setState(
+              () => _focus = _view == _CalendarView.week
+                  ? _focus.subtract(const Duration(days: 7))
+                  : DateTime(_focus.year, _focus.month - 1, 1),
+            ),
+            onNext: () => setState(
+              () => _focus = _view == _CalendarView.week
+                  ? _focus.add(const Duration(days: 7))
+                  : DateTime(_focus.year, _focus.month + 1, 1),
+            ),
+          ),
+          ToggleButtons(
+            constraints: const BoxConstraints(minHeight: 34, minWidth: 58),
+            isSelected: [
+              _view == _CalendarView.week,
+              _view == _CalendarView.month,
+            ],
+            onPressed: (index) =>
+                setState(() => _view = _CalendarView.values[index]),
+            children: const [Text('Semana'), Text('Mês')],
+          ),
           if (_selectedSlotStarts.isNotEmpty)
             TextButton(
               onPressed: _clearSelection,
@@ -1940,32 +2006,6 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
       ),
       child: Column(
         children: [
-          _CalendarToolbar(
-            focus: _focus,
-            view: _view,
-            // A máquina passa a viver na barra, ao lado das setas e do
-            // Semana/Mês: eram três linhas a fazer o trabalho de uma, e a
-            // fila de ChoiceChips ocupava 64 dp que o calendário precisava.
-            maquinas: state.machines
-                .where((machine) => !machine.archived)
-                .toList(),
-            maquinaEscolhida: selectedMachine,
-            aoEscolherMaquina: (machineId) => setState(() {
-              _selectedMachineId = machineId;
-              _selectedSlotStarts.clear();
-            }),
-            onPrevious: () => setState(
-              () => _focus = _view == _CalendarView.week
-                  ? _focus.subtract(const Duration(days: 7))
-                  : DateTime(_focus.year, _focus.month - 1, 1),
-            ),
-            onNext: () => setState(
-              () => _focus = _view == _CalendarView.week
-                  ? _focus.add(const Duration(days: 7))
-                  : DateTime(_focus.year, _focus.month + 1, 1),
-            ),
-            onViewChanged: (view) => setState(() => _view = view),
-          ),
           if (aviso != null)
             Padding(
               padding: const EdgeInsets.only(top: 8, bottom: 8),
@@ -2014,24 +2054,73 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
 /// altura, por baixo desta barra. Com vinte máquinas era uma lista para rolar
 /// às cegas, e os 64 dp faltavam ao calendário — que por isso rolava também.
 /// Um dropdown de 240 dp diz o mesmo e cabe aqui.
-class _CalendarToolbar extends StatelessWidget {
-  const _CalendarToolbar({
+/// A máquina cuja agenda se está a ver.
+///
+/// Estreita de propósito (190 dp): partilha a linha com a navegação de datas,
+/// o Semana/Mês e o "+ Reservar", e a referência da máquina é curta.
+class _EscolhaDeMaquina extends StatelessWidget {
+  const _EscolhaDeMaquina({
+    required this.maquinas,
+    required this.escolhida,
+    required this.aoEscolher,
+  });
+  final List<Machine> maquinas;
+  final Machine? escolhida;
+  final ValueChanged<String> aoEscolher;
+
+  @override
+  Widget build(BuildContext context) {
+    if (maquinas.isEmpty) {
+      return const Text('Sem máquinas identificadas.');
+    }
+    return DropdownButton<String>(
+      value: escolhida?.id,
+      isExpanded: true,
+      isDense: true,
+      hint: const Text('Máquina'),
+      onChanged: (id) {
+        if (id != null) aoEscolher(id);
+      },
+      items: [
+        for (final machine in maquinas)
+          DropdownMenuItem(
+            value: machine.id,
+            child: Row(
+              children: [
+                Icon(
+                  machine.status == MachineStatus.available
+                      ? Icons.precision_manufacturing_outlined
+                      : Icons.build_circle_outlined,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    machine.reference.isEmpty
+                        ? machine.name
+                        : machine.reference,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Setas e o período que está a ser mostrado.
+class _NavegacaoDeDatas extends StatelessWidget {
+  const _NavegacaoDeDatas({
     required this.focus,
     required this.view,
-    required this.maquinas,
-    required this.maquinaEscolhida,
-    required this.aoEscolherMaquina,
     required this.onPrevious,
     required this.onNext,
-    required this.onViewChanged,
   });
   final DateTime focus;
   final _CalendarView view;
-  final List<Machine> maquinas;
-  final Machine? maquinaEscolhida;
-  final ValueChanged<String> aoEscolherMaquina;
   final VoidCallback onPrevious, onNext;
-  final ValueChanged<_CalendarView> onViewChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -2039,79 +2128,21 @@ class _CalendarToolbar extends StatelessWidget {
     final label = view == _CalendarView.week
         ? '${_date(weekStart)} a ${_date(weekStart.add(const Duration(days: 6)))}'
         : '${monthName(focus.month)} ${focus.year}';
-    return Wrap(
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 12,
-      runSpacing: 8,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: 240,
-          child: maquinas.isEmpty
-              ? const Text('Ainda não existem máquinas identificadas.')
-              : DropdownButton<String>(
-                  value: maquinaEscolhida?.id,
-                  isExpanded: true,
-                  hint: const Text('Máquina'),
-                  onChanged: (id) {
-                    if (id != null) aoEscolherMaquina(id);
-                  },
-                  items: [
-                    for (final machine in maquinas)
-                      DropdownMenuItem(
-                        value: machine.id,
-                        child: Row(
-                          children: [
-                            Icon(
-                              machine.status == MachineStatus.available
-                                  ? Icons.precision_manufacturing_outlined
-                                  : Icons.build_circle_outlined,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                machine.reference.isEmpty
-                                    ? machine.name
-                                    : machine.reference,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
+        IconButton(
+          onPressed: onPrevious,
+          icon: const Icon(Icons.chevron_left),
+          tooltip: 'Período anterior',
+          visualDensity: VisualDensity.compact,
         ),
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            IconButton(
-              onPressed: onPrevious,
-              icon: const Icon(Icons.chevron_left),
-              tooltip: 'Período anterior',
-            ),
-            Text(label, style: Theme.of(context).textTheme.titleMedium),
-            IconButton(
-              onPressed: onNext,
-              icon: const Icon(Icons.chevron_right),
-              tooltip: 'Período seguinte',
-            ),
-          ],
-        ),
-        ToggleButtons(
-          isSelected: [view == _CalendarView.week, view == _CalendarView.month],
-          onPressed: (index) => onViewChanged(_CalendarView.values[index]),
-          children: const [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text('Semana'),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text('Mês'),
-            ),
-          ],
+        Text(label, style: Theme.of(context).textTheme.titleSmall),
+        IconButton(
+          onPressed: onNext,
+          icon: const Icon(Icons.chevron_right),
+          tooltip: 'Período seguinte',
+          visualDensity: VisualDensity.compact,
         ),
       ],
     );
@@ -2532,6 +2563,10 @@ String _bookingStatusLabel(BookingStatus status) => switch (status) {
   BookingStatus.cancelled => 'Cancelada',
 };
 
+/// Valor sentinela do dropdown de cliente: abre o formulário de novo cliente
+/// em vez de escolher um existente.
+const _novoClienteNaReserva = '__novo_cliente__';
+
 Future<bool> _showCalendarBookingConfirmation(
   BuildContext context,
   WidgetRef ref, {
@@ -2540,14 +2575,16 @@ Future<bool> _showCalendarBookingConfirmation(
   required DateTime endsAt,
   String? responsibleId,
 }) async {
+  // Sem clientes já não se desiste com um aviso.
+  //
+  // Era um beco: o Cesar carregava em "+ Reservar", via passar uma faixa de
+  // texto e concluía que o campo de cliente não existia. Existia — o diálogo é
+  // que nunca chegava a abrir. Agora abre sempre, e cria-se o cliente aqui
+  // mesmo, sem sair do calendário nem perder os períodos escolhidos.
   final state = ref.read(operationsProvider);
-  if (state.customers.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Regista primeiro o cliente da reserva.')),
-    );
-    return false;
-  }
-  var customerId = state.customers.first.id;
+  String? customerId = state.customers.isEmpty
+      ? null
+      : state.customers.first.id;
   var status = BookingStatus.request;
   final expectedValue = TextEditingController();
   final notes = TextEditingController();
@@ -2572,22 +2609,57 @@ Future<bool> _showCalendarBookingConfirmation(
                 ),
               ),
               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: customerId,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Cliente'),
-                items: state.customers
-                    .map(
-                      (customer) => DropdownMenuItem(
-                        value: customer.id,
-                        child: Text(
-                          '${customer.name}${customer.phone.isEmpty ? '' : ' · ${customer.phone}'}',
-                          overflow: TextOverflow.ellipsis,
+              // Lido do provider a cada reconstrução, e não da fotografia
+              // inicial: um cliente criado agora mesmo tem de aparecer já aqui.
+              Builder(
+                builder: (context) {
+                  final clientes = ref.watch(operationsProvider).customers;
+                  return DropdownButtonFormField<String>(
+                    initialValue: customerId,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: 'Cliente',
+                      hintText: clientes.isEmpty
+                          ? 'Ainda não tens clientes — cria o primeiro'
+                          : null,
+                    ),
+                    items: [
+                      for (final customer in clientes)
+                        DropdownMenuItem(
+                          value: customer.id,
+                          child: Text(
+                            '${customer.name}${customer.phone.isEmpty ? '' : ' · ${customer.phone}'}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      const DropdownMenuItem(
+                        value: _novoClienteNaReserva,
+                        child: Row(
+                          children: [
+                            Icon(Icons.person_add_alt, size: 18),
+                            SizedBox(width: 8),
+                            Text('Novo cliente…'),
+                          ],
                         ),
                       ),
-                    )
-                    .toList(),
-                onChanged: (value) => setDialogState(() => customerId = value!),
+                    ],
+                    onChanged: (value) async {
+                      if (value == null) return;
+                      if (value != _novoClienteNaReserva) {
+                        setDialogState(() => customerId = value);
+                        return;
+                      }
+                      final novo = await _customerDialog(context, ref);
+                      if (novo != null) {
+                        setDialogState(() => customerId = novo);
+                      } else {
+                        // Desistiu de criar: repõe o que estava, senão o campo
+                        // ficava preso em "Novo cliente…".
+                        setDialogState(() {});
+                      }
+                    },
+                  );
+                },
               ),
               DropdownButtonFormField<BookingStatus>(
                 initialValue: status,
@@ -2631,39 +2703,45 @@ Future<bool> _showCalendarBookingConfirmation(
             child: const Text('Cancelar'),
           ),
           FilledButton(
-            onPressed: () {
-              final cents =
-                  ((double.tryParse(expectedValue.text.replaceAll(',', '.')) ??
-                              0) *
-                          100)
-                      .round();
-              final conflict = ref
-                  .read(operationsProvider.notifier)
-                  .addBooking(
-                    Booking(
-                      id: 'b${DateTime.now().microsecondsSinceEpoch}',
-                      customerId: customerId,
-                      machineIds: [machine.id],
-                      startsAt: startsAt,
-                      endsAt: endsAt,
-                      status: status,
-                      expectedValueCents: cents > 0 ? cents : null,
-                      collaboratorResponsibleId: responsibleId,
-                      notes: notes.text.trim(),
-                    ),
-                  );
-              if (conflict != null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Conflito: ${conflict.machine.name} já está ocupada.',
-                    ),
-                  ),
-                );
-                return;
-              }
-              Navigator.pop(dialogContext, true);
-            },
+            // Sem cliente não há reserva. Desactivar diz isso melhor do que
+            // deixar carregar e mostrar um erro depois.
+            onPressed: customerId == null
+                ? null
+                : () {
+                    final cents =
+                        ((double.tryParse(
+                                      expectedValue.text.replaceAll(',', '.'),
+                                    ) ??
+                                    0) *
+                                100)
+                            .round();
+                    final conflict = ref
+                        .read(operationsProvider.notifier)
+                        .addBooking(
+                          Booking(
+                            id: 'b${DateTime.now().microsecondsSinceEpoch}',
+                            customerId: customerId!,
+                            machineIds: [machine.id],
+                            startsAt: startsAt,
+                            endsAt: endsAt,
+                            status: status,
+                            expectedValueCents: cents > 0 ? cents : null,
+                            collaboratorResponsibleId: responsibleId,
+                            notes: notes.text.trim(),
+                          ),
+                        );
+                    if (conflict != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Conflito: ${conflict.machine.name} já está ocupada.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+                    Navigator.pop(dialogContext, true);
+                  },
             child: const Text('Gravar reserva'),
           ),
         ],
