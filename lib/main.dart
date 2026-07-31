@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/cadeado/cadeado_gate.dart';
 import 'shared/widgets/splash_punho.dart';
 
 import 'core/licenca/licenca_provider.dart';
@@ -80,8 +81,10 @@ class _PunhoAppState extends ConsumerState<PunhoApp> {
   Widget build(BuildContext context) {
     // Mantém o timer de revalidação vivo durante a vida da app.
     ref.watch(licencaRefreshProvider);
-    final destino = PunhoUpdateBannerWrapper(
-      child: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),
+    final destino = CadeadoGate(
+      child: PunhoUpdateBannerWrapper(
+        child: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),
+      ),
     );
     return MaterialApp(
       title: 'Punho',

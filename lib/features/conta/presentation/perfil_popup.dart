@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/cadeado/definicoes_cadeado_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -122,6 +124,19 @@ class PerfilPopup extends ConsumerWidget {
                   onPressed: () => _mudarPalavraPasse(context),
                   icon: const Icon(Icons.lock_outline),
                   label: const Text('Mudar palavra-passe'),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const DefinicoesCadeadoPage(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.fingerprint),
+                  label: const Text('Cadeado (PIN + biometria)'),
                 ),
                 if (acesso?.eGestor ?? false) ...[
                   const SizedBox(height: 8),
