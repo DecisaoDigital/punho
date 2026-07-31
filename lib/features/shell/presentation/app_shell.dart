@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +10,7 @@ import '../../../core/operations/operations_controller.dart';
 import '../../../core/session/demo_session.dart';
 import '../../../core/theme/punho_theme.dart';
 import '../../../shared/widgets/brand_lockup.dart';
+import '../../../shared/widgets/versao_app.dart';
 import '../../collaborator/presentation/collaborator_shell.dart';
 import '../../conta/presentation/perfil_popup.dart';
 import '../../dashboard/presentation/dashboard_page.dart';
@@ -166,7 +166,6 @@ class _ProfileSelector extends ConsumerWidget {
   }
 }
 
-
 class _Sidebar extends ConsumerWidget {
   const _Sidebar({required this.destinations, required this.selected});
   final List<AppDestination> destinations;
@@ -249,20 +248,23 @@ class _PerfilSidebarItem extends StatelessWidget {
         key: chaveDoAvatarDoPerfil,
         onTap: () => mostrarPerfil(context),
         borderRadius: BorderRadius.circular(10),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+        // Sem `const` na moldura: o rótulo da versão lê o `PackageInfo` em
+        // runtime, portanto a subárvore deixou de poder ser constante. Cada
+        // filho fixo leva o seu `const`.
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
           child: SizedBox(
             width: double.infinity,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(
+                const Icon(
                   Icons.person_outline_rounded,
                   size: 22,
                   color: Color(0xFFB7C7D1),
                 ),
-                SizedBox(height: 4),
-                Text(
+                const SizedBox(height: 4),
+                const Text(
                   'Perfil',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -275,21 +277,15 @@ class _PerfilSidebarItem extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 1),
-                FutureBuilder<PackageInfo>(
-                  future: PackageInfo.fromPlatform(),
-                  builder: (context, snapshot) {
-                    final v = snapshot.data?.version;
-                    return Text(
-                      v == null ? '' : 'v $v',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 8,
-                        height: 1.0,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF7F98A8),
-                      ),
-                    );
-                  },
+                VersaoApp(
+                  formato: (versao) => 'v $versao',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 8,
+                    height: 1.0,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF7F98A8),
+                  ),
                 ),
               ],
             ),
@@ -378,10 +374,7 @@ class _SidebarItem extends ConsumerWidget {
                       Positioned(
                         top: -2,
                         right: 4,
-                        child: _Badge(
-                          quantidade: pendentes,
-                          urgente: urgente,
-                        ),
+                        child: _Badge(quantidade: pendentes, urgente: urgente),
                       ),
                   ],
                 ),

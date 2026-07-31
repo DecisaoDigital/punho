@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../core/cadeado/definicoes_cadeado_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/auth/auth_rules.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../../core/operations/operations_controller.dart';
+import '../../../shared/widgets/versao_app.dart';
 import '../../auth/acesso_providers.dart';
 import '../../company/presentation/company_settings_page.dart';
 import '../../gestao/presentation/convites_screen.dart';
@@ -23,10 +23,8 @@ import '../../gestao/presentation/convites_screen.dart';
 /// ecrã inteiro para isto seria desproporcionado. A edição dos dados da empresa
 /// **não** vive aqui: vai para o destino Empresa, com abas, na v0.0.7 — juntá-la
 /// agora era construir a página unificada que ficou explicitamente de fora.
-Future<void> mostrarPerfil(BuildContext context) => showDialog<void>(
-  context: context,
-  builder: (_) => const PerfilPopup(),
-);
+Future<void> mostrarPerfil(BuildContext context) =>
+    showDialog<void>(context: context, builder: (_) => const PerfilPopup());
 
 /// Há sessão para terminar?
 ///
@@ -305,7 +303,8 @@ class _EditarDadosDialogState extends State<_EditarDadosDialog> {
     } on AuthException catch (erro) {
       if (mounted) setState(() => _erro = AuthRules.mensagemSegura(erro.code));
     } catch (_) {
-      if (mounted) setState(() => _erro = 'Não foi possível guardar os teus dados.');
+      if (mounted)
+        setState(() => _erro = 'Não foi possível guardar os teus dados.');
     } finally {
       if (mounted) setState(() => _aGuardar = false);
     }
@@ -332,14 +331,23 @@ class _EditarDadosDialogState extends State<_EditarDadosDialog> {
           ),
           if (_erro != null) ...[
             const SizedBox(height: 12),
-            Text(_erro!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            Text(
+              _erro!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ],
         ],
       ),
     ),
     actions: [
-      TextButton(onPressed: _aGuardar ? null : () => Navigator.pop(context), child: const Text('Cancelar')),
-      FilledButton(onPressed: _aGuardar ? null : _guardar, child: Text(_aGuardar ? 'A guardar…' : 'Guardar')),
+      TextButton(
+        onPressed: _aGuardar ? null : () => Navigator.pop(context),
+        child: const Text('Cancelar'),
+      ),
+      FilledButton(
+        onPressed: _aGuardar ? null : _guardar,
+        child: Text(_aGuardar ? 'A guardar…' : 'Guardar'),
+      ),
     ],
   );
 }
@@ -348,7 +356,8 @@ class _MudarPalavraPasseDialog extends StatefulWidget {
   const _MudarPalavraPasseDialog();
 
   @override
-  State<_MudarPalavraPasseDialog> createState() => _MudarPalavraPasseDialogState();
+  State<_MudarPalavraPasseDialog> createState() =>
+      _MudarPalavraPasseDialogState();
 }
 
 class _MudarPalavraPasseDialogState extends State<_MudarPalavraPasseDialog> {
@@ -382,7 +391,8 @@ class _MudarPalavraPasseDialogState extends State<_MudarPalavraPasseDialog> {
     } on AuthException catch (erro) {
       if (mounted) setState(() => _erro = AuthRules.mensagemSegura(erro.code));
     } catch (_) {
-      if (mounted) setState(() => _erro = 'Não foi possível mudar a palavra-passe.');
+      if (mounted)
+        setState(() => _erro = 'Não foi possível mudar a palavra-passe.');
     } finally {
       if (mounted) setState(() => _aGuardar = false);
     }
@@ -396,19 +406,38 @@ class _MudarPalavraPasseDialogState extends State<_MudarPalavraPasseDialog> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(controller: _nova, obscureText: true, decoration: const InputDecoration(labelText: 'Nova palavra-passe')),
+          TextField(
+            controller: _nova,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Nova palavra-passe'),
+          ),
           const SizedBox(height: 12),
-          TextField(controller: _confirmacao, obscureText: true, decoration: const InputDecoration(labelText: 'Confirmar palavra-passe')),
+          TextField(
+            controller: _confirmacao,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'Confirmar palavra-passe',
+            ),
+          ),
           if (_erro != null) ...[
             const SizedBox(height: 12),
-            Text(_erro!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            Text(
+              _erro!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ],
         ],
       ),
     ),
     actions: [
-      TextButton(onPressed: _aGuardar ? null : () => Navigator.pop(context), child: const Text('Cancelar')),
-      FilledButton(onPressed: _aGuardar ? null : _guardar, child: Text(_aGuardar ? 'A guardar…' : 'Atualizar')),
+      TextButton(
+        onPressed: _aGuardar ? null : () => Navigator.pop(context),
+        child: const Text('Cancelar'),
+      ),
+      FilledButton(
+        onPressed: _aGuardar ? null : _guardar,
+        child: Text(_aGuardar ? 'A guardar…' : 'Atualizar'),
+      ),
     ],
   );
 }
@@ -498,14 +527,8 @@ class _Versao extends StatelessWidget {
   const _Versao();
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<PackageInfo>(
-    future: PackageInfo.fromPlatform(),
-    builder: (context, snapshot) {
-      final versao = snapshot.data?.version;
-      return Text(
-        versao == null ? '' : 'Punho v$versao',
-        style: Theme.of(context).textTheme.bodySmall,
-      );
-    },
+  Widget build(BuildContext context) => VersaoApp(
+    formato: (versao) => 'Punho v$versao',
+    style: Theme.of(context).textTheme.bodySmall,
   );
 }
