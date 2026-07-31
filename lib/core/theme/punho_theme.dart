@@ -19,6 +19,17 @@ abstract final class PunhoTheme {
       appBarTheme: const AppBarTheme(
         backgroundColor: navy,
         foregroundColor: Colors.white,
+        iconTheme: IconThemeData(color: Colors.white),
+      ),
+      // TabBar herda a cor do AppBar (navy escuro). Sem estes overrides o M3
+      // caia para labels em onSurfaceVariant (cinza), ilegivel em navy.
+      tabBarTheme: TabBarThemeData(
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white.withValues(alpha: 0.70),
+        indicatorColor: orange,
+        overlayColor: WidgetStatePropertyAll(
+          Colors.white.withValues(alpha: 0.08),
+        ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,

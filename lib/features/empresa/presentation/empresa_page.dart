@@ -44,14 +44,10 @@ class _EmpresaPageState extends ConsumerState<EmpresaPage>
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      toolbarHeight: 40,
-      title: Text(
-        'Empresa',
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
+      // Sem title: as 6 tabs ganham a area toda. O nome 'Empresa' ja aparece
+      // no destino da sidebar e no rotulo permanente da app; repeti-lo aqui
+      // so gastava vertical num telemovel.
+      toolbarHeight: 0,
       bottom: TabBar(
         controller: _abas,
         isScrollable: true,
