@@ -21,4 +21,12 @@ class PunhoUpdateInfo {
         mandatory: json['obrigatoria'] as bool? ?? false,
         releaseNotes: json['notas_lancamento'] as String?,
       );
+
+  Map<String, dynamic> toJson() => {
+        'versao_actual': version,
+        'build_number': buildNumber,
+        'url_download': downloadUrl,
+        'obrigatoria': mandatory,
+        if (releaseNotes != null) 'notas_lancamento': releaseNotes,
+      };
 }

@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/config/supabase_config.dart';
 import '../../core/updates/update_info.dart';
@@ -43,14 +46,16 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
     // Sem Supabase configurado (modo demonstração, testes) não há nada a
     // consultar — e `Supabase.instance` rebentaria por não estar inicializado.
     if (!SupabaseConfig.enabled) {
-      // Grita nos logs em vez de ficar calado: uma app compilada sem os
-      // `--dart-define` do Supabase comporta-se exactamente como uma sem
-      // ligação, e foi assim que a v0.0.5 do Cesar passou despercebida.
       debugPrint(
         '[PunhoUpdate] Supabase desactivado (defines em falta) — sem verificação',
       );
       return null;
     }
+    // Ler cache local imediatamente para mostrar o banner sem esperar pela
+    // rede. Antes o Cesar abria a app, o pedido demorava 1-3s a devolver, e
+    // ele fechava antes de ver o banner. Fecha e reabre → mostra. Cache
+    // resolve.
+    unawaited(_carregarCache());
     unawaited(verificar());
     _ouvirGanhoDeSessao();
     _timer = Timer.periodic(
@@ -58,6 +63,40 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
       (_) => unawaited(verificar()),
     );
     return null;
+  }
+
+  static const _kCache = 'punho_update.cache_v1';
+
+  Future<void> _carregarCache() async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      final raw = sp.getString(_kCache);
+      if (raw == null) return;
+      final json = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+      final cached = PunhoUpdateInfo.fromJson(json);
+      // Só mostra o cache se o build actual da app ainda for inferior — se ja
+      // instalou a versao, cache está desactualizado e deve ser ignorado.
+      final info = await PackageInfo.fromPlatform();
+      final buildAtual = int.tryParse(info.buildNumber) ?? 0;
+      if (cached.buildNumber <= buildAtual) {
+        await sp.remove(_kCache);
+        return;
+      }
+      if (!_vivo) return;
+      state = cached;
+      debugPrint('[PunhoUpdate] cache: v\${cached.version} apresentado imediatamente');
+    } catch (e) {
+      debugPrint('[PunhoUpdate] cache load falhou: \$e');
+    }
+  }
+
+  Future<void> _guardarCache(PunhoUpdateInfo info) async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.setString(_kCache, jsonEncode(info.toJson()));
+    } catch (e) {
+      debugPrint('[PunhoUpdate] cache save falhou: \$e');
+    }
   }
 
   /// Pergunta ao Control se há versão nova. Seguro de chamar a qualquer momento.
@@ -68,6 +107,7 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
     // Só se escreve quando há novidade: uma verificação falhada por estar
     // offline não pode apagar um aviso que já estava à vista.
     state = info;
+    unawaited(_guardarCache(info));
   }
 
   /// Uma sessão nova pode trazer informação que a chamada anónima não tinha (e
