@@ -88,8 +88,14 @@ class _AppShellState extends ConsumerState<AppShell> {
       // apenas `statusBarColor`), para nunca deixar ícones claros sobre o
       // fundo claro do painel.
       final topInset = MediaQuery.paddingOf(context).top;
-      // Mantém margem suficiente para os ícones do sistema, mas elimina o
-      // último espaço visual que fazia a moldura parecer demasiado alta.
+      // A faixa acompanha a área das notificações e nada mais: 2 dp a menos
+      // que a margem segura, que é o máximo que se pode aparar sem ficar
+      // conteúdo claro por baixo dos ícones do sistema.
+      //
+      // **Não encolhe mais.** Em Android recente o `statusBarColor` já não é
+      // respeitado — é esta faixa desenhada no layout que põe as notificações
+      // em fundo escuro. Encolhê-la é perder exactamente o que ela existe para
+      // dar. Quem procurar aqui altura para poupar, procure noutro sítio.
       final alturaDaMoldura = topInset > 2 ? topInset - 2 : topInset;
       return AnnotatedRegion<SystemUiOverlayStyle>(
         value: const SystemUiOverlayStyle(
@@ -185,9 +191,16 @@ class _Sidebar extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            // Sobe 8 dp para dar mais altura útil à navegação, sem encostar a
-            // marca à margem segura superior.
-            padding: const EdgeInsets.fromLTRB(0, 4, 0, 16),
+            // Espaço acima e abaixo da marca.
+            //
+            // Esteve em 4 dp e ficou mal: a marca encostava à moldura escura e
+            // o primeiro botão vinha logo a seguir, sem respiro — o Cesar
+            // descreveu-o como "um corte rente aos botões" que tirou harmonia à
+            // barra. Aqueles 8 dp poupados não valiam a altura que davam.
+            //
+            // Isto é a barra **vertical**. A faixa escura do topo é outra coisa
+            // e não encolhe: é ela que põe as notificações em fundo escuro.
+            padding: const EdgeInsets.fromLTRB(0, 12, 0, 14),
             child: Center(
               child: SizedBox(
                 width: 40,
