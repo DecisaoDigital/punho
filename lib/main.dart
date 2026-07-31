@@ -17,6 +17,7 @@ import 'core/config/supabase_config.dart';
 import 'data/repositories/operation_repository.dart';
 import 'features/auth/presentation/auth_gate.dart';
 import 'features/shell/presentation/app_shell.dart';
+import 'features/sync/sync_providers.dart';
 import 'features/updates/presentation/update_banner_wrapper.dart';
 
 Future<void> main() async {
@@ -81,6 +82,10 @@ class _PunhoAppState extends ConsumerState<PunhoApp> {
   Widget build(BuildContext context) {
     // Mantém o timer de revalidação vivo durante a vida da app.
     ref.watch(licencaRefreshProvider);
+    // Idem para a sincronização entre dispositivos: observada aqui e não numa
+    // shell, porque tem de correr tanto para o gestor como para o colaborador
+    // — é entre os dois que os dados precisam de viajar.
+    ref.watch(syncProvider);
     final destino = CadeadoGate(
       child: PunhoUpdateBannerWrapper(
         child: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),

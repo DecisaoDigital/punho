@@ -8,16 +8,28 @@ class EstadoAcesso {
   final String? perfil;
   final String estado;
 
+  /// A empresa a que a conta pertence.
+  ///
+  /// É a chave da sincronização: as operações são por empresa, e sem ela não há
+  /// onde as ler nem escrever. Vem da mesma função que já diz se a adesão está
+  /// activa, para não haver duas versões da regra de quem é membro.
+  ///
+  /// `null` em servidores anteriores a esta coluna, e em quem ainda não tem
+  /// adesão. Nesse caso não se sincroniza — não se adivinha.
+  final String? empresaId;
+
   const EstadoAcesso({
     required this.membroAtivo,
     required this.estado,
     this.perfil,
+    this.empresaId,
   });
 
   factory EstadoAcesso.fromJson(Map<String, dynamic> json) => EstadoAcesso(
     membroAtivo: json['membro_ativo'] == true,
     perfil: json['perfil'] as String?,
     estado: (json['estado'] as String?) ?? 'pendente',
+    empresaId: json['empresa_id'] as String?,
   );
 
   bool get eGestor => perfil == 'gestor';

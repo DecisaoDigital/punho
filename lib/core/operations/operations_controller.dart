@@ -385,6 +385,13 @@ class OperationsController extends Notifier<OperationsState> {
   ///
   /// Não faz nada se ainda não houver onboarding: sem ele não há empresa para
   /// editar, e inventar uma aqui saltava o fluxo de arranque.
+  /// Relê tudo do repositório.
+  ///
+  /// Usado depois de a sincronização aplicar alterações vindas de outro
+  /// dispositivo: os dados já estão gravados, falta o estado da app dar por
+  /// isso para os ecrãs se redesenharem.
+  void recarregarDoRepositorio() => state = _fromRepo();
+
   void updateCompanySettings({
     Campo<String>? ownerName,
     String? companyName,
