@@ -10,8 +10,8 @@ import 'package:punho/domain/models/workforce.dart';
 import 'package:punho/features/tarefas/presentation/tarefas_page.dart';
 import 'package:punho/features/workforce/presentation/workforce_pages.dart';
 
+import '../../tipos_de_letra.dart';
 import '../dashboard/fixtura.dart';
-import '../dashboard/screenshots_test.dart' show carregarTiposDeLetra;
 
 /// Capturas da ficha fiscal do colaborador, em `docs/design/screenshots/v006/`.
 void main() {
