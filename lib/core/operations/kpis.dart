@@ -39,22 +39,46 @@ class TesourariaMes {
     required this.recebidoCents,
     required this.pagoCents,
     required this.recebidoMesAnteriorCents,
+    required this.recebidoMesHomologoCents,
     required this.serieDiariaCents,
   });
 
   final DateTime mes;
   final int recebidoCents, pagoCents, recebidoMesAnteriorCents;
 
+  /// O mesmo mês do ano passado. Zero quando não há histórico que lá chegue.
+  final int recebidoMesHomologoCents;
+
   /// Um valor por dia do mês, para a sparkline. Índice 0 = dia 1.
   final List<int> serieDiariaCents;
 
   /// Variação percentual face ao mês anterior. `null` quando o mês anterior foi
   /// zero — dividir por zero não dá "infinito por cento", dá desconhecido.
-  double? get variacaoVsMesAnterior => recebidoMesAnteriorCents == 0
-      ? null
-      : (recebidoCents - recebidoMesAnteriorCents) /
-            recebidoMesAnteriorCents *
-            100;
+  double? get variacaoVsMesAnterior => _variacao(recebidoMesAnteriorCents);
+
+  /// Variação face ao mesmo mês do ano passado.
+  double? get variacaoVsHomologo => _variacao(recebidoMesHomologoCents);
+
+  /// A comparação a mostrar, e contra o quê.
+  ///
+  /// **Homólogo primeiro, quando existe.** Num negócio de aluguer de máquinas o
+  /// mês passado e este mês não são comparáveis: Agosto contra Julho mistura
+  /// variação de negócio com estação do ano. O mesmo mês do ano passado é a
+  /// única comparação que isola o que mudou na empresa.
+  ///
+  /// No primeiro ano não há homólogo nenhum, e aí o mês anterior é melhor do que
+  /// nada — desde que se diga contra o que se está a comparar, senão o gestor lê
+  /// uma percentagem sem saber de onde vem.
+  ({double variacao, bool homologo})? get comparacao {
+    final vsHomologo = variacaoVsHomologo;
+    if (vsHomologo != null) return (variacao: vsHomologo, homologo: true);
+    final vsAnterior = variacaoVsMesAnterior;
+    if (vsAnterior != null) return (variacao: vsAnterior, homologo: false);
+    return null;
+  }
+
+  double? _variacao(int base) =>
+      base == 0 ? null : (recebidoCents - base) / base * 100;
 
   bool get semMovimentos => recebidoCents == 0 && pagoCents == 0;
 }
@@ -63,6 +87,7 @@ TesourariaMes tesourariaDoMes(OperationsState state, DateTime mes) {
   final inicio = _inicioDoMes(mes);
   final fim = _fimDoMes(mes);
   final anterior = DateTime(mes.year, mes.month - 1);
+  final homologo = DateTime(mes.year - 1, mes.month);
   final diasNoMes = fim.day;
   return TesourariaMes(
     mes: inicio,
@@ -72,6 +97,11 @@ TesourariaMes tesourariaDoMes(OperationsState state, DateTime mes) {
       state.receipts,
       _inicioDoMes(anterior),
       _fimDoMes(anterior),
+    ),
+    recebidoMesHomologoCents: receiptTotal(
+      state.receipts,
+      _inicioDoMes(homologo),
+      _fimDoMes(homologo),
     ),
     serieDiariaCents: [
       for (var dia = 1; dia <= diasNoMes; dia++)

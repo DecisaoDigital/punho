@@ -37,25 +37,24 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   int _falhas = 0;
   String? _erro;
 
-  /// A orientação que o ecrã por baixo tinha escolhido, para lhe ser devolvida
-  /// quando o cadeado abrir. Lida antes de impormos a nossa — `late` aqui seria
-  /// um bug, porque só seria avaliada no `dispose`, quando já valia portrait.
-  Orientacao _orientacaoAnterior = Orientacao.livre;
-
   @override
   void initState() {
     super.initState();
-    _orientacaoAnterior = OrientacaoDoContexto.actual;
     // Retrato, sempre. O painel do gestor é landscape, mas isto é um teclado
     // numérico e um dedo — deitado ficava com as teclas espalhadas de um lado ao
     // outro do ecrã. A app só se deita depois de aberta.
-    OrientacaoDoContexto.portraitJa();
+    //
+    // `sobrepor` e não `forcarPortrait`: o ecrã por baixo continua montado e
+    // pode ainda vir a pedir landscape enquanto está tapado (é o que o
+    // `AppShell` faz quando o acesso resolve com o cadeado à frente). Esse
+    // pedido fica guardado e passa a valer quando o cadeado sair.
+    OrientacaoDoContexto.sobreporJa(Orientacao.portrait);
     WidgetsBinding.instance.addPostFrameCallback((_) => _tentarBiometria());
   }
 
   @override
   void dispose() {
-    OrientacaoDoContexto.aplicarJa(_orientacaoAnterior);
+    OrientacaoDoContexto.largarSobreposicaoJa();
     super.dispose();
   }
 

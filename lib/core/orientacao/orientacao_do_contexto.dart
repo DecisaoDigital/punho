@@ -20,14 +20,14 @@ import 'package:flutter/services.dart';
 class OrientacaoDoContexto {
   const OrientacaoDoContexto._();
 
-  /// A última escolha feita por um ecrã.
-  ///
-  /// Serve para um ecrã que se sobrepõe a outro — o cadeado — poder impor a sua
-  /// orientação e devolver a anterior ao sair. Sem isto, desbloquear deixava a
-  /// app em portrait: o shell do gestor já tinha corrido o `initState` e não
-  /// volta a correr, portanto ninguém repunha o landscape.
-  static Orientacao get actual => _actual;
-  static Orientacao _actual = Orientacao.livre;
+  /// O que o ecrã montado pediu. É a escolha que manda quando não há nada por
+  /// cima.
+  static Orientacao get actual => _sobreposicao ?? _escolhaDoEcra;
+  static Orientacao _escolhaDoEcra = Orientacao.livre;
+
+  /// Imposta por um ecrã que se sobrepõe a outro sem o desmontar — hoje, só o
+  /// cadeado.
+  static Orientacao? _sobreposicao;
 
   static Future<void> forcarPortrait() => aplicar(Orientacao.portrait);
 
@@ -37,17 +37,47 @@ class OrientacaoDoContexto {
   /// os `dispose` que não querem deixar a app presa à sua escolha.
   static Future<void> libertar() => aplicar(Orientacao.livre);
 
+  /// Um ecrã declara o que precisa.
+  ///
+  /// Enquanto houver sobreposição activa, a escolha fica **registada mas não
+  /// aplicada**: o cadeado está à frente e não pode rodar por baixo dele. Assim
+  /// que a sobreposição sair, é esta escolha que passa a valer.
   static Future<void> aplicar(Orientacao orientacao) {
-    _actual = orientacao;
-    return SystemChrome.setPreferredOrientations(switch (orientacao) {
-      Orientacao.portrait => const [DeviceOrientation.portraitUp],
-      Orientacao.landscape => const [
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ],
-      Orientacao.livre => DeviceOrientation.values,
-    });
+    _escolhaDoEcra = orientacao;
+    if (_sobreposicao != null) return Future<void>.value();
+    return _pedirAoSistema(orientacao);
   }
+
+  /// O cadeado impõe retrato por cima do que estiver montado.
+  ///
+  /// Não guarda fotografia do que estava: quem estava por baixo pode ainda nem
+  /// ter decidido. No arranque com cadeado ligado, o que está montado quando o
+  /// ecrã de bloqueio aparece é o `AuthGate` (retrato); o `AppShell`, que pede
+  /// landscape, só monta depois de o acesso resolver — muitas vezes com o
+  /// cadeado já à frente. Restaurar a fotografia devolvia esse retrato antigo e
+  /// a app ficava de pé depois de desbloquear.
+  static Future<void> sobrepor(Orientacao orientacao) {
+    _sobreposicao = orientacao;
+    return _pedirAoSistema(orientacao);
+  }
+
+  /// Sai a sobreposição e vale outra vez o que o ecrã de baixo pediu — incluindo
+  /// o que ele tenha pedido enquanto esteve tapado.
+  static Future<void> largarSobreposicao() {
+    if (_sobreposicao == null) return Future<void>.value();
+    _sobreposicao = null;
+    return _pedirAoSistema(_escolhaDoEcra);
+  }
+
+  static Future<void> _pedirAoSistema(Orientacao orientacao) =>
+      SystemChrome.setPreferredOrientations(switch (orientacao) {
+        Orientacao.portrait => const [DeviceOrientation.portraitUp],
+        Orientacao.landscape => const [
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ],
+        Orientacao.livre => DeviceOrientation.values,
+      });
 
   /// Versão que não faz esperar quem chama — para usar em `initState`, onde não
   /// se pode `await`.
@@ -55,8 +85,10 @@ class OrientacaoDoContexto {
 
   static void landscapeJa() => unawaited(forcarLandscape());
 
-  static void aplicarJa(Orientacao orientacao) =>
-      unawaited(aplicar(orientacao));
+  static void sobreporJa(Orientacao orientacao) =>
+      unawaited(sobrepor(orientacao));
+
+  static void largarSobreposicaoJa() => unawaited(largarSobreposicao());
 }
 
 enum Orientacao { portrait, landscape, livre }

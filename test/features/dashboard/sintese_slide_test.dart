@@ -60,6 +60,68 @@ void main() {
     expect(find.textContaining('Hoje: 240 €'), findsOneWidget);
   });
 
+  testWidgets('havendo histórico, compara com o mês homólogo', (tester) async {
+    // Agosto contra Julho mistura variação de negócio com estação do ano. O
+    // mesmo mês do ano passado é a única comparação que isola o que mudou na
+    // empresa — e o texto tem de dizer contra o quê.
+    final container = containerCom(
+      OperationsState(
+        onboarded: true,
+        companyName: 'Alugueres Norte',
+        receipts: [
+          recebimento('agora', 10, 120000),
+          // Junho de 2026: o mês anterior.
+          Receipt(
+            id: 'anterior',
+            date: DateTime(2026, 6, 10),
+            amountCents: 200000,
+            customerId: 'c1',
+            method: PaymentMethod.transfer,
+          ),
+          // Julho de 2025: o homólogo.
+          Receipt(
+            id: 'homologo',
+            date: DateTime(2025, 7, 10),
+            amountCents: 100000,
+            customerId: 'c1',
+            method: PaymentMethod.transfer,
+          ),
+        ],
+      ),
+    );
+
+    await montarLandscape(tester, container, SinteseSlide(agora: agora));
+
+    // 1200 contra 1000 do homólogo = +20%. Contra o mês passado seria −40%.
+    expect(
+      find.textContaining('▲ 20% vs mesmo mês do ano passado'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('sem homólogo, recorre ao mês passado e di-lo', (tester) async {
+    final container = containerCom(
+      OperationsState(
+        onboarded: true,
+        companyName: 'Alugueres Norte',
+        receipts: [
+          recebimento('agora', 10, 120000),
+          Receipt(
+            id: 'anterior',
+            date: DateTime(2026, 6, 10),
+            amountCents: 200000,
+            customerId: 'c1',
+            method: PaymentMethod.transfer,
+          ),
+        ],
+      ),
+    );
+
+    await montarLandscape(tester, container, SinteseSlide(agora: agora));
+
+    expect(find.textContaining('▼ 40% vs mês passado'), findsOneWidget);
+  });
+
   testWidgets('sem recebimentos hoje, a sub-linha não fala do dia', (
     tester,
   ) async {

@@ -66,7 +66,7 @@ class SinteseSlide extends ConsumerWidget {
 
   /// Dinheiro que entrou **no mês**, com o dia na sub-linha.
   Widget _entradas(TesourariaMes mes, int recebidoHoje) {
-    if (mes.recebidoCents == 0 && mes.recebidoMesAnteriorCents == 0) {
+    if (mes.recebidoCents == 0 && mes.comparacao == null) {
       return const CelulaSemaforo(
         nivel: NivelSemaforo.laranja,
         rotulo: 'Dinheiros que entraram',
@@ -74,12 +74,16 @@ class SinteseSlide extends ConsumerWidget {
         subtexto: 'Regista o primeiro recebimento para começar a medir',
       );
     }
-    final variacao = mes.variacaoVsMesAnterior;
-    final tendencia = variacao == null
-        ? 'Sem mês anterior para comparar'
-        : '${variacao >= 0 ? '▲' : '▼'} ${variacao.abs().round()}% vs mês passado';
+    // Homólogo quando há histórico, mês passado só como recurso — e o texto diz
+    // sempre contra o quê, senão a percentagem não se sabe ler.
+    final comparacao = mes.comparacao;
+    final tendencia = comparacao == null
+        ? 'Sem histórico para comparar'
+        : '${comparacao.variacao >= 0 ? '▲' : '▼'} '
+              '${comparacao.variacao.abs().round()}% vs '
+              '${comparacao.homologo ? 'mesmo mês do ano passado' : 'mês passado'}';
     return CelulaSemaforo(
-      nivel: variacao != null && variacao < 0
+      nivel: comparacao != null && comparacao.variacao < 0
           ? NivelSemaforo.laranja
           : NivelSemaforo.verde,
       rotulo: 'Dinheiros que entraram',
