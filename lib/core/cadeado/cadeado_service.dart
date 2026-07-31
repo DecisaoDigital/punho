@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
@@ -103,21 +104,71 @@ class CadeadoService {
     await _secure.delete(key: _kPinSalt);
   }
 
-  Future<bool> pedirBiometria() async {
+  /// Pede a digital/rosto ao sistema.
+  ///
+  /// **`stickyAuth` tem de ficar `false`.** Com `true`, o plugin engole o
+  /// `ERROR_CANCELED` sempre que a activity está em pausa — e a activity fica em
+  /// pausa precisamente enquanto o prompt do sistema está à frente. O `Future`
+  /// nunca completava: o ecrã de bloqueio ficava eternamente em "a aguardar
+  /// biometria", sem prompt, sem erro e sem forma de chegar ao PIN. Era este o
+  /// bug que o Cesar apanhou na v0.0.16.
+  ///
+  /// **`biometricOnly` tem de ficar `true`.** Com `false` o plugin acrescenta
+  /// `DEVICE_CREDENTIAL` aos autenticadores aceites e, ao fazê-lo, deixa de pôr
+  /// botão de cancelar no prompt. Não faz sentido nenhum aqui: o fallback já é
+  /// o nosso PIN, e sem botão de cancelar não havia como lá chegar.
+  /// `true` enquanto o prompt do sistema está à frente da app.
+  ///
+  /// O prompt tira o foco à activity, e o Flutter reporta isso como uma ida a
+  /// background. Sem esta marca, o [CadeadoGate] carimbava "saiu da app" a meio
+  /// do desbloqueio e voltava a bloquear no instante em que a digital era
+  /// aceite — quem tivesse o cadeado em "Sempre" nunca mais entrava pela digital.
+  bool get aPedirBiometria => _aPedirBiometria;
+  bool _aPedirBiometria = false;
+
+  Future<ResultadoBiometria> pedirBiometria() async {
+    _aPedirBiometria = true;
     try {
-      return await _auth.authenticate(
+      final ok = await _auth.authenticate(
         localizedReason: 'Desbloquear Punho',
         options: const AuthenticationOptions(
-          biometricOnly: false, // permite fallback do device (pattern/PIN Android)
-          stickyAuth: true,
+          biometricOnly: true,
+          stickyAuth: false,
           useErrorDialogs: true,
         ),
       );
+      return ok
+          ? const ResultadoBiometria.ok()
+          : const ResultadoBiometria.recusada();
+    } on PlatformException catch (e) {
+      // Nunca falhar em silêncio outra vez: o utilizador tem de perceber se é
+      // "não tens digitais registadas" ou "tentaste demasiadas vezes".
+      debugPrint('biometria falhou: ${e.code} · ${e.message}');
+      return ResultadoBiometria.erro(_mensagemDoErro(e.code));
     } catch (e) {
       debugPrint('biometria falhou: $e');
-      return false;
+      return const ResultadoBiometria.erro(
+        'Não foi possível usar a biometria neste dispositivo.',
+      );
+    } finally {
+      _aPedirBiometria = false;
     }
   }
+
+  static String _mensagemDoErro(String codigo) => switch (codigo) {
+    'NotEnrolled' =>
+      'Não há impressões digitais registadas neste telemóvel. '
+          'Regista uma nas definições do Android.',
+    'NotAvailable' => 'Este telemóvel não disponibilizou o leitor de digitais.',
+    'LockedOut' =>
+      'Demasiadas tentativas falhadas. Espera um pouco ou usa o PIN.',
+    'PermanentlyLockedOut' =>
+      'A biometria ficou bloqueada pelo Android. Desbloqueia o telemóvel '
+          'pelo método do sistema e volta a tentar.',
+    'no_fragment_activity' =>
+      'Erro de configuração da app: a biometria não pode arrancar.',
+    _ => 'A biometria não respondeu. Usa o PIN.',
+  };
 
   Future<void> registarPaused() async {
     final sp = await SharedPreferences.getInstance();
@@ -144,9 +195,29 @@ class CadeadoService {
       sha256.convert(utf8.encode('$salt|$pin')).toString();
 }
 
+/// O que aconteceu ao pedido de biometria.
+///
+/// Um `bool` não chegava: "o utilizador carregou em cancelar" e "o leitor nem
+/// existe" levam a app a sítios diferentes, e o segundo tem de ser dito em voz
+/// alta em vez de deixar o ecrã parado.
+class ResultadoBiometria {
+  const ResultadoBiometria.ok() : autenticado = true, erro = null;
+  const ResultadoBiometria.recusada() : autenticado = false, erro = null;
+  const ResultadoBiometria.erro(String this.erro) : autenticado = false;
+
+  /// Passou.
+  final bool autenticado;
+
+  /// Mensagem a mostrar, ou `null` se foi o utilizador a desistir — nesse caso
+  /// não há nada a explicar, ele sabe o que fez.
+  final String? erro;
+}
+
 /// Provider global do service. Não tem state — o state está no
 /// [cadeadoBloqueadoProvider].
-final cadeadoServiceProvider = Provider<CadeadoService>((_) => CadeadoService());
+final cadeadoServiceProvider = Provider<CadeadoService>(
+  (_) => CadeadoService(),
+);
 
 /// Estado boolean: true = mostrar LockScreen; false = aplicação visível.
 final cadeadoBloqueadoProvider = StateProvider<bool>((_) => false);

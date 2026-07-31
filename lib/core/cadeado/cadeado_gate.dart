@@ -46,10 +46,17 @@ class _CadeadoGateState extends ConsumerState<CadeadoGate>
   @override
   Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
     final svc = ref.read(cadeadoServiceProvider);
+    // O prompt de biometria do sistema rouba o foco à app e o Flutter anuncia
+    // isso como saída. Se contarmos esse ciclo, estamos a cronometrar
+    // inactividade durante o próprio desbloqueio.
+    if (svc.aPedirBiometria) return;
     if (!await svc.temPinDefinido()) return;
 
+    // `inactive` de fora: dispara ao puxar a barra de notificações, ao receber
+    // uma chamada, no multitarefa. Nada disso é sair da app, e carimbar o
+    // relógio a cada um destes deixava o cadeado a disparar por nada.
     if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
+        state == AppLifecycleState.hidden) {
       await svc.registarPaused();
     } else if (state == AppLifecycleState.resumed) {
       if (await svc.deveBloquearAoRetomar()) {
@@ -62,11 +69,6 @@ class _CadeadoGateState extends ConsumerState<CadeadoGate>
   @override
   Widget build(BuildContext context) {
     final bloqueado = ref.watch(cadeadoBloqueadoProvider);
-    return Stack(
-      children: [
-        widget.child,
-        if (bloqueado) const LockScreen(),
-      ],
-    );
+    return Stack(children: [widget.child, if (bloqueado) const LockScreen()]);
   }
 }

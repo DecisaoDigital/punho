@@ -65,6 +65,10 @@ class _DefinicoesCadeadoPageState extends ConsumerState<DefinicoesCadeadoPage> {
     if (eraNovo && _bioDisponivel) {
       final querBiometria = await showDialog<bool>(
         context: context,
+        // Sem saída pelo lado: a escolha grava-se e o diálogo só aparece uma
+        // vez, portanto um toque fora da caixa desligava a biometria para
+        // sempre — sem o utilizador perceber que tinha decidido alguma coisa.
+        barrierDismissible: false,
         builder: (ctx) => AlertDialog(
           title: const Text('Usar biometria?'),
           content: const Text(
@@ -85,16 +89,22 @@ class _DefinicoesCadeadoPageState extends ConsumerState<DefinicoesCadeadoPage> {
         ),
       );
       if (!mounted) return;
-      await ref
-          .read(cadeadoServiceProvider)
-          .setBiometriaActivada(querBiometria ?? false);
-      setState(() => _bioActivada = querBiometria ?? false);
+      // `null` só chega aqui se o diálogo for fechado pelo botão de voltar do
+      // Android. Nesse caso não se grava nada — volta a perguntar da próxima —
+      // em vez de tratar "não respondi" como "não quero".
+      if (querBiometria != null) {
+        await ref
+            .read(cadeadoServiceProvider)
+            .setBiometriaActivada(querBiometria);
+        if (!mounted) return;
+        setState(() => _bioActivada = querBiometria);
+      }
     }
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('PIN definido.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('PIN definido.')));
   }
 
   Future<void> _apagarPin() async {
@@ -177,8 +187,7 @@ class _DefinicoesCadeadoPageState extends ConsumerState<DefinicoesCadeadoPage> {
                       : 'Não disponível neste dispositivo.',
                 ),
                 value: _bioActivada && _bioDisponivel,
-                onChanged:
-                    _bioDisponivel && _temPin ? _toggleBiometria : null,
+                onChanged: _bioDisponivel && _temPin ? _toggleBiometria : null,
               ),
               const Divider(),
               const Padding(
