@@ -34,7 +34,8 @@ class AcessoIndisponivelScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               OutlinedButton(
-                onPressed: () => ref.read(acessoServiceProvider).terminarSessao(),
+                onPressed: () =>
+                    ref.read(acessoServiceProvider).terminarSessao(),
                 child: const Text('Terminar sessão'),
               ),
             ],

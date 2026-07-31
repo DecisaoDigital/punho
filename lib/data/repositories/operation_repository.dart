@@ -55,6 +55,7 @@ class OnboardingData {
     this.revenueThisYearCents,
     this.maintenanceLastYearCents,
     this.fixedMonthlyCostsCents,
+    this.custosFixos = const [],
   });
 
   final String? ownerName;
@@ -76,6 +77,10 @@ class OnboardingData {
   final int? maintenanceLastYearCents;
   final int? fixedMonthlyCostsCents;
 
+  /// Rubricas do custo fixo mensal. Quando existem, mandam sobre o total
+  /// redondo antigo — que fica só para quem já o tinha preenchido.
+  final List<CustoFixo> custosFixos;
+
   OnboardingData copyWith({
     String? ownerName,
     String? companyTaxId,
@@ -88,6 +93,7 @@ class OnboardingData {
     int? revenueThisYearCents,
     int? maintenanceLastYearCents,
     int? fixedMonthlyCostsCents,
+    List<CustoFixo>? custosFixos,
   }) => OnboardingData(
     ownerName: ownerName ?? this.ownerName,
     companyName: companyName,
@@ -109,6 +115,7 @@ class OnboardingData {
         maintenanceLastYearCents ?? this.maintenanceLastYearCents,
     fixedMonthlyCostsCents:
         fixedMonthlyCostsCents ?? this.fixedMonthlyCostsCents,
+    custosFixos: custosFixos ?? this.custosFixos,
   );
 }
 
@@ -429,6 +436,9 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
             'revenueThisYearCents': onboarding!.revenueThisYearCents,
             'maintenanceLastYearCents': onboarding!.maintenanceLastYearCents,
             'fixedMonthlyCostsCents': onboarding!.fixedMonthlyCostsCents,
+            'custosFixos': onboarding!.custosFixos
+                .map((c) => c.toJson())
+                .toList(),
           },
     'machines': _machines.map(_machineToJson).toList(),
     'customers': _customers.map(_customerToJson).toList(),
@@ -512,6 +522,10 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
         fixedMonthlyCostsCents: _nullableInt(
           onboardingJson['fixedMonthlyCostsCents'],
         ),
+        custosFixos: [
+          for (final linha in (onboardingJson['custosFixos'] as List? ?? []))
+            CustoFixo.fromJson(Map<String, dynamic>.from(linha as Map)),
+        ],
       );
     }
     _replace(_machines, data['machines'], _machineFromJson);

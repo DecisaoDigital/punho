@@ -45,8 +45,7 @@ class EmpresaSyncService {
     if (!SupabaseConfig.enabled) return false;
     if (_client == null) return false;
     try {
-      final resposta = await _client
-          .functions
+      final resposta = await _client.functions
           .invoke('sincronizar-empresa-punho', body: {'dados': dados})
           .timeout(_timeout);
       final body = resposta.data;

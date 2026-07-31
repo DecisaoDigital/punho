@@ -81,8 +81,11 @@ class CollaboratorsPage extends ConsumerWidget {
                             IconButton(
                               icon: const Icon(Icons.delete_outline),
                               tooltip: 'Eliminar colaborador',
-                              onPressed: () =>
-                                  _confirmarEliminarColaborador(context, ref, c),
+                              onPressed: () => _confirmarEliminarColaborador(
+                                context,
+                                ref,
+                                c,
+                              ),
                             ),
                           ],
                         ),
@@ -250,9 +253,7 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
     return DialogoDeFormulario(
       // "Adicionar" em vez de "Novo": deixa claro que é acção pendente, não
       // confirmação de que já foi criado.
-      titulo: current == null
-          ? 'Adicionar colaborador'
-          : 'Editar colaborador',
+      titulo: current == null ? 'Adicionar colaborador' : 'Editar colaborador',
       larguraMaxima: 920,
       corpo: LayoutBuilder(
         builder: (context, constraints) {
@@ -335,9 +336,11 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
                 aoEscolher: (v) => setState(() => vinculo = v),
               ),
               const SizedBox(height: 12),
-              if (!duasColunas)
-                ...[...identificacao, const SizedBox(height: 16), ...fiscal]
-              else
+              if (!duasColunas) ...[
+                ...identificacao,
+                const SizedBox(height: 16),
+                ...fiscal,
+              ] else
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -528,10 +531,8 @@ class _EscolhaDeVinculo extends StatelessWidget {
   Widget build(BuildContext context) => SegmentedButton<EmploymentType>(
     segments: EmploymentType.values
         .map(
-          (tipo) => ButtonSegment(
-            value: tipo,
-            label: Text(rotuloDeVinculo(tipo)),
-          ),
+          (tipo) =>
+              ButtonSegment(value: tipo, label: Text(rotuloDeVinculo(tipo))),
         )
         .toList(),
     selected: {valor},

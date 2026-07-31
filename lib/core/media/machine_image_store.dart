@@ -64,14 +64,21 @@ abstract final class MachineImageStore {
     if (empresaId == null || empresaId.isEmpty) {
       throw StateError('Não foi encontrada uma empresa para esta conta.');
     }
-    final extension = localPath.contains('.') ? localPath.split('.').last : 'jpg';
+    final extension = localPath.contains('.')
+        ? localPath.split('.').last
+        : 'jpg';
     final objectPath =
         '$empresaId/machines/${DateTime.now().microsecondsSinceEpoch}.$extension';
-    await client.storage.from('punho-documentos').upload(
-      objectPath,
-      File(localPath),
-      fileOptions: const FileOptions(cacheControl: '31536000', upsert: false),
-    );
+    await client.storage
+        .from('punho-documentos')
+        .upload(
+          objectPath,
+          File(localPath),
+          fileOptions: const FileOptions(
+            cacheControl: '31536000',
+            upsert: false,
+          ),
+        );
     return '$_remotePrefix$objectPath';
   }
 

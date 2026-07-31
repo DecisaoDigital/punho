@@ -120,7 +120,8 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
                 ),
                 OutlinedButton.icon(
                   onPressed: () async {
-                    final path = await ExpenseDocumentCapture.captureFromCamera();
+                    final path =
+                        await ExpenseDocumentCapture.captureFromCamera();
                     if (path != null) await _useInvoicePhoto(path);
                   },
                   icon: const Icon(Icons.document_scanner_outlined),
@@ -283,6 +284,7 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
       ),
     );
   }
+
   Future<void> _useInvoicePhoto(String path) async {
     final qr = await AtInvoiceQrReader.readFromImage(path);
     if (!mounted) return;

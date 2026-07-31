@@ -92,7 +92,9 @@ class _PunhoAppState extends ConsumerState<PunhoApp> {
       theme: PunhoTheme.light,
       home: _splashTerminou
           ? destino
-          : SplashPunho(aoTerminar: () => setState(() => _splashTerminou = true)),
+          : SplashPunho(
+              aoTerminar: () => setState(() => _splashTerminou = true),
+            ),
     );
   }
 }

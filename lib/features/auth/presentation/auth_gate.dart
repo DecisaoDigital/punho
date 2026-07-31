@@ -159,8 +159,9 @@ class AcessoGate extends ConsumerWidget {
   const AcessoGate({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) =>
-      ref.watch(estadoAcessoProvider).when(
+  Widget build(BuildContext context, WidgetRef ref) => ref
+      .watch(estadoAcessoProvider)
+      .when(
         loading: () =>
             const Scaffold(body: Center(child: CircularProgressIndicator())),
         error: (_, __) => _erroPage(ref),
@@ -168,12 +169,15 @@ class AcessoGate extends ConsumerWidget {
           // O perfil aprovado em punho_membros escolhe a shell. Sem isto, um
           // colaborador recebia a shell de gestor e via custos, salários e
           // lucros globais.
-          DecisaoAcesso.app => acesso.eGestor
-              ? const AppShell()
-              : CollaboratorShell(
-                  collaboratorId: ref.read(acessoServiceProvider).utilizadorId,
-                  titulo: 'Colaborador',
-                ),
+          DecisaoAcesso.app =>
+            acesso.eGestor
+                ? const AppShell()
+                : CollaboratorShell(
+                    collaboratorId: ref
+                        .read(acessoServiceProvider)
+                        .utilizadorId,
+                    titulo: 'Colaborador',
+                  ),
           DecisaoAcesso.pendente => const PedidoEmAnaliseScreen(),
           DecisaoAcesso.indisponivel => const AcessoIndisponivelScreen(),
         },

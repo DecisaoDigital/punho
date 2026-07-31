@@ -22,10 +22,14 @@ abstract final class ExpenseDocumentCapture {
 
   static Future<String> _persist(String path, String filename) async {
     final root = await getApplicationDocumentsDirectory();
-    final folder = Directory('${root.path}${Platform.pathSeparator}expense_documents');
+    final folder = Directory(
+      '${root.path}${Platform.pathSeparator}expense_documents',
+    );
     await folder.create(recursive: true);
     final ext = filename.contains('.') ? filename.split('.').last : 'jpg';
-    final target = File('${folder.path}${Platform.pathSeparator}expense_${DateTime.now().microsecondsSinceEpoch}.$ext');
+    final target = File(
+      '${folder.path}${Platform.pathSeparator}expense_${DateTime.now().microsecondsSinceEpoch}.$ext',
+    );
     return (await File(path).copy(target.path)).path;
   }
 }

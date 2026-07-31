@@ -64,8 +64,9 @@ class DotsIndicator extends StatelessWidget {
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: _NomeDoSlide(
-                      nome:
-                          activo < nomes.length - 1 ? nomes[activo + 1] : null,
+                      nome: activo < nomes.length - 1
+                          ? nomes[activo + 1]
+                          : null,
                       onTap: activo < nomes.length - 1
                           ? () => onEscolher(activo + 1)
                           : null,

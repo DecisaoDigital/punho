@@ -14,6 +14,90 @@ enum ExpenseCategory {
   other,
 }
 
+/// Rótulo da categoria, em português e num sítio só.
+String expenseCategoryLabel(ExpenseCategory categoria) => switch (categoria) {
+  ExpenseCategory.rent => 'Renda',
+  ExpenseCategory.electricity => 'Electricidade',
+  ExpenseCategory.water => 'Água',
+  ExpenseCategory.cleaning => 'Limpeza',
+  ExpenseCategory.fuel => 'Combustível',
+  ExpenseCategory.vehicleInsurance => 'Seguro de viatura',
+  ExpenseCategory.vehicleMaintenance => 'Manutenção de viatura',
+  ExpenseCategory.machineMaintenance => 'Manutenção de máquina',
+  ExpenseCategory.meals => 'Refeições',
+  ExpenseCategory.advertising => 'Publicidade',
+  ExpenseCategory.salaries => 'Salários',
+  ExpenseCategory.supplies => 'Consumíveis',
+  ExpenseCategory.other => 'Outros',
+};
+
+/// Uma rubrica de custo fixo mensal — renda, electricidade, seguro, o que for.
+///
+/// Existia só um número redondo (`fixedMonthlyCostsCents`) para tudo. Um total
+/// sem rubricas não se revê nem se corrige: o gestor não se lembra do que lá
+/// meteu, e quando a renda sobe não sabe que parte do número mudar. Pior ainda
+/// para o painel — "custos fixos" sem detalhe não diz onde apertar.
+///
+/// Reutiliza a [ExpenseCategory] de propósito, para que um custo fixo e uma
+/// despesa avulsa da mesma natureza falem a mesma língua.
+class CustoFixo {
+  const CustoFixo({
+    required this.id,
+    required this.categoria,
+    required this.valorCents,
+    this.descricao = '',
+  });
+
+  final String id;
+  final ExpenseCategory categoria;
+  final int valorCents;
+
+  /// Livre, para distinguir duas rubricas da mesma categoria ("Renda do
+  /// armazém" e "Renda do escritório").
+  final String descricao;
+
+  String get rotulo => descricao.trim().isEmpty
+      ? expenseCategoryLabel(categoria)
+      : descricao.trim();
+
+  CustoFixo copyWith({
+    ExpenseCategory? categoria,
+    int? valorCents,
+    String? descricao,
+  }) => CustoFixo(
+    id: id,
+    categoria: categoria ?? this.categoria,
+    valorCents: valorCents ?? this.valorCents,
+    descricao: descricao ?? this.descricao,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'categoria': categoria.name,
+    'valorCents': valorCents,
+    'descricao': descricao,
+  };
+
+  factory CustoFixo.fromJson(Map<String, dynamic> json) => CustoFixo(
+    id: json['id'] as String? ?? '',
+    // Uma categoria que esta versão não conheça não pode rebentar a leitura de
+    // todo o estado operacional.
+    categoria:
+        ExpenseCategory.values
+            .where((c) => c.name == json['categoria'])
+            .firstOrNull ??
+        ExpenseCategory.other,
+    valorCents: (json['valorCents'] as num?)?.toInt() ?? 0,
+    descricao: json['descricao'] as String? ?? '',
+  );
+}
+
+/// Soma das rubricas. `null` quando não há nenhuma — zero diria "não tens
+/// custos fixos", que é diferente de "ainda não os declaraste".
+int? totalDeCustosFixos(List<CustoFixo> rubricas) => rubricas.isEmpty
+    ? null
+    : rubricas.fold<int>(0, (soma, c) => soma + c.valorCents);
+
 enum ExpensePaymentStatus { paid, unpaid }
 
 enum PaymentMethod { cash, transfer, mbWay, multibanco, other }

@@ -43,15 +43,16 @@ class _SplashPunhoState extends State<SplashPunho>
         curve: const Interval(0.0, 0.70, curve: Curves.elasticOut),
       ),
     );
-    _pulse = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.06), weight: 1),
-      TweenSequenceItem(tween: Tween(begin: 1.06, end: 1.0), weight: 1),
-    ]).animate(
-      CurvedAnimation(
-        parent: _c,
-        curve: const Interval(0.70, 1.0, curve: Curves.easeInOut),
-      ),
-    );
+    _pulse =
+        TweenSequence<double>([
+          TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.06), weight: 1),
+          TweenSequenceItem(tween: Tween(begin: 1.06, end: 1.0), weight: 1),
+        ]).animate(
+          CurvedAnimation(
+            parent: _c,
+            curve: const Interval(0.70, 1.0, curve: Curves.easeInOut),
+          ),
+        );
 
     _c.addStatusListener((s) {
       if (s == AnimationStatus.completed && !_jaTerminou) {
@@ -76,8 +77,7 @@ class _SplashPunhoState extends State<SplashPunho>
         builder: (_, _) => Opacity(
           opacity: _opacidade.value,
           child: Transform.scale(
-            scale: _escala.value *
-                (_c.value > 0.70 ? _pulse.value : 1.0),
+            scale: _escala.value * (_c.value > 0.70 ? _pulse.value : 1.0),
             child: SizedBox(
               width: 180,
               height: 180,

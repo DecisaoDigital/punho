@@ -84,9 +84,7 @@ class LicencaInfo {
       plano: _textoDe(json['plano']),
       nif: _textoDe(json['nif']),
       nome: _textoDe(json['nome']),
-      validade: validadeCrua is String
-          ? DateTime.tryParse(validadeCrua)
-          : null,
+      validade: validadeCrua is String ? DateTime.tryParse(validadeCrua) : null,
       diasRestantes: _inteiroDe(json['dias_restantes']),
       oferta: json['oferta'] == true,
       tier: _textoDe(json['tier']) ?? 'base',

@@ -38,11 +38,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   final _foco = FocusNode();
   int _slide = 0;
 
-  static const _nomes = [
-    'Primeiro impulso',
-    'Operacional',
-    'Procura e vendas',
-  ];
+  static const _nomes = ['Primeiro impulso', 'Operacional', 'Procura e vendas'];
 
   @override
   void dispose() {
@@ -74,11 +70,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     // validar a UX. Integração real de dados vem na v0.0.16; alavancas
     // restantes (Tesouraria, Margem, Frota, Equipa, Objectivos, Previsibilidade)
     // entram depois de a UX estabilizar.
-    final slides = const [
-      SinteseSlide(),
-      OperacionalSlide(),
-      ProcuraSlide(),
-    ];
+    final slides = const [SinteseSlide(), OperacionalSlide(), ProcuraSlide()];
 
     // A moldura superior é desenhada pela shell. Não reservar novamente a
     // mesma área aqui: o cabeçalho deve ficar imediatamente abaixo dela.
@@ -129,7 +121,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         children: [
                           for (final slide in slides)
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
                               child: slide,
                             ),
                         ],
@@ -146,11 +140,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ),
               ),
               const SizedBox(height: 6),
-              DotsIndicator(
-                nomes: _nomes,
-                activo: _slide,
-                onEscolher: _irPara,
-              ),
+              DotsIndicator(nomes: _nomes, activo: _slide, onEscolher: _irPara),
             ],
           ),
         ),
@@ -196,7 +186,8 @@ class _Saudacao extends StatelessWidget {
 
   String get _nome => state.ownerName ?? state.companyName;
 
-  String get _data => '${_diasDaSemana[agora.weekday - 1]}, ${agora.day} '
+  String get _data =>
+      '${_diasDaSemana[agora.weekday - 1]}, ${agora.day} '
       '${_meses[agora.month - 1]} ${agora.year}';
 
   String get _dataCurta =>
@@ -226,9 +217,9 @@ class _Saudacao extends StatelessWidget {
                 _nome,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
               Text(_data, style: Theme.of(context).textTheme.bodySmall),
             ],

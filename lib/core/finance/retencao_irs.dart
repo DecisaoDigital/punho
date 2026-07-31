@@ -121,9 +121,7 @@ EstimativaSalarial? estimarSalarial({
   final tsuPatronal = bruto == null
       ? 0
       : (bruto * taxaTsuEntidadePatronal).round();
-  final taxaIrs = bruto == null
-      ? null
-      : _taxaDeIrs(bruto, estado, dependentes);
+  final taxaIrs = bruto == null ? null : _taxaDeIrs(bruto, estado, dependentes);
   final irs = bruto == null || taxaIrs == null
       ? null
       : (bruto * taxaIrs).round();

@@ -65,10 +65,7 @@ class EcraDeContexto extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(paragrafo, style: textos.bodyLarge),
                     ),
-                  if (rodape != null) ...[
-                    const SizedBox(height: 8),
-                    rodape!,
-                  ],
+                  if (rodape != null) ...[const SizedBox(height: 8), rodape!],
                   const SizedBox(height: 28),
                   Row(
                     children: [

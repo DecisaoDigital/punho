@@ -808,7 +808,9 @@ CustosMes custosMesAgregados(
       inicio,
       fim,
     ),
-    custosFixosDeclaradosCents: state.fixedMonthlyCostsCents,
+    // Pelas rubricas quando existem — o total redondo antigo fica para quem
+    // ainda não as preencheu.
+    custosFixosDeclaradosCents: state.custoFixoMensalCents,
     receitaMesCents: receiptTotal(state.receipts, inicio, fim),
   );
 }

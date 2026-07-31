@@ -21,17 +21,19 @@ class AtInvoiceQrData {
   final int? taxCents, totalCents;
 
   String get summary => [
-        if (supplierTaxId != null) 'NIF fornecedor: $supplierTaxId',
-        if (documentNumber != null) 'Documento: $documentNumber',
-        if (atcud != null) 'ATCUD: $atcud',
-      ].join(' · ');
+    if (supplierTaxId != null) 'NIF fornecedor: $supplierTaxId',
+    if (documentNumber != null) 'Documento: $documentNumber',
+    if (atcud != null) 'ATCUD: $atcud',
+  ].join(' · ');
 }
 
 abstract final class AtInvoiceQrReader {
   static Future<AtInvoiceQrData?> readFromImage(String imagePath) async {
     final scanner = BarcodeScanner(formats: [BarcodeFormat.qrCode]);
     try {
-      final codes = await scanner.processImage(InputImage.fromFilePath(imagePath));
+      final codes = await scanner.processImage(
+        InputImage.fromFilePath(imagePath),
+      );
       for (final code in codes) {
         final raw = code.rawValue;
         if (raw == null) continue;
@@ -51,7 +53,10 @@ abstract final class AtInvoiceQrReader {
       if (colon <= 0) continue;
       fields[part.substring(0, colon)] = part.substring(colon + 1);
     }
-    if (!fields.containsKey('A') || !fields.containsKey('F') || !fields.containsKey('O')) return null;
+    if (!fields.containsKey('A') ||
+        !fields.containsKey('F') ||
+        !fields.containsKey('O'))
+      return null;
     return AtInvoiceQrData(
       raw: raw,
       supplierTaxId: fields['A'],
@@ -67,7 +72,9 @@ abstract final class AtInvoiceQrReader {
 
   static DateTime? _date(String? value) {
     if (value == null || !RegExp(r'^\d{8}$').hasMatch(value)) return null;
-    return DateTime.tryParse('${value.substring(0, 4)}-${value.substring(4, 6)}-${value.substring(6, 8)}');
+    return DateTime.tryParse(
+      '${value.substring(0, 4)}-${value.substring(4, 6)}-${value.substring(6, 8)}',
+    );
   }
 
   static int? _cents(String? value) {

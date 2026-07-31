@@ -217,11 +217,12 @@ class _ConvitesScreenState extends ConsumerState<ConvitesScreen> {
           ),
           const SizedBox(height: 8),
           convites.when(
-            loading: () =>
-                const Center(child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(),
-                )),
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(),
+              ),
+            ),
             error: (_, __) => const Text('Não foi possível ler os convites.'),
             data: (lista) => lista.isEmpty
                 ? const Text('Ainda não emitiu convites.')

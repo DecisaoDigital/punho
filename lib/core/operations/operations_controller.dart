@@ -54,6 +54,7 @@ class OperationsState {
     this.revenueThisYearCents,
     this.maintenanceLastYearCents,
     this.fixedMonthlyCostsCents,
+    this.custosFixos = const [],
     this.historicalMonths = const [],
     this.machines = const [],
     this.customers = const [],
@@ -96,7 +97,23 @@ class OperationsState {
   final String? companyTaxId, companyPhone, companyEmail;
   final String? companyAddress, companyPostalCode, companyLocality;
   final int? revenueLastYearCents, revenueThisYearCents;
-  final int? maintenanceLastYearCents, fixedMonthlyCostsCents;
+  final int? maintenanceLastYearCents;
+
+  /// O total redondo antigo. Continua a valer para quem só o preencheu — mas
+  /// quando há [custosFixos], são as rubricas que mandam. Ler por
+  /// [custoFixoMensalCents], não por aqui.
+  final int? fixedMonthlyCostsCents;
+
+  /// As rubricas do custo fixo: renda, electricidade, seguros, o que houver.
+  final List<CustoFixo> custosFixos;
+
+  /// O custo fixo mensal a usar em todo o lado.
+  ///
+  /// As rubricas ganham ao total redondo: quem as preencheu está a dizer coisa
+  /// mais fina, e ter duas respostas para a mesma pergunta é a app a
+  /// contradizer-se.
+  int? get custoFixoMensalCents =>
+      totalDeCustosFixos(custosFixos) ?? fixedMonthlyCostsCents;
   final List<HistoricalMonth> historicalMonths;
   final List<Machine> machines;
   final List<Customer> customers;
@@ -122,7 +139,7 @@ class OperationsState {
     if (revenueThisYearCents == null) 'Indicar a faturação deste ano até hoje',
     if (maintenanceLastYearCents == null)
       'Estimar a manutenção paga no ano passado',
-    if (fixedMonthlyCostsCents == null) 'Indicar os custos fixos mensais',
+    if (custoFixoMensalCents == null) 'Indicar os custos fixos mensais',
     if (!hasFullRevenueHistoryFor(DateTime.now().year - 1))
       'Preencher o histórico mensal do ano passado',
   ];
@@ -157,6 +174,7 @@ class OperationsState {
     int? revenueThisYearCents,
     int? maintenanceLastYearCents,
     int? fixedMonthlyCostsCents,
+    List<CustoFixo>? custosFixos,
     List<HistoricalMonth>? historicalMonths,
     List<Machine>? machines,
     List<Customer>? customers,
@@ -190,6 +208,7 @@ class OperationsState {
         maintenanceLastYearCents ?? this.maintenanceLastYearCents,
     fixedMonthlyCostsCents:
         fixedMonthlyCostsCents ?? this.fixedMonthlyCostsCents,
+    custosFixos: custosFixos ?? this.custosFixos,
     historicalMonths: historicalMonths ?? this.historicalMonths,
     machines: machines ?? this.machines,
     customers: customers ?? this.customers,
@@ -229,6 +248,7 @@ class OperationsController extends Notifier<OperationsState> {
       revenueThisYearCents: onboarding?.revenueThisYearCents,
       maintenanceLastYearCents: onboarding?.maintenanceLastYearCents,
       fixedMonthlyCostsCents: onboarding?.fixedMonthlyCostsCents,
+      custosFixos: onboarding?.custosFixos ?? const [],
       historicalMonths: _repo.historicalMonths,
       machines: _repo.machines,
       customers: _repo.customers,
@@ -258,6 +278,7 @@ class OperationsController extends Notifier<OperationsState> {
     required String legalForm,
     required bool hasFleet,
     required int collaborators,
+
     /// Quantos veículos o gestor declarou. Opcional para não quebrar quem já
     /// chama isto só com `hasFleet`; quando vem, é a partir dele que o ecrã de
     /// Definições mostra o número de volta.
@@ -277,6 +298,7 @@ class OperationsController extends Notifier<OperationsState> {
     int? revenueThisYearCents,
     int? maintenanceLastYearCents,
     int? fixedMonthlyCostsCents,
+    List<CustoFixo>? custosFixos,
   }) {
     _repo.saveOnboarding(
       OnboardingData(
@@ -298,6 +320,7 @@ class OperationsController extends Notifier<OperationsState> {
         revenueThisYearCents: revenueThisYearCents,
         maintenanceLastYearCents: maintenanceLastYearCents,
         fixedMonthlyCostsCents: fixedMonthlyCostsCents,
+        custosFixos: custosFixos ?? const [],
       ),
     );
     state = _fromRepo().copyWith(
@@ -320,6 +343,7 @@ class OperationsController extends Notifier<OperationsState> {
       revenueThisYearCents: revenueThisYearCents,
       maintenanceLastYearCents: maintenanceLastYearCents,
       fixedMonthlyCostsCents: fixedMonthlyCostsCents,
+      custosFixos: custosFixos ?? const [],
     );
     // Guarda contra re-onboarding: quem já tem máquinas na lista não quer
     // vê-las duplicadas por placeholders.
@@ -378,6 +402,7 @@ class OperationsController extends Notifier<OperationsState> {
     Campo<int>? revenueThisYearCents,
     Campo<int>? maintenanceLastYearCents,
     Campo<int>? fixedMonthlyCostsCents,
+    List<CustoFixo>? custosFixos,
   }) {
     final actual = _repo.onboarding;
     if (actual == null) return;
@@ -395,7 +420,8 @@ class OperationsController extends Notifier<OperationsState> {
       hasFleet: veiculos > 0,
       collaborators: collaborators ?? actual.collaborators,
       declaredVehicleCount: veiculos,
-      totalMachinesDeclared: totalMachinesDeclared ?? actual.totalMachinesDeclared,
+      totalMachinesDeclared:
+          totalMachinesDeclared ?? actual.totalMachinesDeclared,
       insertMachinesNow: actual.insertMachinesNow,
       companyTaxId: Campo.aplicar(companyTaxId, actual.companyTaxId),
       companyPhone: Campo.aplicar(companyPhone, actual.companyPhone),
@@ -422,6 +448,7 @@ class OperationsController extends Notifier<OperationsState> {
         fixedMonthlyCostsCents,
         actual.fixedMonthlyCostsCents,
       ),
+      custosFixos: custosFixos ?? actual.custosFixos,
     );
     _repo.saveOnboarding(novo);
     state = _comDadosDaEmpresa(novo);
@@ -673,8 +700,7 @@ class OperationsController extends Notifier<OperationsState> {
         .any((item) => item.status == LeadStatus.converted);
     final existente = state.customers
         .where(
-          (customer) =>
-              lead.phone.isNotEmpty && customer.phone == lead.phone,
+          (customer) => lead.phone.isNotEmpty && customer.phone == lead.phone,
         )
         .firstOrNull;
     if (jaConvertida && existente != null) return existente;
@@ -713,9 +739,7 @@ class OperationsController extends Notifier<OperationsState> {
           if (booking.machineIds.contains(id)) {
             // `firstWhere` sem `orElse` rebentava quando uma reserva antiga
             // ainda apontava para uma máquina que já não existe no estado.
-            final machine = state.machines
-                .where((m) => m.id == id)
-                .firstOrNull;
+            final machine = state.machines.where((m) => m.id == id).firstOrNull;
             if (machine == null) continue;
             return BookingConflict(machine, booking);
           }
@@ -895,6 +919,7 @@ int availableMachines(OperationsState state, DateTime now) => state.machines
               .isEmpty,
     )
     .length;
+
 /// Máquinas que não estão a trabalhar nem prometidas a ninguém.
 ///
 /// Media o estado `stopped` até à v0.0.5; esse estado deixou de existir para o

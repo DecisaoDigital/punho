@@ -37,8 +37,7 @@ AvisoLicenca? avisoParaLicenca(LicencaInfo? licenca) {
       if (!licenca.emTrial || dias > 10) return null;
       if (dias <= 3) {
         return AvisoLicenca(
-          mensagem:
-              'Trial termina em ${_dias(dias)} — contactar já.',
+          mensagem: 'Trial termina em ${_dias(dias)} — contactar já.',
           fundo: _laranja,
           icone: Icons.priority_high_rounded,
         );
@@ -86,9 +85,7 @@ class _LicencaBannerState extends ConsumerState<LicencaBanner> {
   Future<void> _tentarRegistar(LicencaInfo licenca) async {
     if (_registoTentado) return;
     _registoTentado = true;
-    await ref
-        .read(licencaServiceProvider)
-        .registarTerminal(licenca.machineId);
+    await ref.read(licencaServiceProvider).registarTerminal(licenca.machineId);
     if (mounted) ref.invalidate(licencaProvider);
   }
 

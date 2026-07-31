@@ -15,9 +15,7 @@ final licencaServiceProvider = Provider<PunhoLicencaService>(
   (ref) => PunhoLicencaService(Supabase.instance.client),
 );
 
-final machineIdProvider = FutureProvider<String>(
-  (ref) => resolverMachineId(),
-);
+final machineIdProvider = FutureProvider<String>((ref) => resolverMachineId());
 
 /// Estado actual da licença. `null` significa "não foi possível saber"
 /// (sem Supabase configurado, offline ou timeout) — não significa "sem licença".

@@ -118,9 +118,9 @@ class KpiCard extends StatelessWidget {
                   titulo,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
               if (acaoNoTitulo != null) acaoNoTitulo!,
@@ -238,7 +238,10 @@ class KpiTendencia extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (variacao == null) {
-      return Text('Sem termo de comparação', style: Theme.of(context).textTheme.bodySmall);
+      return Text(
+        'Sem termo de comparação',
+        style: Theme.of(context).textTheme.bodySmall,
+      );
     }
     final subiu = variacao! >= 0;
     final bom = subiu == maisEMelhor;

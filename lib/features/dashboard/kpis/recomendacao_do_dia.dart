@@ -165,10 +165,7 @@ class _DividaDeCliente {
   final int dias;
 }
 
-List<_DividaDeCliente> _dividasPorCliente(
-  OperationsState state,
-  DateTime now,
-) {
+List<_DividaDeCliente> _dividasPorCliente(OperationsState state, DateTime now) {
   final porCliente = <String, _DividaDeCliente>{};
   for (final cobranca in cobrancasPorReceber(state, now)) {
     if (cobranca.diasDeAtraso <= 0) continue;

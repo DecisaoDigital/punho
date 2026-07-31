@@ -1,4 +1,5 @@
-import '../../features/auth/data/acesso_service.dart' show codigoEmailJaRegistado;
+import '../../features/auth/data/acesso_service.dart'
+    show codigoEmailJaRegistado;
 
 /// Regras puras da autenticação, separadas da UI para poderem ser testadas.
 class AuthRules {
