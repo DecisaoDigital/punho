@@ -134,6 +134,18 @@ saídas: (i) inferir a partir da primeira reserva do cliente, que é uma boa
 aproximação e não precisa de migração; (ii) acrescentar o campo e assumir que a
 métrica só é fiável a partir de agora, dizendo-o.
 
+> **Decidido a 31/07/2026: fica pela primeira reserva, "por agora"** (Cesar).
+> Implementado em `clientesNovos()`. É uma decisão **provisória**, não a forma
+> definitiva — quem lá voltar não deve tratá-la como assente.
+>
+> O que a torna provisória: um cliente registado que ainda não alugou não conta
+> como angariado. Hoje é aceitável e até defensável (ainda não comprou). Deixa
+> de o ser no dia em que as leads passarem a entrar de fora
+> (`ENTRADA_DE_LEADS.md`): aí passa a haver muita gente registada sem reserva, e
+> "clientes novos" começa a contar menos do que a realidade.
+>
+> **O gatilho para rever é a entrada de leads externas**, não uma data.
+
 ---
 
 ## O outro lado: perguntas que fazemos e não servem para nada
