@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -273,16 +274,22 @@ class _PerfilSidebarItem extends StatelessWidget {
                     color: Color(0xFFB7C7D1),
                   ),
                 ),
-                SizedBox(height: 1),
-                Text(
-                  'v 0.0.13',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 8,
-                    height: 1.0,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF7F98A8),
-                  ),
+                const SizedBox(height: 1),
+                FutureBuilder<PackageInfo>(
+                  future: PackageInfo.fromPlatform(),
+                  builder: (context, snapshot) {
+                    final v = snapshot.data?.version;
+                    return Text(
+                      v == null ? '' : 'v $v',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 8,
+                        height: 1.0,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF7F98A8),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
