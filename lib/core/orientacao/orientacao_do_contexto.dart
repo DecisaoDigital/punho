@@ -20,25 +20,43 @@ import 'package:flutter/services.dart';
 class OrientacaoDoContexto {
   const OrientacaoDoContexto._();
 
-  static Future<void> forcarPortrait() =>
-      SystemChrome.setPreferredOrientations(const [
-        DeviceOrientation.portraitUp,
-      ]);
+  /// A última escolha feita por um ecrã.
+  ///
+  /// Serve para um ecrã que se sobrepõe a outro — o cadeado — poder impor a sua
+  /// orientação e devolver a anterior ao sair. Sem isto, desbloquear deixava a
+  /// app em portrait: o shell do gestor já tinha corrido o `initState` e não
+  /// volta a correr, portanto ninguém repunha o landscape.
+  static Orientacao get actual => _actual;
+  static Orientacao _actual = Orientacao.livre;
 
-  static Future<void> forcarLandscape() =>
-      SystemChrome.setPreferredOrientations(const [
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
+  static Future<void> forcarPortrait() => aplicar(Orientacao.portrait);
+
+  static Future<void> forcarLandscape() => aplicar(Orientacao.landscape);
 
   /// Devolve o controlo ao sistema. Serve para ecrãs que não têm opinião e para
   /// os `dispose` que não querem deixar a app presa à sua escolha.
-  static Future<void> libertar() =>
-      SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+  static Future<void> libertar() => aplicar(Orientacao.livre);
+
+  static Future<void> aplicar(Orientacao orientacao) {
+    _actual = orientacao;
+    return SystemChrome.setPreferredOrientations(switch (orientacao) {
+      Orientacao.portrait => const [DeviceOrientation.portraitUp],
+      Orientacao.landscape => const [
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ],
+      Orientacao.livre => DeviceOrientation.values,
+    });
+  }
 
   /// Versão que não faz esperar quem chama — para usar em `initState`, onde não
   /// se pode `await`.
   static void portraitJa() => unawaited(forcarPortrait());
 
   static void landscapeJa() => unawaited(forcarLandscape());
+
+  static void aplicarJa(Orientacao orientacao) =>
+      unawaited(aplicar(orientacao));
 }
+
+enum Orientacao { portrait, landscape, livre }

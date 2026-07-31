@@ -117,12 +117,14 @@ void main() {
         brutoMensalCents: 150000,
       )!.irsRetencaoCents!;
 
-      expect(irs(MaritalStatus.married1Holder), lessThan(irs(
-        MaritalStatus.unmarried,
-      )));
-      expect(irs(MaritalStatus.married2Holders), lessThan(irs(
-        MaritalStatus.unmarried,
-      )));
+      expect(
+        irs(MaritalStatus.married1Holder),
+        lessThan(irs(MaritalStatus.unmarried)),
+      );
+      expect(
+        irs(MaritalStatus.married2Holders),
+        lessThan(irs(MaritalStatus.unmarried)),
+      );
     });
 
     test('dependentes baixam o IRS e o líquido sobe', () {
@@ -246,8 +248,10 @@ void main() {
         socialSecurityNumber: '12345678901',
       );
 
-      expect(comNiss.copyWith(name: 'Manuel S.').socialSecurityNumber,
-          '12345678901');
+      expect(
+        comNiss.copyWith(name: 'Manuel S.').socialSecurityNumber,
+        '12345678901',
+      );
       expect(
         comNiss
             .copyWith(

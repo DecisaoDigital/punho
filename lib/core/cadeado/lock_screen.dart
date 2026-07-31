@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../shared/widgets/brand_lockup.dart';
 import '../config/supabase_config.dart';
+import '../orientacao/orientacao_do_contexto.dart';
 import 'cadeado_service.dart';
 
 /// Ecrã de bloqueio. Aparece sobreposto ao resto da app quando o
@@ -36,10 +37,26 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   int _falhas = 0;
   String? _erro;
 
+  /// A orientação que o ecrã por baixo tinha escolhido, para lhe ser devolvida
+  /// quando o cadeado abrir. Lida antes de impormos a nossa — `late` aqui seria
+  /// um bug, porque só seria avaliada no `dispose`, quando já valia portrait.
+  Orientacao _orientacaoAnterior = Orientacao.livre;
+
   @override
   void initState() {
     super.initState();
+    _orientacaoAnterior = OrientacaoDoContexto.actual;
+    // Retrato, sempre. O painel do gestor é landscape, mas isto é um teclado
+    // numérico e um dedo — deitado ficava com as teclas espalhadas de um lado ao
+    // outro do ecrã. A app só se deita depois de aberta.
+    OrientacaoDoContexto.portraitJa();
     WidgetsBinding.instance.addPostFrameCallback((_) => _tentarBiometria());
+  }
+
+  @override
+  void dispose() {
+    OrientacaoDoContexto.aplicarJa(_orientacaoAnterior);
+    super.dispose();
   }
 
   Future<void> _tentarBiometria() async {
