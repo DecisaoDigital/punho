@@ -323,57 +323,128 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     return repository;
   }
 
+  /// Chamado a cada alteração local, com a entidade já serializada.
+  ///
+  /// É por aqui que a sincronização entre dispositivos sabe o que mudou. Fica
+  /// como callback e não como dependência directa para o repositório não ter de
+  /// conhecer o Supabase — e para os testes poderem observar sem rede.
+  void Function(String entidade, String id, Map<String, Object?> payload)?
+  aoRegistarOperacao;
+
+  /// `true` enquanto se aplica uma operação vinda de outro dispositivo.
+  ///
+  /// Sem isto, aplicar o que chegou emitiria uma operação nova, que voltaria a
+  /// ser enviada, que voltaria a chegar — um eco sem fim entre dois telemóveis.
+  bool _aAplicarRemoto = false;
+
+  void _registar(String entidade, String id, Map<String, Object?> payload) {
+    if (_aAplicarRemoto) return;
+    aoRegistarOperacao?.call(entidade, id, payload);
+  }
+
+  /// Aplica uma alteração feita noutro dispositivo.
+  ///
+  /// A ordem é a do servidor (`seq`), portanto quem chega depois fica por cima:
+  /// última escrita ganha, por entidade. Duas pessoas a mexer em coisas
+  /// diferentes não se pisam — que era o que o instantâneo completo não sabia
+  /// fazer.
+  void aplicarOperacaoRemota(String entidade, Map<String, dynamic> payload) {
+    _aAplicarRemoto = true;
+    try {
+      switch (entidade) {
+        case 'machine':
+          super.saveMachine(_machineFromJson(payload));
+        case 'customer':
+          super.saveCustomer(_customerFromJson(payload));
+        case 'lead':
+          super.saveLead(_leadFromJson(payload));
+        case 'booking':
+          super.saveBooking(_bookingFromJson(payload));
+        case 'expense':
+          super.saveExpense(_expenseFromJson(payload));
+        case 'receipt':
+          super.saveReceipt(_receiptFromJson(payload));
+        case 'collaborator':
+          super.saveCollaborator(_collaboratorFromJson(payload));
+        case 'vehicle':
+          super.saveVehicle(_vehicleFromJson(payload));
+        default:
+          // Entidade que esta versão ainda não conhece: ignorada de propósito.
+          // Uma app antiga não pode rebentar por o servidor ter aprendido algo
+          // novo.
+          return;
+      }
+      _persist();
+    } finally {
+      _aAplicarRemoto = false;
+    }
+  }
+
   @override
   void saveMachine(Machine item) {
     super.saveMachine(item);
+    _registar('machine', item.id, _machineToJson(item));
     _markDirty();
   }
 
   @override
   void archiveMachine(String id) {
     super.archiveMachine(id);
+    // Arquivar é uma alteração como outra qualquer: viaja como o estado final
+    // da máquina, com `archived: true`.
+    final arquivada = _machines.where((m) => m.id == id).firstOrNull;
+    if (arquivada != null) {
+      _registar('machine', id, _machineToJson(arquivada));
+    }
     _markDirty();
   }
 
   @override
   void saveLead(Lead item) {
     super.saveLead(item);
+    _registar('lead', item.id, _leadToJson(item));
     _markDirty();
   }
 
   @override
   void saveCustomer(Customer item) {
     super.saveCustomer(item);
+    _registar('customer', item.id, _customerToJson(item));
     _markDirty();
   }
 
   @override
   void saveBooking(Booking item) {
     super.saveBooking(item);
+    _registar('booking', item.id, _bookingToJson(item));
     _markDirty();
   }
 
   @override
   void saveExpense(Expense item) {
     super.saveExpense(item);
+    _registar('expense', item.id, _expenseToJson(item));
     _markDirty();
   }
 
   @override
   void saveReceipt(Receipt item) {
     super.saveReceipt(item);
+    _registar('receipt', item.id, _receiptToJson(item));
     _markDirty();
   }
 
   @override
   void saveCollaborator(Collaborator item) {
     super.saveCollaborator(item);
+    _registar('collaborator', item.id, _collaboratorToJson(item));
     _markDirty();
   }
 
   @override
   void saveVehicle(Vehicle item) {
     super.saveVehicle(item);
+    _registar('vehicle', item.id, _vehicleToJson(item));
     _markDirty();
   }
 
