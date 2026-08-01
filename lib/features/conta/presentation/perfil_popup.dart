@@ -10,6 +10,7 @@ import '../../../core/operations/operations_controller.dart';
 import '../../../shared/widgets/versao_app.dart';
 import '../../auth/acesso_providers.dart';
 import '../../company/presentation/company_settings_page.dart';
+import '../../licenca/presentation/diagnostico_licenca.dart';
 import '../../gestao/presentation/convites_screen.dart';
 
 /// Quem está autenticado, e como sair.
@@ -165,6 +166,11 @@ class PerfilPopup extends ConsumerWidget {
                   style: textos.bodySmall,
                 ),
               const SizedBox(height: 16),
+              // Identidade desta instalação (chave da empresa, aparelho, plano
+              // e validade). É o que se pede ao telefone quando algo não bate
+              // certo — e o sítio onde se vê a chave mestre a existir.
+              const DiagnosticoLicenca(),
+              const SizedBox(height: 8),
               const _Versao(),
               Align(
                 alignment: Alignment.centerRight,
