@@ -164,12 +164,37 @@ não se cobra.
 | colaborador adicional no Punho | **cobrado à parte** (limite manual por empresa) |
 | dispositivo | **nunca facturável** — serve para identidade e para travar partilha |
 | os 3 terminais POS actuais | são de teste, **não há migração** |
+| colaborador que sai | o **empresário elimina o email**. É o que liberta a vaga |
+
+### Sair da empresa
+
+Quando um trabalhador sai, **o empresário elimina o email**. É essa acção que
+liberta a vaga — não há hibernação nem limpeza automática. Enquanto o email lá
+estiver, continua a ocupar lugar, mesmo que ninguém entre há meses.
+
+É a leitura certa: a vaga foi paga por ele, e é ele que decide quando a
+reaproveita. Se o trabalhador voltar mais tarde, entra por convite novo e recebe
+chaves novas — o histórico não se recupera nem faz falta.
+
+**Ao eliminar o email caem também as chaves dos aparelhos dele.** É o que fecha
+a porta: sem par válido, nenhum daqueles dispositivos volta a entrar.
+
+Duas coisas que isto obriga a ter, e vale a pena assinalar porque uma já existe:
+
+- **Um sítio onde o empresário elimina.** Hoje há "Eliminar colaborador" na
+  lista de Colaboradores, com 6 segundos para anular — mas essa acção arquiva a
+  *ficha* na app. Tem de passar a cortar também o **acesso**, senão a vaga não
+  se liberta e o ex-colaborador continua a entrar.
+- **O que acontece ao trabalho que ele deixou.** Não se apaga. As reservas
+  guardam `collaboratorNameSnapshot`, precisamente para o nome continuar a
+  ler-se depois de a ficha desaparecer — já foi pensado, e serve aqui.
+
+E do lado de quem foi eliminado, o ecrã já existe: `AcessoIndisponivelScreen`,
+que é o que o `decidirAcesso` mostra quando o estado é `revogado`.
 
 ## O que fica por decidir
 
-1. **Quando um colaborador sai**, a chave do aparelho **morre ou hiberna**?
-   Morrer é limpo; hibernar poupa trabalho a quem volta (sazonais, baixas).
-2. **O `licenca.json` local do POS passa a levar as duas chaves?** Sem isso, o
+1. **O `licenca.json` local do POS passa a levar as duas chaves?** Sem isso, o
    POS offline não sabe validar o par — e o POS trabalha offline por desenho.
 3. **Uma empresa que declare mais colaboradores do que o plano dá** — a
    Terraforte declara 4 com 3 vagas. Recusa-se o quarto convite, avisa-se o
