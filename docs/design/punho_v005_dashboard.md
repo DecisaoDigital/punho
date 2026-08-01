@@ -14,7 +14,16 @@ registos.
 **Depois:** cinco slides, cada um com uma **pergunta de gestão** no cabeçalho e
 **quatro KPIs** que a respondem em conjunto.
 
-Capturas em `screenshots/v005/`, geradas com dados fixos a 15 de Julho de 2026:
+> **As imagens já não estão no repo** (removidas a 1 ago 2026). Pesavam 1,4 MB
+> em PNG, que o git guarda inteiro a cada regravação, e estavam obsoletas: o
+> teste que as gerava — `test/features/dashboard/screenshots_test.dart` — já
+> tinha sido apagado antes, e as capturas ficaram órfãs a documentar um ecrã
+> que entretanto mudou. A tabela abaixo fica como registo do que foi verificado.
+> Para ver o estado actual, gerar capturas novas na altura em que se precisa
+> delas (ver "Como tirar capturas hoje", no fim).
+
+Capturas que existiram em `screenshots/v005/`, geradas com dados fixos a 15 de
+Julho de 2026:
 
 | Ficheiro | O que mostra |
 |---|---|
@@ -25,8 +34,7 @@ Capturas em `screenshots/v005/`, geradas com dados fixos a 15 de Julho de 2026:
 | `5-semana.png` | Slide 5 |
 | `0-sem-movimentos.png` | Empresa configurada e sem um único registo |
 
-Regenerar com
-`flutter test --update-goldens test/features/dashboard/screenshots_test.dart`.
+O teste que as regenerava já não existe.
 
 Duas notas sobre as imagens: os tipos de letra são carregados do sistema (o
 `flutter test` não tem nenhum), portanto o desenho é fiel mas o tipo não é o do
@@ -507,7 +515,8 @@ Capturas: `funcionarios_com_editar_e_vendas.png`,
 
 - **393 testes** verdes, `flutter analyze` limpo. Eram 338 no início da
   continuação.
-- **23 capturas** em `docs/design/screenshots/v005/`.
+- **23 capturas** em `docs/design/screenshots/v005/` — removidas a 1 ago 2026,
+  ver a nota no topo.
 - Sem bump de versão, sem tag, sem APK: o release não foi autorizado nesta
   continuação. O `pubspec` de outra sessão trazia `0.0.4+4` e ficou por commitar
   — mudar a versão é acto de release. A dependência nova do QR das faturas
@@ -523,3 +532,34 @@ Capturas: `funcionarios_com_editar_e_vendas.png`,
 - As células do calendário da semana ficam altas (~300 dp) num ecrã de 1280×800.
   Cabe tudo e o alvo de toque é generoso, mas há espaço vazio a mais — vale uma
   segunda vista quando houver reservas reais lá dentro para ver.
+
+## Como tirar capturas hoje
+
+As capturas continuam a valer — o que deixou de valer foi guardá-las no git.
+Este documento defende-as mais acima ("Foi a **captura** que deu o erro à
+vista"), e continua a ter razão: há defeitos que só se vêem, não se afirmam.
+
+O que muda é o ciclo de vida. Uma captura serve para **olhar agora**, não para
+ficar. Guardada, envelhece em silêncio e passa a documentar um ecrã que já não
+existe — foi o que aconteceu às 23 daqui e às da moldura do topo, que ficaram a
+comparar o layout de antes de três correcções com o de depois.
+
+Tirar uma quando se precisa:
+
+```dart
+// num teste qualquer, com o widget já montado
+await expectLater(
+  find.byType(MaterialApp),
+  matchesGoldenFile('/tmp/o_que_estou_a_ver.png'),
+);
+```
+
+Correr com `flutter test --update-goldens <ficheiro>` grava a imagem. Fora do
+repo (`/tmp`), olha-se, decide-se, e desaparece.
+
+**Para o que tem de continuar a ser verificado sozinho, medir em vez de
+fotografar.** `test/features/shell/moldura_do_topo_test.dart` é o exemplo: 245
+linhas de geometria sobre a mesma matéria que as capturas da moldura cobriam.
+Sobreviveu às três mudanças de layout da tarde de 1 ago sem uma linha alterada,
+enquanto as imagens partiram — porque afirma o que importa (a faixa cobre os
+glifos, o conteúdo não fica sob o recorte) e não a cor de cada pixel.
