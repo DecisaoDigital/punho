@@ -88,20 +88,19 @@ class _AppShellState extends ConsumerState<AppShell> {
       // apenas `statusBarColor`), para nunca deixar ícones claros sobre o
       // fundo claro do painel.
       final topInset = MediaQuery.paddingOf(context).top;
-      // A faixa acompanha a área das notificações e nada mais: 2 dp a menos
-      // que a margem segura, que é o máximo que se pode aparar sem ficar
-      // conteúdo claro por baixo dos ícones do sistema.
+      // A faixa acompanha a área das notificações e nada mais.
       //
-      // **Não encolhe mais.** Em Android recente o `statusBarColor` já não é
-      // respeitado — é esta faixa desenhada no layout que põe as notificações
-      // em fundo escuro. Encolhê-la é perder exactamente o que ela existe para
-      // dar. Quem procurar aqui altura para poupar, procure noutro sítio.
-      // Com tecto. Em landscape, um telemóvel com recorte de câmara reporta uma
-      // margem segura bem maior do que a barra de estado precisa, e a faixa
-      // ficava grossa — foi o que o Cesar viu. 24 dp chega para os ícones do
-      // sistema em qualquer telemóvel.
-      final semExcesso = topInset > 2 ? topInset - 2 : topInset;
-      final alturaDaMoldura = semExcesso > 24.0 ? 24.0 : semExcesso;
+      // É ela que põe as notificações em fundo escuro — em Android recente o
+      // `statusBarColor` já não é respeitado, e sem faixa ficavam ícones claros
+      // sobre o branco do conteúdo. Mas não precisa de acompanhar a margem
+      // segura toda: em landscape, um telemóvel com recorte de câmara reporta
+      // bem mais do que a barra de estado ocupa.
+      //
+      // 6 dp a menos que a margem segura, com tecto de 20. São 4 dp que passam
+      // do enquadramento para o canvas, que é onde está o conteúdo que ele veio
+      // ver — pedido dele, e a conta está do lado certo.
+      final semExcesso = topInset > 6 ? topInset - 6 : topInset;
+      final alturaDaMoldura = semExcesso > 20.0 ? 20.0 : semExcesso;
       return AnnotatedRegion<SystemUiOverlayStyle>(
         value: const SystemUiOverlayStyle(
           statusBarColor: PunhoTheme.navyDeep,
@@ -230,7 +229,12 @@ class _Sidebar extends ConsumerWidget {
           // e as labels só ocupavam altura sem valor informativo real.
           Expanded(
             child: ListView(
-              padding: EdgeInsets.zero,
+              // 3 dp de cada lado. Os botões ocupavam a largura toda da barra e
+              // ficavam rentes às margens — o Cesar leu isso como falta de
+              // centragem, e é: sem folga não há nada a centrar. Só aqui, para
+              // o realce do item seleccionado continuar a começar na margem
+              // esquerda da barra.
+              padding: const EdgeInsets.symmetric(horizontal: 3),
               children: [
                 for (final item in destinations)
                   _SidebarItem(
