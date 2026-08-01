@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../orientacao/orientacao_do_contexto.dart';
+import '../theme/punho_theme.dart';
 import 'cadeado_service.dart';
 import 'lock_screen.dart';
 
@@ -35,13 +36,27 @@ class _CadeadoGateState extends ConsumerState<CadeadoGate>
     super.dispose();
   }
 
+  /// Falso enquanto não se sabe se há PIN definido.
+  ///
+  /// Saber isso é uma leitura do armazenamento, e é assíncrona. Sem esperar por
+  /// ela, a app desenhava o primeiro frame desbloqueada: a shell do gestor
+  /// montava, pedia landscape e o telemóvel rodava — só para o cadeado chegar
+  /// logo a seguir e o mandar rodar de volta para retrato.
+  ///
+  /// Não era só feio. O `BiometricPrompt` do Android morre quando a actividade
+  /// muda de configuração, e a segunda rotação apanhava-o à espera do dedo: o
+  /// ecrã ficava em "A aguardar biometria…" e não havia forma de entrar senão
+  /// pelo PIN.
+  bool _decidido = false;
+
   Future<void> _coldStart() async {
     if (_iniciado) return;
     _iniciado = true;
     final svc = ref.read(cadeadoServiceProvider);
-    if (await svc.temPinDefinido()) {
-      _bloquear();
-    }
+    final temPin = await svc.temPinDefinido();
+    if (!mounted) return;
+    if (temPin) _bloquear();
+    setState(() => _decidido = true);
   }
 
   @override
@@ -82,6 +97,16 @@ class _CadeadoGateState extends ConsumerState<CadeadoGate>
 
   @override
   Widget build(BuildContext context) {
+    // Nada é montado antes de se saber se vai ficar bloqueado. É uma leitura de
+    // armazenamento, dura um punhado de milissegundos, e evita que a app se
+    // mostre — e rode — antes de ter esse direito.
+    if (!_decidido) {
+      return const ColoredBox(
+        color: PunhoTheme.navyDeep,
+        child: SizedBox.expand(),
+      );
+    }
+
     final bloqueado = ref.watch(cadeadoBloqueadoProvider);
     // A orientação é decidida **aqui**, pelo estado, e não no `initState` /
     // `dispose` do ecrã de bloqueio.

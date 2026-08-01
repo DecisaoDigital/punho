@@ -42,8 +42,21 @@ class DialogoDeFormulario extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    // O que sobra de ecrã depois do teclado. No telemóvel do Cesar deitado são
+    // 393 dp de altura e o teclado leva 200 — restam 193.
+    final alturaUtil = mq.size.height - mq.viewInsets.bottom;
+    // Abaixo disto, a moldura fixa em tamanho normal (cabeçalho 60 dp + rodapé
+    // 64) já não cabe sozinha, e o corpo — que é `Flexible` — encolhia até
+    // zero: o formulário desaparecia e ficava título, vazio e botões. Medido no
+    // Redmi Note 10 Pro deitado, a adicionar um colaborador.
+    final apertado = alturaUtil < 320;
+    final tema = Theme.of(context);
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: apertado ? 8 : 24,
+      ),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: larguraMaxima),
         child: SizedBox(
@@ -53,10 +66,17 @@ class DialogoDeFormulario extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  apertado ? 12 : 20,
+                  24,
+                  apertado ? 6 : 12,
+                ),
                 child: Text(
                   titulo,
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: apertado
+                      ? tema.textTheme.titleMedium
+                      : tema.textTheme.titleLarge,
                 ),
               ),
               Flexible(
@@ -66,7 +86,12 @@ class DialogoDeFormulario extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  apertado ? 6 : 12,
+                  16,
+                  apertado ? 6 : 12,
+                ),
                 child: Row(
                   children: [
                     TextButton(

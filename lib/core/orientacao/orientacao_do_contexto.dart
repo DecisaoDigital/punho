@@ -72,10 +72,14 @@ class OrientacaoDoContexto {
   static Future<void> _pedirAoSistema(Orientacao orientacao) =>
       SystemChrome.setPreferredOrientations(switch (orientacao) {
         Orientacao.portrait => const [DeviceOrientation.portraitUp],
-        Orientacao.landscape => const [
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-        ],
+        // Um só lado, e não os dois.
+        //
+        // Deitar para o outro lado não traz nada e traz problema: o furo da
+        // câmara muda de aresta. Numa rotação cai sobre a barra lateral, que é
+        // navy e o absorve sem custo; na outra cai sobre o conteúdo e come
+        // largura aos cartões. Fixar o lado torna a moldura previsível — e é
+        // por isso que a barra lateral só tem de saber crescer para um lado.
+        Orientacao.landscape => const [DeviceOrientation.landscapeLeft],
         Orientacao.livre => DeviceOrientation.values,
       });
 

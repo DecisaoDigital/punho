@@ -37,7 +37,29 @@ class AppShell extends ConsumerStatefulWidget {
   ConsumerState<AppShell> createState() => _AppShellState();
 }
 
+/// Altura da faixa escura por trás dos glifos da barra de estado.
+///
+/// Medido no Redmi Note 10 Pro deitado: a barra do sistema tem 33,8 dp e os
+/// glifos — relógio, rede, bateria — vivem entre os 9,5 e os 21,8. Sobravam
+/// 12 dp de barra sem nada por baixo deles.
+///
+/// A altura da barra é do sistema e não se encolhe. O que se pode fazer é a app
+/// desenhar por baixo dela e parar a faixa pouco depois de os glifos pararem.
+///
+/// Esteve em 22 dp — o fim dos glifos com uma fracção de folga. Colava-lhes por
+/// baixo: os 9,5 dp de ar que têm em cima não tinham nada do outro lado, e a
+/// barra ficava a apertá-los contra a aresta. 27 dp devolvem-lhes 5,2 dp por
+/// baixo, cerca de metade da folga de cima — o suficiente para respirarem sem
+/// gastar a barra toda. Sobram 6,8 dp que passam para o conteúdo.
+///
+/// Nunca passa da margem que o sistema reporta: num ecrã sem barra a moldura não
+/// existe, e num ecrã com barra mais baixa a faixa acompanha-a em vez de inventar
+/// altura que ninguém pediu.
+const _alturaDaFaixa = 27.0;
+
 class _AppShellState extends ConsumerState<AppShell> {
+  bool? _porBaixoDasBarras;
+
   @override
   void initState() {
     super.initState();
@@ -48,32 +70,79 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   @override
+  void dispose() {
+    // A app não é toda landscape nem toda edge-to-edge: os outros ecrãs contam
+    // com a janela já inserida pelo sistema.
+    _janela(porBaixoDasBarras: false);
+    super.dispose();
+  }
+
+  /// Desenhar por baixo das barras do sistema — ou deixar o Android inserir a
+  /// janela, como faz por omissão.
+  ///
+  /// Sem edge-to-edge a moldura deste ficheiro nunca chega a ser construída:
+  /// `MediaQuery.padding` vem a zeros e o navy do topo passa a ser só o
+  /// `statusBarColor`. Mas só a moldura sabe viver assim — é ela que pinta a
+  /// faixa por trás dos glifos e que afasta o conteúdo do recorte da câmara.
+  ///
+  /// Esteve no `initState`, e apanhava também o que este `build` devolve antes
+  /// de lá chegar: o onboarding ficava com o cabeçalho por baixo do relógio e o
+  /// formulário rebentava 59 dp por baixo do teclado. O modo passou a
+  /// acompanhar o ramo que está no ecrã.
+  void _janela({required bool porBaixoDasBarras}) {
+    if (_porBaixoDasBarras == porBaixoDasBarras) return;
+    _porBaixoDasBarras = porBaixoDasBarras;
+    SystemChrome.setEnabledSystemUIMode(
+      porBaixoDasBarras ? SystemUiMode.edgeToEdge : SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final operational = ref.watch(operationsProvider);
     final session = ref.watch(demoSessionProvider);
-    if (!operational.onboarded) return const OnboardingPage();
+    if (!operational.onboarded) {
+      _janela(porBaixoDasBarras: false);
+      return const OnboardingPage();
+    }
     // Só o modo de demonstração local decide o perfil por aqui. Com Supabase
     // ligado quem escolhe a shell é o AcessoGate, a partir do perfil aprovado
     // em punho_membros — a esta altura já se sabe que é gestor.
     if (!SupabaseConfig.enabled && !session.isManager) {
+      _janela(porBaixoDasBarras: false);
       return const CollaboratorShell();
     }
 
     final destination = ref.watch(navigationProvider);
     final destinations = visibleOperationalDestinations(operational);
     final isDesktop = MediaQuery.sizeOf(context).width >= 680;
+    // Só o ramo largo tem moldura. No estreito não há faixa nem barra lateral
+    // para absorver o que o edge-to-edge descobre, e o conteúdo ficaria por
+    // baixo das barras sem nada a protegê-lo.
+    _janela(porBaixoDasBarras: isDesktop);
     // O aviso de licença fica acima do conteúdo para aparecer em todos os
     // ecrãs, e não só no painel de gestão. Encolhe a zero quando está tudo bem.
     final content = Column(
       children: [
         const LicencaBanner(),
         Expanded(
-          // A moldura da shell já protege a área das notificações. Os ecrãs
-          // podem começar logo abaixo dela, sem cada um reservar o topo outra
-          // vez através de um SafeArea próprio.
+          // A moldura da shell já gastou as margens do sistema: a faixa gastou
+          // o topo, a barra lateral gastou a esquerda, e o canvas afasta-se da
+          // direita logo aqui abaixo. O que sobra é área limpa — e é preciso
+          // dizê-lo, senão o `SafeArea` de cada página desconta tudo outra vez.
+          //
+          // Era isso que empurrava o painel para a esquerda: os 47,3 dp da
+          // barra de navegação saíam duas vezes, e os cartões acabavam a 47 dp
+          // do fim do canvas, com uma tira branca à direita a não fazer nada.
+          //
+          // Só no ramo largo. No estreito não há moldura nenhuma a absorver as
+          // margens, e cada página continua a precisar de as respeitar.
           child: MediaQuery.removePadding(
             context: context,
             removeTop: isDesktop,
+            removeLeft: isDesktop,
+            removeRight: isDesktop,
             child: _DestinationContent(destination: destination),
           ),
         ),
@@ -92,18 +161,26 @@ class _AppShellState extends ConsumerState<AppShell> {
       //
       // É ela que põe as notificações em fundo escuro — em Android recente o
       // `statusBarColor` já não é respeitado, e sem faixa ficavam ícones claros
-      // sobre o branco do conteúdo. Mas não precisa de acompanhar a margem
-      // segura toda: em landscape, um telemóvel com recorte de câmara reporta
-      // bem mais do que a barra de estado ocupa.
+      // sobre o branco do conteúdo.
       //
-      // 6 dp a menos que a margem segura, com tecto de 20. São 4 dp que passam
-      // do enquadramento para o canvas, que é onde está o conteúdo que ele veio
-      // ver — pedido dele, e a conta está do lado certo.
-      final semExcesso = topInset > 6 ? topInset - 6 : topInset;
-      final alturaDaMoldura = semExcesso > 20.0 ? 20.0 : semExcesso;
+      // A faixa acompanha os glifos e pára onde eles param. O vazio que a barra
+      // de estado deixa por baixo do relógio passa a ser conteúdo.
+      //
+      // Esteve em `topInset - 6` com tecto de 20, para aparar o que se julgava
+      // ser o recorte da câmara a inflacionar a margem. Isso estava errado por
+      // duas razões: neste telemóvel o furo fica ao centro do topo **em pé**,
+      // portanto em landscape aparece de lado e a margem superior é só a barra
+      // de estado; e o tecto de 20 era um número inventado. Agora a altura é
+      // uma medida — ver [_alturaDaFaixa].
+      final alturaDaMoldura = topInset < _alturaDaFaixa
+          ? topInset
+          : _alturaDaFaixa;
       return AnnotatedRegion<SystemUiOverlayStyle>(
         value: const SystemUiOverlayStyle(
-          statusBarColor: PunhoTheme.navyDeep,
+          // Transparente, e não navy: em edge-to-edge o `statusBarColor` pintava
+          // a barra toda e engolia de volta os 12 dp que se foram buscar. Quem
+          // põe fundo escuro por trás dos glifos é a faixa aqui abaixo.
+          statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
           statusBarBrightness: Brightness.dark,
         ),
@@ -113,13 +190,29 @@ class _AppShellState extends ConsumerState<AppShell> {
               if (alturaDaMoldura > 0)
                 SizedBox(
                   height: alturaDaMoldura,
+                  // A largura tem de ser dita. Sem ela, o `Column` centra com
+                  // restrições soltas e o `ColoredBox` — que não tem filho para
+                  // lhe dar tamanho — sai com zero de largura: a faixa comia a
+                  // altura toda e não pintava um pixel. Foi assim durante três
+                  // afinações da altura, todas a medir uma faixa invisível.
+                  width: double.infinity,
                   child: const ColoredBox(color: PunhoTheme.navyDeep),
                 ),
               Expanded(
                 child: Row(
                   children: [
                     _Sidebar(destinations: destinations, selected: destination),
-                    Expanded(child: content),
+                    // Na rotação contrária o furo fica à direita, do lado do
+                    // conteúdo. A barra lateral já absorve o caso simétrico;
+                    // aqui é o canvas que tem de se afastar da aresta.
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          right: MediaQuery.paddingOf(context).right,
+                        ),
+                        child: content,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -187,10 +280,21 @@ class _Sidebar extends ConsumerWidget {
     // 88 dp em vez de 72: passou a caber o rótulo debaixo do ícone. Com só
     // ícones, o rótulo dependia do tooltip — que num tablet só aparece com
     // toque longo, ou seja não aparece a quem está a aprender a app.
-    width: 88,
+    //
+    // Mais a margem esquerda: com o telemóvel deitado numa das rotações, o furo
+    // da câmara fica desse lado e o `SafeArea` de baixo empurra o conteúdo para
+    // dentro. Sem somar aqui, os 88 dp passavam a 54 e os rótulos apertavam —
+    // a barra ficava diferente conforme o lado para que se roda o telemóvel.
+    width: 88 + MediaQuery.paddingOf(context).left,
     color: PunhoTheme.navyDeep,
     child: SafeArea(
       top: false,
+      // A margem direita é a barra de navegação do sistema, do outro lado do
+      // ecrã. Esta barra está encostada à esquerda e o seu lado direito é
+      // interior — quem tem de se afastar da barra de navegação é o conteúdo.
+      // Sem este `false`, os 47 dp da barra de navegação saíam dos 88 da barra
+      // lateral e os rótulos passavam a "P…", "Cli…", "Má…".
+      right: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -449,7 +553,10 @@ class _MobileMenu extends ConsumerWidget {
     children: [
       const DrawerHeader(
         decoration: BoxDecoration(color: PunhoTheme.navyDeep),
-        child: Align(alignment: Alignment.centerLeft, child: BrandLockup()),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: BrandLockup(emFundoEscuro: true),
+        ),
       ),
       for (final item in destinations)
         ListTile(
