@@ -5,6 +5,7 @@ import 'package:punho/core/layout/margens_do_canvas.dart';
 import 'package:punho/core/navigation/app_destination.dart';
 import 'package:punho/core/navigation/navigation_controller.dart';
 import 'package:punho/core/theme/punho_theme.dart';
+import 'package:punho/features/dashboard/presentation/dashboard_page.dart';
 import 'package:punho/features/shell/presentation/app_shell.dart';
 
 import '../dashboard/fixtura.dart';
@@ -147,5 +148,23 @@ void main() {
     for (final medida in medidas.values) {
       expect(medida, greaterThan(MargensDoCanvas.verticalComBotaoNoTopo));
     }
+  });
+
+  testWidgets('no painel, tudo o que é texto arranca na mesma coluna', (
+    tester,
+  ) async {
+    await abrir(tester);
+
+    // O teste da margem lateral olha para o elemento mais à esquerda do ecrã,
+    // que no painel é a seta do carrossel — e por isso nunca via a saudação.
+    // Ela esteve a 252,6 dp da margem, centrada, enquanto os pontinhos por
+    // baixo estavam a 15: o `Column` centra por omissão, e o que a encostava à
+    // esquerda era o `Expanded` do botão de editar, que saiu do ecrã.
+    final canvas = tester.getRect(find.byType(DashboardPage));
+    final saudacao = tester.getRect(find.textContaining('·').first);
+    final pontinhos = tester.getRect(find.textContaining('1/3').first);
+
+    expect(saudacao.left - canvas.left, MargensDoCanvas.lateral);
+    expect(pontinhos.left - canvas.left, MargensDoCanvas.lateral);
   });
 }
