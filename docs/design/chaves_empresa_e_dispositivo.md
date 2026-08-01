@@ -192,6 +192,29 @@ Duas coisas que isto obriga a ter, e vale a pena assinalar porque uma já existe
 E do lado de quem foi eliminado, o ecrã já existe: `AcessoIndisponivelScreen`,
 que é o que o `decidirAcesso` mostra quando o estado é `revogado`.
 
+## O `licenca.json` já é por terminal
+
+Levantei isto como risco — «e se copiarem o ficheiro para outro PC?» — e estava
+errado. O ficheiro que o Control emite **já leva o `machine_id`**, ao lado do
+NIF e da validade, e faz parte do que é assinado:
+
+```json
+{ "nif": "...", "nome": "...", "machine_id": "...", "plano": "...",
+  "validade": "...", "assinatura": "..." }
+```
+
+Copiá-lo para outro PC não serve: o `machine_id` não bate com o da máquina, e a
+assinatura não se refaz sem a chave. **A porta já estava fechada.**
+
+Para o par `mestre + dispositivo`, isto até simplifica: o `machine_id` que já lá
+está **é** a chave do dispositivo. Falta acrescentar-lhe a chave mestre — uma
+linha no JSON, e a estrutura aguenta.
+
+Fica de pé o que o próprio contrato das duas apps já assinala, e que é outro
+problema: a chave que assina este ficheiro vive **dentro do binário do POS**.
+Quem extrair o executável consegue fabricar licenças válidas. Não se resolve com
+o par; resolve-se tirando a assinatura do cliente (Edge Function).
+
 ## O que fica por decidir
 
 1. **O `licenca.json` local do POS passa a levar as duas chaves?** Sem isso, o
