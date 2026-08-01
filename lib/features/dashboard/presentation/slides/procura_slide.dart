@@ -6,6 +6,7 @@ import '../../../../core/navigation/navigation_controller.dart';
 import '../../../../core/operations/kpis.dart';
 import '../../../../core/operations/operations_controller.dart';
 import '../widgets/celula_semaforo.dart';
+import '../widgets/grelha_de_kpis.dart';
 import '../widgets/slide_header.dart';
 
 /// Slide 3 · Alavanca — Procura e Vendas.
@@ -52,12 +53,8 @@ class ProcuraSlide extends ConsumerWidget {
             children: [
               Expanded(
                 flex: 6,
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 1.8,
-                  children: [
+                child: GrelhaDeKpis(
+                  celulas: [
                     _clientesNovos(estado, now),
                     _pipeline(porContactar.length, frias),
                     _ticketMedio(estado, now),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide TimeOfDay;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/finance/regime_fiscal.dart';
+import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/finance/retencao_irs.dart';
 import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/operations/kpis.dart';
@@ -23,7 +24,13 @@ class CollaboratorsPage extends ConsumerWidget {
     final colaboradores = s.collaborators.where((c) => !c.archived).toList();
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        // Começa por texto: margem vertical inteira. Ver [MargensDoCanvas].
+        padding: const EdgeInsets.fromLTRB(
+          MargensDoCanvas.lateral,
+          MargensDoCanvas.vertical,
+          MargensDoCanvas.lateral,
+          MargensDoCanvas.vertical,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -581,7 +588,13 @@ class VehiclesPage extends ConsumerWidget {
     final total = s.vehicles.fold(0, (sum, v) => sum + monthlyFleetCost(v));
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        // Começa por texto: margem vertical inteira. Ver [MargensDoCanvas].
+        padding: const EdgeInsets.fromLTRB(
+          MargensDoCanvas.lateral,
+          MargensDoCanvas.vertical,
+          MargensDoCanvas.lateral,
+          MargensDoCanvas.vertical,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

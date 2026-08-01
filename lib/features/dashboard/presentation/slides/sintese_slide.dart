@@ -8,6 +8,7 @@ import '../../../../core/navigation/navigation_controller.dart';
 import '../../../../core/operations/kpis.dart';
 import '../../../../core/operations/operations_controller.dart';
 import '../widgets/celula_semaforo.dart';
+import '../widgets/grelha_de_kpis.dart';
 import '../widgets/slide_header.dart';
 
 /// Slide 1 · Primeiro impulso (síntese multi-alavanca).
@@ -44,12 +45,8 @@ class SinteseSlide extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         Expanded(
-          child: GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 2.2,
-            children: [
+          child: GrelhaDeKpis(
+            celulas: [
               _AbrirDestino(
                 destino: AppDestination.finances,
                 child: _entradas(mes, recebidoHoje),
