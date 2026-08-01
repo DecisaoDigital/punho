@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -108,6 +109,19 @@ class SyncController extends Notifier<InfoSync> {
   }
 
   Future<void> _arrancar(SincronizacaoEntreDispositivos motor) async {
+    try {
+      await _montar(motor);
+    } catch (erro) {
+      // Um erro aqui deixava a sincronização desligada sem ninguém saber: o
+      // arranque corre numa microtarefa, e uma excepção lá dentro não tem quem
+      // a apanhe. Silêncio é a pior forma de falhar numa coisa que só se nota
+      // quando os dados não aparecem no outro telemóvel.
+      debugPrint('[Sync] arranque falhou: $erro');
+      state = InfoSync(estado: EstadoSync.falhou, erro: '$erro');
+    }
+  }
+
+  Future<void> _montar(SincronizacaoEntreDispositivos motor) async {
     _motor = motor;
     _registo = motor.registo;
 
