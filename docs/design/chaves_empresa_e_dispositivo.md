@@ -67,8 +67,14 @@ trocar de aparelho, resolve sozinho o caso do telemóvel perdido, e torna a
 partilha inútil na prática — dois a partilhar a conta andam a expulsar-se um ao
 outro o dia todo.
 
-> **Por decidir:** isto aplica-se também ao empresário, ou o dono tem direito a
-> sessões simultâneas?
+### O empresário tem direito a duas
+
+O dono pode ter **duas sessões ao mesmo tempo** — o caso real é o telemóvel na
+mão e o PC do escritório sempre aberto. À terceira, aplica-se-lhe a mesma regra:
+a mais antiga cai.
+
+Os colaboradores continuam com **uma**. É onde está o risco de partilha, e é aí
+que a regra tem de apertar.
 
 ## POS — o titular do par é o **dispositivo**
 
@@ -85,9 +91,9 @@ cd_mendes@hotmail.com · NIF 515307548
 O segundo terminal recebe chave própria e fica associado à mesma mestre. As
 regras de plano e de limite são as mesmas; muda só o que se conta.
 
-> **Por decidir:** no POS, o que se cobra por terminal adicional? Por analogia
-> com os colaboradores do Punho, presumo que seja o mesmo modelo — uma alavanca
-> manual por cliente —, mas isto não foi dito e não deve ficar assumido.
+**Cada terminal adicional é cobrado à parte.** No POS o que se vende é o posto:
+o primeiro vem com a licença, os seguintes pagam. É o equivalente ao colaborador
+extra do Punho — muda só a unidade, porque muda quem é o titular do par.
 
 Os 3 terminais POS que existem hoje são **de teste**. Não há migração a fazer.
 
@@ -140,15 +146,32 @@ linhas em `punho_instalacoes`.
 Os passos 1 e 2 não mexem no POS e podem ser feitos com segurança. O passo 3 é o
 único que exige o cuidado descrito.
 
+## Porque é que isto interessa ao negócio
+
+Palavras do Cesar: **é o Punho que lhe vai dar este controlo**. O modelo nasce
+aqui — chave da empresa, aparelhos pendurados, limite por email — e depois
+aplica-se ao POS, que hoje não tem forma de saber quantos postos uma empresa
+está mesmo a usar. Sem isto, acrescentar um terminal ou uma pessoa não se vê e
+não se cobra.
+
+## Decidido
+
+| questão | decisão |
+|---|---|
+| sessões simultâneas do empresário | **duas** (telemóvel + PC do escritório). À terceira, cai a mais antiga |
+| sessões dos colaboradores | **uma**. É aí que está o risco de partilha |
+| terminal POS adicional | **cobrado à parte** |
+| colaborador adicional no Punho | **cobrado à parte** (limite manual por empresa) |
+| dispositivo | **nunca facturável** — serve para identidade e para travar partilha |
+| os 3 terminais POS actuais | são de teste, **não há migração** |
+
 ## O que fica por decidir
 
-1. O empresário tem direito a sessões simultâneas, ou vale-lhe a mesma regra?
-2. No POS, cobra-se por terminal adicional da mesma maneira que se cobra por
-   colaborador no Punho?
-3. Quando um colaborador sai: a chave do aparelho morre, ou hiberna para o caso
-   de ele voltar?
-4. O `licenca.json` local do POS passa a levar as duas chaves? Sem isso, o POS
-   offline não sabe validar o par.
-5. Uma empresa que declare mais colaboradores do que o plano dá (a Terraforte
-   declara 4 com 3 vagas): recusa-se o convite a mais, avisa-se o empresário, ou
-   propõe-se subir de plano?
+1. **Quando um colaborador sai**, a chave do aparelho **morre ou hiberna**?
+   Morrer é limpo; hibernar poupa trabalho a quem volta (sazonais, baixas).
+2. **O `licenca.json` local do POS passa a levar as duas chaves?** Sem isso, o
+   POS offline não sabe validar o par — e o POS trabalha offline por desenho.
+3. **Uma empresa que declare mais colaboradores do que o plano dá** — a
+   Terraforte declara 4 com 3 vagas. Recusa-se o quarto convite, avisa-se o
+   empresário, ou propõe-se subir de plano? É uma oportunidade de venda que
+   hoje se perde em silêncio.
