@@ -133,4 +133,42 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Novo cliente…'), findsWidgets);
   });
+
+  testWidgets('tocar num período sem máquina põe o aviso a vermelho', (
+    tester,
+  ) async {
+    await abrirReservas(tester);
+
+    Color? corDoAviso() => tester
+        .widget<Text>(find.textContaining('Escolhe uma máquina'))
+        .style
+        ?.color;
+
+    // Antes de tocar, é uma frase como outra qualquer.
+    expect(corDoAviso(), isNot(const Color(0xFFB3261E)));
+
+    // A célula tem de responder ao toque mesmo sem máquina escolhida: estava
+    // com `onTap: null` e quem tocasse não recebia sinal nenhum.
+    await tester.tap(find.byIcon(Icons.add_circle_outline).first);
+    await tester.pumpAndSettle();
+
+    // Passada a piscadela, fica vermelho — o problema não desapareceu só
+    // porque a animação acabou.
+    expect(corDoAviso(), const Color(0xFFB3261E));
+    // E não marcou nada: sem máquina não há reserva para fazer.
+    expect(find.textContaining('Reservar ('), findsNothing);
+  });
+
+  testWidgets('escolher a máquina devolve o aviso ao normal', (tester) async {
+    await abrirReservas(tester);
+    await tester.tap(find.byIcon(Icons.add_circle_outline).first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(DropdownButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('PE-02').last);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Escolhe uma máquina'), findsNothing);
+  });
 }

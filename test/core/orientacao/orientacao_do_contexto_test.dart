@@ -38,13 +38,12 @@ void main() {
     expect(pedidos.single, ['DeviceOrientation.portraitUp']);
   });
 
-  test('landscape pede os dois lados', () async {
+  // Um só lado: deitar para o outro passava o furo da câmara da barra lateral
+  // para o conteúdo.
+  test('landscape pede um lado só', () async {
     await OrientacaoDoContexto.forcarLandscape();
 
-    expect(pedidos.single, [
-      'DeviceOrientation.landscapeLeft',
-      'DeviceOrientation.landscapeRight',
-    ]);
+    expect(pedidos.single, ['DeviceOrientation.landscapeLeft']);
   });
 
   test('sair da sobreposição devolve o que o ecrã de baixo pediu', () async {
@@ -56,10 +55,7 @@ void main() {
     await OrientacaoDoContexto.largarSobreposicao();
 
     expect(OrientacaoDoContexto.actual, Orientacao.landscape);
-    expect(pedidos.last, [
-      'DeviceOrientation.landscapeLeft',
-      'DeviceOrientation.landscapeRight',
-    ]);
+    expect(pedidos.last, ['DeviceOrientation.landscapeLeft']);
   });
 
   test(
@@ -83,10 +79,7 @@ void main() {
 
       // Ao desbloquear, vale o que o AppShell pediu enquanto esteve tapado.
       expect(OrientacaoDoContexto.actual, Orientacao.landscape);
-      expect(pedidos.single, [
-        'DeviceOrientation.landscapeLeft',
-        'DeviceOrientation.landscapeRight',
-      ]);
+      expect(pedidos.single, ['DeviceOrientation.landscapeLeft']);
     },
   );
 

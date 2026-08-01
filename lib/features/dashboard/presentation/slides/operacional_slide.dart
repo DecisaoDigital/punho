@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/operations/kpis.dart';
 import '../../../../core/operations/operations_controller.dart';
 import '../widgets/celula_semaforo.dart';
+import '../widgets/grelha_de_kpis.dart';
 import '../widgets/slide_header.dart';
 
 /// Slide 2 · Operacional (pulso do dia/semana).
@@ -36,12 +37,8 @@ class OperacionalSlide extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         Expanded(
-          child: GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 2.2,
-            children: [
+          child: GrelhaDeKpis(
+            celulas: [
               _reservas(pulso),
               _entregas(pulso),
               _recolhas(pulso),

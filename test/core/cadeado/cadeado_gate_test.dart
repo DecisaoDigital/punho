@@ -161,6 +161,48 @@ void main() {
 
       expect(rotacoes, isEmpty);
     });
+
+    testWidgets('a app não aparece antes de se saber se fica bloqueada', (
+      tester,
+    ) async {
+      // A corrida que deixava o Cesar sem entrar pela digital: saber se há PIN
+      // é uma leitura de armazenamento, e é assíncrona. A app desenhava o
+      // primeiro frame desbloqueada, a shell pedia landscape, o telemóvel
+      // rodava — e o cadeado chegava logo a seguir a mandar rodar de volta. O
+      // `BiometricPrompt` do Android não sobrevive a essa segunda rotação.
+      SharedPreferences.setMockInitialValues({
+        'cadeado.threshold_minutes': 0,
+        'cadeado.biometria': false,
+      });
+      final servico = CadeadoService(auth: _SemBiometria());
+      await servico.guardarPin('1234');
+
+      final container = ProviderContainer(
+        overrides: [cadeadoServiceProvider.overrideWithValue(servico)],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: CadeadoGate(child: Scaffold(body: Text('a app'))),
+          ),
+        ),
+      );
+
+      // Primeiro frame, antes de a leitura responder.
+      expect(
+        find.text('a app'),
+        findsNothing,
+        reason: 'a app apareceu antes de se saber se devia estar bloqueada',
+      );
+      // Sem filho montado não há quem peça orientação — é daqui que vinha a
+      // primeira das duas rotações. Não se afirma aqui sobre `rotacoes` porque
+      // o `OrientacaoDoContexto` é estático e arrasta estado entre testes; o
+      // que fixa a regressão é o filho não existir.
+      await tester.pumpAndSettle();
+      expect(find.text('a app'), findsOneWidget);
+    });
   });
 }
 

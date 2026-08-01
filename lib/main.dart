@@ -9,6 +9,7 @@ import 'core/cadeado/cadeado_gate.dart';
 import 'shared/widgets/splash_punho.dart';
 
 import 'core/licenca/licenca_provider.dart';
+import 'core/telemetria/pings_provider.dart';
 import 'core/licenca/licenca_service.dart';
 import 'core/licenca/machine_id.dart';
 import 'core/operations/operations_controller.dart';
@@ -86,6 +87,9 @@ class _PunhoAppState extends ConsumerState<PunhoApp> {
     // shell, porque tem de correr tanto para o gestor como para o colaborador
     // — é entre os dois que os dados precisam de viajar.
     ref.watch(syncProvider);
+    // E os pings: sem eles o Control sabe que o terminal existe, mas não sabe
+    // quando foi usado nem que versão lá está agora.
+    ref.watch(pingsProvider);
     final destino = CadeadoGate(
       child: PunhoUpdateBannerWrapper(
         child: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),

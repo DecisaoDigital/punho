@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/navigation/app_destination.dart';
+import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/navigation/navigation_controller.dart';
 import '../../../core/theme/punho_theme.dart';
 import '../../company/presentation/company_settings_page.dart';
@@ -19,7 +20,13 @@ class TarefasPage extends ConsumerWidget {
     if (tarefas.isEmpty) return const _SemTarefas();
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        // Começa por texto: margem vertical inteira. Ver [MargensDoCanvas].
+        padding: const EdgeInsets.fromLTRB(
+          MargensDoCanvas.lateral,
+          MargensDoCanvas.vertical,
+          MargensDoCanvas.lateral,
+          MargensDoCanvas.vertical,
+        ),
         children: [
           Text(
             tarefas.length == 1

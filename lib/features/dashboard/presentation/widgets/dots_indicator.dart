@@ -32,50 +32,55 @@ class DotsIndicator extends StatelessWidget {
           padding: const EdgeInsets.only(right: 5),
           child: _Ponto(activo: i == activo, onTap: () => onEscolher(i)),
         ),
+      // Ocupa o que sobra até à margem, em vez de 300 dp centrados.
+      //
+      // Centrada, esta caixa deixava 64,8 dp de vazio entre o último nome e a
+      // margem direita — o resto do painel encosta a 15. E os 300 dp repartidos
+      // por três davam 100 a cada nome: "Primeiro impulso" não cabe em 100 e
+      // saía "Primeiro imp…", com o nome cortado ao lado do nome inteiro que já
+      // está à esquerda.
       Expanded(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 300),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: _NomeDoSlide(
-                      nome: activo > 0 ? nomes[activo - 1] : null,
-                      onTap: activo > 0 ? () => onEscolher(activo - 1) : null,
-                    ),
-                  ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _NomeDoSlide(
+                  nome: activo > 0 ? nomes[activo - 1] : null,
+                  onTap: activo > 0 ? () => onEscolher(activo - 1) : null,
                 ),
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      nomes[activo],
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: PunhoTheme.navyDeep,
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: _NomeDoSlide(
-                      nome: activo < nomes.length - 1
-                          ? nomes[activo + 1]
-                          : null,
-                      onTap: activo < nomes.length - 1
-                          ? () => onEscolher(activo + 1)
-                          : null,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  nomes[activo],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: PunhoTheme.navyDeep,
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: _NomeDoSlide(
+                  nome: activo < nomes.length - 1 ? nomes[activo + 1] : null,
+                  onTap: activo < nomes.length - 1
+                      ? () => onEscolher(activo + 1)
+                      : null,
+                  // Este é o último da linha: desconta o seu próprio ar para a
+                  // letra cair na margem, e não 4 dp aquém dela. À esquerda o
+                  // "1/3 · …" é texto nu e encosta certo — sem isto, os dois
+                  // extremos do rodapé não batiam um com o outro.
+                  encostadoADireita: true,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     ],
@@ -83,9 +88,17 @@ class DotsIndicator extends StatelessWidget {
 }
 
 class _NomeDoSlide extends StatelessWidget {
-  const _NomeDoSlide({required this.nome, required this.onTap});
+  const _NomeDoSlide({
+    required this.nome,
+    required this.onTap,
+    this.encostadoADireita = false,
+  });
   final String? nome;
   final VoidCallback? onTap;
+
+  /// Tira o ar do lado de fora, para a letra ficar à distância da margem que
+  /// todos os outros textos têm.
+  final bool encostadoADireita;
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +106,7 @@ class _NomeDoSlide extends StatelessWidget {
     return TextButton(
       onPressed: onTap,
       style: TextButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
+        padding: EdgeInsets.only(left: 4, right: encostadoADireita ? 0 : 4),
         minimumSize: const Size(0, 32),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         foregroundColor: const Color(0xFF6B6A64),

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/operations/operations_controller.dart';
-import '../../company/presentation/company_settings_page.dart';
 import 'slides/operacional_slide.dart';
 import 'slides/procura_slide.dart';
 import 'slides/sintese_slide.dart';
@@ -95,17 +95,38 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           return KeyEventResult.ignored;
         },
         child: Padding(
-          // Mesma razão do `_PageFrame`: a barra vertical já separa, e o painel
-          // não precisa de se afastar dela outra vez.
-          padding: cabecalhoCompacto
-              ? const EdgeInsets.fromLTRB(6, 1, 10, 6)
-              : const EdgeInsets.fromLTRB(10, 12, 14, 8),
+          // O painel começa por texto — a saudação —, portanto leva a margem
+          // vertical inteira. Os números vivem em [MargensDoCanvas].
+          //
+          // O topo só decide a distância porque a saudação encosta ao topo da
+          // sua linha; enquanto esteve centrada contra o botão de editar, quem
+          // mandava era a altura do botão e mexer aqui não fazia nada.
+          padding: const EdgeInsets.fromLTRB(
+            MargensDoCanvas.lateralNoCarrossel,
+            MargensDoCanvas.vertical,
+            MargensDoCanvas.lateralNoCarrossel,
+            MargensDoCanvas.vertical,
+          ),
           child: Column(
+            // Sem `stretch`: a saudação fica **centrada**, e é para ficar.
+            //
+            // Ficou assim por acidente quando o botão de editar saiu do ecrã —
+            // era o `Expanded` dele que a encostava à esquerda. Cheguei a
+            // "corrigir" para a margem dos 15 dp, mas o Cesar viu o resultado
+            // centrado e preferiu-o. Fica por escolha, não por acaso.
             children: [
-              _Saudacao(
-                state: state,
-                agora: agora,
-                compacto: cabecalhoCompacto,
+              // A saudação e os pontinhos lá em baixo não são setas: somam o ar
+              // que a margem do painel desconta por causa delas, para ficarem à
+              // mesma distância da barra que o texto de qualquer outro menu.
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: MargensDoCanvas.arDaSeta,
+                ),
+                child: _Saudacao(
+                  state: state,
+                  agora: agora,
+                  compacto: cabecalhoCompacto,
+                ),
               ),
               SizedBox(height: cabecalhoCompacto ? 2 : 10),
               Expanded(
@@ -142,7 +163,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ),
               ),
               const SizedBox(height: 6),
-              DotsIndicator(nomes: _nomes, activo: _slide, onEscolher: _irPara),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: MargensDoCanvas.arDaSeta,
+                ),
+                child: DotsIndicator(
+                  nomes: _nomes,
+                  activo: _slide,
+                  onEscolher: _irPara,
+                ),
+              ),
             ],
           ),
         ),
@@ -196,45 +226,37 @@ class _Saudacao extends StatelessWidget {
       '${_diasDaSemana[agora.weekday - 1].substring(0, 3)}., ${agora.day} '
       '${_meses[agora.month - 1].substring(0, 3).toLowerCase()}. ${agora.year}';
 
+  // Sem o ícone de editar que vivia à direita desta linha.
+  //
+  // Os dados da empresa continuam a três toques de distância — pelo Perfil,
+  // pelo menu Empresa e pelas Tarefas que lá levam —, e o painel deixa de ter
+  // um alvo de toque de 48 dp a decidir a altura de uma linha de 19.
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
     children: [
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (compacto) ...[
-              Text(
-                '$_nome · $_dataCurta',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ] else ...[
-              Text(
-                _nome,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              Text(_data, style: Theme.of(context).textTheme.bodySmall),
-            ],
-          ],
+      if (compacto) ...[
+        Text(
+          '$_nome · $_dataCurta',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
         ),
-      ),
-      IconButton(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const CompanySettingsPage()),
+      ] else ...[
+        Text(
+          _nome,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
         ),
-        icon: const Icon(Icons.edit_note),
-        tooltip: 'Editar dados da empresa',
-      ),
+        Text(_data, style: Theme.of(context).textTheme.bodySmall),
+      ],
     ],
   );
 }

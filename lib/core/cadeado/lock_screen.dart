@@ -141,7 +141,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const BrandLockup(),
+                  const BrandLockup(emFundoEscuro: true),
                   const SizedBox(height: 28),
                   if (_aTentarBio) ...[
                     const _BiometriaPendente(),
