@@ -150,21 +150,38 @@ void main() {
     }
   });
 
-  testWidgets('no painel, tudo o que é texto arranca na mesma coluna', (
+  testWidgets('a saudação do painel fica centrada, por escolha', (
     tester,
   ) async {
     await abrir(tester);
 
-    // O teste da margem lateral olha para o elemento mais à esquerda do ecrã,
-    // que no painel é a seta do carrossel — e por isso nunca via a saudação.
-    // Ela esteve a 252,6 dp da margem, centrada, enquanto os pontinhos por
-    // baixo estavam a 15: o `Column` centra por omissão, e o que a encostava à
-    // esquerda era o `Expanded` do botão de editar, que saiu do ecrã.
+    // Ficou centrada por acidente, quando o botão de editar saiu do ecrã e
+    // levou com ele o `Expanded` que a encostava à esquerda. Chegou a ser
+    // "corrigida" para a margem, mas o Cesar viu o resultado e preferiu-o
+    // assim. Fica registado como decisão, para a próxima limpeza não a
+    // arrastar de volta para os 15 dp achando que é um defeito.
     final canvas = tester.getRect(find.byType(DashboardPage));
     final saudacao = tester.getRect(find.textContaining('·').first);
-    final pontinhos = tester.getRect(find.textContaining('1/3').first);
 
-    expect(saudacao.left - canvas.left, MargensDoCanvas.lateral);
-    expect(pontinhos.left - canvas.left, MargensDoCanvas.lateral);
+    expect(
+      saudacao.center.dx,
+      moreOrLessEquals(canvas.center.dx, epsilon: 1),
+      reason: 'a saudação saiu do centro do canvas',
+    );
+  });
+
+  testWidgets('o rodapé do painel encosta às duas margens', (tester) async {
+    await abrir(tester);
+
+    // O último nome de slide ficava a 64,8 dp da margem direita: a caixa dos
+    // três nomes tinha 300 dp fixos e vinha centrada no espaço que sobrava, em
+    // vez de o ocupar. Do lado esquerdo o "1/3 · …" encostava certo — os dois
+    // extremos do rodapé não batiam um com o outro.
+    final canvas = tester.getRect(find.byType(DashboardPage));
+    final contador = tester.getRect(find.textContaining('1/3').first);
+    final ultimoNome = tester.getRect(find.text('Operacional'));
+
+    expect(contador.left - canvas.left, MargensDoCanvas.lateral);
+    expect(canvas.right - ultimoNome.right, MargensDoCanvas.lateral);
   });
 }

@@ -108,13 +108,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             MargensDoCanvas.vertical,
           ),
           child: Column(
-            // Os filhos ocupam a largura toda, e não a sua largura mínima.
+            // Sem `stretch`: a saudação fica **centrada**, e é para ficar.
             //
-            // Por omissão o `Column` centra: a saudação ficou a 252,6 dp da
-            // margem enquanto os pontinhos por baixo estavam a 15. Não se notou
-            // enquanto ela viveu numa `Row` com o botão de editar — era o
-            // `Expanded` desse botão que a encostava à esquerda, e saiu com ele.
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            // Ficou assim por acidente quando o botão de editar saiu do ecrã —
+            // era o `Expanded` dele que a encostava à esquerda. Cheguei a
+            // "corrigir" para a margem dos 15 dp, mas o Cesar viu o resultado
+            // centrado e preferiu-o. Fica por escolha, não por acaso.
             children: [
               // A saudação e os pontinhos lá em baixo não são setas: somam o ar
               // que a margem do painel desconta por causa delas, para ficarem à
