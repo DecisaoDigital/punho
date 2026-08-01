@@ -71,4 +71,15 @@ void main() {
     // 30 dias de histórico.
     expect(PunhoPings.intervalo, const Duration(hours: 6));
   });
+
+  test('a versão vai nua, no mesmo formato que o POS usa', () async {
+    // O POS escreve `2.2.1` nesta coluna. O Punho chegou a escrever `0.1.0+21`
+    // — a mesma coluna com dois formatos conforme a app, e era assim que
+    // aparecia no Control. O build tem coluna própria em `versoes_apps`.
+    await pings.enviar(machineId: 'm1', origem: 'arranque');
+
+    final versao = enviados.single['versao'] as String?;
+    // Em teste não há PackageInfo: o que importa é que, havendo, não leva `+`.
+    expect(versao?.contains('+') ?? false, isFalse);
+  });
 }

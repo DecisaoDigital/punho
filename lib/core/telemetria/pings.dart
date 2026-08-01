@@ -60,9 +60,13 @@ class PunhoPings {
   Future<String?> _versao() async {
     try {
       final pacote = await PackageInfo.fromPlatform();
-      // Versão e build juntos: no Android é o build que manda na comparação de
-      // actualizações, e sem ele "1.0.0" não distingue duas instalações.
-      return '${pacote.version}+${pacote.buildNumber}';
+      // A versão nua, como o POS a envia: `2.2.1`, e não `2.2.1+47`.
+      //
+      // Esteve com o build colado (`0.1.0+21`) por se achar que sem ele não se
+      // distinguiam duas instalações. Distinguem-se: o build tem coluna própria
+      // em `versoes_apps`, e aqui só fazia com que a mesma coluna tivesse dois
+      // formatos conforme a app que a escreve — e aparecesse assim no Control.
+      return pacote.version;
     } catch (_) {
       return null;
     }
