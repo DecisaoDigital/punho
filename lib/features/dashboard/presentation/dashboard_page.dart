@@ -95,9 +95,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           return KeyEventResult.ignored;
         },
         child: Padding(
+          // Mesma razão do `_PageFrame`: a barra vertical já separa, e o painel
+          // não precisa de se afastar dela outra vez.
           padding: cabecalhoCompacto
-              ? const EdgeInsets.fromLTRB(12, 1, 12, 6)
-              : const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              ? const EdgeInsets.fromLTRB(6, 1, 10, 6)
+              : const EdgeInsets.fromLTRB(10, 12, 14, 8),
           child: Column(
             children: [
               _Saudacao(

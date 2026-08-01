@@ -3206,7 +3206,13 @@ class _PageFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SafeArea(
     child: Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      // Encostado à barra, não afastado dela.
+      //
+      // Eram 20 dp à esquerda **por cima** da barra vertical, que já é uma
+      // margem visual por si. O conteúdo nascia longe de onde o olho o
+      // procura, e o canvas — que é o que ele veio ver — pagava a diferença
+      // dos dois lados. 8 à esquerda chega para não colar as letras à barra.
+      padding: const EdgeInsets.fromLTRB(8, 10, 14, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
