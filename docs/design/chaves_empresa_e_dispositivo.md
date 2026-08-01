@@ -1,13 +1,17 @@
 # Chaves de empresa e de dispositivo — desenho
 
-> Estado: **desenho para aprovação**. Nada disto está implementado. Escrito a
-> 1 ago 2026 a partir das regras que o Cesar fixou em conversa.
+> Estado: **implementado** a 1 ago 2026, no mesmo dia em que foi escrito e
+> decidido. Escrito a partir das regras que o Cesar fixou em conversa; as cinco
+> questões em aberto foram decididas e a cadeia toda foi aplicada — ver
+> "O que já está feito" no fim.
 
 ## O modelo, em duas linhas
 
-Cada empresa tem **uma chave mestre**, criada pelo primeiro dispositivo que lá
-entra. Cada aparelho tem a **sua própria chave**, e vive pendurado na mestre. O
-par `mestre + dispositivo` é o que identifica um posto de trabalho.
+Cada empresa tem **uma chave mestre**, que nasce na **primeira associação de um
+dispositivo** — é esse primeiro aparelho que junta email e contribuinte e forma
+a conta principal da empresa. Cada aparelho tem a **sua própria chave**, e vive
+pendurado na mestre. O par `mestre + dispositivo` é o que identifica um posto de
+trabalho.
 
 ```
 TRD3434567654                     ← chave mestre (empresa, ligada ao NIF)
@@ -15,11 +19,27 @@ TRD3434567654 + note10pro987432   ← o telemóvel do funcionário
 TRD3434567654 + tabletA1122334    ← o tablet do mesmo funcionário
 ```
 
+### Nasce **com** o primeiro dispositivo, não é feita **dele**
+
+A distinção importa e vale a pena ficar escrita. O primeiro aparelho é o
+**momento** em que a mestre nasce — não a sua **matéria-prima**. O valor é novo
+e opaco (um UUID, ou um código curto legível para ser lido ao telefone), sem
+nada dentro que venha daquela máquina.
+
+A razão é uma só: a mestre é a chave que tem de **sobreviver a todos os
+aparelhos**. O empresário troca de telemóvel, o POS é substituído, o PC morre —
+e a empresa continua a mesma. Se a mestre fosse derivada do primeiro aparelho,
+perdia sentido no dia em que esse aparelho desaparecesse, que é o dia em que
+mais se precisa dela.
+
+O prefixo legível (`TRD`, `POSII`) é a exceção admitida: vem do nome do
+aparelho, mas é decoração para tu reconheceres a linha, não identidade.
+
 ## Vocabulário
 
 | termo | o que é | exemplo |
 |---|---|---|
-| **chave mestre** | a empresa e o seu plano. Nasce com o primeiro dispositivo, fica ligada ao NIF | `TRD3434567654`, `CD-POS23238974` |
+| **chave mestre** | a empresa e o seu plano. Nasce na primeira associação de um dispositivo, fica ligada ao NIF | `TRD3434567654`, `CD-POS23238974` |
 | **chave de dispositivo** | um aparelho concreto. Nasce quando esse aparelho é associado | `note10pro987432`, `POSII64846545` |
 | **par** | mestre + dispositivo. É o que identifica quem está a trabalhar e onde | `TRD3434567654+note10pro987432` |
 
@@ -210,10 +230,64 @@ Para o par `mestre + dispositivo`, isto até simplifica: o `machine_id` que já 
 está **é** a chave do dispositivo. Falta acrescentar-lhe a chave mestre — uma
 linha no JSON, e a estrutura aguenta.
 
+### Decidido: o ficheiro passa a levar as duas chaves
+
+```json
+{ "nif": "...", "nome": "...",
+  "chave_mestre": "TRD3434567654",     ← linha nova
+  "machine_id": "...",                  ← já existia: a chave do dispositivo
+  "plano": "...", "validade": "...", "assinatura": "..." }
+```
+
+A razão é o offline. O POS valida pelo ficheiro local, sem falar com o
+servidor: se a mestre não viajar lá dentro, o terminal sabe que **é ele**, mas
+não sabe **de que empresa é** — e o par, que é a unidade do modelo todo, nunca
+chega a ser verificável no sítio onde tem de ser.
+
+Com a linha lá, o arranque compara as duas: o `machine_id` contra o que a
+máquina calcula de si própria, a `chave_mestre` contra a que está guardada na
+instalação. Falha uma, não arranca.
+
+A `chave_mestre` entra dentro do que é assinado, como tudo o resto — senão
+edita-se o ficheiro num editor de texto e o par vale zero.
+
+**Isto não resolve** a chave de assinatura viver dentro do binário do POS (ver
+acima). São problemas diferentes; este fecha a cópia entre máquinas, aquele
+só se fecha tirando a assinatura do cliente.
+
 Fica de pé o que o próprio contrato das duas apps já assinala, e que é outro
 problema: a chave que assina este ficheiro vive **dentro do binário do POS**.
 Quem extrair o executável consegue fabricar licenças válidas. Não se resolve com
 o par; resolve-se tirando a assinatura do cliente (Edge Function).
+
+## A chave de dispositivo já existe — e nas duas apps
+
+Lido no código, não deduzido. O POS (`DecisaoDigital/WashFactura`,
+`lib/services/licenca/licenca_service.dart`) calcula o `machine_id` **na
+própria máquina**:
+
+```
+SHA-256 de:  hostname | versão do SO | MachineGuid do registo | serial da motherboard
+```
+
+Três coisas que vale a pena reter do que lá está:
+
+- **O serial da motherboard não é enfeite.** O comentário no código diz ao que
+  vem: evitar colisões entre PCs com Windows clonado da mesma imagem. Sem ele,
+  duas máquinas clonadas partilhavam o MachineGuid e davam o **mesmo**
+  `machine_id` — exatamente o cenário de quem quer dois postos pagando um.
+- **Degrada com cuidado.** Se o `reg` falhar, usa só hostname + SO; se o `wmic`
+  não existir (Windows recente), tenta PowerShell. Nunca rebenta — mas quanto
+  menos fontes entram no hash, mais fraco o identificador fica.
+- **Fica em cache**, como no Punho.
+
+O Punho faz o mesmo com outra semente (`lib/core/licenca/machine_id.dart`):
+Android → SHA-256 de `android:<ANDROID_ID>`; Windows → SHA-256 de
+`windows:<nome do PC>:<MachineGuid>`. Mesma forma nas duas apps: 64 hex.
+
+**O Control nunca gera nenhum destes valores** — recebe-os da app e copia-os
+para o `licenca.json`. Portanto a chave de dispositivo do modelo **já existe e
+já funciona**. O que falta é só a chave mestre, que não existe em lado nenhum.
 
 ## Crescer acima do plano
 
@@ -233,8 +307,37 @@ bloquear em silêncio. É o que justifica o passo manual: se a app recusasse
 sozinha, a conversa nunca acontecia e a receita perdia-se sem ninguém dar por
 ela.
 
-## O que fica por decidir
+## O que já está feito
 
-1. **O `licenca.json` local do POS passa a levar as duas chaves?** Sem isso, o
-   POS offline não sabe validar o par — e o POS trabalha offline por desenho.
-*(nada — as cinco questões iniciais estão fechadas.)*
+Aplicado a 1 ago 2026. Nada disto muda as licenças que já estão instaladas: sem
+chave mestre, tudo assina e valida exactamente como antes.
+
+**Base de dados** (aplicada em produção; `washinvoice-control/supabase/chaves_mestre.sql`)
+- tabela `chaves_mestre`, uma linha por NIF, escrita só por `service_role`
+- `obter_ou_criar_chave_mestre()` — idempotente. É o que faz o segundo terminal
+  do mesmo NIF entrar na empresa que já existe em vez de fundar outra
+- `gerar_chave_mestre()` — valor novo e opaco, alfabeto sem `0/O/1/I/L` para se
+  poder ler ao telefone. O prefixo vem do nome da máquina e é só decoração
+- coluna `licencas.chave_mestre`, `NULL` nas licenças anteriores
+
+**Control**
+- `atribuir_chave_mestre` na Edge Function `gerir-licenca` — único caminho para
+  a obter, auditado como qualquer outra mutação
+- gerar a licença passa a pedir a chave **antes** de assinar, no mesmo gesto
+- linha "Chave mestre" no detalhe da instalação, com botão de copiar
+
+**POS** (`DecisaoDigital/WashFactura`, ramo `chave-mestre-do-par`)
+- camada **2b** em `avaliarLicenca`: recusa uma licença de outra empresa mesmo
+  antes de o NIF estar configurado — que é o buraco que a 4ª camada deixava
+- a chave fixa-se na primeira licença válida que a traga e nunca é substituída
+- a CLI de emissão **pergunta** a chave em vez de a inventar
+
+**Punho**
+- `LicencaInfo.chaveMestre`, vinda do `validar-licenca` — o Punho não tem
+  `licenca.json` assinado, é por aqui que sabe a que empresa pertence
+
+### O que continua por fazer
+
+- **tirar a chave de assinatura de dentro do binário do POS** (Edge Function).
+  É o buraco maior e é independente de tudo isto: o par fecha a cópia entre
+  máquinas, não fecha quem extrai o executável e fabrica licenças.

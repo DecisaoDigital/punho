@@ -73,6 +73,42 @@ void main() {
     expect(licenca.machineId, machineId);
   });
 
+  test('validar traz a chave mestre da empresa', () async {
+    // A metade "empresa" do par; o machine_id é a do dispositivo. O Punho não
+    // tem licenca.json assinado — sabe-a por aqui.
+    final invocador = _InvocadorFalso(
+      resposta: const FunctionResponse(
+        status: 200,
+        data: {
+          'estado': 'activa',
+          'plano': 'anual',
+          'validade': '2027-09-03',
+          'nif': '123456789',
+          'chave_mestre': 'TRD-ABC123XYZ89',
+        },
+      ),
+    );
+    final servico = PunhoLicencaService.comInvocador(invocador.call);
+
+    final licenca = await servico.validar(machineId);
+
+    expect(licenca!.chaveMestre, 'TRD-ABC123XYZ89');
+    expect(licenca.machineId, machineId); // o par completo
+  });
+
+  test('servidor sem chave mestre (instalação antiga) → null, sem rebentar',
+      () async {
+    final invocador = _InvocadorFalso(
+      resposta: const FunctionResponse(
+        status: 200,
+        data: {'estado': 'activa', 'plano': 'anual', 'validade': '2027-09-03'},
+      ),
+    );
+    final servico = PunhoLicencaService.comInvocador(invocador.call);
+
+    expect((await servico.validar(machineId))!.chaveMestre, isNull);
+  });
+
   test('validar devolve null quando a rede falha, sem excepção', () async {
     final invocador = _InvocadorFalso(erro: Exception('sem rede'));
     final servico = PunhoLicencaService.comInvocador(invocador.call);

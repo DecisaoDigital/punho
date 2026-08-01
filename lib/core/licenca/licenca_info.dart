@@ -46,6 +46,7 @@ class LicencaInfo {
     this.validade,
     this.diasRestantes = 0,
     this.oferta = false,
+    this.chaveMestre,
     this.tier = 'base',
     this.preferenciasFeatures = const {},
   });
@@ -61,6 +62,11 @@ class LicencaInfo {
   final int diasRestantes;
   final bool oferta;
   final String machineId;
+
+  /// Chave mestre da empresa — a metade "empresa" do par, sendo o [machineId] a
+  /// do dispositivo. É a mesma em todos os aparelhos e terminais do mesmo NIF,
+  /// incluindo os do POS. `null` nas instalações anteriores ao modelo do par.
+  final String? chaveMestre;
 
   /// `base` ou `pro`.
   final String tier;
@@ -87,6 +93,7 @@ class LicencaInfo {
       validade: validadeCrua is String ? DateTime.tryParse(validadeCrua) : null,
       diasRestantes: _inteiroDe(json['dias_restantes']),
       oferta: json['oferta'] == true,
+      chaveMestre: _textoDe(json['chave_mestre']),
       tier: _textoDe(json['tier']) ?? 'base',
       preferenciasFeatures: switch (json['preferencias_features']) {
         final Map<String, dynamic> mapa => mapa,
