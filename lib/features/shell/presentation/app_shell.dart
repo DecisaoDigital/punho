@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/supabase_config.dart';
+import '../../../core/empresa_sync/ficha_recebida_provider.dart';
 import '../../../core/orientacao/orientacao_do_contexto.dart';
 import '../../../core/navigation/app_destination.dart';
 import '../../../core/navigation/navigation_controller.dart';
@@ -104,6 +105,15 @@ class _AppShellState extends ConsumerState<AppShell> {
     final session = ref.watch(demoSessionProvider);
     if (!operational.onboarded) {
       _janela(porBaixoDasBarras: false);
+      // Antes de perguntar tudo, ver se a empresa já existe no servidor: quem
+      // trocou de telemóvel ou reinstalou tem a ficha lá, e não tem de a
+      // escrever outra vez. Enquanto não se sabe, o onboarding fica à espera —
+      // são milissegundos, e piscar o primeiro passo para o substituir era
+      // pior do que não o mostrar já.
+      final ficha = ref.watch(fichaRecebidaProvider);
+      if (ficha.isLoading) {
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
       return const OnboardingPage();
     }
     // Só o modo de demonstração local decide o perfil por aqui. Com Supabase
