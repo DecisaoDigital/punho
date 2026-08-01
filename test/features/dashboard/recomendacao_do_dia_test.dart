@@ -98,7 +98,10 @@ void main() {
         ],
       );
 
-      expect(recomendacaoDoDia(estado, agoraFixa)?.regra, isNot('divida-urgente'));
+      expect(
+        recomendacaoDoDia(estado, agoraFixa)?.regra,
+        isNot('divida-urgente'),
+      );
     });
 
     test('soma as reservas do mesmo cliente e usa a dívida mais antiga', () {
@@ -216,7 +219,10 @@ void main() {
         ],
       );
 
-      expect(recomendacaoDoDia(estado, agoraFixa)?.regra, isNot('custos-criticos'));
+      expect(
+        recomendacaoDoDia(estado, agoraFixa)?.regra,
+        isNot('custos-criticos'),
+      );
     });
 
     test('sem receita não dispara — não há proporção', () {
@@ -231,7 +237,10 @@ void main() {
         ],
       );
 
-      expect(recomendacaoDoDia(estado, agoraFixa)?.regra, isNot('custos-criticos'));
+      expect(
+        recomendacaoDoDia(estado, agoraFixa)?.regra,
+        isNot('custos-criticos'),
+      );
     });
   });
 
@@ -310,28 +319,31 @@ void main() {
       expect(r.accao, AccaoDoDia.todasAsMetricas);
     });
 
-    test('usa o histórico declarado quando não há recebimentos do ano passado', () {
-      final estado = _limpo(
-        receipts: [
-          Receipt(
-            id: 'r-agora',
-            date: agoraFixa,
-            amountCents: 20000,
-            customerId: 'c1',
-            method: PaymentMethod.cash,
-          ),
-        ],
-        historicalMonths: [
-          HistoricalMonth(
-            year: agoraFixa.year - 1,
-            month: agoraFixa.month,
-            revenueReceivedCents: 100000,
-          ),
-        ],
-      );
+    test(
+      'usa o histórico declarado quando não há recebimentos do ano passado',
+      () {
+        final estado = _limpo(
+          receipts: [
+            Receipt(
+              id: 'r-agora',
+              date: agoraFixa,
+              amountCents: 20000,
+              customerId: 'c1',
+              method: PaymentMethod.cash,
+            ),
+          ],
+          historicalMonths: [
+            HistoricalMonth(
+              year: agoraFixa.year - 1,
+              month: agoraFixa.month,
+              revenueReceivedCents: 100000,
+            ),
+          ],
+        );
 
-      expect(recomendacaoDoDia(estado, agoraFixa)!.regra, 'queda-homologa');
-    });
+        expect(recomendacaoDoDia(estado, agoraFixa)!.regra, 'queda-homologa');
+      },
+    );
 
     test('mês homólogo pequeno não serve de comparação', () {
       // 300 € no ano passado: abaixo do mínimo de 500 €, porque uma queda
@@ -348,7 +360,10 @@ void main() {
         ],
       );
 
-      expect(recomendacaoDoDia(estado, agoraFixa)?.regra, isNot('queda-homologa'));
+      expect(
+        recomendacaoDoDia(estado, agoraFixa)?.regra,
+        isNot('queda-homologa'),
+      );
     });
   });
 

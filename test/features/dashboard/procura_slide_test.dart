@@ -151,10 +151,7 @@ void main() {
 
     expect(find.textContaining('sem contacto há mais de 5 dias'), findsWidgets);
     expect(find.textContaining('é procura que já pagaste'), findsOneWidget);
-    expect(
-      find.textContaining('Abrir Leads (1 por contactar)'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Abrir Leads (1)'), findsOneWidget);
   });
 
   testWidgets('sem sinal, a recomendação cala-se em vez de inventar', (

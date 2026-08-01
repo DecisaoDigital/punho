@@ -208,8 +208,16 @@ OperationsState estadoComMovimento() => OperationsState(
       status: CollaboratorStatus.active,
       costCents: 110000,
       schedule: {
-        1: WorkDay(works: true, start: pw.TimeOfDay(9, 0), end: pw.TimeOfDay(18, 0)),
-        2: WorkDay(works: true, start: pw.TimeOfDay(9, 0), end: pw.TimeOfDay(18, 0)),
+        1: WorkDay(
+          works: true,
+          start: pw.TimeOfDay(9, 0),
+          end: pw.TimeOfDay(18, 0),
+        ),
+        2: WorkDay(
+          works: true,
+          start: pw.TimeOfDay(9, 0),
+          end: pw.TimeOfDay(18, 0),
+        ),
       },
     ),
     // Sem custo: gera tarefa "completar ficha".
@@ -378,7 +386,10 @@ Future<void> montarLandscape(
       container: container,
       // O tema real, não um ThemeData qualquer: senão os CTA saíam roxos em vez
       // de laranja e as capturas não valiam para comparar com o mockup.
-      child: MaterialApp(theme: PunhoTheme.light, home: Scaffold(body: child)),
+      child: MaterialApp(
+        theme: PunhoTheme.light,
+        home: Scaffold(body: child),
+      ),
     ),
   );
   await tester.pumpAndSettle();

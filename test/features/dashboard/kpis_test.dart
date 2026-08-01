@@ -21,14 +21,17 @@ void main() {
       expect(mes.pagoCents, 25000 + 18000, reason: 'a não paga fica de fora');
     });
 
-    test('a série diária tem um valor por dia e põe o dinheiro no dia certo', () {
-      final mes = tesourariaDoMes(estado, agoraFixa);
+    test(
+      'a série diária tem um valor por dia e põe o dinheiro no dia certo',
+      () {
+        final mes = tesourariaDoMes(estado, agoraFixa);
 
-      expect(mes.serieDiariaCents, hasLength(31));
-      // Recebimento de 900 € a 8 de Julho (índice 7).
-      expect(mes.serieDiariaCents[7], 90000);
-      expect(mes.serieDiariaCents[0], 0);
-    });
+        expect(mes.serieDiariaCents, hasLength(31));
+        // Recebimento de 900 € a 8 de Julho (índice 7).
+        expect(mes.serieDiariaCents[7], 90000);
+        expect(mes.serieDiariaCents[0], 0);
+      },
+    );
 
     test('navegar para trás mostra o mês anterior', () {
       final junho = tesourariaDoMes(estado, DateTime(2026, 6, 1));
@@ -94,7 +97,11 @@ void main() {
       final funil = funilProcura(estado, agoraFixa, 30);
 
       expect(funil.leads, 4);
-      expect(funil.contactadas, 2, reason: 'convertida e perdida já foram tocadas');
+      expect(
+        funil.contactadas,
+        2,
+        reason: 'convertida e perdida já foram tocadas',
+      );
       expect(funil.convertidas, 1);
       expect(funil.taxa, closeTo(25, 0.01));
     });
@@ -199,16 +206,31 @@ void main() {
     });
 
     test('média de manutenção usa só os meses com despesas', () {
-      final custos = custosMesAgregados(estado, agoraFixa, regime: RegimeFiscal.ldaIrc);
+      final custos = custosMesAgregados(
+        estado,
+        agoraFixa,
+        regime: RegimeFiscal.ldaIrc,
+      );
       expect(custos.manutencaoMedia6MesesCents, (40000 + 20000) ~/ 2);
     });
 
     test('peso na receita é nulo sem receita', () {
-      expect(custosMesAgregados(vazio, agoraFixa, regime: RegimeFiscal.ldaIrc).percentDaReceita, isNull);
+      expect(
+        custosMesAgregados(
+          vazio,
+          agoraFixa,
+          regime: RegimeFiscal.ldaIrc,
+        ).percentDaReceita,
+        isNull,
+      );
     });
 
     test('peso na receita compara custos com o que entrou', () {
-      final custos = custosMesAgregados(estado, agoraFixa, regime: RegimeFiscal.ldaIrc);
+      final custos = custosMesAgregados(
+        estado,
+        agoraFixa,
+        regime: RegimeFiscal.ldaIrc,
+      );
       expect(
         custos.percentDaReceita,
         closeTo(custos.totalCents / 132000 * 100, 0.01),
