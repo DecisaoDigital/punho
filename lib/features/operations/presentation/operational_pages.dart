@@ -1020,38 +1020,45 @@ class MachinesPage extends ConsumerWidget {
                 // PopupMenuButton com `swap_horiz` que o Cesar leu como "duas
                 // setas", e um botão "Disponível" quando estava parada) — todos
                 // para o mesmo fim.
-                trailing: Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    if (m.placeholder)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Chip(
-                          visualDensity: VisualDensity.compact,
-                          label: const Text('Por identificar'),
-                          labelStyle: const TextStyle(fontSize: 11),
-                          backgroundColor: const Color(0xFFFFF1DA),
-                          side: BorderSide.none,
+                // O `trailing` de um `ListTile` não recebe largura máxima, e um
+                // `Wrap` sem largura nunca quebra a linha — crescia para a
+                // direita e transbordava num telemóvel de pé. Com tecto, quebra.
+                trailing: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 190),
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (m.placeholder)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Chip(
+                            visualDensity: VisualDensity.compact,
+                            label: const Text('Por identificar'),
+                            labelStyle: const TextStyle(fontSize: 11),
+                            backgroundColor: const Color(0xFFFFF1DA),
+                            side: BorderSide.none,
+                          ),
                         ),
-                      ),
-                    _MachineStatusChip(machine: m),
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined),
-                      tooltip: 'Editar máquina',
-                      onPressed: () => _machineDialog(context, ref, m),
-                    ),
-                    if (podeEliminarMaquinas(ref))
+                      _MachineStatusChip(machine: m),
                       IconButton(
-                        // Caixote e não `archive_outlined`: o Cesar leu o ícone
-                        // de arquivo como "mover de sítio" e tocou sem querer.
-                        // Por dentro continua a ser soft-delete (`archived`),
-                        // mas o utilizador lê "Eliminar" em todo o lado.
-                        icon: const Icon(Icons.delete_outline),
-                        tooltip: 'Eliminar máquina',
-                        onPressed: () =>
-                            _confirmarEliminarMaquina(context, ref, m),
+                        icon: const Icon(Icons.edit_outlined),
+                        tooltip: 'Editar máquina',
+                        onPressed: () => _machineDialog(context, ref, m),
                       ),
-                  ],
+                      if (podeEliminarMaquinas(ref))
+                        IconButton(
+                          // Caixote e não `archive_outlined`: o Cesar leu o ícone
+                          // de arquivo como "mover de sítio" e tocou sem querer.
+                          // Por dentro continua a ser soft-delete (`archived`),
+                          // mas o utilizador lê "Eliminar" em todo o lado.
+                          icon: const Icon(Icons.delete_outline),
+                          tooltip: 'Eliminar máquina',
+                          onPressed: () =>
+                              _confirmarEliminarMaquina(context, ref, m),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),

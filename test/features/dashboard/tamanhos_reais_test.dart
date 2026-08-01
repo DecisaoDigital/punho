@@ -19,18 +19,16 @@ import 'fixtura.dart';
 /// O Flutter lança excepção em qualquer overflow, portanto estes testes falham
 /// sozinhos sem ninguém ter de prever o problema. É a única família de testes
 /// aqui que apanha o que não foi antecipado.
-/// Estes testes **encontram problemas reais e ainda por corrigir**.
+/// À primeira execução apanharam **três overflows reais** ao tamanho do
+/// telemóvel do Cesar, que a suite a 1280x800 nunca tinha visto:
 ///
-/// À primeira execução apanharam três overflows ao tamanho do telemóvel do
-/// Cesar — 161, 222 e 51 pixels — que a suite a 1280x800 nunca tinha visto:
+///   - slides do painel, Redmi deitado (873x393) — 161 px · **corrigido**
+///   - slides do painel, telemóvel pequeno (720x360) — 222 px · **corrigido**
+///   - ecrãs operacionais, Redmi de pé (393x873) — 51 px · **por corrigir**
 ///
-///   - slides do painel, Redmi deitado (873x393)
-///   - slides do painel, telemóvel pequeno deitado (720x360)
-///   - ecrãs operacionais, Redmi de pé (393x873)
-///
-/// Ficam marcados enquanto não forem corrigidos, para a suite não ficar
-/// vermelha — mas **isto é dívida a pagar, não um teste a ignorar**. Tirar o
-/// `skip` é o primeiro passo de quem os for arrumar.
+/// Os dois primeiros eram a mesma causa: o rótulo do botão da recomendação não
+/// encolhia. O terceiro fica marcado com `skip` para a suite não ficar
+/// vermelha — **é dívida a pagar, não um teste a ignorar**.
 const _porCorrigir = true;
 
 void main() {
@@ -53,7 +51,7 @@ void main() {
       // O painel é landscape por decisão de produto; de pé não se testa.
       if (entrada.value.width < entrada.value.height) continue;
 
-      testWidgets('em ${entrada.key}', skip: _porCorrigir, (tester) async {
+      testWidgets('em ${entrada.key}', (tester) async {
         for (final slide in [
           SinteseSlide(agora: agoraFixa),
           OperacionalSlide(agora: agoraFixa),
@@ -72,20 +70,26 @@ void main() {
 
   group('os ecrãs operacionais cabem', () {
     for (final entrada in tamanhos.entries) {
-      testWidgets('em ${entrada.key}', skip: _porCorrigir, (tester) async {
-        for (final ecra in const [
-          MachinesPage(),
-          BookingsPage(),
-          TarefasPage(),
-        ]) {
-          await montarLandscape(
-            tester,
-            containerCom(estadoComMovimento()),
-            ecra,
-            tamanho: entrada.value,
-          );
-        }
-      });
+      testWidgets(
+        'em ${entrada.key}',
+        // Só o retrato continua a transbordar (51 px). Os restantes tamanhos
+        // ficam a proteger o que já foi corrigido.
+        skip: entrada.value.height > entrada.value.width && _porCorrigir,
+        (tester) async {
+          for (final ecra in const [
+            MachinesPage(),
+            BookingsPage(),
+            TarefasPage(),
+          ]) {
+            await montarLandscape(
+              tester,
+              containerCom(estadoComMovimento()),
+              ecra,
+              tamanho: entrada.value,
+            );
+          }
+        },
+      );
     }
   });
 

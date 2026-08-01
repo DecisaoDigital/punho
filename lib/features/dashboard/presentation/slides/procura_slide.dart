@@ -238,13 +238,21 @@ class _CardRecomendacao extends ConsumerWidget {
             onPressed: () => ref
                 .read(navigationProvider.notifier)
                 .goTo(AppDestination.clients),
+            // `Flexible` com reticências: num telemóvel deitado este cartão
+            // tem 40% de 873 dp e o rótulo inteiro não cabe — transbordava 161
+            // px pela direita. Encolher o texto é preferível a encolher o
+            // alvo de toque.
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  porContactar == 0
-                      ? 'Abrir Clientes'
-                      : 'Abrir Leads ($porContactar por contactar)',
+                Flexible(
+                  child: Text(
+                    porContactar == 0
+                        ? 'Abrir Clientes'
+                        : 'Abrir Leads ($porContactar)',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 const SizedBox(width: 6),
                 const Icon(Icons.arrow_forward, size: 16),
