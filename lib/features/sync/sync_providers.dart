@@ -30,6 +30,32 @@ class InfoSync {
   final String? erro;
 }
 
+/// Constrói o motor, ou `null` quando não há condições para sincronizar.
+///
+/// Existe como provider próprio para haver uma costura: nos testes substitui-se
+/// por um duplo e exercita-se a política (quando sincronizar) sem rede, sem
+/// Supabase e sem disco. Enquanto isto estava dentro do controlador, a política
+/// era intestável — e é ela que tem os erros de ciclo de vida.
+final motorSyncProvider = FutureProvider<SincronizacaoEntreDispositivos?>((
+  ref,
+) async {
+  if (!SupabaseConfig.enabled) return null;
+  final acesso = ref.watch(estadoAcessoProvider).valueOrNull;
+  final empresaId = acesso?.empresaId;
+  if (acesso == null || !acesso.membroAtivo || empresaId == null) return null;
+
+  final repo = ref.read(operationRepositoryProvider);
+  if (repo is! PersistentOperationRepository) return null;
+
+  final registo = RegistoDeOperacoes(await SharedPreferences.getInstance());
+  return SincronizacaoEntreDispositivos(
+    repositorio: repo,
+    registo: registo,
+    cliente: Supabase.instance.client,
+    empresaId: empresaId,
+  );
+});
+
 /// Liga o repositório local à sincronização entre dispositivos.
 ///
 /// Só arranca quando há **Supabase configurado, sessão iniciada e adesão activa
@@ -70,41 +96,31 @@ class SyncController extends Notifier<InfoSync> {
       }
     });
 
-    if (!SupabaseConfig.enabled) {
-      return const InfoSync(estado: EstadoSync.desligada);
-    }
-    // A empresa vem do mesmo sítio que decide se a adesão está activa.
-    final acesso = ref.watch(estadoAcessoProvider).valueOrNull;
-    final empresaId = acesso?.empresaId;
-    if (acesso == null || !acesso.membroAtivo || empresaId == null) {
-      return const InfoSync(estado: EstadoSync.desligada);
-    }
+    final motor = ref.watch(motorSyncProvider).valueOrNull;
+    if (motor == null) return const InfoSync(estado: EstadoSync.desligada);
 
-    unawaited(_arrancar(empresaId));
+    // `Future.microtask` e não `unawaited` directo: `_arrancar` corre até ao
+    // primeiro `await` de forma síncrona, e lá dentro `sincronizar()` escreve
+    // no `state` — escrever no estado a meio do próprio `build` é proibido pelo
+    // Riverpod e rebentava a construção do provider.
+    Future.microtask(() => _arrancar(motor));
     return const InfoSync(estado: EstadoSync.emEspera);
   }
 
-  Future<void> _arrancar(String empresaId) async {
-    final repo = ref.read(operationRepositoryProvider);
-    if (repo is! PersistentOperationRepository) return;
-
-    final registo = RegistoDeOperacoes(await SharedPreferences.getInstance());
-    _registo = registo;
-    final motor = SincronizacaoEntreDispositivos(
-      repositorio: repo,
-      registo: registo,
-      cliente: Supabase.instance.client,
-      empresaId: empresaId,
-    );
+  Future<void> _arrancar(SincronizacaoEntreDispositivos motor) async {
     _motor = motor;
+    _registo = motor.registo;
 
     // Cada alteração local entra em fila e agenda um envio.
     motor.ouvirAlteracoesLocais();
-    final anterior = repo.aoRegistarOperacao;
-    repo.aoRegistarOperacao = (entidade, id, payload) {
-      anterior?.call(entidade, id, payload);
-      _agendar();
-    };
+    final repo = ref.read(operationRepositoryProvider);
+    if (repo is PersistentOperationRepository) {
+      final anterior = repo.aoRegistarOperacao;
+      repo.aoRegistarOperacao = (entidade, id, payload) {
+        anterior?.call(entidade, id, payload);
+        _agendar();
+      };
+    }
 
     _observador = _ObservadorDeRegresso(() => unawaited(sincronizar()));
     WidgetsBinding.instance.addObserver(_observador!);
