@@ -215,11 +215,26 @@ problema: a chave que assina este ficheiro vive **dentro do binário do POS**.
 Quem extrair o executável consegue fabricar licenças válidas. Não se resolve com
 o par; resolve-se tirando a assinatura do cliente (Edge Function).
 
+## Crescer acima do plano
+
+O empresário envia convite para mais um ou dois colaboradores. Esses convites
+**não passam automaticamente**: entram em avaliação do Cesar.
+
+Isso é deliberado, e não é burocracia — é o momento da conversa. Dá tempo de
+falar com o empresário e perceber o que ele quer:
+
+- **retirar um email** que já lá não faz falta, e usar a vaga que se liberta; ou
+- **aumentar o plano**, e aí são-lhe ditos os custos
+
+Se aceitar, o Cesar valida os emails e **envia a factura**.
+
+O convite acima do limite é, portanto, um **sinal de venda** — não um erro a
+bloquear em silêncio. É o que justifica o passo manual: se a app recusasse
+sozinha, a conversa nunca acontecia e a receita perdia-se sem ninguém dar por
+ela.
+
 ## O que fica por decidir
 
 1. **O `licenca.json` local do POS passa a levar as duas chaves?** Sem isso, o
    POS offline não sabe validar o par — e o POS trabalha offline por desenho.
-3. **Uma empresa que declare mais colaboradores do que o plano dá** — a
-   Terraforte declara 4 com 3 vagas. Recusa-se o quarto convite, avisa-se o
-   empresário, ou propõe-se subir de plano? É uma oportunidade de venda que
-   hoje se perde em silêncio.
+*(nada — as cinco questões iniciais estão fechadas.)*
