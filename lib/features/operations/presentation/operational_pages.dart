@@ -7,6 +7,8 @@ import '../../../shared/widgets/brand_lockup.dart';
 
 import '../../../core/config/supabase_config.dart';
 import '../../../core/layout/dialogo_de_formulario.dart';
+import '../../../core/layout/margens_do_canvas.dart';
+import '../../../core/theme/punho_theme.dart';
 import '../../../core/media/machine_image_store.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../core/orientacao/orientacao_do_contexto.dart';
@@ -420,61 +422,79 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       ),
     };
     return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const BrandLockup(),
-                const SizedBox(height: 28),
-                // Conta passos de dados, não ecrãs: os de contexto não têm
-                // contador, e dizer "12 de 14" num percurso cujo contador nunca
-                // chega a 14 era pior do que não o ter.
-                Text('${passoDeDados + 1} de ${titles.length}'),
-                const SizedBox(height: 8),
-                Text(
-                  titles[passoDeDados],
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                // Sub-texto vazio colapsa de facto: sem isto ficava um
-                // SizedBox fantasma a abrir buraco entre a pergunta e o campo.
-                if (helps[passoDeDados].isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(helps[passoDeDados]),
-                ],
-                const SizedBox(height: 24),
-                input,
-                const SizedBox(height: 28),
-                Row(
-                  children: [
-                    if (step > 0)
-                      TextButton(
-                        onPressed: () => setState(() => step--),
-                        child: const Text('Voltar'),
-                      ),
-                    const Spacer(),
-                    FilledButton(
-                      onPressed: () {
-                        if (step < percurso.length - 1) {
-                          setState(() => step++);
-                        } else {
-                          // Só o colaborador chega aqui como último ecrã: o
-                          // percurso do gestor termina sempre no ecrã de
-                          // boas-vindas, e é ele que grava.
-                          _concluirOnboarding();
-                        }
-                      },
-                      child: Text(
-                        step == percurso.length - 1 ? 'Começar' : 'Continuar',
-                      ),
+      // Centrado enquanto couber, a rolar quando não couber.
+      //
+      // O passo com mais campos — morada, código-postal, localidade, telemóvel
+      // e email — não cabe no que sobra do ecrã com o teclado aberto, e a
+      // `Column` rebentava por baixo em vez de deixar chegar lá. O `minHeight`
+      // é o que mantém o `Center` a centrar: sem ele o scroll dá altura
+      // infinita ao filho e o conteúdo colava-se ao topo em todos os passos.
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, restricoes) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: restricoes.maxHeight),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: Padding(
+                    padding: const EdgeInsets.all(28),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const BrandLockup(),
+                        const SizedBox(height: 28),
+                        // Conta passos de dados, não ecrãs: os de contexto não têm
+                        // contador, e dizer "12 de 14" num percurso cujo contador nunca
+                        // chega a 14 era pior do que não o ter.
+                        Text('${passoDeDados + 1} de ${titles.length}'),
+                        const SizedBox(height: 8),
+                        Text(
+                          titles[passoDeDados],
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        // Sub-texto vazio colapsa de facto: sem isto ficava um
+                        // SizedBox fantasma a abrir buraco entre a pergunta e o campo.
+                        if (helps[passoDeDados].isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(helps[passoDeDados]),
+                        ],
+                        const SizedBox(height: 24),
+                        input,
+                        const SizedBox(height: 28),
+                        Row(
+                          children: [
+                            if (step > 0)
+                              TextButton(
+                                onPressed: () => setState(() => step--),
+                                child: const Text('Voltar'),
+                              ),
+                            const Spacer(),
+                            FilledButton(
+                              onPressed: () {
+                                if (step < percurso.length - 1) {
+                                  setState(() => step++);
+                                } else {
+                                  // Só o colaborador chega aqui como último ecrã: o
+                                  // percurso do gestor termina sempre no ecrã de
+                                  // boas-vindas, e é ele que grava.
+                                  _concluirOnboarding();
+                                }
+                              },
+                              child: Text(
+                                step == percurso.length - 1
+                                    ? 'Começar'
+                                    : 'Continuar',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -1883,6 +1903,50 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
 
   void _clearSelection() => setState(_selectedSlotStarts.clear);
 
+  /// Quantas vezes se tentou marcar um período sem máquina escolhida.
+  ///
+  /// É um contador e não um `bool` porque o aviso pisca a cada tentativa: com
+  /// um `bool` a segunda tentativa não mudava nada e a animação não repetia.
+  int _tentativasSemMaquina = 0;
+
+  /// O intervalo que o calendário está a mostrar: a semana ou o mês do foco.
+  DateTimeRange _periodoEmVista() {
+    if (_view == _CalendarView.week) {
+      final inicio = _weekStart(_focus);
+      return DateTimeRange(
+        start: inicio,
+        end: inicio.add(const Duration(days: 7)),
+      );
+    }
+    return DateTimeRange(
+      start: DateTime(_focus.year, _focus.month),
+      end: DateTime(_focus.year, _focus.month + 1),
+    );
+  }
+
+  /// O Semana/Mês, dimensionado para o canto de 86 dp do calendário.
+  ///
+  /// O `FittedBox` é o que o faz caber: dois rótulos com o tamanho de origem
+  /// pedem 116 dp e transbordavam o canto. Encolher a letra é preferível a
+  /// abreviar "Semana" — um rótulo cortado obriga a adivinhar.
+  Widget _escolhaDeVista() => Padding(
+    padding: const EdgeInsets.only(right: 6),
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      // À esquerda, na mesma coluna do "Manhã" e do "Tarde" que ficam por
+      // baixo. Ao centro dos 86 dp desalinhava-se dos dois.
+      alignment: Alignment.centerLeft,
+      child: ToggleButtons(
+        constraints: const BoxConstraints(minHeight: 28, minWidth: 52),
+        borderRadius: BorderRadius.circular(8),
+        isSelected: [_view == _CalendarView.week, _view == _CalendarView.month],
+        onPressed: (index) =>
+            setState(() => _view = _CalendarView.values[index]),
+        children: const [Text('Semana'), Text('Mês')],
+      ),
+    ),
+  );
+
   DateTimeRange? get _selectedPeriod {
     if (_selectedSlotStarts.isEmpty ||
         !_isContiguousHalfDaySelection(_selectedSlotStarts)) {
@@ -1932,13 +1996,24 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
       // A máquina, a navegação de datas e o Semana/Mês viviam numa segunda
       // barra por baixo, que num telemóvel deitado partia em duas ou três
       // linhas e roubava altura ao calendário — que é o que interessa ver.
-      action: Wrap(
-        spacing: 8,
-        runSpacing: 4,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      // `Row` e não `Wrap`.
+      //
+      // O `Wrap` dizia-se numa linha só mas partia assim que não coubesse — e
+      // não cabia: o "+ Reservar" caía para uma segunda linha, sozinho, a
+      // gastar 50 dp de altura que o calendário precisava. Numa `Row` os campos
+      // encolhem em vez de fugirem, e o botão fica onde tem de estar: encostado
+      // ao canto superior direito, sempre.
+      action: Row(
         children: [
-          SizedBox(
-            width: 190,
+          // Largura própria, e não `Flexible`.
+          //
+          // `Flexible` participa na repartição do espaço livre tal como o
+          // `Expanded` da data: com flex igual, o `Row` reservava metade para
+          // cada um. O campo da máquina usava só o que o texto pedia e os 85 dp
+          // que sobravam da sua quota ficavam mortos — empurrando o botão
+          // "+ Reservar" para dentro, longe da margem direita.
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
             child: _EscolhaDeMaquina(
               maquinas: state.machines
                   .where((machine) => !machine.archived)
@@ -1947,39 +2022,49 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
               aoEscolher: (machineId) => setState(() {
                 _selectedMachineId = machineId;
                 _selectedSlotStarts.clear();
+                // O aviso cumpriu o que tinha a dizer: volta ao normal.
+                _tentativasSemMaquina = 0;
               }),
             ),
           ),
-          _NavegacaoDeDatas(
-            focus: _focus,
-            view: _view,
-            onPrevious: () => setState(
-              () => _focus = _view == _CalendarView.week
-                  ? _focus.subtract(const Duration(days: 7))
-                  : DateTime(_focus.year, _focus.month - 1, 1),
-            ),
-            onNext: () => setState(
-              () => _focus = _view == _CalendarView.week
-                  ? _focus.add(const Duration(days: 7))
-                  : DateTime(_focus.year, _focus.month + 1, 1),
+          const SizedBox(width: 8),
+          // A data ao centro do que sobra entre a máquina e o botão. Antes
+          // vinha colada à máquina, com todo o vazio a seguir.
+          Expanded(
+            child: Center(
+              child: _NavegacaoDeDatas(
+                focus: _focus,
+                view: _view,
+                onPrevious: () => setState(
+                  () => _focus = _view == _CalendarView.week
+                      ? _focus.subtract(const Duration(days: 7))
+                      : DateTime(_focus.year, _focus.month - 1, 1),
+                ),
+                onNext: () => setState(
+                  () => _focus = _view == _CalendarView.week
+                      ? _focus.add(const Duration(days: 7))
+                      : DateTime(_focus.year, _focus.month + 1, 1),
+                ),
+              ),
             ),
           ),
-          ToggleButtons(
-            constraints: const BoxConstraints(minHeight: 34, minWidth: 58),
-            isSelected: [
-              _view == _CalendarView.week,
-              _view == _CalendarView.month,
-            ],
-            onPressed: (index) =>
-                setState(() => _view = _CalendarView.values[index]),
-            children: const [Text('Semana'), Text('Mês')],
-          ),
+          // O Semana/Mês desceu para o canto vazio da coluna Manhã/Tarde: não
+          // gasta altura nenhuma lá, e aqui era ele que empurrava o botão para
+          // a segunda linha.
+          const SizedBox(width: 8),
           if (_selectedSlotStarts.isNotEmpty)
             TextButton(
               onPressed: _clearSelection,
               child: const Text('Limpar seleção'),
             ),
           FilledButton.icon(
+            // Tamanho de origem, como os outros botões da app.
+            //
+            // Esteve a −5% para a linha caber, quando o Semana/Mês ainda estava
+            // aqui e o campo da máquina reservava metade do espaço livre sem o
+            // usar. Resolvidas as duas causas, o desconto deixou de ser preciso
+            // — e um botão mais pequeno do que os seus pares só se justifica se
+            // houver mesmo falta de espaço.
             onPressed: !canAdd
                 ? null
                 : () async {
@@ -1989,6 +2074,13 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                       machine: selectedMachine,
                       startsAt: period.start,
                       endsAt: period.end,
+                      // O que está à vista no calendário é o que define "sem
+                      // reserva": quem marca está a olhar para esta semana (ou
+                      // para este mês), não para o ano inteiro.
+                      periodoEmVista: _periodoEmVista(),
+                      rotuloDoPeriodo: _view == _CalendarView.week
+                          ? 'esta semana'
+                          : 'este mês',
                       responsibleId: widget.responsibleId,
                     );
                     if (mounted && saved) _clearSelection();
@@ -2008,14 +2100,21 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
         children: [
           if (aviso != null)
             Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 8),
+              // 5 e 11, e não 8 e 8.
+              //
+              // O que se vê não é este padding sozinho: por cima soma-se o
+              // espaçador de 8 dp do `_PageFrame`, por baixo o Semana/Mês
+              // começa 2,3 dp abaixo do topo da linha do calendário. Com 8 dp
+              // de cada lado dava 16 em cima contra 10,3 em baixo — o aviso
+              // parecia pertencer ao calendário em vez de flutuar entre os
+              // dois. Estes números deixam-no a ≈13 dp de cada lado, medidos.
+              padding: const EdgeInsets.only(top: 5, bottom: 11),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  aviso,
-                  style: avisoForte
-                      ? const TextStyle(fontWeight: FontWeight.w700)
-                      : null,
+                child: _AvisoDoCalendario(
+                  texto: aviso,
+                  forte: avisoForte,
+                  tentativas: _tentativasSemMaquina,
                 ),
               ),
             ),
@@ -2026,11 +2125,21 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                     bookings: state.bookings,
                     machineId: _selectedMachineId,
                     selectedSlotStarts: _selectedSlotStarts,
-                    onToggleSlot:
-                        selectedMachine == null ||
-                            !_machineCanReceiveReservation(selectedMachine)
-                        ? null
-                        : (startsAt) => _toggleSlot(context, startsAt),
+                    // Sempre ligado, mesmo sem máquina escolhida.
+                    //
+                    // Estava `null` nesse caso, e uma célula sem `onTap` não
+                    // responde a nada: quem tocasse não recebia sinal nenhum e
+                    // ficava a achar que o calendário estava avariado. Agora o
+                    // toque chega cá e serve para apontar o que falta fazer.
+                    onToggleSlot: (startsAt) {
+                      if (selectedMachine == null ||
+                          !_machineCanReceiveReservation(selectedMachine)) {
+                        setState(() => _tentativasSemMaquina++);
+                        return;
+                      }
+                      _toggleSlot(context, startsAt);
+                    },
+                    cantoSuperior: _escolhaDeVista(),
                   )
                 : _MonthBookingsCalendar(
                     focus: _focus,
@@ -2040,6 +2149,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                       _focus = day;
                       _view = _CalendarView.week;
                     }),
+                    cantoSuperior: _escolhaDeVista(),
                   ),
           ),
         ],
@@ -2078,6 +2188,15 @@ class _EscolhaDeMaquina extends StatelessWidget {
       isExpanded: true,
       isDense: true,
       hint: const Text('Máquina'),
+      // A seta é o único sinal de que aqui se escolhe alguma coisa: sem ela, o
+      // nome da máquina lê-se como um rótulo e ninguém lhe toca. Explícita, e
+      // não a de origem, para não encolher com o `isDense`.
+      icon: const Icon(Icons.keyboard_arrow_down, size: 24),
+      // Um ponto acima do corpo de texto: é o campo que comanda o calendário
+      // todo, e estava a ler-se como legenda ao lado da data.
+      style: Theme.of(
+        context,
+      ).textTheme.titleSmall?.copyWith(fontSize: 15, color: PunhoTheme.navy),
       onChanged: (id) {
         if (id != null) aoEscolher(id);
       },
@@ -2125,8 +2244,13 @@ class _NavegacaoDeDatas extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final weekStart = _weekStart(focus);
+    final fim = weekStart.add(const Duration(days: 6));
+    // Sem o ano, e sem o repetir dos dois lados: "27/07/2026 a 02/08/2026" são
+    // 23 caracteres para dizer uma semana, e era o que fazia esta linha não
+    // caber com o "+ Reservar". O ano está no cabeçalho dos dias e ninguém
+    // marca reservas com dois anos de antecedência.
     final label = view == _CalendarView.week
-        ? '${_date(weekStart)} a ${_date(weekStart.add(const Duration(days: 6)))}'
+        ? '${_diaEMes(weekStart)} a ${_diaEMes(fim)}'
         : '${monthName(focus.month)} ${focus.year}';
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -2137,7 +2261,15 @@ class _NavegacaoDeDatas extends StatelessWidget {
           tooltip: 'Período anterior',
           visualDensity: VisualDensity.compact,
         ),
-        Text(label, style: Theme.of(context).textTheme.titleSmall),
+        // Encolhe em vez de transbordar. Num telemóvel pequeno deitado a linha
+        // do topo passava 10 px da margem: a data tem largura própria e, ao
+        // centro de um `Expanded`, não tinha como ceder.
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(label, style: Theme.of(context).textTheme.titleSmall),
+          ),
+        ),
         IconButton(
           onPressed: onNext,
           icon: const Icon(Icons.chevron_right),
@@ -2156,12 +2288,16 @@ class _WeekBookingsCalendar extends ConsumerWidget {
     required this.machineId,
     required this.selectedSlotStarts,
     required this.onToggleSlot,
+    required this.cantoSuperior,
   });
   final DateTime focus;
   final List<Booking> bookings;
   final String? machineId;
   final Set<DateTime> selectedSlotStarts;
   final ValueChanged<DateTime>? onToggleSlot;
+
+  /// O que vai no quadrado vazio à esquerda dos dias — o Semana/Mês.
+  final Widget cantoSuperior;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2182,7 +2318,9 @@ class _WeekBookingsCalendar extends ConsumerWidget {
       children: [
         Row(
           children: [
-            const SizedBox(width: 86),
+            // O canto por cima dos rótulos Manhã/Tarde estava vazio. É o único
+            // sítio do calendário que não custa altura nenhuma a ninguém.
+            SizedBox(width: 86, child: cantoSuperior),
             for (final day in days)
               Expanded(
                 child: Padding(
@@ -2249,10 +2387,23 @@ class _WeekSlotRow extends ConsumerWidget {
     children: [
       SizedBox(
         width: 86,
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w800),
+        // Encostado à margem, e não centrado nos 86 dp da coluna.
+        //
+        // Centrado, "Manhã" nascia a 36,7 dp da aresta do canvas — a margem de
+        // 15 mais 21,7 de centragem. Ao lado de tudo o resto da app, que começa
+        // a 15, lia-se como se esta coluna estivesse desalinhada. E estava.
+        //
+        // Mais 10 dp só nestes dois: são rótulos de linha, não um começo de
+        // ecrã, e a 15 certos ficavam a competir com o Semana/Mês por cima.
+        // O Semana/Mês fica nos 15 — é ele que marca a coluna.
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 10),
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
           ),
         ),
       ),
@@ -2339,11 +2490,17 @@ class _MonthBookingsCalendar extends ConsumerWidget {
     required this.bookings,
     required this.machineId,
     required this.onDaySelected,
+    required this.cantoSuperior,
   });
   final DateTime focus;
   final List<Booking> bookings;
   final String? machineId;
   final ValueChanged<DateTime> onDaySelected;
+
+  /// O mesmo canto da vista de semana. Repetido aqui para o Semana/Mês não
+  /// mudar de sítio quando se troca de vista — se saltasse, quem clica tinha de
+  /// o voltar a procurar.
+  final Widget cantoSuperior;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2359,55 +2516,64 @@ class _MonthBookingsCalendar extends ConsumerWidget {
       children: [
         Row(
           children: [
+            SizedBox(width: 86, child: cantoSuperior),
             for (final day in ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'])
               Expanded(child: Center(child: Text(day))),
           ],
         ),
         const SizedBox(height: 6),
         Expanded(
-          child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              childAspectRatio: 0.95,
-            ),
-            itemCount: 42,
-            itemBuilder: (context, index) {
-              final day = start.add(Duration(days: index));
-              final dayBookings = machineBookings
-                  .where((booking) => _overlapsDay(booking, day))
-                  .toList();
-              return InkWell(
-                onTap: () => onDaySelected(day),
-                child: Container(
-                  margin: const EdgeInsets.all(2),
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: day.month == focus.month
-                        ? null
-                        : Theme.of(context).colorScheme.surfaceContainerHighest,
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${day.day}',
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 3),
-                      for (final booking in dayBookings.take(2))
-                        _BookingEventChip(booking: booking, state: state),
-                      if (dayBookings.length > 2)
+          // A grelha alinha com o cabeçalho: os mesmos 86 dp que o canto ocupa
+          // em cima têm de sair também daqui, senão os dias ficam a apontar
+          // para a coluna errada.
+          child: Padding(
+            padding: const EdgeInsets.only(left: 86),
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                childAspectRatio: 0.95,
+              ),
+              itemCount: 42,
+              itemBuilder: (context, index) {
+                final day = start.add(Duration(days: index));
+                final dayBookings = machineBookings
+                    .where((booking) => _overlapsDay(booking, day))
+                    .toList();
+                return InkWell(
+                  onTap: () => onDaySelected(day),
+                  child: Container(
+                    margin: const EdgeInsets.all(2),
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: day.month == focus.month
+                          ? null
+                          : Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                      border: Border.all(color: Theme.of(context).dividerColor),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          '+${dayBookings.length - 2}',
-                          style: Theme.of(context).textTheme.labelSmall,
+                          '${day.day}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
-                    ],
+                        const SizedBox(height: 3),
+                        for (final booking in dayBookings.take(2))
+                          _BookingEventChip(booking: booking, state: state),
+                        if (dayBookings.length > 2)
+                          Text(
+                            '+${dayBookings.length - 2}',
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ],
@@ -2567,12 +2733,119 @@ String _bookingStatusLabel(BookingStatus status) => switch (status) {
 /// em vez de escolher um existente.
 const _novoClienteNaReserva = '__novo_cliente__';
 
+/// A frase que diz o que falta fazer no calendário — e que chama a atenção
+/// quando se tenta marcar sem máquina escolhida.
+///
+/// Tocar numa célula sem máquina não podia continuar a não fazer nada: quem
+/// tenta e não recebe resposta conclui que o ecrã está avariado, não que lhe
+/// falta um passo. A frase que explica o passo já estava no ecrã — só não
+/// estava a ser lida, porque nada a ligava ao gesto.
+class _AvisoDoCalendario extends StatefulWidget {
+  const _AvisoDoCalendario({
+    required this.texto,
+    required this.forte,
+    required this.tentativas,
+  });
+
+  final String texto;
+  final bool forte;
+
+  /// Cada incremento é uma tentativa falhada, e dispara nova piscadela.
+  final int tentativas;
+
+  @override
+  State<_AvisoDoCalendario> createState() => _AvisoDoCalendarioState();
+}
+
+class _AvisoDoCalendarioState extends State<_AvisoDoCalendario>
+    with SingleTickerProviderStateMixin {
+  /// Duas piscadelas. Menos passava despercebido, mais parecia avaria.
+  static const _vermelho = Color(0xFFB3261E);
+
+  late final AnimationController _controlador = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 640),
+  );
+
+  @override
+  void didUpdateWidget(covariant _AvisoDoCalendario anterior) {
+    super.didUpdateWidget(anterior);
+    if (widget.tentativas != anterior.tentativas &&
+        widget.tentativas > anterior.tentativas) {
+      _controlador.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controlador.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final base = DefaultTextStyle.of(context).style;
+    // Fica vermelho depois da primeira tentativa, e assim continua até a
+    // máquina ser escolhida: a piscadela passa, o problema não.
+    final corParada = widget.tentativas > 0 ? _vermelho : base.color;
+
+    return AnimatedBuilder(
+      animation: _controlador,
+      builder: (context, _) {
+        // Aceso, apagado, aceso, apagado — quatro passos de 25%.
+        final fase = (_controlador.value * 4).floor();
+        final aPiscar = _controlador.isAnimating && fase.isEven;
+        return Text(
+          widget.texto,
+          style: base.copyWith(
+            color: aPiscar ? _vermelho : corParada,
+            fontWeight: widget.forte || _controlador.isAnimating
+                ? FontWeight.w700
+                : base.fontWeight,
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Se um id ainda existe na lista visível. `null` conta como presente — é o
+/// estado "ainda não escolhi", que é legítimo.
+bool clientesContem(List<Customer> clientes, String? id) =>
+    id == null || clientes.any((cliente) => cliente.id == id);
+
+/// Os clientes que não têm nenhuma reserva dentro de [periodo].
+///
+/// Quem está a marcar numa semana cheia procura justamente quem ainda lá não
+/// está — e a lista completa, nessa altura, é quase toda gente que já tem
+/// reserva.
+///
+/// Sobreposição, e não "começa dentro": uma reserva de segunda a domingo ocupa
+/// a quarta-feira mesmo não começando nela. Comparar só o início deixava passar
+/// como livre quem está lá a semana toda.
+List<Customer> clientesSemReservaNoPeriodo(
+  List<Customer> clientes,
+  List<Booking> reservas,
+  DateTimeRange periodo,
+) => clientes
+    .where(
+      (cliente) => !reservas.any(
+        (reserva) =>
+            reserva.customerId == cliente.id &&
+            reserva.startsAt.isBefore(periodo.end) &&
+            reserva.endsAt.isAfter(periodo.start),
+      ),
+    )
+    .toList();
+
 Future<bool> _showCalendarBookingConfirmation(
   BuildContext context,
   WidgetRef ref, {
   required Machine machine,
   required DateTime startsAt,
   required DateTime endsAt,
+  required DateTimeRange periodoEmVista,
+  required String rotuloDoPeriodo,
   String? responsibleId,
 }) async {
   // Sem clientes já não se desiste com um aviso.
@@ -2586,6 +2859,12 @@ Future<bool> _showCalendarBookingConfirmation(
       ? null
       : state.customers.first.id;
   var status = BookingStatus.request;
+  // Quem já tem reserva no período em vista fica de fora da lista.
+  //
+  // Numa semana cheia, a lista de clientes é quase toda gente que já lá está —
+  // e quem está a marcar procura justamente quem falta. Arranca desligado: a
+  // lista completa é a que nunca esconde ninguém, e o filtro é uma escolha.
+  var soSemReserva = false;
   final expectedValue = TextEditingController();
   final notes = TextEditingController();
   final saved = await showDialog<bool>(
@@ -2613,51 +2892,99 @@ Future<bool> _showCalendarBookingConfirmation(
               // inicial: um cliente criado agora mesmo tem de aparecer já aqui.
               Builder(
                 builder: (context) {
-                  final clientes = ref.watch(operationsProvider).customers;
-                  return DropdownButtonFormField<String>(
-                    initialValue: customerId,
-                    isExpanded: true,
-                    decoration: InputDecoration(
-                      labelText: 'Cliente',
-                      hintText: clientes.isEmpty
-                          ? 'Ainda não tens clientes — cria o primeiro'
-                          : null,
-                    ),
-                    items: [
-                      for (final customer in clientes)
-                        DropdownMenuItem(
-                          value: customer.id,
-                          child: Text(
-                            '${customer.name}${customer.phone.isEmpty ? '' : ' · ${customer.phone}'}',
-                            overflow: TextOverflow.ellipsis,
+                  final estado = ref.watch(operationsProvider);
+                  final todos = estado.customers;
+                  final semReserva = clientesSemReservaNoPeriodo(
+                    todos,
+                    estado.bookings,
+                    periodoEmVista,
+                  );
+                  final clientes = soSemReserva ? semReserva : todos;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SegmentedButton<bool>(
+                        showSelectedIcon: false,
+                        style: SegmentedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        segments: [
+                          ButtonSegment(
+                            value: false,
+                            label: Text('Todos (${todos.length})'),
                           ),
+                          ButtonSegment(
+                            value: true,
+                            // O rótulo diz o período em vista — "esta semana"
+                            // ou "este mês" — porque sem isso "sem reserva" não
+                            // responde à pergunta "sem reserva quando?".
+                            label: Text(
+                              'Sem reserva $rotuloDoPeriodo '
+                              '(${semReserva.length})',
+                            ),
+                          ),
+                        ],
+                        selected: {soSemReserva},
+                        onSelectionChanged: (escolha) => setDialogState(() {
+                          soSemReserva = escolha.first;
+                          // O cliente escolhido pode ter acabado de sair da
+                          // lista: deixá-lo seleccionado punha o dropdown com
+                          // um valor que não está nos itens, e isso rebenta.
+                          if (!clientesContem(
+                            soSemReserva ? semReserva : todos,
+                            customerId,
+                          )) {
+                            customerId = null;
+                          }
+                        }),
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        initialValue: customerId,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          labelText: 'Cliente',
+                          hintText: clientes.isEmpty
+                              ? 'Ainda não tens clientes — cria o primeiro'
+                              : null,
                         ),
-                      const DropdownMenuItem(
-                        value: _novoClienteNaReserva,
-                        child: Row(
-                          children: [
-                            Icon(Icons.person_add_alt, size: 18),
-                            SizedBox(width: 8),
-                            Text('Novo cliente…'),
-                          ],
-                        ),
+                        items: [
+                          for (final customer in clientes)
+                            DropdownMenuItem(
+                              value: customer.id,
+                              child: Text(
+                                '${customer.name}${customer.phone.isEmpty ? '' : ' · ${customer.phone}'}',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          const DropdownMenuItem(
+                            value: _novoClienteNaReserva,
+                            child: Row(
+                              children: [
+                                Icon(Icons.person_add_alt, size: 18),
+                                SizedBox(width: 8),
+                                Text('Novo cliente…'),
+                              ],
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) async {
+                          if (value == null) return;
+                          if (value != _novoClienteNaReserva) {
+                            setDialogState(() => customerId = value);
+                            return;
+                          }
+                          final novo = await _customerDialog(context, ref);
+                          if (novo != null) {
+                            setDialogState(() => customerId = novo);
+                          } else {
+                            // Desistiu de criar: repõe o que estava, senão o campo
+                            // ficava preso em "Novo cliente…".
+                            setDialogState(() {});
+                          }
+                        },
                       ),
                     ],
-                    onChanged: (value) async {
-                      if (value == null) return;
-                      if (value != _novoClienteNaReserva) {
-                        setDialogState(() => customerId = value);
-                        return;
-                      }
-                      final novo = await _customerDialog(context, ref);
-                      if (novo != null) {
-                        setDialogState(() => customerId = novo);
-                      } else {
-                        // Desistiu de criar: repõe o que estava, senão o campo
-                        // ficava preso em "Novo cliente…".
-                        setDialogState(() {});
-                      }
-                    },
                   );
                 },
               ),
@@ -3149,6 +3476,11 @@ int? _moneyCents(String value) {
 String _date(DateTime value) =>
     '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
 
+/// Dia e mês, sem o ano. Para a barra do calendário, onde o ano não acrescenta
+/// nada e o espaço é o que decide se tudo cabe numa linha.
+String _diaEMes(DateTime value) =>
+    '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}';
+
 // ignore: unused_element
 Future<void> _bookingDialog(BuildContext context, WidgetRef ref) async {
   final state = ref.read(operationsProvider);
@@ -3206,13 +3538,14 @@ class _PageFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SafeArea(
     child: Padding(
-      // Encostado à barra, não afastado dela.
-      //
-      // Eram 20 dp à esquerda **por cima** da barra vertical, que já é uma
-      // margem visual por si. O conteúdo nascia longe de onde o olho o
-      // procura, e o canvas — que é o que ele veio ver — pagava a diferença
-      // dos dois lados. 8 à esquerda chega para não colar as letras à barra.
-      padding: const EdgeInsets.fromLTRB(8, 10, 14, 14),
+      // Estes ecrãs começam por um botão de acção, daí a margem de topo mais
+      // curta. Os números vivem todos em [MargensDoCanvas].
+      padding: const EdgeInsets.fromLTRB(
+        MargensDoCanvas.lateral,
+        MargensDoCanvas.verticalComBotaoNoTopo,
+        MargensDoCanvas.lateral,
+        MargensDoCanvas.vertical,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
