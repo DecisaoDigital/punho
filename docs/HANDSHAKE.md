@@ -7,21 +7,79 @@ vai lá quando precisares, não antes.
 `home-lab-claude`). `flutter` está no PATH — corre directamente, **não uses
 ssh**. Branch `main`, commits directos, `git add` por ficheiro, nunca `-A`.
 
-**Estado:** limpo em `ee9b1be`. `flutter test` verde (593, 1 skipped),
-`flutter analyze` com 8 avisos `info` pré-existentes — essa é a linha de base,
-não tentes limpá-los.
+**Estado:** limpo em `4c1a349` (branch `main`). `flutter test` verde (641, 1
+skipped), `flutter analyze` com os mesmos 8 avisos `info` pré-existentes —
+linha de base, não tentes limpá-los.
 
 ---
 
-## Aviso primeiro: pode haver trabalho de outros a meio
+## Sessão de 2 de Agosto, fim de tarde/noite — telemóvel bloqueado, corrigido o que dava por código
 
-A sessão anterior deixou dois agentes a mexer no repo **sem commitar**. Corre
-`git status` antes de tudo. Se houver alterações por commitar, são deles:
+**O Redmi (`94c906b9`) tem ecrã bloqueado com PIN/biometria** —
+`dumpsys window policy` confirma `KeyguardServiceDelegate showing=true`,
+`mScreenLocked=true`. Sem PIN/impressão digital não há como desbloquear por
+`adb`; **nenhum ponto do smoke test no aparelho foi verificado visualmente
+nesta sessão**. Precisa do César a desbloquear fisicamente antes da próxima
+ronda.
+
+Corrigidos por leitura de código + testes automáticos (sem ver no ecrã):
+
+- **Achado 14** — recomendação "Quarta-feira fraca" podia usar uma quarta-feira
+  **futura** em vez da última passada, às segundas e terças-feiras
+  (`weekday - 3` sem `% 7`). Corrigido em `lib/core/guidance/guidance_engine.dart`
+  (`0df267d`). O caso relatado (domingo, sem dados) não era este bug — era
+  falta de dados reais, e já ficou resolvido quando entraram os recebimentos
+  semeados; mas o bug de facto existia para dois dias da semana.
+- **Achado 13** — selector de máquinas em "Confirmar reserva" mostrava só a
+  referência quando existia, escondendo o nome. Agora mostra sempre
+  `Nome · Referência` (`cf2b3ab`).
+- **Achado 20** — despesas/recebimentos e clientes saíam pela ordem de chegada
+  da sincronização. Agora despesas/recebimentos por data (mais recente
+  primeiro, `9c058fe`) e clientes por ordem alfabética (`cf2b3ab`).
+- **Achados 12 e 21** ("Ready?"/"o teu tablet", "em preparação para a v0.0.9")
+  — **já estavam corrigidos** por `8b3b5ec`, de uma sessão anterior a esta;
+  só a checklist não tinha sido actualizada.
+- **SafeArea do login (P0)** — confirmado no código (`login_screen.dart` e
+  `registo_screen.dart` usam `SafeArea`); por confirmar visualmente quando o
+  aparelho desbloquear.
+- **Rotação de ecrã indevida noutro sítio** — auditados os 9 ficheiros que
+  usam `OrientacaoDoContexto`; nenhum outro ecrã declara orientação de forma
+  inconsistente. A correcção do splash (achado 7) parece ser a única
+  necessária; sem o aparelho não há como confirmar 100%.
+- **PIN 1234** — não é bug de código. É um passo manual por fazer no próprio
+  telemóvel (Definições > Cadeado), documentado como "local ao telemóvel, sem
+  nada no servidor" no relatório de 1 de Agosto. Bloqueado pelo ecrã trancado.
+
+**Achado novo, não estava na lista: a ficha da empresa NÃO chegou ao
+Control.** Confirmado por SQL directo no Supabase (projecto
+`oefqbkhioncakojipqyx`):
+
+- `punho_empresas.dados` para a Lavandaria Mare Alta está **vazio** (`{}`,
+  `revision=1`), apesar do onboarding completo às 01:00 UTC de 2 de Agosto.
+- Não existe **nenhuma** linha em `licencas` para esta empresa
+  (`machine_id ilike '%1a267759%'` devolve vazio) — o trigger
+  `punho_empresas_sync_licenca` nunca correu com sucesso.
+- Os logs da Edge Function `sincronizar-empresa-punho` mostram **HTTP 400
+  repetido** desde 2026-08-01 23:46 UTC até pelo menos 2026-08-02 18:04 UTC, a
+  cada ~20 minutos (bate certo com o temporizador do `EmpresaSyncController`).
+  A função devolve 400 quando `nif.length < 9` — ou seja, a ficha que está
+  presa na fila de retentativa (`SharedPreferences`, `FichaEmpresaPendente`)
+  tem NIF vazio ou inválido, e **fica presa nesse payload para sempre**: o
+  motor volta a tentar a mesma ficha de sempre, nunca relê o estado actual da
+  app para montar uma nova.
+- Não percebo, sem o telemóvel, se essa ficha presa é de uma tentativa
+  **anterior** ao onboarding completo (23:46 UTC de 1 de Agosto é bem antes
+  das 01:00 UTC de 2 de Agosto) que nunca foi substituída, ou se o próprio
+  `_concluirOnboarding` de 01:00 UTC também mandou NIF vazio por algum motivo
+  que não vejo no código. Não corrigi às cegas — aponto e fica para
+  decidir/reproduzir com o aparelho na mão.
+
+---
+
+## Aviso, ainda válido: pode haver trabalho de outros a meio de sessões anteriores
+
+Se `git status` mostrar alterações por commitar que não sejam tuas, corre
 `flutter analyze` e `flutter test`, e commita por ficheiro. Não desfaças.
-
-Ficheiros que eles têm entre mãos: `operational_pages.dart`,
-`finance_pages.dart`, `workforce_pages.dart`, `operations_controller.dart`,
-`operation_repository.dart`, `lib/domain/models/operations.dart`.
 
 ---
 
@@ -56,6 +114,10 @@ que o contrato subiu.
 - Publicar (APK + GitHub Release + `versoes_apps`) — só a pedido explícito, e
   aí vai até ao fim.
 - Apagar os cinco tokens FCM mortos em `admin_dispositivos`.
+- RPC `punho_definir_limite` — SQL pronto em
+  `supabase/migrations/20260802_punho_definir_limite.sql` (`4bbc60e`),
+  **confirmado por consulta directa que não existe em produção**
+  (`pg_proc` sem `punho_definir_limite`). Continua por aplicar.
 
 ---
 

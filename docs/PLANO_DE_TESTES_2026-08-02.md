@@ -436,34 +436,93 @@ Risca-se aqui à medida que acontece. `[x]` feito · `[~]` a decorrer ·
 ### Faixa D · Campainha e Control
 
 - [x] Campainha em tempo real a funcionar — **corrigida e verificada nos dois
-      sentidos** (achado 15). Nunca tinha tocado: rebentava em cada envio
+      sentidos** (achado 15). Nunca tinha tocado: rebentava em cada envio.
+      **Nota de 02/08 à noite:** o trigger DB de `punho_campainha_tempo_real.sql`
+      **não está aplicado** (confirmado por `pg_trigger` — sem entrada); o Punho
+      usa broadcast directo entre aparelhos por falta de partições em
+      `realtime.messages`. O ficheiro entrou em git no washinvoice-control como
+      registo do caminho abandonado, não como algo activo
 - [x] Empresa nova nº 1 (Lavandaria Mare Alta): notificação confirmada do lado
       do servidor — `enviar-push` devolveu **200 às 00:59:06 UTC**, o pedido de
       acesso entrou às 00:59:03 e o Cesar aprovou no Control às 01:00:10. O
       trigger `trg_notificar_novo_pedido_punho` (AFTER INSERT em
-      `punho_pedidos_acesso`) é quem dispara
+      `punho_pedidos_acesso`) é quem dispara — confirmado ainda existente e
+      activo em `pg_trigger`
 - [ ] Uma verificação no Control por **cada** empresa nova — só houve uma
       empresa nova nesta campanha; para repetir é preciso criar outra conta
+- [!] **Ficha da empresa NÃO chegou ao Control — achado novo, confirmado por
+      SQL.** `punho_empresas.dados` está `{}` para a Lavandaria Mare Alta,
+      apesar do onboarding completo. Não existe nenhuma linha em `licencas`
+      para esta empresa. Os logs da Edge Function `sincronizar-empresa-punho`
+      mostram HTTP 400 repetido desde 2026-08-01 23:46 UTC até pelo menos
+      2026-08-02 18:04 UTC, a cada ~20 min (bate com o temporizador do
+      `EmpresaSyncController`) — a EF recusa com `nif_invalido` quando
+      `nif.length < 9`. A ficha presa na fila de retentativa do telemóvel tem
+      NIF vazio/curto e o motor nunca a substitui por uma nova a partir do
+      estado actual da app; fica a repetir a mesma ficha presa para sempre.
+      Não percebi, sem o aparelho, se essa ficha presa é de uma tentativa
+      anterior ao onboarding completo (23:46 UTC de 1 Ago, bem antes das
+      01:00 UTC de 2 Ago) ou se o próprio fim do onboarding também mandou NIF
+      vazio. Não corrigi às cegas
 
 ### Achados por corrigir
 
-- [x] ~~Rotação de ecrã indevida~~ — corrigida (achado 7)
+- [x] ~~Rotação de ecrã indevida~~ — corrigida no splash (achado 7).
+      Auditados os 9 ficheiros que usam `OrientacaoDoContexto` nesta sessão:
+      nenhum outro ecrã tem declaração de orientação inconsistente. Falta só
+      confirmar no aparelho (bloqueado, ecrã trancado)
 - [x] ~~Sincronização entre dispositivos parada~~ — corrigida (achado 6)
-- [x] ~~Campainha em tempo real~~ — corrigida (achado 15)
+- [x] ~~Campainha em tempo real~~ — corrigida (achado 15), ver nota acima
 - [x] ~~Assert do Riverpod no arranque da sync~~ — corrigido (achado 16)
-- [ ] Cliente duplicado aceite + ecrã vermelho (achado 17) — **o mais urgente**
-- [ ] Cabeçalho do ecrã de login cortado pela barra de estado
-- [ ] Onboarding não cria colaboradores nem veículos (achado 8)
-- [ ] Faturação do ano passado não gera histórico (achado 9)
-- [ ] Painel em "Por apurar" com onboarding completo (achado 10)
-- [ ] Detalhe de cliente não abre (achado 11)
-- [ ] Máquina alugada não aceita reservas em semana nenhuma (achado 18)
-- [ ] Aviso de limite de colaboradores invisível; limite local ≠ subscrição (19)
-- [ ] «Ready?» e «o teu tablet» no último ecrã do onboarding (achado 12)
-- [ ] Máquinas com referência perdem o nome no seletor de reservas (achado 13)
-- [ ] Ordem das listas de despesas e clientes (achado 20)
-- [ ] «em preparação para a v0.0.9» numa app v0.1.4 (achado 21)
-- [ ] PIN 1234 por pôr (vem do relatório de 1 Ago)
+- [x] ~~Cliente duplicado aceite + ecrã vermelho~~ — corrigido (achado 17,
+      `_FormularioDeCliente`); confirmado no código, por ver no aparelho
+- [x] ~~Cabeçalho do ecrã de login cortado pela barra de estado~~ —
+      confirmado `SafeArea` presente em `login_screen.dart` e
+      `registo_screen.dart`; por ver no aparelho (bloqueado)
+- [x] ~~Onboarding não cria colaboradores nem veículos~~ (achado 8) — deixou
+      de ser bug: é o comportamento pretendido desde a regra "a app começa
+      vazia" (decisão de produto de 02/08, `f90a576`)
+- [x] ~~Faturação do ano passado não gera histórico~~ (achado 9) — corrigido
+      por `091d5d8` (`historicalMonths` a partir da facturação declarada)
+- [~] Painel em "Por apurar" com onboarding completo (achado 10) — em tensão
+      com a regra "a app começa vazia": só deixa de dizer "por apurar" quando
+      há movimento real, o que agora é o comportamento esperado, não um bug.
+      Por confirmar no aparelho se ainda incomoda na prática
+- [x] ~~Detalhe de cliente não abre~~ (achado 11) — corrigido por `de11645`
+- [x] ~~Máquina alugada não aceita reservas em semana nenhuma~~ (achado 18) —
+      corrigido (`3c7fe1c`/`3db013b`): só bloqueia a data ocupada
+- [x] ~~Aviso de limite de colaboradores invisível~~ — corrigido
+      (`DialogoDeFormulario.aviso`, `e91fdb2`). **Limite local vs. subscrição**:
+      decisão de produto de 02/08 (`59fb98c`) tornou isto informativo — o
+      cadastro nunca recusa por limite, quem trava é o Control ao aprovar
+      acesso. **Atenção:** `washinvoice-control/docs/estado_e_roadmap.md`
+      ainda descreve isto como "por decidir" — parece desactualizado face a
+      esta decisão, vale a pena o César confirmar qual dos dois lados está
+      certo
+- [x] ~~«Ready?» e «o teu tablet» no último ecrã do onboarding~~ (achado 12) —
+      já estava corrigido por `8b3b5ec`, de sessão anterior a esta
+- [x] ~~Máquinas com referência perdem o nome no seletor de reservas~~
+      (achado 13) — corrigido (`cf2b3ab`): mostra sempre `Nome · Referência`
+- [x] ~~Ordem das listas de despesas e clientes~~ (achado 20) — corrigido:
+      despesas/recebimentos por data desc (`9c058fe`), clientes por ordem
+      alfabética (`cf2b3ab`)
+- [x] ~~«em preparação para a v0.0.9» numa app v0.1.4~~ (achado 21) — já
+      estava corrigido por `8b3b5ec`
+- [x] ~~Recomendação do dia usa a quarta-feira errada~~ (achado 14) — bug real
+      encontrado e corrigido: `weekday - 3` sem `% 7` apontava para uma
+      quarta-feira futura às segundas/terças (`0df267d`). O caso relatado
+      (domingo) era falta de dados, não este bug — mas o bug existia
+- [!] PIN 1234 por pôr — **não é bug de código**: é um passo manual no
+      telemóvel (Definições > Cadeado), sem componente de servidor. Bloqueado
+      pelo ecrã trancado
+
+### Bloqueio novo, transversal a tudo o resto desta secção
+
+- [!] **Ecrã do Redmi (`94c906b9`) trancado com PIN/biometria.**
+      `dumpsys window policy` confirma `KeyguardServiceDelegate showing=true`.
+      Sem o PIN não há como desbloquear por `adb` — nenhum ponto do smoke
+      test visual desta ronda foi confirmado no ecrã real. Precisa do César
+      fisicamente antes da próxima sessão
 
 ### Por commitar
 
