@@ -82,7 +82,6 @@ class Machine {
     this.notes = '',
     this.photoPaths = const [],
     this.archived = false,
-    this.placeholder = false,
   });
   final String id, name, reference, category, notes;
   final List<String> photoPaths;
@@ -90,14 +89,6 @@ class Machine {
   final int? dailyRateCents;
   final DateTime? acquiredOn;
   final bool archived;
-
-  /// Máquina criada automaticamente a partir do total declarado no onboarding e
-  /// ainda não baptizada pelo gestor.
-  ///
-  /// É uma máquina normal — aluga-se, reserva-se, factura — só assinala que
-  /// ainda espera nome, referência e foto. Qualquer gravação a partir do
-  /// diálogo desliga o flag: quem edita, identifica.
-  final bool placeholder;
 
   Machine copyWith({
     String? name,
@@ -108,7 +99,6 @@ class Machine {
     String? notes,
     List<String>? photoPaths,
     bool? archived,
-    bool? placeholder,
   }) => Machine(
     id: id,
     name: name ?? this.name,
@@ -120,7 +110,6 @@ class Machine {
     notes: notes ?? this.notes,
     photoPaths: photoPaths ?? this.photoPaths,
     archived: archived ?? this.archived,
-    placeholder: placeholder ?? this.placeholder,
   );
 }
 

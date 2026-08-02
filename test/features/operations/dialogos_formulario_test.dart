@@ -125,18 +125,17 @@ void main() {
       expect(find.byType(DialogoDeFormulario), findsOneWidget);
     });
 
-    testWidgets('uma máquina por identificar guarda-se e identifica-se', (
+    testWidgets('editar uma máquina existente guarda o nome novo', (
       tester,
     ) async {
       final container = containerCom(estadoComMovimento());
       container.read(operationsProvider.notifier).saveMachine(
         const Machine(
-          id: 'placeholder-7',
+          id: 'maquina-7',
           name: 'Máquina 7',
           reference: '',
-          category: 'Por identificar',
+          category: 'Escavação',
           status: MachineStatus.available,
-          placeholder: true,
         ),
       );
       await montarLandscape(
@@ -149,22 +148,19 @@ void main() {
       await tester.tap(find.byTooltip('Editar máquina').last);
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(FilledButton, 'Guardar e identificar'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Guardar'), findsOneWidget);
       await tester.enterText(
         find.widgetWithText(TextField, 'Nome'),
         'Mini escavadora 1.8T',
       );
-      await tester.tap(
-        find.widgetWithText(FilledButton, 'Guardar e identificar'),
-      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
       await tester.pumpAndSettle();
 
       final guardada = container
           .read(operationsProvider)
           .machines
-          .firstWhere((m) => m.id == 'placeholder-7');
+          .firstWhere((m) => m.id == 'maquina-7');
       expect(guardada.name, 'Mini escavadora 1.8T');
-      expect(guardada.placeholder, isFalse);
     });
   });
 

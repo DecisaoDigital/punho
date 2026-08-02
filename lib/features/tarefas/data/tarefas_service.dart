@@ -117,25 +117,10 @@ List<Tarefa> tarefasPendentes(
     );
   }
 
-  // 3. Máquinas criadas a partir do total declarado e ainda por baptizar.
-  // Conta placeholders e não o delta `declaradas − registadas`: com os
-  // placeholders o delta é zero mesmo havendo vinte linhas "Máquina 7".
-  final porIdentificar = state.placeholdersDeMaquinas;
-  if (porIdentificar > 0) {
-    tarefas.add(
-      Tarefa(
-        id: 'maquinas-por-identificar',
-        severidade: SeveridadeTarefa.aCompletar,
-        titulo: porIdentificar == 1
-            ? '1 máquina por identificar'
-            : '$porIdentificar máquinas por identificar',
-        subtitulo: 'Dá-lhes nome, referência e foto quando puderes',
-        cta: 'Abrir Máquinas',
-        destino: DestinoTarefa.maquinas,
-      ),
-    );
-  } else if (state.hasUnidentifiedDeclaredMachines) {
-    // Instalações anteriores aos placeholders: só têm o contador.
+  // 3. Máquinas que faltam registar face ao total declarado no onboarding.
+  // O onboarding não cria nenhuma — só aponta o caminho, contando o que falta
+  // contra o que o gestor declarou.
+  if (state.hasUnidentifiedDeclaredMachines) {
     tarefas.add(
       Tarefa(
         id: 'maquinas-por-identificar',
@@ -175,12 +160,12 @@ List<Tarefa> tarefasPendentes(
     );
   }
 
-  // 5. Colaboradores declarados no onboarding e nenhum registado — o mesmo
-  // buraco que a frota tinha (achado 8): o número que o gestor deu no
-  // onboarding não cria ninguém, e sem esta tarefa desaparecia sem deixar
-  // rasto. Ao contrário das máquinas, não se criam fichas placeholder — uma
-  // ficha de colaborador carrega NIF/NISS e tipo de vínculo, e uma linha em
-  // branco a fingir de pessoa é mais risco fiscal do que ajuda.
+  // 5. Colaboradores declarados no onboarding e nenhum registado — o número
+  // que o gestor deu no onboarding não cria ninguém, e sem esta tarefa
+  // desaparecia sem deixar rasto. Mesma ideia das máquinas e da frota
+  // (decisão de 2026-08-02): nada de fichas a fingir de pessoa — uma ficha
+  // de colaborador carrega NIF/NISS e tipo de vínculo, e uma linha em branco
+  // é risco fiscal, não ajuda.
   if (state.declaredCollaboratorCount > 0 &&
       state.collaborators.where((c) => !c.archived).isEmpty) {
     tarefas.add(
@@ -197,33 +182,18 @@ List<Tarefa> tarefasPendentes(
     );
   }
 
-  // 6. Veículos criados a partir do total declarado e ainda por identificar.
-  // Mesmo tratamento das máquinas (achado 8): desde que o onboarding passou a
-  // criar linhas de veículo placeholder, a frota nunca mais fica vazia — o
-  // que ficava por identificar tinha de passar a contar-se, ou a tarefa
-  // desaparecia sozinha sem ninguém ter identificado nada.
-  final veiculosPorIdentificar = state.placeholdersDeVeiculos;
-  if (veiculosPorIdentificar > 0) {
+  // 6. Veículos que faltam registar face ao total declarado no onboarding.
+  // Mesma ideia das máquinas: o onboarding não cria nenhum, só conta o que
+  // falta contra o que o gestor declarou.
+  if (state.hasUnidentifiedDeclaredVehicles) {
     tarefas.add(
       Tarefa(
         id: 'frota-sem-veiculos',
         severidade: SeveridadeTarefa.aCompletar,
-        titulo: veiculosPorIdentificar == 1
-            ? '1 veículo por identificar'
-            : '$veiculosPorIdentificar veículos por identificar',
-        subtitulo: 'Dá-lhes matrícula e detalhes quando puderes',
-        cta: 'Abrir Frota',
-        destino: DestinoTarefa.frota,
-      ),
-    );
-  } else if (state.hasFleet && state.vehicles.where((v) => !v.archived).isEmpty) {
-    // Instalações anteriores aos placeholders: só têm o contador.
-    tarefas.add(
-      const Tarefa(
-        id: 'frota-sem-veiculos',
-        severidade: SeveridadeTarefa.aCompletar,
-        titulo: 'Registar os veículos da frota',
-        subtitulo: 'Declarou frota mas não há veículos identificados',
+        titulo: 'Identificar ${state.vehiclesStillToIdentify} veículos',
+        subtitulo:
+            'Declarou ${state.declaredVehicleCount} e estão registados '
+            '${state.registeredVehiclesCount}',
         cta: 'Abrir Frota',
         destino: DestinoTarefa.frota,
       ),

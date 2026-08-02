@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/operations/operations_controller.dart';
@@ -9,16 +8,15 @@ import 'package:punho/features/tarefas/data/tarefas_service.dart';
 
 import '../dashboard/fixtura.dart';
 
+/// Decisão de 2026-08-02: o onboarding não cria registos automaticamente.
 /// "Um gestor com 200 máquinas não vai lá numerar e fotografar todas ao mesmo
-/// tempo": declarar N cria N linhas prontas a serem baptizadas aos poucos.
+/// tempo" continua verdade, mas a resposta deixou de ser inventar 200 linhas
+/// — é a app ficar vazia e **lembrar** o que falta registar, contando contra
+/// o total declarado.
 ProviderContainer containerVazio() {
   final container = ProviderContainer(
     overrides: [
-      operationRepositoryProvider.overrideWithValue(
-        // Sem os dados de demonstração, senão a guarda `machines.isEmpty` nunca
-        // deixava criar placeholders.
-        _RepoVazio(),
-      ),
+      operationRepositoryProvider.overrideWithValue(_RepoVazio()),
     ],
   );
   addTearDown(container.dispose);
@@ -32,8 +30,8 @@ class _RepoVazio extends LocalDemoOperationRepository {
 }
 
 void main() {
-  group('Criação a partir do onboarding', () {
-    test('declarar 20 cria 20 linhas por identificar', () {
+  group('Onboarding não cria máquinas', () {
+    test('declarar 20 não cria linha nenhuma', () {
       final c = containerVazio();
       final notifier = c.read(operationsProvider.notifier);
 
@@ -46,17 +44,25 @@ void main() {
         insertMachinesNow: false,
       );
 
-      final maquinas = c.read(operationsProvider).machines;
-      expect(maquinas, hasLength(20));
-      expect(maquinas.every((m) => m.placeholder), isTrue);
-      expect(maquinas.every((m) => m.status == MachineStatus.available), isTrue);
-      expect(maquinas.every((m) => !m.archived), isTrue);
-      expect(maquinas.map((m) => m.name), contains('Máquina 1'));
-      expect(maquinas.map((m) => m.name), contains('Máquina 20'));
-      expect(maquinas.every((m) => m.category == 'Por identificar'), isTrue);
+      expect(c.read(operationsProvider).machines, isEmpty);
+      expect(c.read(operationsProvider).totalMachinesDeclared, 20);
     });
 
-    test('re-onboarding com máquinas já criadas não duplica', () {
+    test('declarar zero também não cria nada', () {
+      final c = containerVazio();
+      c.read(operationsProvider.notifier).completeOnboarding(
+        companyName: 'Alugueres Norte',
+        legalForm: 'Lda.',
+        hasFleet: false,
+        collaborators: 0,
+        totalMachinesDeclared: 0,
+        insertMachinesNow: false,
+      );
+
+      expect(c.read(operationsProvider).machines, isEmpty);
+    });
+
+    test('máquinas registadas à mão antes do onboarding não são tocadas', () {
       final c = containerVazio();
       final notifier = c.read(operationsProvider.notifier);
       notifier.saveMachine(
@@ -78,21 +84,9 @@ void main() {
         insertMachinesNow: false,
       );
 
-      expect(c.read(operationsProvider).machines, hasLength(1));
-    });
-
-    test('declarar zero não cria nada', () {
-      final c = containerVazio();
-      c.read(operationsProvider.notifier).completeOnboarding(
-        companyName: 'Alugueres Norte',
-        legalForm: 'Lda.',
-        hasFleet: false,
-        collaborators: 0,
-        totalMachinesDeclared: 0,
-        insertMachinesNow: false,
-      );
-
-      expect(c.read(operationsProvider).machines, isEmpty);
+      final maquinas = c.read(operationsProvider).machines;
+      expect(maquinas, hasLength(1));
+      expect(maquinas.single.name, 'Mini escavadora');
     });
   });
 
@@ -110,95 +104,157 @@ void main() {
       return c;
     }
 
-    test('subir de 20 para 25 cria as cinco que faltam', () {
+    test('subir de 20 para 25 não cria máquina nenhuma', () {
       final c = comOnboardingE(20);
 
       c.read(operationsProvider.notifier).updateCompanySettings(
         totalMachinesDeclared: 25,
       );
 
-      final maquinas = c.read(operationsProvider).machines;
-      expect(maquinas, hasLength(25));
-      expect(maquinas.map((m) => m.name), contains('Máquina 21'));
-      expect(maquinas.map((m) => m.name), contains('Máquina 25'));
-      expect(
-        maquinas.where((m) => m.name == 'Máquina 21').single.placeholder,
-        isTrue,
-      );
+      expect(c.read(operationsProvider).machines, isEmpty);
+      expect(c.read(operationsProvider).totalMachinesDeclared, 25);
     });
 
     test('descer de 20 para 15 não apaga máquina nenhuma', () {
       // Eliminar uma máquina é decisão explícita, pelo caixote da lista — nunca
       // efeito secundário de mexer num contador.
-      final c = comOnboardingE(20);
+      final c = containerVazio();
+      c.read(operationsProvider.notifier).completeOnboarding(
+        companyName: 'Alugueres Norte',
+        legalForm: 'Lda.',
+        hasFleet: false,
+        collaborators: 0,
+        totalMachinesDeclared: 20,
+        insertMachinesNow: false,
+      );
+      c.read(operationsProvider.notifier).saveMachine(
+        const Machine(
+          id: 'm1',
+          name: 'Mini escavadora',
+          reference: 'ME-01',
+          category: 'Escavação',
+          status: MachineStatus.available,
+        ),
+      );
 
       c.read(operationsProvider.notifier).updateCompanySettings(
         totalMachinesDeclared: 15,
       );
 
-      expect(c.read(operationsProvider).machines, hasLength(20));
+      expect(c.read(operationsProvider).machines, hasLength(1));
       expect(c.read(operationsProvider).totalMachinesDeclared, 15);
     });
   });
 
-  group('Identificar', () {
-    test('guardar uma placeholder com nome novo desliga o flag', () {
-      final c = comPlaceholders(3);
-      final notifier = c.read(operationsProvider.notifier);
-      final placeholder = c.read(operationsProvider).machines.first;
-
-      notifier.saveMachine(
-        placeholder.copyWith(name: 'Mini escavadora 1.8T', placeholder: false),
+  group('Tarefas contam contra o declarado', () {
+    test('declaradas sem nenhuma registada gera a tarefa com o total', () {
+      final c = containerVazio();
+      c.read(operationsProvider.notifier).completeOnboarding(
+        companyName: 'Alugueres Norte',
+        legalForm: 'Lda.',
+        hasFleet: false,
+        collaborators: 0,
+        totalMachinesDeclared: 4,
+        insertMachinesNow: false,
       );
-
-      final guardada = c
-          .read(operationsProvider)
-          .machines
-          .firstWhere((m) => m.id == placeholder.id);
-      expect(guardada.name, 'Mini escavadora 1.8T');
-      expect(guardada.placeholder, isFalse);
-    });
-  });
-
-  group('Tarefas', () {
-    test('contam placeholders e não o delta do contador', () {
-      final c = comPlaceholders(4);
       final estado = c.read(operationsProvider);
 
-      // O delta declaradas − registadas é zero (4 declaradas, 4 linhas), mas há
-      // quatro por baptizar.
-      expect(estado.machinesStillToIdentify, 0);
-      expect(estado.placeholdersDeMaquinas, 4);
+      expect(estado.machinesStillToIdentify, 4);
 
       final tarefa = tarefasPendentes(estado, agoraFixa).firstWhere(
         (t) => t.id == 'maquinas-por-identificar',
       );
-      expect(tarefa.titulo, '4 máquinas por identificar');
+      expect(tarefa.titulo, 'Identificar 4 máquinas');
       expect(tarefa.cta, 'Abrir Máquinas');
     });
 
-    test('identificar todas faz a tarefa desaparecer', () {
-      final c = comPlaceholders(1);
+    test('registar as máquinas descontas ao que falta e a tarefa desaparece', () {
+      final c = containerVazio();
       final notifier = c.read(operationsProvider.notifier);
-      final unica = c.read(operationsProvider).machines.single;
+      notifier.completeOnboarding(
+        companyName: 'Alugueres Norte',
+        legalForm: 'Lda.',
+        hasFleet: false,
+        collaborators: 0,
+        totalMachinesDeclared: 1,
+        insertMachinesNow: false,
+      );
 
-      notifier.saveMachine(unica.copyWith(name: 'Martelo', placeholder: false));
+      notifier.saveMachine(
+        const Machine(
+          id: 'martelo',
+          name: 'Martelo',
+          reference: 'MT-01',
+          category: 'Demolição',
+          status: MachineStatus.available,
+        ),
+      );
 
+      final estado = c.read(operationsProvider);
+      expect(estado.machinesStillToIdentify, 0);
       expect(
-        tarefasPendentes(
-          c.read(operationsProvider),
-          agoraFixa,
-        ).where((t) => t.id == 'maquinas-por-identificar'),
+        tarefasPendentes(estado, agoraFixa).where(
+          (t) => t.id == 'maquinas-por-identificar',
+        ),
+        isEmpty,
+      );
+    });
+
+    test('registar mais do que o declarado não gera tarefa negativa', () {
+      final c = containerVazio();
+      final notifier = c.read(operationsProvider.notifier);
+      notifier.completeOnboarding(
+        companyName: 'Alugueres Norte',
+        legalForm: 'Lda.',
+        hasFleet: false,
+        collaborators: 0,
+        totalMachinesDeclared: 1,
+        insertMachinesNow: false,
+      );
+      notifier.saveMachine(
+        const Machine(
+          id: 'm1',
+          name: 'Martelo',
+          reference: 'MT-01',
+          category: 'Demolição',
+          status: MachineStatus.available,
+        ),
+      );
+      notifier.saveMachine(
+        const Machine(
+          id: 'm2',
+          name: 'Compressor',
+          reference: 'CP-01',
+          category: 'Compressão',
+          status: MachineStatus.available,
+        ),
+      );
+
+      final estado = c.read(operationsProvider);
+      expect(estado.machinesStillToIdentify, 0);
+      expect(estado.inventoryIdentifiedAboveEstimate, isTrue);
+      expect(
+        tarefasPendentes(estado, agoraFixa).where(
+          (t) => t.id == 'maquinas-por-identificar',
+        ),
         isEmpty,
       );
     });
   });
 
   group('Lista de máquinas', () {
-    testWidgets('identificadas em cima, placeholders no fim com o chip', (
+    testWidgets('mostra as máquinas registadas, sem linhas inventadas', (
       tester,
     ) async {
-      final c = comPlaceholders(2);
+      final c = containerVazio();
+      c.read(operationsProvider.notifier).completeOnboarding(
+        companyName: 'Alugueres Norte',
+        legalForm: 'Lda.',
+        hasFleet: false,
+        collaborators: 0,
+        totalMachinesDeclared: 2,
+        insertMachinesNow: false,
+      );
       c.read(operationsProvider.notifier).saveMachine(
         const Machine(
           id: 'identificada',
@@ -210,33 +266,8 @@ void main() {
       );
       await montarLandscape(tester, c, const MachinesPage());
 
-      final nomes = tester
-          .widgetList<Text>(find.byType(Text))
-          .map((t) => t.data)
-          .whereType<String>()
-          .where((t) => t.startsWith('Máquina ') || t.contains('escavadora'))
-          .toList();
-      expect(
-        nomes.first,
-        'Mini escavadora 1.8T',
-        reason: 'a identificada vem primeiro',
-      );
-      // Só as placeholders levam o chip.
-      expect(find.text('Por identificar'), findsNWidgets(2));
+      expect(find.text('Mini escavadora 1.8T'), findsOneWidget);
+      expect(find.text('Por identificar'), findsNothing);
     });
   });
-}
-
-/// Container com [quantidade] placeholders e nada mais.
-ProviderContainer comPlaceholders(int quantidade) {
-  final c = containerVazio();
-  c.read(operationsProvider.notifier).completeOnboarding(
-    companyName: 'Alugueres Norte',
-    legalForm: 'Lda.',
-    hasFleet: false,
-    collaborators: 0,
-    totalMachinesDeclared: quantidade,
-    insertMachinesNow: false,
-  );
-  return c;
 }

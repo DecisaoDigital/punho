@@ -4,11 +4,10 @@ import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/workforce.dart';
 import 'package:punho/features/tarefas/data/tarefas_service.dart';
 
-/// Mesmo tratamento que as máquinas já tinham (achado 8): declarar N
-/// veículos no onboarding passa a criar N linhas por identificar, em vez de
-/// deixar a frota vazia. Um veículo sem matrícula não carrega risco fiscal
-/// nenhum — ao contrário de uma ficha de colaborador — por isso aqui vale a
-/// mesma solução.
+/// Decisão de 2026-08-02: o onboarding não cria registos automaticamente,
+/// nem para as máquinas nem para a frota. Declarar "3 veículos" deixa a
+/// frota vazia — a app só lembra, pela tarefa "N veículos por identificar",
+/// que faltam registar contra o que foi declarado.
 void main() {
   ProviderContainer container() => ProviderContainer();
 
@@ -24,24 +23,19 @@ void main() {
     );
   }
 
-  group('Criação a partir do onboarding', () {
-    test('declarar 2 veículos cria 2 linhas por identificar', () {
+  group('Onboarding não cria veículos', () {
+    test('declarar 2 veículos não cria linha nenhuma', () {
       final c = container();
       addTearDown(c.dispose);
       final n = c.read(operationsProvider.notifier);
 
       onboard(n, declaredVehicleCount: 2);
 
-      final veiculos = c.read(operationsProvider).vehicles;
-      expect(veiculos, hasLength(2));
-      expect(veiculos.every((v) => v.placeholder), isTrue);
-      expect(veiculos.every((v) => v.status == VehicleStatus.active), isTrue);
-      expect(veiculos.every((v) => !v.archived), isTrue);
-      expect(veiculos.every((v) => v.plate.isEmpty), isTrue);
-      expect(veiculos.every((v) => v.type == 'Por identificar'), isTrue);
+      expect(c.read(operationsProvider).vehicles, isEmpty);
+      expect(c.read(operationsProvider).declaredVehicleCount, 2);
     });
 
-    test('declarar zero não cria veículo nenhum', () {
+    test('declarar zero também não cria nada', () {
       final c = container();
       addTearDown(c.dispose);
       final n = c.read(operationsProvider.notifier);
@@ -51,7 +45,7 @@ void main() {
       expect(c.read(operationsProvider).vehicles, isEmpty);
     });
 
-    test('re-onboarding com veículo já registado não duplica', () {
+    test('veículo registado à mão antes do onboarding não é tocado', () {
       final c = container();
       addTearDown(c.dispose);
       final n = c.read(operationsProvider.notifier);
@@ -66,59 +60,64 @@ void main() {
 
       onboard(n, declaredVehicleCount: 3);
 
-      expect(c.read(operationsProvider).vehicles, hasLength(1));
+      final veiculos = c.read(operationsProvider).vehicles;
+      expect(veiculos, hasLength(1));
+      expect(veiculos.single.plate, 'AA-11-BB');
     });
   });
 
-  group('Identificar', () {
-    test('guardar um placeholder com matrícula desliga o flag', () {
-      final c = container();
-      addTearDown(c.dispose);
-      final n = c.read(operationsProvider.notifier);
-      onboard(n, declaredVehicleCount: 1);
-      final placeholder = c.read(operationsProvider).vehicles.single;
-
-      n.saveVehicle(
-        placeholder.copyWith(plate: 'AA-11-BB', placeholder: false),
-      );
-
-      final guardado = c
-          .read(operationsProvider)
-          .vehicles
-          .firstWhere((v) => v.id == placeholder.id);
-      expect(guardado.plate, 'AA-11-BB');
-      expect(guardado.placeholder, isFalse);
-    });
-  });
-
-  group('Tarefas', () {
-    test('contam placeholders e não a simples ausência de veículos', () {
+  group('Tarefas contam contra o declarado', () {
+    test('declarados sem nenhum registado gera a tarefa com o total', () {
       final c = container();
       addTearDown(c.dispose);
       final n = c.read(operationsProvider.notifier);
       onboard(n, declaredVehicleCount: 3);
       final estado = c.read(operationsProvider);
 
-      expect(estado.placeholdersDeVeiculos, 3);
+      expect(estado.vehiclesStillToIdentify, 3);
       final tarefa = tarefasPendentes(estado, DateTime(2026, 8, 2)).firstWhere(
         (t) => t.id == 'frota-sem-veiculos',
       );
-      expect(tarefa.titulo, '3 veículos por identificar');
+      expect(tarefa.titulo, 'Identificar 3 veículos');
       expect(tarefa.cta, 'Abrir Frota');
     });
 
-    test('identificar todos faz a tarefa desaparecer', () {
+    test('registar o veículo desconta ao que falta e a tarefa desaparece', () {
       final c = container();
       addTearDown(c.dispose);
       final n = c.read(operationsProvider.notifier);
       onboard(n, declaredVehicleCount: 1);
-      final unico = c.read(operationsProvider).vehicles.single;
 
-      n.saveVehicle(unico.copyWith(plate: 'AA-11-BB', placeholder: false));
+      n.saveVehicle(
+        const Vehicle(
+          id: 'v1',
+          plate: 'AA-11-BB',
+          type: 'Furgão',
+          status: VehicleStatus.active,
+        ),
+      );
 
+      final estado = c.read(operationsProvider);
+      expect(estado.vehiclesStillToIdentify, 0);
       expect(
         tarefasPendentes(
-          c.read(operationsProvider),
+          estado,
+          DateTime(2026, 8, 2),
+        ).where((t) => t.id == 'frota-sem-veiculos'),
+        isEmpty,
+      );
+    });
+
+    test('sem frota declarada não há tarefa nenhuma', () {
+      final c = container();
+      addTearDown(c.dispose);
+      final n = c.read(operationsProvider.notifier);
+      onboard(n, declaredVehicleCount: 0);
+
+      final estado = c.read(operationsProvider);
+      expect(
+        tarefasPendentes(
+          estado,
           DateTime(2026, 8, 2),
         ).where((t) => t.id == 'frota-sem-veiculos'),
         isEmpty,

@@ -1027,18 +1027,11 @@ class MachinesPage extends ConsumerWidget {
   const MachinesPage({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Identificadas primeiro: quem já baptizou algumas quer vê-las em cima, e
-    // não perdidas entre vinte linhas "Máquina 7".
-    final machines =
-        ref
-            .watch(operationsProvider)
-            .machines
-            .where((m) => !m.archived)
-            .toList()
-          ..sort((a, b) {
-            if (a.placeholder == b.placeholder) return 0;
-            return a.placeholder ? 1 : -1;
-          });
+    final machines = ref
+        .watch(operationsProvider)
+        .machines
+        .where((m) => !m.archived)
+        .toList();
     return _PageFrame(
       title: 'Máquinas',
       action: FilledButton.icon(
@@ -1072,11 +1065,6 @@ class MachinesPage extends ConsumerWidget {
                   m.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: m.placeholder
-                      // Cinza: é um nome provisório que a app inventou, não um
-                      // nome que o gestor escolheu.
-                      ? TextStyle(color: Theme.of(context).hintColor)
-                      : null,
                 ),
                 subtitle: Text(
                   '${m.category} · ${m.reference}',
@@ -1090,17 +1078,6 @@ class MachinesPage extends ConsumerWidget {
                 trailing: Wrap(
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    if (m.placeholder)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Chip(
-                          visualDensity: VisualDensity.compact,
-                          label: const Text('Por identificar'),
-                          labelStyle: const TextStyle(fontSize: 11),
-                          backgroundColor: const Color(0xFFFFF1DA),
-                          side: BorderSide.none,
-                        ),
-                      ),
                     _MachineStatusChip(machine: m),
                     IconButton(
                       icon: const Icon(Icons.edit_outlined),
@@ -1443,9 +1420,7 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
       // Em paisagem cabem duas colunas: os campos à esquerda, as notas e as
       // fotografias à direita. Em retrato é tudo uma coluna.
       larguraMaxima: 920,
-      rotuloGuardar: current?.placeholder == true
-          ? 'Guardar e identificar'
-          : 'Guardar',
+      rotuloGuardar: 'Guardar',
       corpo: LayoutBuilder(
         builder: (context, constraints) {
           final duasColunas = constraints.maxWidth >= 640;
@@ -1496,10 +1471,6 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
                 dailyRateCents: _moneyCents(dailyRate.text),
                 notes: notes.text.trim(),
                 photoPaths: photoPaths.value,
-                // Quem edita, identifica: qualquer gravação a partir deste
-                // diálogo tira a máquina do estado "por identificar",
-                // independentemente do que tenha mudado.
-                placeholder: false,
               )
             : Machine(
                 id: 'm${DateTime.now().microsecondsSinceEpoch}',

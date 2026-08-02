@@ -154,7 +154,6 @@ class Vehicle {
     this.insuranceFrequency,
     this.notes = '',
     this.archived = false,
-    this.placeholder = false,
   });
   final String id, plate, type, notes;
   final String? alias;
@@ -162,14 +161,6 @@ class Vehicle {
   final int? monthlyPaymentCents, insuranceCents;
   final InsuranceFrequency? insuranceFrequency;
   final bool archived;
-
-  /// Veículo criado automaticamente a partir do total declarado no onboarding
-  /// e ainda não identificado pelo gestor.
-  ///
-  /// Mesma ideia da [Machine.placeholder]: um veículo sem matrícula não
-  /// carrega risco fiscal nenhum, ao contrário de uma ficha de colaborador —
-  /// por isso aqui, e só aqui na frota, vale o mesmo tratamento das máquinas.
-  final bool placeholder;
 
   Vehicle copyWith({
     String? plate,
@@ -181,7 +172,6 @@ class Vehicle {
     InsuranceFrequency? insuranceFrequency,
     String? notes,
     bool? archived,
-    bool? placeholder,
   }) => Vehicle(
     id: id,
     plate: plate ?? this.plate,
@@ -193,7 +183,6 @@ class Vehicle {
     insuranceFrequency: insuranceFrequency ?? this.insuranceFrequency,
     notes: notes ?? this.notes,
     archived: archived ?? this.archived,
-    placeholder: placeholder ?? this.placeholder,
   );
 }
 

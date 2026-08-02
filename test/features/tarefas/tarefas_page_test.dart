@@ -83,7 +83,12 @@ void main() {
     });
 
     test('frota declarada sem veículos gera tarefa', () {
-      final semVeiculos = estadoSemMovimento().copyWith(hasFleet: true);
+      // Desde 2026-08-02 a tarefa conta contra o total declarado, não contra
+      // o simples `hasFleet` — por isso o cenário tem de declarar um número.
+      final semVeiculos = estadoSemMovimento().copyWith(
+        hasFleet: true,
+        declaredVehicleCount: 3,
+      );
       final ids = tarefasPendentes(semVeiculos, agoraFixa).map((t) => t.id);
 
       expect(ids, contains('frota-sem-veiculos'));

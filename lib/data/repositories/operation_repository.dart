@@ -685,7 +685,6 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'notes': item.notes,
     'photoPaths': item.photoPaths,
     'archived': item.archived,
-    'placeholder': item.placeholder,
   };
 
   static Machine _machineFromJson(Map<String, dynamic> data) => Machine(
@@ -701,9 +700,6 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
         ? List<String>.from(data['photoPaths'] as List)
         : const [],
     archived: _bool(data, 'archived'),
-    // Ausente nas gravações anteriores a este campo: máquinas antigas foram
-    // identificadas à mão, portanto não são placeholders.
-    placeholder: _bool(data, 'placeholder'),
   );
 
   static Map<String, Object?> _historicalMonthToJson(HistoricalMonth item) => {
@@ -958,7 +954,6 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'insuranceFrequency': item.insuranceFrequency?.name,
     'notes': item.notes,
     'archived': item.archived,
-    'placeholder': item.placeholder,
   };
 
   static Vehicle _vehicleFromJson(Map<String, dynamic> data) => Vehicle(
@@ -974,9 +969,6 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
         : InsuranceFrequency.values.byName(_string(data, 'insuranceFrequency')),
     notes: _string(data, 'notes'),
     archived: _bool(data, 'archived'),
-    // Ausente nas gravações anteriores a este campo: veículos antigos foram
-    // identificados à mão, portanto não são placeholders.
-    placeholder: _bool(data, 'placeholder'),
   );
 
   static Map<String, dynamic>? _mapOrNull(Object? value) =>

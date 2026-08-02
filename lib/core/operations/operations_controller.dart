@@ -83,19 +83,16 @@ class OperationsState {
       );
   bool get hasUnidentifiedDeclaredMachines => machinesStillToIdentify > 0;
 
-  /// Máquinas criadas automaticamente e ainda por baptizar.
-  ///
-  /// É isto que alimenta as Tarefas desde a v0.0.5, e não o delta
-  /// `declaradas − registadas`: com os placeholders, o delta é zero mesmo
-  /// quando há vinte linhas chamadas "Máquina 7". O delta continua exposto para
-  /// reconciliar o contador declarado nas Definições.
-  int get placeholdersDeMaquinas =>
-      machines.where((m) => !m.archived && m.placeholder).length;
+  int get registeredVehiclesCount =>
+      vehicles.where((vehicle) => !vehicle.archived).length;
 
-  /// Mesma ideia do [placeholdersDeMaquinas], para a frota: veículos criados
-  /// a partir do total declarado no onboarding e ainda por identificar.
-  int get placeholdersDeVeiculos =>
-      vehicles.where((v) => !v.archived && v.placeholder).length;
+  /// Mesma ideia do [machinesStillToIdentify], para a frota.
+  int get vehiclesStillToIdentify =>
+      (declaredVehicleCount - registeredVehiclesCount).clamp(
+        0,
+        declaredVehicleCount,
+      );
+  bool get hasUnidentifiedDeclaredVehicles => vehiclesStillToIdentify > 0;
   bool get inventoryIdentifiedAboveEstimate =>
       registeredMachinesCount > totalMachinesDeclared;
   final bool insertMachinesNow;
@@ -290,8 +287,10 @@ class OperationsController extends Notifier<OperationsState> {
     int declaredVehicleCount = 0,
     required int totalMachinesDeclared,
 
-    /// Mantido para estabilidade da API e ignorado desde a v0.0.5: quem cria as
-    /// máquinas agora é a criação automática de placeholders, abaixo.
+    /// Mantido para estabilidade da API. Deixou de ter efeito nenhum a
+    /// 2026-08-02: o onboarding já não cria máquinas, sejam elas de facto
+    /// inseridas agora ou não — a app fica vazia e o gestor regista uma a
+    /// uma, com as Tarefas a lembrá-lo do que declarou.
     required bool insertMachinesNow,
     String? companyTaxId,
     String? companyPhone,
@@ -353,61 +352,11 @@ class OperationsController extends Notifier<OperationsState> {
       fixedMonthlyCostsCents: fixedMonthlyCostsCents,
       custosFixos: custosFixos ?? const [],
     );
-    // Guarda contra re-onboarding: quem já tem máquinas na lista não quer
-    // vê-las duplicadas por placeholders.
-    if (state.machines.where((m) => !m.archived).isEmpty) {
-      criarPlaceholdersDeMaquinas(quantidade: totalMachinesDeclared);
-    }
-    // Mesma guarda, para a frota. Ao contrário dos colaboradores (ficha com
-    // NIF/NISS — ver `tarefas_service.dart`), um veículo sem matrícula não
-    // carrega risco fiscal nenhum, por isso aqui vale o mesmo tratamento das
-    // máquinas.
-    if (state.vehicles.where((v) => !v.archived).isEmpty) {
-      criarPlaceholdersDeVeiculos(quantidade: declaredVehicleCount);
-    }
-  }
-
-  /// Cria linhas de máquina prontas a serem baptizadas.
-  ///
-  /// Um gestor que declara 20 máquinas no onboarding não vai numerá-las e
-  /// fotografá-las todas de uma vez. Em vez de guardar um contador abstracto,
-  /// criam-se as 20 linhas e ele identifica-as aos poucos — a lista mostra logo
-  /// o tamanho real da operação.
-  void criarPlaceholdersDeMaquinas({required int quantidade, int inicio = 1}) {
-    if (quantidade <= 0) return;
-    for (var i = 0; i < quantidade; i++) {
-      final numero = inicio + i;
-      _repo.saveMachine(
-        Machine(
-          id: 'maq-placeholder-$numero-${DateTime.now().microsecondsSinceEpoch}',
-          name: 'Máquina $numero',
-          reference: '',
-          category: 'Por identificar',
-          status: MachineStatus.available,
-          placeholder: true,
-        ),
-      );
-    }
-    state = _fromRepo();
-  }
-
-  /// Cria linhas de veículo prontas a serem identificadas — mesma ideia do
-  /// [criarPlaceholdersDeMaquinas], para a frota.
-  void criarPlaceholdersDeVeiculos({required int quantidade, int inicio = 1}) {
-    if (quantidade <= 0) return;
-    for (var i = 0; i < quantidade; i++) {
-      final numero = inicio + i;
-      _repo.saveVehicle(
-        Vehicle(
-          id: 'veic-placeholder-$numero-${DateTime.now().microsecondsSinceEpoch}',
-          plate: '',
-          type: 'Por identificar',
-          status: VehicleStatus.active,
-          placeholder: true,
-        ),
-      );
-    }
-    state = _fromRepo();
+    // Decisão de 2026-08-02: o onboarding não cria máquinas, veículos, nem
+    // nenhum outro registo a fingir de real. Quem declara "15 máquinas" fica
+    // com a app vazia e regista-as uma a uma — é o que as Tarefas passam a
+    // lembrar (`state.machinesStillToIdentify`, `state.vehiclesStillToIdentify`,
+    // consumidos por `tarefas_service.dart`).
   }
 
   /// Distribui a facturação do ano passado pelos 12 meses do histórico, para
@@ -525,16 +474,11 @@ class OperationsController extends Notifier<OperationsState> {
       custosFixos: custosFixos ?? actual.custosFixos,
     );
     _repo.saveOnboarding(novo);
+    // Subir ou descer o total declarado não cria nem apaga máquina nenhuma —
+    // decisão de 2026-08-02: só o gestor cria, registando-as à mão. O contador
+    // muda; a lista de máquinas fica intocada, e é a Tarefa
+    // "N máquinas por identificar" que passa a reflectir a diferença.
     state = _comDadosDaEmpresa(novo);
-    // Declarar mais máquinas cria as que faltam. Declarar menos **não apaga
-    // nada** — eliminar uma máquina é decisão explícita, pelo caixote da lista.
-    final existentes = state.machines.where((m) => !m.archived).length;
-    if (novo.totalMachinesDeclared > existentes) {
-      criarPlaceholdersDeMaquinas(
-        quantidade: novo.totalMachinesDeclared - existentes,
-        inicio: existentes + 1,
-      );
-    }
   }
 
   /// Reflecte no state um [OnboardingData] inteiro. Não passa por `copyWith`
