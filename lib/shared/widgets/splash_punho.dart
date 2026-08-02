@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/orientacao/orientacao_do_contexto.dart';
+
 /// Splash de arranque com o símbolo Punho.
 ///
 /// Animação em 3 fases (~1.6s total):
@@ -31,6 +33,12 @@ class _SplashPunhoState extends State<SplashPunho>
   @override
   void initState() {
     super.initState();
+    // O splash também é um ecrã e também declara o que precisa (Decisão 13).
+    // Sem isto arrancava com a orientação do sensor: quem abrisse a app com o
+    // telemóvel deitado via o símbolo em landscape durante os 1,6 s da animação
+    // e depois um giro seco para retrato quando o AuthGate montava e pedia
+    // portrait. O que se segue ao splash é sempre um formulário — retrato.
+    OrientacaoDoContexto.portraitJa();
     _c = AnimationController(vsync: this, duration: _duracao)..forward();
 
     _opacidade = CurvedAnimation(
