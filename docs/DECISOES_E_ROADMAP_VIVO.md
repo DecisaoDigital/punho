@@ -165,11 +165,21 @@ alugada só bloqueia a data/período efectivamente ocupado; deixa de recusar
 reservas em **todas** as semanas seguintes enquanto o aluguer actual estiver
 em curso (achado 18 do plano de testes). A implementar por outro agente.
 
-**Por decidir:** se o limite de colaboradores activos deve vir da
-subscrição no servidor (`limite_colaboradores_ativos`) ou continuar a vir do
-que o gestor declara no onboarding. Hoje vem só do onboarding — um gestor
-dá-se as vagas que quiser, e para a empresa de teste o valor da subscrição
-(1) é menor do que o declarado (3).
+**Decisão fechada — o limite de colaboradores vem do servidor, não do
+onboarding:** `punho_subscricoes.limite_colaboradores_ativos`, autorizado
+pelo Cesar no Control, manda sempre que se consegue ler; o número que o
+gestor declarou no onboarding passa a ser só o valor de recurso quando o
+servidor não responde (sem rede, modo demonstração). Exceder o limite não
+impede o cadastro do colaborador — impede-o de aceder sem autorização
+expressa do Cesar, pelo mesmo circuito de `punho_pedidos_acesso`. Implementado
+em `3c7fe1c` (leitura do servidor,
+`lib/features/auth/subscricao_providers.dart` e
+`lib/features/auth/data/subscricao_service.dart`) e `59fb98c` (deixa de
+recusar o cadastro, só avisa,
+`lib/features/workforce/presentation/workforce_pages.dart`). Falta só a
+peça do lado do Control: a RPC `punho_definir_limite`
+(`supabase/migrations/20260802_punho_definir_limite.sql`, `4bbc60e`) está
+pronta mas confirmada como **não aplicada em produção**.
 
 ## 3.4 Decisoes recentes: faturas e fotografias (26 de julho de 2026)
 
