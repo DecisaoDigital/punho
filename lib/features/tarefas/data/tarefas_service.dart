@@ -175,7 +175,29 @@ List<Tarefa> tarefasPendentes(
     );
   }
 
-  // 5. Frota declarada e sem veículos registados.
+  // 5. Colaboradores declarados no onboarding e nenhum registado — o mesmo
+  // buraco que a frota tinha (achado 8): o número que o gestor deu no
+  // onboarding não cria ninguém, e sem esta tarefa desaparecia sem deixar
+  // rasto. Ao contrário das máquinas, não se criam fichas placeholder — uma
+  // ficha de colaborador carrega NIF/NISS e tipo de vínculo, e uma linha em
+  // branco a fingir de pessoa é mais risco fiscal do que ajuda.
+  if (state.declaredCollaboratorCount > 0 &&
+      state.collaborators.where((c) => !c.archived).isEmpty) {
+    tarefas.add(
+      Tarefa(
+        id: 'colaboradores-por-registar',
+        severidade: SeveridadeTarefa.aCompletar,
+        titulo: state.declaredCollaboratorCount == 1
+            ? '1 colaborador por registar'
+            : '${state.declaredCollaboratorCount} colaboradores por registar',
+        subtitulo: 'Declarou equipa no onboarding mas não há ninguém registado',
+        cta: 'Abrir Funcionários',
+        destino: DestinoTarefa.colaboradores,
+      ),
+    );
+  }
+
+  // 6. Frota declarada e sem veículos registados.
   if (state.hasFleet && state.vehicles.where((v) => !v.archived).isEmpty) {
     tarefas.add(
       const Tarefa(
@@ -189,7 +211,7 @@ List<Tarefa> tarefasPendentes(
     );
   }
 
-  // 6. Convites emitidos e ainda sem resposta. A lista chega de fora (é
+  // 7. Convites emitidos e ainda sem resposta. A lista chega de fora (é
   // assíncrona e só existe com Supabase ligado); em modo de demonstração vem
   // vazia e esta fonte simplesmente não contribui.
   for (final convite in convites.where((c) => c.disponivelEm(now))) {
@@ -214,7 +236,7 @@ List<Tarefa> tarefasPendentes(
     );
   }
 
-  // 7. Recomendações adiadas que já voltaram a estar dentro do prazo ficam no
+  // 8. Recomendações adiadas que já voltaram a estar dentro do prazo ficam no
   // painel; as que ainda estão adiadas aparecem aqui, para não se perderem.
   final todas = GuidanceEngine().evaluate(
     GuidanceInput(

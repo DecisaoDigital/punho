@@ -5,6 +5,8 @@ import 'package:punho/core/navigation/app_destination.dart';
 import 'package:punho/core/navigation/navigation_controller.dart';
 import 'package:punho/features/auth/data/acesso_service.dart';
 import 'package:punho/domain/models/historical_month.dart';
+import 'package:punho/domain/models/workforce.dart'
+    show Collaborator, CollaboratorStatus;
 import 'package:punho/features/company/presentation/company_settings_page.dart';
 import 'package:punho/features/tarefas/data/tarefas_service.dart';
 import 'package:punho/features/tarefas/domain/tarefa.dart';
@@ -85,6 +87,59 @@ void main() {
       final ids = tarefasPendentes(semVeiculos, agoraFixa).map((t) => t.id);
 
       expect(ids, contains('frota-sem-veiculos'));
+    });
+
+    test('colaboradores declarados no onboarding sem ninguém registado gera '
+        'tarefa', () {
+      // O mesmo buraco que a frota tinha: o onboarding pergunta "quantos
+      // colaboradores", ninguém é criado, e sem esta tarefa o número
+      // desaparecia sem deixar rasto nenhures (achado 8).
+      final semColaboradores = estadoSemMovimento().copyWith(
+        declaredCollaboratorCount: 3,
+      );
+
+      final tarefa = tarefasPendentes(
+        semColaboradores,
+        agoraFixa,
+      ).firstWhere((t) => t.id == 'colaboradores-por-registar');
+
+      expect(tarefa.titulo, '3 colaboradores por registar');
+      expect(tarefa.destino, DestinoTarefa.colaboradores);
+    });
+
+    test('um colaborador declarado usa singular', () {
+      final semColaboradores = estadoSemMovimento().copyWith(
+        declaredCollaboratorCount: 1,
+      );
+
+      final tarefa = tarefasPendentes(
+        semColaboradores,
+        agoraFixa,
+      ).firstWhere((t) => t.id == 'colaboradores-por-registar');
+
+      expect(tarefa.titulo, '1 colaborador por registar');
+    });
+
+    test('com pelo menos um colaborador registado a tarefa não aparece', () {
+      final comUm = estadoSemMovimento().copyWith(
+        declaredCollaboratorCount: 3,
+        collaborators: const [
+          Collaborator(id: 'co1', name: 'Ana', status: CollaboratorStatus.active),
+        ],
+      );
+
+      final ids = tarefasPendentes(comUm, agoraFixa).map((t) => t.id);
+
+      expect(ids, isNot(contains('colaboradores-por-registar')));
+    });
+
+    test('sem colaboradores declarados a tarefa não aparece', () {
+      final ids = tarefasPendentes(
+        estadoSemMovimento(),
+        agoraFixa,
+      ).map((t) => t.id);
+
+      expect(ids, isNot(contains('colaboradores-por-registar')));
     });
 
     test('o NIF em falta é urgente; a morada não', () {
