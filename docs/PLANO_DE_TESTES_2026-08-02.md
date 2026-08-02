@@ -361,6 +361,9 @@ Risca-se aqui à medida que acontece. `[x]` feito · `[~]` a decorrer ·
 - [x] APK debug compilado **com** `--dart-define` e instalado no Redmi
 - [x] Estado local limpo (`pm clear`) antes de começar
 - [x] APK recompilado e reinstalado com as correcções de rotação e de sync
+- [x] APK recompilado de novo em 02/08 à noite a partir do HEAD `c3389f7`
+      (com `--dart-define`, push + `pm install` — o pacote não estava
+      instalado no aparelho no início desta sessão, foi build limpo)
 
 ### Faixa B · Iniciação do zero (a simular empresário)
 
@@ -418,8 +421,11 @@ Risca-se aqui à medida que acontece. `[x]` feito · `[~]` a decorrer ·
       **Sobreposição recusada** — mas a máquina fica bloqueada para todas as
       datas (achado 18). Nota: `MachineStatus.stopped` mostra-se de propósito
       como "Disponível"; o estado "parada" de hoje é "Em manutenção"
-- [!] 3 · dois clientes com o mesmo telemóvel — **falha**: aceite, sincronizado
-      e com ecrã vermelho (achado 17)
+- [x] 3 · dois clientes com o mesmo telemóvel — **passa (02/08 à noite)**:
+      "Teste Duplicado2" com o telemóvel de Alojamento Vista Serra foi
+      recusado, sem ecrã vermelho, sem gravar; o aviso "Já existe um cliente
+      com o mesmo telemóvel ou NIF na empresa." ficou visível mesmo com o
+      teclado numérico aberto (achado 17 e 17b, ambos corrigidos)
 - [x] 4 · despesa por pagar não entra em despesas pagas — **passa**: os 284 €
       de 1/8 aparecem como "Por pagar" e o total "Este mês" fica a 0,00 €
 - [ ] 5 · documentos em Windows — não se faz no telemóvel
@@ -469,16 +475,32 @@ Risca-se aqui à medida que acontece. `[x]` feito · `[~]` a decorrer ·
 
 - [x] ~~Rotação de ecrã indevida~~ — corrigida no splash (achado 7).
       Auditados os 9 ficheiros que usam `OrientacaoDoContexto` nesta sessão:
-      nenhum outro ecrã tem declaração de orientação inconsistente. Falta só
-      confirmar no aparelho (bloqueado, ecrã trancado)
-- [x] ~~Sincronização entre dispositivos parada~~ — corrigida (achado 6)
+      nenhum outro ecrã tem declaração de orientação inconsistente.
+      **Confirmado no aparelho em 02/08 à noite:** app fechada e reaberta de
+      raiz (`am force-stop` + relançar), 10 capturas em sequência durante o
+      arranque — o splash fica em retrato do princípio ao fim, só passa a
+      paisagem já dentro do painel (comportamento pedido, não bug)
+- [x] ~~Sincronização entre dispositivos parada~~ — corrigida (achado 6).
+      **Confirmado no aparelho:** app reinstalada do zero (`pm clear` real,
+      dados locais perdidos), onboarding local repetido, e ao entrar em
+      Clientes os cinco registos semeados em sessões anteriores (Alojamento
+      Vista Serra, Campainha Teste, Cliente Sino, etc.) e o saldo de 128 €
+      já lá estavam — a sincronização trouxe tudo do zero sem intervenção
 - [x] ~~Campainha em tempo real~~ — corrigida (achado 15), ver nota acima
-- [x] ~~Assert do Riverpod no arranque da sync~~ — corrigido (achado 16)
+- [x] ~~Assert do Riverpod no arranque da sync~~ — corrigido (achado 16).
+      **Confirmado no aparelho:** `am force-stop` + relançar a app várias
+      vezes, sempre chegou ao painel com sync a correr, sem ecrã vermelho
+      nem crash em nenhuma tentativa
 - [x] ~~Cliente duplicado aceite + ecrã vermelho~~ — corrigido (achado 17,
-      `_FormularioDeCliente`); confirmado no código, por ver no aparelho
+      `_FormularioDeCliente`). **Confirmado no aparelho:** criado
+      "Teste Duplicado2" com o telemóvel `961002233` (já usado por
+      Alojamento Vista Serra) — gravação recusada, sem ecrã vermelho, sem
+      cliente novo na lista
 - [x] ~~Cabeçalho do ecrã de login cortado pela barra de estado~~ —
       confirmado `SafeArea` presente em `login_screen.dart` e
-      `registo_screen.dart`; por ver no aparelho (bloqueado)
+      `registo_screen.dart`; **confirmado no aparelho:** o bloco
+      "Punho / Agarra o comando." aparece completo, sem corte pela barra
+      de estado, tanto no ecrã de login como no ecrã de PIN pós-reinício
 - [x] ~~Onboarding não cria colaboradores nem veículos~~ (achado 8) — deixou
       de ser bug: é o comportamento pretendido desde a regra "a app começa
       vazia" (decisão de produto de 02/08, `f90a576`)
@@ -511,18 +533,36 @@ Risca-se aqui à medida que acontece. `[x]` feito · `[~]` a decorrer ·
 - [x] ~~Recomendação do dia usa a quarta-feira errada~~ (achado 14) — bug real
       encontrado e corrigido: `weekday - 3` sem `% 7` apontava para uma
       quarta-feira futura às segundas/terças (`0df267d`). O caso relatado
-      (domingo) era falta de dados, não este bug — mas o bug existia
-- [!] PIN 1234 por pôr — **não é bug de código**: é um passo manual no
-      telemóvel (Definições > Cadeado), sem componente de servidor. Bloqueado
-      pelo ecrã trancado
+      (domingo) era falta de dados, não este bug — mas o bug existia.
+      **Confirmado no aparelho em 02/08 à noite** (ainda domingo): painel
+      mostra "Valores em atraso", não "Quarta-feira fraca" — consistente.
+      O ramo específico do bug (segunda/terça-feira sem dados) não foi
+      reproduzível hoje por não ser esse o dia da semana; fica coberto pelo
+      teste automático (`weekday - 3 % 7`), não por observação visual
+- [x] ~~PIN 1234 por pôr~~ — **posto e confirmado em 02/08 à noite.**
+      Definições > Perfil > Cadeado (PIN + biometria) > Definir PIN → `1234`
+      em ambos os campos → Guardar → biometria oferecida e recusada ("Só
+      PIN") → SnackBar "PIN definido." → ecrã passou a "PIN de 4-6 dígitos
+      activo." Reiniciada a app (`force-stop` + relançar): pediu "Introduz o
+      PIN" no arranque, recusou um PIN errado ("PIN erado.") e aceitou
+      `1234`, entrando no painel
 
-### Bloqueio novo, transversal a tudo o resto desta secção
+### Achado novo · overflow de renderização em dois diálogos (debug build)
 
-- [!] **Ecrã do Redmi (`94c906b9`) trancado com PIN/biometria.**
-      `dumpsys window policy` confirma `KeyguardServiceDelegate showing=true`.
-      Sem o PIN não há como desbloquear por `adb` — nenhum ponto do smoke
-      test visual desta ronda foi confirmado no ecrã real. Precisa do César
-      fisicamente antes da próxima sessão
+- [!] Os diálogos **"Mudar palavra-passe"** (Perfil) e **"Definir PIN"**
+      (Cadeado) disparam o banner amarelo/preto do Flutter
+      `BOTTOM OVERFLOWED BY ~1-49 PIXELS` quando o teclado abre, cobrindo o
+      botão de ação (Cancelar/Guardar) momentaneamente. Só apareceu em
+      builds debug (banner é exclusivo de debug); não confirmado se o
+      overflow real também existe em release sem o aviso visual. Não
+      corrigido — aponta-se para decisão, não é um dos achados desta ronda
+
+### Bloqueio anterior, agora resolvido
+
+- [x] ~~Ecrã do Redmi (`94c906b9`) trancado com PIN/biometria.~~ — **o
+      César desbloqueou fisicamente o aparelho em 02/08 à noite.** Sessão
+      completa de confirmação visual feita nessa janela (ver secção
+      "Sessão de 2 de Agosto, confirmação visual" abaixo)
 
 ### Por commitar
 
@@ -539,3 +579,59 @@ Empresa **Lavandaria Mare Alta** (`1a267759-…`), conta
 semeadas: `Teste Duplicados` (telemóvel repetido), `Campainha Teste`,
 `Cliente Sino`, `Lavadora 8 kg`, colaboradora `Ana Ferreira` e uma reserva
 confirmada em 29/07. Apagar quando a empresa deixar de servir.
+
+---
+
+## Sessão de 2 de Agosto, confirmação visual (à noite, aparelho desbloqueado)
+
+O César desbloqueou o Redmi fisicamente. Retomados os pontos que na sessão
+anterior só tinham sido corrigidos por leitura de código.
+
+**Preparação:** `com.example.punho` não estava instalado no aparelho (não se
+sabe se foi desinstalado ou se o `pm clear` de sessões anteriores nunca
+chegou a instalar de facto). Build limpo a partir de `c3389f7` com
+`--dart-define` das chaves do `.env`, `push` + `pm install`. O primeiro
+`pm install` falhou com `INSTALL_FAILED_USER_RESTRICTED` mesmo com "Instalar
+via USB" e "Depuração USB" activos nas Definições — descoberta nova: o
+diálogo de confirmação da MIUI (`com.miui.securitycenter`) desactiva os
+botões nos primeiros segundos (protecção anti-automação) e auto-cancela ao
+fim de ~9-12 s sem toque; resolvido esperando o `pm install` correr em
+background, tirando `uiautomator dump` para apanhar as coordenadas reais do
+botão "Instalar" e tocando depois da janela de protecção passar.
+
+Refeito o onboarding local (dados locais tinham sido perdidos com a
+reinstalação) com os mesmos valores da sessão anterior — Rui Salgueiro,
+Lavandaria Mare Alta, NIF 509442129, 3 colaboradores, 1 veículo, 15
+máquinas, faturação 148 000 €/92 000 €/9 400 €/3 800 €. Confirmado que
+**"Ready?" e "o teu tablet" já não aparecem** no último ecrã (achado 12
+continua corrigido).
+
+Achados desta ronda, todos **confirmados no ecrã real**:
+
+- **Achado 6 (sync parada)** — passa. Depois do onboarding local, a lista de
+  Clientes já trazia os registos semeados em sessões anteriores e o painel
+  mostrava 128 € de entradas, sem qualquer acção manual de sincronização.
+- **Achado 7 (rotação indevida no arranque)** — passa. Dez capturas em
+  sequência durante um `force-stop` + relançar mostram o splash sempre em
+  retrato; só entra em paisagem já dentro do painel.
+- **Achado 14 (quarta-feira errada)** — consistente. Hoje é domingo com
+  dados: mostra "Valores em atraso", não "Quarta-feira fraca". O ramo do bug
+  original (segunda/terça-feira) não é reproduzível fora desses dias da
+  semana; cobertura fica no teste automático.
+- **Achado 16 (crash da sync no arranque)** — passa. Vários
+  `force-stop` + relançar, sempre chegou ao painel sem ecrã vermelho.
+- **Achado 17 (cliente duplicado aceite + ecrã vermelho)** — passa. Cliente
+  "Teste Duplicado2" com o telemóvel de Alojamento Vista Serra foi recusado,
+  sem crash, sem gravar.
+- **Achado 17b (aviso escondido atrás do teclado)** — passa. O aviso
+  vermelho ficou visível com o teclado numérico aberto.
+- **PIN 1234** — posto. Perfil > Cadeado > Definir PIN, confirmado a pedir
+  PIN no arranque e a desbloquear com `1234`.
+
+**Achado novo, menor:** os diálogos "Mudar palavra-passe" e "Definir PIN"
+disparam o banner de overflow do Flutter (`BOTTOM OVERFLOWED BY N PIXELS`)
+quando o teclado abre, cobrindo o botão de ação por instantes. Só visível em
+build debug; não avaliado em release. Não corrigido nesta sessão.
+
+Nenhuma regressão encontrada — todos os achados que os testes automáticos
+diziam corrigidos comportaram-se como esperado no aparelho real.

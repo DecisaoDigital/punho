@@ -13,6 +13,48 @@ linha de base, não tentes limpá-los.
 
 ---
 
+## Sessão de 2 de Agosto, à noite — aparelho desbloqueado, confirmação visual completa
+
+O César desbloqueou o Redmi fisicamente. `com.example.punho` não estava
+instalado (build limpo a partir de `c3389f7`, `--dart-define` das chaves do
+`.env`, `push` + `pm install`). Descoberta nova sobre o contorno do MIUI: o
+diálogo de confirmação (`com.miui.securitycenter`) desactiva os botões nos
+primeiros segundos e auto-cancela ao fim de ~9-12 s sem toque — resolve-se
+correndo o `pm install` em background e tocando "Instalar" (coordenadas via
+`uiautomator dump`) depois da janela de protecção passar, não antes.
+
+Todos os achados marcados como "corrigido por código, por confirmar no
+aparelho" na sessão anterior foram **confirmados visualmente, sem
+regressões**:
+
+- **Achado 6** (sync parada) — depois de reinstalar a app do zero e refazer
+  o onboarding local, a lista de Clientes já trazia os dados semeados em
+  sessões anteriores e o painel mostrava 128 € de entradas, sem acção manual.
+- **Achado 7** (rotação indevida no arranque) — dez capturas em sequência
+  num `force-stop` + relançar mostram o splash sempre em retrato.
+- **Achado 14** (quarta-feira errada) — consistente; hoje domingo com dados,
+  mostra "Valores em atraso". O ramo do bug (segunda/terça) não é
+  reproduzível fora desses dias; cobertura fica no teste automático.
+- **Achado 16** (crash da sync no arranque) — vários reinícios, sem ecrã
+  vermelho.
+- **Achado 17** (duplicado aceite + ecrã vermelho) — cliente com telemóvel
+  repetido foi recusado, sem crash.
+- **Achado 17b** (aviso escondido atrás do teclado) — aviso ficou visível
+  com o teclado numérico aberto.
+- **PIN 1234** — posto em Perfil > Cadeado > Definir PIN; confirmado a pedir
+  PIN no arranque e a desbloquear.
+
+**Achado novo, menor:** os diálogos "Mudar palavra-passe" e "Definir PIN"
+disparam o banner de overflow do Flutter (`BOTTOM OVERFLOWED BY N PIXELS`)
+quando o teclado abre, cobrindo o botão de ação por instantes. Só visto em
+build debug (banner exclusivo de debug); não avaliado em release. Não
+corrigido — aponta-se para decisão.
+
+Detalhe completo em `docs/PLANO_DE_TESTES_2026-08-02.md`, secção "Sessão de
+2 de Agosto, confirmação visual".
+
+---
+
 ## Sessão de 2 de Agosto, fim de tarde/noite — telemóvel bloqueado, corrigido o que dava por código
 
 **O Redmi (`94c906b9`) tem ecrã bloqueado com PIN/biometria** —
