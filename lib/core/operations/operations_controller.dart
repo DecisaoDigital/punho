@@ -650,7 +650,15 @@ class OperationsController extends Notifier<OperationsState> {
     state = _fromRepo();
   }
 
-  void saveCollaborator(Collaborator item) {
+  /// [limiteColaboradoresAtivos] é o limite a respeitar. Por omissão usa-se
+  /// `state.activeCollaboratorLimit` (o valor local, do onboarding); quem
+  /// chama pode passar o valor efectivo — o da subscrição no servidor, que
+  /// manda desde a decisão de 2026-08-02 — sem que este controlador precise de
+  /// saber nada de Supabase. Ver `limiteColaboradoresEfetivoProvider` em
+  /// `features/auth/subscricao_providers.dart`, que combina os dois e cai no
+  /// local sempre que o servidor não responde.
+  void saveCollaborator(Collaborator item, {int? limiteColaboradoresAtivos}) {
+    final limite = limiteColaboradoresAtivos ?? state.activeCollaboratorLimit;
     final existing = state.collaborators
         .where(
           (x) =>
@@ -659,8 +667,7 @@ class OperationsController extends Notifier<OperationsState> {
               x.status == CollaboratorStatus.active,
         )
         .length;
-    if (item.status == CollaboratorStatus.active &&
-        existing >= state.activeCollaboratorLimit) {
+    if (item.status == CollaboratorStatus.active && existing >= limite) {
       throw StateError(
         'A empresa atingiu o limite de colaboradores ativos. Aumente as vagas contratadas no controlo da subscrição.',
       );
@@ -758,9 +765,15 @@ class OperationsController extends Notifier<OperationsState> {
 
   bool machineAvailable(String id, DateTime start, DateTime end) {
     final m = state.machines.firstWhere((x) => x.id == id);
+    // "Alugada" ou "reservada" descrevem um período, não a máquina para
+    // sempre: uma máquina alugada esta semana pode voltar a reservar-se para
+    // a semana que vem. Quem decide se este período específico está livre é
+    // o `conflictFor`, que olha para as reservas confirmadas/alugadas com
+    // datas a sério. A manutenção é a única excepção — essa é uma decisão
+    // sobre a máquina, não sobre um período, e por isso continua a bloquear
+    // sempre.
     return !m.archived &&
         m.status != MachineStatus.maintenance &&
-        m.status != MachineStatus.rented &&
         conflictFor(machineIds: [id], startsAt: start, endsAt: end) == null;
   }
 

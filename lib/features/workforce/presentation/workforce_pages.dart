@@ -7,7 +7,30 @@ import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/operations/kpis.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/workforce.dart';
+import '../../auth/subscricao_providers.dart';
 import 'ficha_fiscal_form.dart';
+
+/// "N vagas contratadas", com o singular tratado: "1 vaga contratada" e não
+/// "1 vagas contratadas".
+String _vagasContratadas(int limite) =>
+    limite == 1 ? '1 vaga contratada' : '$limite vagas contratadas';
+
+/// Frase sobre as vagas de colaboradores para o cabeçalho do ecrã.
+///
+/// Quando a subscrição no servidor desce abaixo de quem já está activo — o
+/// caso real que motivou isto: limite 1, três colaboradores já activos — "3
+/// colaboradores ativos de 1 vaga contratada" lê-se como um erro de gramática,
+/// não como um aviso. Ninguém é apagado nesse caso (só se recusam novos, em
+/// [OperationsController.saveCollaborator]), por isso a frase diz isso mesmo:
+/// que não há vagas livres, e não finge que os números batem certo.
+String mensagemVagasDeColaboradores(int ativos, int limite) {
+  if (ativos > limite) {
+    return '$ativos colaboradores ativos, sem vagas livres — a subscrição '
+        'cobre ${_vagasContratadas(limite)}. Os já ativos mantêm-se; fala '
+        'com o suporte para ajustar a subscrição antes de adicionar mais.';
+  }
+  return '$ativos colaboradores ativos de ${_vagasContratadas(limite)}';
+}
 
 class CollaboratorsPage extends ConsumerWidget {
   const CollaboratorsPage({super.key, this.agora});
@@ -18,10 +41,14 @@ class CollaboratorsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(operationsProvider);
+    // O limite efectivo: o da subscrição no servidor quando dá para o ler,
+    // senão o local — ver `limiteColaboradoresEfetivoProvider`.
+    final limite = ref.watch(limiteColaboradoresEfetivoProvider);
     final mes = agora ?? DateTime.now();
     // Arquivados fora da lista: eliminar tem de fazer a linha desaparecer, ou
     // não se acredita que tenha eliminado.
     final colaboradores = s.collaborators.where((c) => !c.archived).toList();
+    final semVagasLivres = s.activeCollaborators > limite;
     return Scaffold(
       body: Padding(
         // Começa por texto: margem vertical inteira. Ver [MargensDoCanvas].
@@ -39,7 +66,14 @@ class CollaboratorsPage extends ConsumerWidget {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             Text(
-              '${s.activeCollaborators} colaboradores ativos de ${s.activeCollaboratorLimit} vagas contratadas',
+              mensagemVagasDeColaboradores(s.activeCollaborators, limite),
+              // Cor de aviso só quando não há vagas livres — tal como o
+              // `aviso` de `DialogoDeFormulario`. Sem isto, o caso raro (mas
+              // real) de a subscrição ter descido abaixo de quem já está
+              // activo lê-se como texto normal, e passa despercebido.
+              style: semVagasLivres
+                  ? TextStyle(color: Theme.of(context).colorScheme.error)
+                  : null,
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
@@ -195,6 +229,10 @@ Future<void> _collaboratorDialog(
     // O regime vem da forma jurídica da empresa, não de um valor assumido
     // (Decisão 1). É ele que decide se há estimativa e qual.
     regime: regimeDaFormaJuridica(ref.read(operationsProvider).legalForm),
+    // `.read` e não `.watch`: o diálogo é um formulário de um só uso, tal
+    // como o `regime` acima — não precisa de se recompor se a subscrição
+    // mudar a meio do preenchimento.
+    limiteColaboradoresAtivos: ref.read(limiteColaboradoresEfetivoProvider),
     current: current,
   ),
 );
@@ -203,10 +241,12 @@ class _FormularioDeColaborador extends StatefulWidget {
   const _FormularioDeColaborador({
     required this.notifier,
     required this.regime,
+    required this.limiteColaboradoresAtivos,
     this.current,
   });
 
   final OperationsController notifier;
+  final int limiteColaboradoresAtivos;
   final RegimeFiscal regime;
   final Collaborator? current;
 
@@ -232,6 +272,14 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
   late var vinculo = current?.employmentType ?? EmploymentType.contrato;
   late var estadoCivil = current?.maritalStatus ?? MaritalStatus.unmarried;
   late final ficha = ControladoresDaFicha(de: current);
+
+  /// A recusa mostra-se **dentro** do diálogo e não num `SnackBar`.
+  ///
+  /// Num telemóvel deitado com o teclado aberto, o `SnackBar` nasce por baixo
+  /// do teclado: quem tentava exceder as vagas contratadas carregava em
+  /// Guardar e via o botão não fazer nada. Apanhado no Redmi Note 10 Pro com
+  /// 3 colaboradores activos de 3 vagas.
+  String? erro;
 
   @override
   void dispose() {
@@ -370,14 +418,13 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
           );
         },
       ),
+      aviso: erro,
       aoGuardar: () {
         // Validação: nome é obrigatório. Sem isto, um tap por engano criava um
         // colaborador anónimo silenciosamente — o Cesar apanhou este bug no
         // smoke da v0.0.4.
         if (name.text.trim().isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Indica o nome do colaborador.')),
-          );
+          setState(() => erro = 'Indica o nome do colaborador.');
           return;
         }
         final anterior = current;
@@ -438,14 +485,13 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
                     maritalStatus: estado,
                     dependents: dependentes,
                   ),
+            limiteColaboradoresAtivos: widget.limiteColaboradoresAtivos,
           );
           Navigator.pop(context);
         } on StateError catch (e) {
           // Excedeu as vagas contratadas: o diálogo fica aberto com o que
           // estava escrito.
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(e.message.toString())));
+          setState(() => erro = e.message.toString());
         }
       },
     );
