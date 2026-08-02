@@ -214,7 +214,7 @@ class _AbaEstado extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Timeline de obrigações fiscais — em preparação para a v0.0.9.',
+            'Timeline de obrigações fiscais — em preparação.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyLarge,
           ),

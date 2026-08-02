@@ -63,7 +63,7 @@ class _BoasVindasScreenState extends State<BoasVindasScreen> {
         'Não te preocupes se algum número aparecer como "por apurar": à medida '
             'que usas a app, ela vai aprendendo o teu ritmo e melhorando as '
             'sugestões.',
-        'Ready?',
+        'Vamos a isto?',
       ],
       rodape: Container(
         padding: const EdgeInsets.all(14),
@@ -79,7 +79,7 @@ class _BoasVindasScreenState extends State<BoasVindasScreen> {
             Expanded(
               child: Text(
                 'A partir daqui a Punho vai passar a modo horizontal — o teu '
-                'tablet vai rodar sozinho.',
+                'ecrã vai rodar sozinho.',
                 style: TextStyle(color: cores.onPrimaryContainer),
               ),
             ),
