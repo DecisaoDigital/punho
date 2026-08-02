@@ -188,9 +188,14 @@ class GuidanceEngine {
         ),
       );
     }
+    // `weekday - 3` dá a última quarta-feira só quando é positivo. Às
+    // segundas (1) e terças (2) fica negativo e `subtract` empurra para uma
+    // quarta-feira que ainda não aconteceu — as "últimas 3 quartas" saíam
+    // todas uma semana à frente. O `% 7` mantém sempre a última quarta-feira
+    // já passada (ou hoje, se hoje for quarta).
     final wednesdays = List.generate(3, (i) {
       final d = input.now.subtract(
-        Duration(days: (input.now.weekday - 3) + 7 * i),
+        Duration(days: (input.now.weekday - 3) % 7 + 7 * i),
       );
       return DateTime(d.year, d.month, d.day);
     });
