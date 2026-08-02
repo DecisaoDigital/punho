@@ -231,17 +231,61 @@ microtarefa e lá dentro fazia `ref.read(operationRepositoryProvider)` — já
 depois de a dependência ter mudado. Corrigido: o repositório vem de
 `motor.repositorio`, que é o mesmo objecto e não toca no `ref`.
 
-### 17. Cliente com telemóvel repetido: aceite **e** com ecrã vermelho
+### 17. Ecrã vermelho ao gravar cliente — **corrigido**
 
-Guardar um segundo cliente com o telemóvel `961002233` (já do Alojamento Vista
-Serra) **não é recusado** — o registo é criado e sincronizado (seq 60) — e a
-UI rebenta com ecrã vermelho:
+**A validação de duplicados nunca esteve em falta.** `addCustomer` recusa como
+devia (`operations_controller.dart:619`); o primeiro relato ("duplicado
+aceite") foi artefacto do seed deste agente: a app grava sempre
+`companyId: "local-company"`, e as linhas semeadas por SQL levaram o UUID da
+empresa, por isso os dois grupos nunca se cruzavam na comparação. Testado de
+novo só com clientes criados na app: o segundo com o mesmo telemóvel é
+recusado.
+
+Fica a nota: se um dia a app passar a gravar o id real da empresa neste campo,
+os clientes antigos (`local-company`) deixam de ser comparados com os novos e a
+verificação abre um buraco. Hoje não parte nada porque o valor é constante.
+
+**O ecrã vermelho, esse, era real e reproduzível:**
 
 ```
-framework.dart: Failed assertion: line 6268 pos 12: '_dependents.isEmpty': is not true
+A TextEditingController was used after being disposed.
+The relevant error-causing widget was: TextField
+  operational_pages.dart:1711
 ```
 
-Ponto 3 da Faixa C: falha duas vezes, na validação e na estabilidade.
+O `_customerDialog` criava os `TextEditingController` na própria função e
+descartava-os a seguir ao `await showDialog`, que devolve no instante do
+`Navigator.pop` — com a animação de fecho ainda a correr. Bastava a lista por
+baixo reconstruir-se nesse intervalo (é o que a gravação faz) para os campos
+serem construídos outra vez com controladores mortos. Daí o assert em cascata
+`'_dependents.isEmpty': is not true` e o ecrã vermelho.
+
+O padrão certo já existia no mesmo ficheiro: o `_FormularioDeMaquina` foi criado
+por causa deste mesmíssimo bug, e traz o comentário a explicá-lo. O diálogo de
+clientes tinha ficado por converter.
+
+Corrigido com `_FormularioDeCliente`, um `StatefulWidget` dono dos controladores
+que os descarta no seu próprio `dispose`. Verificado no Redmi nos dois caminhos:
+telemóvel repetido → recusa, sem crash; cliente novo → gravado e sincronizado
+(seq 67), sem crash.
+
+**Os diálogos de lead, de reserva e de marcação continuam com o padrão antigo**
+(controladores descartados a seguir ao `await showDialog`) — mesma bomba por
+rebentar. Não foram convertidos porque são formulários grandes, com datas,
+selecção de máquinas e estado próprio, e a conversão sem testes de UI é
+arriscada.
+
+### 17b. Recusas invisíveis no telemóvel — **corrigido**
+
+A mensagem de recusa ia num `SnackBar`, que num telemóvel deitado com o teclado
+aberto nasce **por baixo do teclado**: a gravação era recusada e o que se via
+era o botão a não fazer nada. Era o mesmo sintoma do limite de colaboradores
+(achado 19).
+
+`DialogoDeFormulario` ganhou um parâmetro `aviso`, que mostra a mensagem a
+vermelho com ícone **fora do scroll**, logo por cima dos botões — sempre à
+vista, com ou sem teclado. Verificado: «Já existe um cliente com o mesmo
+telemóvel ou NIF na empresa.» aparece com o teclado numérico aberto.
 
 ### 18. Uma reserva confirmada bloqueia a máquina para sempre
 

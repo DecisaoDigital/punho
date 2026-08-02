@@ -1,124 +1,158 @@
 # Handover — próxima sessão Cowork · Punho
 
-**Data do handover:** 27 de Julho de 2026
-**Última branch activa:** `feat/v006-boas-vindas` (Punho) — sprint 2 v0.0.6 a fechar
-**Skill de contexto a invocar primeiro:** nenhuma para Punho ainda (o repo tem `CLAUDE.md` mas o Punho não tem skill dedicada; para WashInvoice existe `washinvoice`)
+**Data do handover:** 2 de Agosto de 2026
+**Última branch activa:** `main` (sem branch de sprint aberta; há alterações
+por commitar directamente sobre `main`, ver abaixo)
+**Versão instalada no aparelho de teste:** v0.1.4+25 (`v0.1.4` taggeada)
+**Skill de contexto a invocar primeiro:** nenhuma para Punho ainda
 
 ---
 
 ## Onde estás agora
 
-O Punho está no fecho da v0.0.6. A sprint 1 já entregou:
+Fechou-se a primeira campanha de testes a sério num aparelho real (Redmi Note
+10 Pro, por `adb`/`flutter run` a partir do i9). Três faixas: dados semeados
+no servidor a chegar ao telemóvel, onboarding do zero simulando um
+empresário, e a bateria de oito testes manuais que já existia no repo, mais
+verificação da campainha e das notificações no Control. Checklist viva,
+achados 1–21 e comandos exactos usados estão em
+`docs/PLANO_DE_TESTES_2026-08-02.md` — não repetidos aqui.
 
-- Frente A (Boas-vindas + MaisDados)
-- Motor fiscal `RegimeFiscal` + `estimarSalarial` + tabelas IRS 2026
-- Frente D (KPI "Custo real com pessoal")
-- Follow-up Decisão 12 (`CustosMes.totalCents` sensível ao regime · commit `babb2b5`)
-- Follow-up Decisão 13 (`OrientacaoDoContexto` · commit `ffe917d`)
+Resultado por faixa: A passa; B falha o critério "dashboard sem por apurar";
+C tem 4 de 8 pontos limpos; D passa.
 
-Está em curso a **sprint 2 v0.0.6** (`prompts/punho_v006_sprint2_fecho_e_release.md`) — o Code está a executar. Ordem de execução ratificada com o Cesar:
-
-**4 (C-UI Ficha Fiscal) → 2 (hit target) → 5 (Perfil popup) → 6 (doc) → 7 (release)**
-
-Razão: contexto do motor fiscal fresco no Code, C-UI primeiro poupa recarga; hit target a seguir apanha os botões novos numa só passagem.
-
----
-
-## O que falta na v0.0.6 (Prioridade 1 do checklist)
-
-Depois de eu ter marcado os follow-ups 12 e 13 como concluídos, ficam **cinco itens**:
-
-1. **Passo 4 · Frente C UI** — `FichaFiscalColaboradorForm`, `SegmentedButton`, chips NISS/NIF em falta. O widget deve nascer **parametrizado com lista de campos** (decisão nova desta sessão) — a sprint 2 do colaborador vai acrescentar IBAN, morada pessoal, data de nascimento. Nasce com o superset em mente.
-2. **Passo 2 · Auditoria hit target** de sete grupos de botões (task #206). Padrão `Material + InkWell` com mesmo bounding box.
-3. **Passo 5 · Popup Perfil minimalista** (Frente B).
-4. **Passo 6 · Doc** `docs/design/punho_v006_sprint1.md`.
-5. **Passo 7 · Release** — sub-passos 7.1 → 7.8. **Passo 7.8 é novo** (catalogar em `versoes_apps`, ver secção seguinte). O 7.6 escolheu Opção A (CI screenshot exclusion): validado como correcção certa, não workaround, porque os goldens dependem das fontes do Windows.
-
-Task #205 (Decisão 13) já foi marcada como completed nesta sessão. Task #207 criada para o Passo 7.8.
+O achado maior: **a sincronização entre dispositivos nunca tinha corrido uma
+única vez** desde que existe. Já está corrigida e commitada, tal como a
+campainha em tempo real (também nunca tinha tocado) e a rotação indevida do
+ecrã no arranque.
 
 ---
 
-## Descoberta desta sessão · Auto-update Punho
+## Já commitado nesta sessão
 
-Verificaste comigo se a v0.0.5 no Redmi vai chamar a v0.0.6 assim que sair. Diagnóstico:
+```
+3a64e49 docs(testes): checklist viva da campanha de 2 Ago 2026
+4dfcb0f fix(sync): sincronização presa, campainha muda e ref inválido pós-microtarefa
+5dcc5c5 fix(splash): o punho não gira mais durante a animação de arranque
+29aee10 fix(sync): os dados do aparelho nunca subiam, e a fila perdia-se
+```
 
-- **Arquitectura correcta**: `PunhoUpdateBannerWrapper` está enrolado à raiz da app em `lib/main.dart:68`, portanto o banner aparece em qualquer ecrã (login incluído). `PunhoUpdateService.check()` funciona sem sessão iniciada (anon key).
-- **Ponto de falha silenciosa**: a Edge Function `versao-mais-recente` (projecto Supabase `oefqbkhioncakojipqyx`, mesmo do Control) lê da tabela `public.versoes_apps`. Se ninguém inserir a linha da v0.0.6, a EF devolve `actualizacao_disponivel: false` para toda a gente.
-
-Estado real da tabela (verificado por MCP nesta sessão):
-
-- Constraint `check (app in ('pos', 'control', 'punho'))` — já aceita 'punho'.
-- Constraint `check (plataforma in ('all', 'windows', 'android', 'ios'))`.
-- Único índice: `unique (app, build_number, plataforma)`.
-- Linhas actuais de 'punho': apenas v0.0.1 (build 1) e v0.0.2 (build 2), duas por versão (windows + android), todas `activa=true`.
-- v0.0.3, v0.0.4, v0.0.5 **nunca foram catalogadas** — é a razão de o Cesar nunca ter recebido banner nas versões anteriores. Efeito colateral bom: como o Redmi tem build 5 e a tabela topa em build 2, a EF já devolve `false`. Assim que a v0.0.6 entrar com build 6, banner aparece na hora do próximo check (arranque ou 24h).
-
-**Preparado nesta sessão para o Passo 7.8:**
-
-- `D:\Punho\prompts\punho_v006_7_8_catalogar_versao.sql` — template com placeholders `<URL_APK>` e `<NOTAS>` e query de verificação idêntica à da EF.
-- `D:\Punho\prompts\punho_v006_sprint2_fecho_e_release.md` — Passo 7.8 acrescentado com instruções e nota de que na 0.0.7 este INSERT deve passar a ser feito automaticamente pelo workflow do GitHub Actions (task no backlog).
-- `D:\WashInvoiceControl\washinvoice_control\supabase\versoes_apps.sql` — actualizado para bater com a realidade do BD (constraint com 'punho', coluna `plataforma`, `alter table` aditivos idempotentes).
-
-**Execução prevista:** quando o Code publicar o APK e enviar o URL final, executas em segundos via MCP Supabase. Zero interrupção do Code.
+- `_vivo = true` reposto no `build()` do `SyncController` — o motor deixa de
+  morrer na primeira reconstrução do provider.
+- Campainha: mapa mutável em vez de `const {}`, `try/catch` a envolver o
+  `await` (a excepção nascia dentro do future e escapava ao catch de fora).
+- Assert do Riverpod: repositório passa a vir de `motor.repositorio` em vez
+  de `ref.read` dentro da microtarefa `_montar`.
+- Splash declara `portraitJa()` no `initState`.
 
 ---
 
-## Prompt da sprint 1 v0.0.7 (já preparado, não arrancado)
+## Por commitar — verificado no aparelho, `flutter analyze` limpo, 535 testes
 
-`D:\Punho\prompts\punho_v007_sprint1_arquitectura_sidebar.md` — arquitectura da sidebar (Decisão 2). 7 passos com commits atómicos explícitos. Branch nova a partir de main quando a v0.0.6 fechar: `feat/v007-sidebar-empresa`.
+`git status` mostra estes ficheiros modificados em `lib/` e `test/` (mais
+`docs/PLANO_DE_TESTES_2026-08-02.md`, já actualizado por esta sessão):
 
-**Não arrancar antes de a v0.0.6 estar fechada e taggeada.**
+- `lib/core/layout/dialogo_de_formulario.dart` — parâmetro `aviso`: mensagem
+  de recusa fora do scroll, por cima dos botões (antes ia em `SnackBar`, que
+  em telemóvel deitado com teclado aberto nasce escondida).
+- `lib/core/operations/kpis.dart` — `tesourariaDoMes` passa a usar
+  `historicalMonths` quando preenchido à mão.
+- `lib/features/auth/presentation/login_screen.dart`,
+  `registo_screen.dart` — `SafeArea` no cabeçalho, cortado pela barra de
+  estado.
+- `lib/features/empresa/presentation/empresa_page.dart` — copy «em
+  preparação para a v0.0.9» → «em preparação».
+- `lib/features/operations/presentation/boas_vindas_screen.dart` — «Ready?»
+  → «Vamos a isto?»; «o teu tablet» → «o teu ecrã».
+- `lib/features/operations/presentation/operational_pages.dart` —
+  `_FormularioDeCliente` (`StatefulWidget` dono dos seus
+  `TextEditingController`) substitui o diálogo antigo que causava o ecrã
+  vermelho ao gravar cliente; aviso de duplicado ligado ao novo parâmetro
+  `aviso`.
+- `lib/features/tarefas/data/tarefas_service.dart` — tarefa nova «N
+  colaboradores por registar».
+- `lib/features/workforce/presentation/workforce_pages.dart` — aviso de
+  limite de colaboradores ligado ao novo parâmetro `aviso`.
+- Testes actualizados: `test/features/dashboard/kpis_test.dart`,
+  `test/features/tarefas/tarefas_page_test.dart`.
+- Novos, ainda não adicionados ao git: `test/core/sync/carga_inicial_test.dart`,
+  `test/core/sync/fila_sem_corridas_test.dart`.
 
----
-
-## Riscos abertos para o release 7.6 (workflow GitHub Actions)
-
-Não confirmei — vale a pena o Code fazer *dry-run* antes de gastar a tag:
-
-1. **Assinatura do APK no workflow.** A v0.0.5 saiu à mão; o job de release do CI nunca completou. Secrets do keystore (`KEYSTORE_BASE64`, etc.) podem estar em falta ou trocados no repo Punho.
-2. **Task #197 · NDK 27.0.12077973** ainda pendente. Se o `build.gradle.kts` continuar em NDK antigo, `flutter build apk --release` no Ubuntu do CI pode partir com erro de toolchain. 5 minutos de bump. Vale a pena fazê-lo antes do 7.6.
-
----
-
-## Ficheiros críticos para carregar
-
-Prioridade alta para retomar contexto:
-
-- `D:\Punho\CLAUDE.md` — aponta para skill washinvoice (não confundir; Punho não tem skill dedicada, o ficheiro é reciclado)
-- `D:\Punho\docs\GUIAO_DE_PERCURSO_PRIMEIRO_EMPRESARIO.md` — as 13 decisões de produto
-- `D:\Punho\docs\CHECKLIST_v006_ATE_FIM.md` — 8 prioridades até v2.x
-- `D:\Punho\prompts\punho_v006_sprint2_fecho_e_release.md` — sprint em execução (com Passo 7.8 novo)
-- `D:\Punho\prompts\punho_v006_7_8_catalogar_versao.sql` — template pronto
-- `D:\Punho\prompts\punho_v007_sprint1_arquitectura_sidebar.md` — sprint seguinte
-
-Prioridade média:
-
-- `D:\Punho\docs\BIBLIOTECA_DE_ALAVANCAS.md` — princípios editoriais das recomendações
-- `D:\Punho\docs\AUDITORIA_KPIS_EMPRESA.md`, `AUDITORIA_APP_ENSINO_GESTAO.md`, `AUDITORIA_FORA_DA_CAIXA.md`
-
----
-
-## Regras que Cesar reforçou nesta sessão
-
-- **"Termina, não hesites."** Menos perguntas de autorização, mais decisões próprias dentro do quadro.
-- **"Verde ≠ certo"** — teste que passa mas testa comportamento errado é dívida, não segurança. Reinverter, não ajustar.
-- **Duas mãos a fazer a mesma coisa = bug garantido para voltar.** Quando um mecanismo é refactorizado e o antigo fica sem chamadores, apaga.
-- **Widgets que vão ser reusados com superset de campos nascem parametrizados.** Custo marginal agora, sanidade depois.
-- **Goldens dependem de rendering platform-specific** — `@Tags(['screenshot'])` + `--exclude-tags` é política, não workaround. Aplica sempre.
+**Antes de commitar:** os diálogos de lead, reserva e marcação continuam com
+o padrão antigo de `TextEditingController` (o mesmo bug do ecrã vermelho,
+por rebentar) — não foram tocados nesta sessão por serem formulários grandes
+e a conversão sem testes de UI ser arriscada. Não bloqueia o commit do resto,
+mas fica registado para não se dar como resolvido.
 
 ---
 
-## Estado dos push notifications (contexto rápido)
+## Decisão já tomada, por implementar agora
 
-Trigger `notificar_novo_pedido_punho` foi corrigido nesta janela (v8 da EF `enviar-push` exige `title/body/data` em inglês, não `titulo/corpo/dados`). Prompt `D:\Punho\prompts\punho_notificar_novo_pedido.md` tem `## Verificação` no fim com o postmortem. Task #196 fechada.
+Uma máquina alugada deve bloquear **apenas a data ocupada**, não a máquina
+inteira. Hoje, uma reserva confirmada deixa a máquina "alugada" e recusa
+qualquer nova reserva em **todas** as semanas seguintes, mesmo vazias
+(achado 18 do plano de testes). Há testes que fixam o comportamento actual
+(`máquina parada não pode receber nova reserva`) — vão precisar de revisão,
+não é só mudar a regra de negócio.
 
-Task #188 ainda pendente (Control 1.8.1 no Redmi) — sem isso os push não têm dispositivo alvo.
+---
+
+## Por decidir
+
+Se o limite de colaboradores activos deve vir da subscrição no servidor
+(`limite_colaboradores_ativos`) ou continuar a vir do que o gestor declara no
+onboarding. Hoje vem só do onboarding — a regra de recusa funciona, mas um
+gestor dá-se as vagas que quiser; na empresa de teste o valor real da
+subscrição é 1, o declarado é 3.
+
+---
+
+## Achados por corrigir, por urgência (ver detalhe no plano de testes)
+
+1. Detalhe de cliente não abre — NIF, email, morada e notas chegam do
+   servidor mas não há ecrã que os mostre.
+2. Onboarding não cria colaboradores nem veículos (só as máquinas viram
+   placeholders).
+3. Facturação do ano passado não gera `historicalMonths` — painel fica em
+   "Por apurar" mesmo com onboarding 100% preenchido.
+4. Máquinas com referência perdem o nome no selector de reservas (as 15
+   placeholders "Máquina N" enterram as reais).
+5. Ordem das listas de despesas e clientes não segue data nem alfabeto.
+6. PIN 1234 por pôr (arrastado do relatório de 1 de Agosto).
 
 ---
 
 ## Passo imediato ao retomar
 
-1. Perguntar ao Cesar em que ponto está o Code (Passo 4? 2? Já no 7?).
-2. Se estiver a chegar ao 7.6, verificar #197 (NDK) e riscos de secrets do workflow.
-3. Assim que o release estiver publicado, executar `punho_v006_7_8_catalogar_versao.sql` via MCP Supabase (substituir URL e notas).
-4. Fechar task #207.
+1. Rever o `git diff` do que está por commitar (lista acima), confirmar que
+   nada ficou esquecido a meio, e commitar em Portugal — no i9, com
+   `flutter analyze` e `flutter test` a correr limpo antes do commit
+   (`git add` explícito por ficheiro, não `-A`).
+2. Confirmar com o Cesar se a implementação do bloqueio por data (máquina
+   alugada) já está em curso por outro agente ou se falta arrancar.
+3. Perguntar se o limite de colaboradores deve passar a vir da subscrição
+   antes de mexer em `workforce_pages.dart` outra vez.
+4. Seguir pela lista de achados por corrigir acima, começando pelo detalhe
+   de cliente (é o único ecrã que existe para máquinas e não existe para
+   clientes — assimetria visível a qualquer utilizador).
+
+---
+
+## Estado dos push notifications (ainda válido)
+
+Trigger `trg_notificar_novo_pedido_punho` (`AFTER INSERT` em
+`punho_pedidos_acesso`) confirmado a funcionar em produção: para a empresa
+de teste desta campanha, `enviar-push` devolveu 200 três segundos depois do
+pedido de acesso, e o Cesar aprovou no Control um minuto depois. Task #196
+permanece fechada.
+
+---
+
+## Dados de teste deixados no servidor
+
+Empresa **Lavandaria Mare Alta** (`1a267759-…`), conta
+`cesarmendes78+punhoteste@gmail.com` / `MareAlta2026`, com 36 operações
+semeadas mais alguns registos criados pela app durante os testes
+(`Teste Duplicados`, `Campainha Teste`, `Cliente Sino`, `Lavadora 8 kg`,
+colaboradora `Ana Ferreira`, uma reserva confirmada em 29/07). Apagar quando
+a empresa deixar de servir para testes.

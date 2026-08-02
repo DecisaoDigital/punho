@@ -59,7 +59,7 @@ O Punho não é contabilidade e não toma decisões sozinho. Mostra o número, e
 
 - [x] Persistência local no dispositivo e testes automatizados.
 - [x] Autenticação Supabase inicial, migrations e RLS inicial documentadas.
-- [x] Estrutura inicial de sincronização/outbox, ainda não equivalente a sincronização real por entidade e perfil.
+- [x] Estrutura inicial de sincronização/outbox, ainda não equivalente a sincronização real por entidade e perfil. **Verificada a correr de ponta a ponta em 2 de agosto de 2026** (envio e recepção, campainha em tempo real nos dois sentidos) depois de corrigido um bug que a mantinha sempre parada desde que existe — ver secção 3.6. Falta ainda a granularidade por entidade/perfil e a resolução de conflitos.
 - [x] Estrutura de atualizações remotas pelo WashInvoice Control.
 - [x] Cliente de licenciamento inicial ligado ao padrão multi-app do Control, com trial técnico. Ver `LICENCIAMENTO.md`.
 
@@ -103,6 +103,73 @@ Notas de arquitectura:
 - Diálogos com muitos campos (`_machineDialog`, `_collaboratorDialog`, `_vehicleDialog`) usam `Dialog` largo em landscape + `insetPadding.bottom = viewInsets.bottom + 16` em portrait + cabeçalho/rodapé fixos com `Expanded(SingleChildScrollView)` no meio.
 - Estimativas fiscais (`estimarSalarial`) são funções puras que **nunca guardam** o resultado — recalculam no build. Aviso obrigatório: *"Estimativa. Confirma com o teu contabilista antes de folhas oficiais."*
 - Regimes especiais (TSU reduzida para pensionistas, isenção IRS de jovens, subsídios de férias/Natal) explicitamente fora — sprints dedicadas quando o Cesar decidir.
+
+## 3.6 Decisões e progressos — 2 de agosto de 2026 (campanha de testes no telemóvel)
+
+Primeira campanha de testes a sério num aparelho real (Redmi Note 10 Pro), com
+onboarding completo simulando um empresário e dados semeados no servidor.
+Achados e checklist completos em `docs/PLANO_DE_TESTES_2026-08-02.md`.
+
+**Corrigido e commitado** (`4dfcb0f`, `5dcc5c5`):
+
+- [x] A sincronização entre dispositivos **nunca tinha corrido** desde que
+  existe: `SyncController._vivo` era posto a `false` no `onDispose` da
+  primeira reconstrução do provider e nunca voltava a `true`. `sincronizar()`
+  saía sempre na primeira linha, em silêncio — 15 máquinas do onboarding
+  ficaram presas na fila local sem subir. Corrigido; verificado no aparelho
+  com `enviadas=15 recebidas=36`.
+- [x] A campainha em tempo real **nunca tinha tocado**: `payload: const {}`
+  rebentava com "Cannot modify unmodifiable map" a cada envio, excepção que
+  nascia dentro do future e escapava ao `try/catch`. Corrigida; verificada nos
+  dois sentidos (receber e enviar) no aparelho.
+- [x] Assert do Riverpod no arranque da sync (`ref` usado numa microtarefa
+  depois de a dependência mudar) — corrigido.
+- [x] Rotação indevida no arranque: o splash não declarava orientação, por
+  isso durante 1,6 s valia o sensor. Corrigido em `splash_punho.dart`.
+
+**Corrigido, por commitar** (verificado no Redmi, `flutter analyze` limpo,
+535 testes a passar):
+
+- [x] Ecrã vermelho ao gravar cliente (`TextEditingController` usado depois
+  de `dispose`, mesmo padrão que já tinha rebentado nas máquinas) — resolvido
+  com `_FormularioDeCliente`, `StatefulWidget` dono dos seus controladores.
+  **Os diálogos de lead, reserva e marcação continuam com o padrão antigo** —
+  mesma bomba por rebentar, não convertidos por serem formulários grandes e a
+  conversão sem testes de UI ser arriscada.
+- [x] Recusas invisíveis: `DialogoDeFormulario` ganhou parâmetro `aviso` que
+  mostra a mensagem fora do scroll, por cima dos botões — antes iam em
+  `SnackBar`, que em telemóvel deitado com teclado aberto nasce por baixo
+  dele. Aplicado ao diálogo de cliente e ao de colaborador.
+- [x] Cabeçalho do login e do registo cortado pela barra de estado —
+  `SafeArea`.
+- [x] Copy: «Ready?» → «Vamos a isto?»; «o teu tablet vai rodar» → «o teu
+  ecrã vai rodar»; «em preparação para a v0.0.9» → «em preparação» (a app já
+  vai na v0.1.4).
+- [x] `tesourariaDoMes` passa a usar `historicalMonths` quando preenchido à
+  mão (antes ignorava-o mesmo com dados).
+
+**Decisão fechada — colaboradores sem ficha placeholder:** o onboarding
+declara equipa (número de colaboradores) mas não cria fichas. Decidiu-se
+**não** materializar colaboradores placeholder como faz com as máquinas,
+porque uma ficha de colaborador carrega NIF/NISS e uma linha em branco a
+fingir de pessoa é risco fiscal. Em vez disso, tarefa nova «N colaboradores
+por registar» aponta a pendência sem fabricar dados.
+
+**Decisão fechada — sem distribuir facturação anual por meses:** o total
+anual declarado no onboarding (`revenueLastYearCents`) não é dividido por 12
+para preencher `historicalMonths`, para não fabricar sazonalidade falsa. O
+histórico mensal só existe quando alguém o preenche a sério, mês a mês.
+
+**Decisão fechada — reserva bloqueia a data, não a máquina:** uma máquina
+alugada só bloqueia a data/período efectivamente ocupado; deixa de recusar
+reservas em **todas** as semanas seguintes enquanto o aluguer actual estiver
+em curso (achado 18 do plano de testes). A implementar por outro agente.
+
+**Por decidir:** se o limite de colaboradores activos deve vir da
+subscrição no servidor (`limite_colaboradores_ativos`) ou continuar a vir do
+que o gestor declara no onboarding. Hoje vem só do onboarding — um gestor
+dá-se as vagas que quiser, e para a empresa de teste o valor da subscrição
+(1) é menor do que o declarado (3).
 
 ## 3.4 Decisoes recentes: faturas e fotografias (26 de julho de 2026)
 
@@ -253,7 +320,7 @@ Para isto será necessária a WhatsApp Business Platform/API, backend seguro, co
 ### Prioridade 1 — confiança nos dados
 
 - [ ] Criar ações dedicadas de levantamento e devolução, com checklist/fotografias/assinatura quando forem necessárias; a transição de estados base já é automática.
-- [ ] Sincronização real multi-dispositivo por entidade, com resolução de conflitos e outbox persistente.
+- [ ] Sincronização real multi-dispositivo por entidade, com resolução de conflitos e outbox persistente. O motor de base já corre e foi verificado no aparelho a 2 de agosto de 2026 (secção 3.6); falta a granularidade por entidade/perfil e a resolução de conflitos.
 - [ ] Autenticação e perfis reais de colaborador aplicados a todas as consultas e ecrãs.
 - [ ] RLS de produção, Storage privado e sincronização de fotografias/documentos.
 - [ ] Integração efetiva de autorização, planos e vagas pelo WashInvoice Control.

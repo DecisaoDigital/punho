@@ -1,5 +1,24 @@
 # Estado atual do Punho
 
+> **Campanha de testes no telemóvel — 2 de agosto de 2026** (v0.1.4+25, Redmi
+> Note 10 Pro)
+>
+> Primeira vez que a app foi posta à prova de ponta a ponta num aparelho real,
+> com onboarding completo de um empresário simulado e dados semeados no
+> servidor. Achado maior: **a sincronização entre dispositivos nunca tinha
+> corrido nenhuma vez desde que existe** — um bug silencioso mantinha o motor
+> sempre parado. Corrigido, tal como a campainha em tempo real (também nunca
+> tinha tocado) e a rotação indevida do ecrã no arranque; os três já estão
+> commitados. Fica ainda por commitar um lote de correcções verificadas no
+> aparelho: ecrã vermelho ao gravar cliente, avisos de recusa que ficavam
+> escondidos atrás do teclado, cabeçalhos cortados pela barra de estado e
+> copy desactualizada. Checklist completa e achados 6–21 em
+> `docs/PLANO_DE_TESTES_2026-08-02.md`.
+>
+> Ficou por resolver, e não é bug de implementação mas decisão de desenho: uma
+> máquina alugada bloqueia hoje **todas** as semanas seguintes, não só a data
+> ocupada — decisão já tomada (bloquear só a data), por implementar.
+>
 > **Sprint v0.0.5 · painel em carrossel** (branch `feat/v005-dashboard-alavancas`)
 >
 > O painel de gestao deixou de ser 17 metricas num Wrap e passou a cinco slides
@@ -60,7 +79,7 @@
 - Autenticacao Supabase, confirmacao de adesao a empresa e logout.
 - Migration para onboarding atomico, RLS inicial e protecoes entre empresas.
 - Modelos de outbox e idempotencia para a sincronizacao futura.
-- Sincronizacao remota segura do estado completo do gestor, com revisao de conflitos.
+- Sincronizacao remota segura do estado completo do gestor, com revisao de conflitos. **Verificada de ponta a ponta no aparelho em 2 de agosto de 2026** (envio, recepcao e campainha em tempo real nos dois sentidos); falta ainda a granularidade por entidade/perfil e a resolucao de conflitos.
 
 ## Ainda nao usar com dados reais
 
@@ -69,4 +88,11 @@
 
 ## Proxima prioridade tecnica
 
-Ligar os repositorios operacionais ao Supabase e guardar uma outbox local persistente. Sem isso, nao ha piloto real multi-dispositivo.
+A ligacao ao Supabase e a outbox local ja existem e ja foram verificadas a
+funcionar de ponta a ponta num aparelho real (2 de agosto de 2026). A
+prioridade tecnica imediata passou a ser o lote de correccoes ja feitas mas
+por commitar (ver campanha de testes, acima) e os achados ainda por corrigir
+mais urgentes: detalhe de cliente que nao abre, painel que fica em "Por
+apurar" mesmo com onboarding completo, maquina alugada a bloquear reservas
+em todas as semanas seguintes (decisao ja tomada: bloquear so a data) e o
+aviso de limite de colaboradores invisivel no teclado.
