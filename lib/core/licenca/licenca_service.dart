@@ -35,13 +35,15 @@ class PunhoLicencaService {
 
   /// Regista o terminal. Idempotente do lado do servidor por
   /// `(machine_id, app)`, por isso pode ser chamado em todos os arranques.
-  Future<void> registarTerminal(String machineId) async {
+  Future<void> registarTerminal(String machineId, {String? nif}) async {
     try {
-      await _invocar('registar-terminal', {
+      final corpo = <String, dynamic>{
         'machine_id': machineId,
         'app': 'punho',
         'info_host': await _colherInfoHost(),
-      });
+      };
+      if (nif != null && nif.isNotEmpty) corpo['nif'] = nif;
+      await _invocar('registar-terminal', corpo);
     } catch (erro) {
       // Falha em silêncio: o utilizador não deve ver erros de rede no arranque.
       debugPrint('registar-terminal falhou: $erro');

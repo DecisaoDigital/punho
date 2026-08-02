@@ -13,6 +13,20 @@ linha de base, não tentes limpá-los.
 
 ---
 
+## Sessão de 3 de Agosto — registar-terminal passa a ligar o NIF real
+
+A Edge Function `registar-terminal` (deploy v7, já em produção) passou a
+aceitar um `nif` opcional no corpo e a actualizar `licencas.nif` — que nasce
+sempre com o placeholder `'000000000'` — quando recebe um NIF válido de 9
+dígitos diferente do guardado. Antes disto, nenhuma instalação Punho jamais
+tinha o seu NIF real ligado à linha de `licencas`, mesmo depois da empresa
+preencher o NIF nas Definições. `LicencaService.registarTerminal` ganhou o
+parâmetro opcional `nif`, e `_registarTerminal()` em `main.dart` busca a
+ficha via `EmpresaSyncService.buscarFicha()` antes de registar, passando
+`ficha?.nif`. Testes novos em `licenca_service_test.dart` cobrem os dois
+casos (com e sem NIF). `flutter analyze` e `flutter test` verdes (643 testes,
+1 skip) depois da mudança.
+
 ## Sessão de 2 de Agosto, mais tarde — NIF obrigatório no onboarding
 
 Decisão fechada pelo Cesar: o NIF da empresa deixa de poder ficar como

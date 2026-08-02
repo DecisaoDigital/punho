@@ -169,6 +169,28 @@ void main() {
     expect(invocador.chamadas.single.corpo['info_host'], isA<Map>());
   });
 
+  test('registarTerminal envia nif quando fornecido', () async {
+    final invocador = _InvocadorFalso(
+      resposta: const FunctionResponse(status: 200, data: {'criado': true}),
+    );
+    final servico = PunhoLicencaService.comInvocador(invocador.call);
+
+    await servico.registarTerminal(machineId, nif: '509442129');
+
+    expect(invocador.chamadas.single.corpo['nif'], '509442129');
+  });
+
+  test('registarTerminal não envia nif quando omitido', () async {
+    final invocador = _InvocadorFalso(
+      resposta: const FunctionResponse(status: 200, data: {'criado': true}),
+    );
+    final servico = PunhoLicencaService.comInvocador(invocador.call);
+
+    await servico.registarTerminal(machineId);
+
+    expect(invocador.chamadas.single.corpo.containsKey('nif'), isFalse);
+  });
+
   test('registarTerminal não propaga erro de rede', () async {
     final invocador = _InvocadorFalso(erro: Exception('timeout'));
     final servico = PunhoLicencaService.comInvocador(invocador.call);

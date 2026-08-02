@@ -28,7 +28,7 @@ class _ServicoEspiao extends PunhoLicencaService {
   final registos = <String>[];
 
   @override
-  Future<void> registarTerminal(String machineId) async {
+  Future<void> registarTerminal(String machineId, {String? nif}) async {
     registos.add(machineId);
   }
 }

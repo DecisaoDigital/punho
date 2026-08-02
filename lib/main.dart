@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/cadeado/cadeado_gate.dart';
 import 'shared/widgets/splash_punho.dart';
 
+import 'core/empresa_sync/empresa_sync_service.dart';
 import 'core/licenca/licenca_provider.dart';
 import 'core/telemetria/pings_provider.dart';
 import 'core/licenca/licenca_service.dart';
@@ -62,9 +63,15 @@ Future<void> main() async {
 Future<void> _registarTerminal() async {
   try {
     final machineId = await resolverMachineId();
+    final client = Supabase.instance.client;
+    // Além de registar o terminal, aproveita para corrigir `licencas.nif`
+    // caso a empresa já tenha sincronizado um NIF real no servidor — é o
+    // único ponto em que a instalação se liga ao NIF depois de nascer com o
+    // placeholder '000000000' (ver EmpresaSyncService.buscarFicha).
+    final ficha = await EmpresaSyncService(client).buscarFicha();
     await PunhoLicencaService(
-      Supabase.instance.client,
-    ).registarTerminal(machineId);
+      client,
+    ).registarTerminal(machineId, nif: ficha?.nif);
   } catch (erro) {
     debugPrint('auto-onboarding falhou: $erro');
   }
