@@ -86,6 +86,36 @@ class FichaDaEmpresa {
       (nomeComercial != null && nomeComercial!.isNotEmpty) &&
       (nomeGestor != null && nomeGestor!.isNotEmpty);
 
+  /// O inverso de [FichaDaEmpresa.doServidor]: o payload jsonb que se envia à
+  /// Edge Function `sincronizar-empresa-punho`.
+  ///
+  /// Único sítio onde este mapa é montado. Antes de existir, o ecrã de
+  /// Definições da Empresa tinha a sua própria cópia privada — e o fim do
+  /// onboarding não tinha nenhuma, o que é a razão de as empresas chegarem ao
+  /// Control sem NIF e sem nome. As chaves têm de continuar exactamente estas:
+  /// é o que o trigger DB `punho_empresas_sync_licenca` lê para criar ou
+  /// actualizar a `licenca`.
+  Map<String, dynamic> paraPayload() => {
+    // `nif` e `nome_comercial` vão sempre como string (nunca `null`): é o
+    // trigger que decide se '' chega para preencher a licença, não a app.
+    'nif': nif ?? '',
+    'nome_comercial': nomeComercial ?? '',
+    'forma_juridica': formaJuridica ?? '',
+    'nome_gestor': nomeGestor,
+    'morada': morada,
+    'codigo_postal': codigoPostal,
+    'localidade': localidade,
+    'telefone': telefone,
+    'email': email,
+    'n_colaboradores': nColaboradores,
+    'n_veiculos': nVeiculos,
+    'n_maquinas': nMaquinas,
+    'facturacao_ano_passado_centavos': facturacaoAnoPassadoCentavos,
+    'facturacao_este_ano_centavos': facturacaoEsteAnoCentavos,
+    'manutencao_ano_passado_centavos': manutencaoAnoPassadoCentavos,
+    'custos_fixos_mensais_centavos': custosFixosMensaisCentavos,
+  };
+
   /// Grava-a como se o gestor a tivesse acabado de escrever no onboarding.
   void aplicarEm(OperationsController operacoes) {
     operacoes.completeOnboarding(

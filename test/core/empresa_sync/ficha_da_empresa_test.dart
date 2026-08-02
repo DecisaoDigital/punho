@@ -85,6 +85,30 @@ void main() {
     expect(ficha.custosFixosMensaisCentavos, 845000);
   });
 
+  test('paraPayload devolve exactamente as chaves que o trigger DB lê', () {
+    // O ecrã de Definições e o fim do onboarding partilham este método — se
+    // uma chave mudasse aqui sem mudar no trigger `punho_empresas_sync_licenca`,
+    // a licença parava de se actualizar em silêncio.
+    final ficha = FichaDaEmpresa.doServidor(terraforte);
+
+    expect(ficha.paraPayload(), terraforte);
+  });
+
+  test('paraPayload nunca manda nif/nome/forma jurídica como null', () {
+    // São as três chaves que o trigger exige para criar a licença. Uma ficha
+    // sem elas manda string vazia, não `null` — é a diferença entre "ainda
+    // não sei" e "não mandei nada".
+    const ficha = FichaDaEmpresa();
+
+    final payload = ficha.paraPayload();
+
+    expect(payload['nif'], '');
+    expect(payload['nome_comercial'], '');
+    expect(payload['forma_juridica'], '');
+    expect(payload['nome_gestor'], isNull);
+    expect(payload['n_colaboradores'], 0);
+  });
+
   test('sem veículos declarados, não se declara frota', () {
     // `hasFleet` a true com zero veículos põe o painel a pedir dados de uma
     // frota que não existe.
