@@ -9,6 +9,7 @@ import '../../../shared/widgets/brand_lockup.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../../core/empresa_sync/empresa_sync_controller.dart';
 import '../../../core/empresa_sync/ficha_da_empresa.dart';
+import '../../../core/format/campos.dart';
 import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/theme/punho_theme.dart';
@@ -117,10 +118,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           companyAddress: _optional(address.text),
           companyPostalCode: _optional(postalCode.text),
           companyLocality: _optional(locality.text),
-          revenueLastYearCents: _euroCents(revenueLastYear.text),
-          revenueThisYearCents: _euroCents(revenueThisYear.text),
-          maintenanceLastYearCents: _euroCents(maintenanceLastYear.text),
-          fixedMonthlyCostsCents: _euroCents(fixedMonthlyCosts.text),
+          revenueLastYearCents: centsDeTexto(revenueLastYear.text),
+          revenueThisYearCents: centsDeTexto(revenueThisYear.text),
+          maintenanceLastYearCents: centsDeTexto(maintenanceLastYear.text),
+          fixedMonthlyCostsCents: centsDeTexto(fixedMonthlyCosts.text),
         );
     // Best-effort e invisível, como em Definições da Empresa: sem isto a
     // ficha só chegava ao servidor se o gestor mais tarde abrisse Definições
@@ -160,10 +161,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       nColaboradores: collaborators,
       nVeiculos: vehicles,
       nMaquinas: machines,
-      facturacaoAnoPassadoCentavos: _euroCents(revenueLastYear.text),
-      facturacaoEsteAnoCentavos: _euroCents(revenueThisYear.text),
-      manutencaoAnoPassadoCentavos: _euroCents(maintenanceLastYear.text),
-      custosFixosMensaisCentavos: _euroCents(fixedMonthlyCosts.text),
+      facturacaoAnoPassadoCentavos: centsDeTexto(revenueLastYear.text),
+      facturacaoEsteAnoCentavos: centsDeTexto(revenueThisYear.text),
+      manutencaoAnoPassadoCentavos: centsDeTexto(maintenanceLastYear.text),
+      custosFixosMensaisCentavos: centsDeTexto(fixedMonthlyCosts.text),
     ).paraPayload();
   }
 
@@ -555,16 +556,6 @@ String? _optional(String value) {
   return trimmed.isEmpty ? null : trimmed;
 }
 
-int? _euroCents(String value) {
-  final raw = value.trim().replaceAll(' ', '');
-  if (raw.isEmpty) return null;
-  final normalized = raw.contains(',')
-      ? raw.replaceAll('.', '').replaceAll(',', '.')
-      : raw;
-  final amount = double.tryParse(normalized);
-  return amount == null || amount < 0 ? null : (amount * 100).round();
-}
-
 class _EuroInput extends StatelessWidget {
   const _EuroInput({required this.controller, required this.label});
   final TextEditingController controller;
@@ -800,12 +791,12 @@ class _InitialDataTasksPageState extends ConsumerState<InitialDataTasksPage> {
                       companyAddress: _optional(address.text),
                       companyPostalCode: _optional(postalCode.text),
                       companyLocality: _optional(locality.text),
-                      revenueLastYearCents: _euroCents(revenueLastYear.text),
-                      revenueThisYearCents: _euroCents(revenueThisYear.text),
-                      maintenanceLastYearCents: _euroCents(
+                      revenueLastYearCents: centsDeTexto(revenueLastYear.text),
+                      revenueThisYearCents: centsDeTexto(revenueThisYear.text),
+                      maintenanceLastYearCents: centsDeTexto(
                         maintenanceLastYear.text,
                       ),
-                      fixedMonthlyCostsCents: _euroCents(
+                      fixedMonthlyCostsCents: centsDeTexto(
                         fixedMonthlyCosts.text,
                       ),
                     );
@@ -984,12 +975,12 @@ class _HistoricalMonthEditorState
                       HistoricalMonth(
                         year: widget.year,
                         month: widget.month,
-                        revenueReceivedCents: _euroCents(revenue.text),
-                        paidExpensesCents: _euroCents(expenses.text),
-                        advertisingSpendCents: _euroCents(advertising.text),
+                        revenueReceivedCents: centsDeTexto(revenue.text),
+                        paidExpensesCents: centsDeTexto(expenses.text),
+                        advertisingSpendCents: centsDeTexto(advertising.text),
                         leadsReceived: _wholeNumber(leads.text),
                         convertedLeads: _wholeNumber(converted.text),
-                        maintenanceCents: _euroCents(maintenance.text),
+                        maintenanceCents: centsDeTexto(maintenance.text),
                       ),
                     );
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -1468,7 +1459,7 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
                 reference: reference.text,
                 category: category.text,
                 status: status,
-                dailyRateCents: _moneyCents(dailyRate.text),
+                dailyRateCents: centsDeTexto(dailyRate.text),
                 notes: notes.text.trim(),
                 photoPaths: photoPaths.value,
               )
@@ -1478,7 +1469,7 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
                 reference: reference.text,
                 category: category.text,
                 status: status,
-                dailyRateCents: _moneyCents(dailyRate.text),
+                dailyRateCents: centsDeTexto(dailyRate.text),
                 notes: notes.text.trim(),
                 photoPaths: photoPaths.value,
               );
@@ -1856,30 +1847,25 @@ class _FormularioDeClienteState extends State<_FormularioDeCliente> {
         if (anterior == null) {
           try {
             final novoId = 'c${DateTime.now().microsecondsSinceEpoch}';
-            widget.notifier
-                .addCustomer(
-                  Customer(
-                    id: novoId,
-                    name: name.text.trim(),
-                    phone: phone.text.trim(),
-                    taxId: taxId.text.trim().isEmpty
-                        ? null
-                        : taxId.text.trim(),
-                    email: email.text.trim().isEmpty
-                        ? null
-                        : email.text.trim(),
-                    address: address.text.trim().isEmpty
-                        ? null
-                        : address.text.trim(),
-                    postalCode: postalCode.text.trim().isEmpty
-                        ? null
-                        : postalCode.text.trim(),
-                    locality: locality.text.trim().isEmpty
-                        ? null
-                        : locality.text.trim(),
-                    notes: notes.text.trim(),
-                  ),
-                );
+            widget.notifier.addCustomer(
+              Customer(
+                id: novoId,
+                name: name.text.trim(),
+                phone: phone.text.trim(),
+                taxId: taxId.text.trim().isEmpty ? null : taxId.text.trim(),
+                email: email.text.trim().isEmpty ? null : email.text.trim(),
+                address: address.text.trim().isEmpty
+                    ? null
+                    : address.text.trim(),
+                postalCode: postalCode.text.trim().isEmpty
+                    ? null
+                    : postalCode.text.trim(),
+                locality: locality.text.trim().isEmpty
+                    ? null
+                    : locality.text.trim(),
+                notes: notes.text.trim(),
+              ),
+            );
             Navigator.pop(context, novoId);
           } on StateError catch (error) {
             setState(() => erro = error.message.toString());
@@ -1930,12 +1916,13 @@ class _FormularioDeClienteState extends State<_FormularioDeCliente> {
   }
 }
 
-Future<void> _leadDialog(BuildContext context, WidgetRef ref) => showDialog<void>(
-  context: context,
-  barrierDismissible: false,
-  builder: (_) =>
-      _FormularioDeLead(notifier: ref.read(operationsProvider.notifier)),
-);
+Future<void> _leadDialog(BuildContext context, WidgetRef ref) =>
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) =>
+          _FormularioDeLead(notifier: ref.read(operationsProvider.notifier)),
+    );
 
 /// Tal como o [_FormularioDeMaquina] e o [_FormularioDeCliente], é um widget
 /// com estado porque é ele quem tem de ser dono dos controladores.
@@ -3088,6 +3075,12 @@ class _FormularioDeConfirmacaoDeReservaState
   final expectedValue = TextEditingController();
   final notes = TextEditingController();
 
+  /// Recusa a mostrar-se dentro do diálogo, como no formulário de cliente —
+  /// ver [DialogoDeFormulario.aviso]. Nada de gravar um valor inventado
+  /// (nem `null` disfarçado de "sem valor") quando o texto escrito não dá
+  /// para ler: quem escreveu lixo tem de o ver.
+  String? erro;
+
   String? _clienteInicial() {
     final customers = ref.read(operationsProvider).customers;
     return customers.isEmpty ? null : customers.first.id;
@@ -3102,210 +3095,198 @@ class _FormularioDeConfirmacaoDeReservaState
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Confirmar reserva'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.precision_manufacturing_outlined),
-              title: Text(
-                '${widget.machine.name} · ${widget.machine.reference}',
-              ),
-              subtitle: Text(
-                _calendarPeriodLabel(
-                  DateTimeRange(start: widget.startsAt, end: widget.endsAt),
-                ),
+    return DialogoDeFormulario(
+      titulo: 'Confirmar reserva',
+      rotuloGuardar: 'Gravar reserva',
+      aviso: erro,
+      corpo: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.precision_manufacturing_outlined),
+            title: Text('${widget.machine.name} · ${widget.machine.reference}'),
+            subtitle: Text(
+              _calendarPeriodLabel(
+                DateTimeRange(start: widget.startsAt, end: widget.endsAt),
               ),
             ),
-            const SizedBox(height: 8),
-            // Lido do provider a cada reconstrução, e não da fotografia
-            // inicial: um cliente criado agora mesmo tem de aparecer já aqui.
-            Builder(
-              builder: (context) {
-                final estado = ref.watch(operationsProvider);
-                final todos = estado.customers;
-                final semReserva = clientesSemReservaNoPeriodo(
-                  todos,
-                  estado.bookings,
-                  widget.periodoEmVista,
-                );
-                final clientes = soSemReserva ? semReserva : todos;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SegmentedButton<bool>(
-                      showSelectedIcon: false,
-                      style: SegmentedButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      segments: [
-                        ButtonSegment(
-                          value: false,
-                          label: Text('Todos (${todos.length})'),
-                        ),
-                        ButtonSegment(
-                          value: true,
-                          // O rótulo diz o período em vista — "esta semana"
-                          // ou "este mês" — porque sem isso "sem reserva" não
-                          // responde à pergunta "sem reserva quando?".
-                          label: Text(
-                            'Sem reserva ${widget.rotuloDoPeriodo} '
-                            '(${semReserva.length})',
-                          ),
-                        ),
-                      ],
-                      selected: {soSemReserva},
-                      onSelectionChanged: (escolha) => setState(() {
-                        soSemReserva = escolha.first;
-                        // O cliente escolhido pode ter acabado de sair da
-                        // lista: deixá-lo seleccionado punha o dropdown com
-                        // um valor que não está nos itens, e isso rebenta.
-                        if (!clientesContem(
-                          soSemReserva ? semReserva : todos,
-                          customerId,
-                        )) {
-                          customerId = null;
-                        }
-                      }),
+          ),
+          const SizedBox(height: 8),
+          // Lido do provider a cada reconstrução, e não da fotografia
+          // inicial: um cliente criado agora mesmo tem de aparecer já aqui.
+          Builder(
+            builder: (context) {
+              final estado = ref.watch(operationsProvider);
+              final todos = estado.customers;
+              final semReserva = clientesSemReservaNoPeriodo(
+                todos,
+                estado.bookings,
+                widget.periodoEmVista,
+              );
+              final clientes = soSemReserva ? semReserva : todos;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SegmentedButton<bool>(
+                    showSelectedIcon: false,
+                    style: SegmentedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
                     ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      initialValue: customerId,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText: 'Cliente',
-                        hintText: clientes.isEmpty
-                            ? 'Ainda não tens clientes — cria o primeiro'
-                            : null,
+                    segments: [
+                      ButtonSegment(
+                        value: false,
+                        label: Text('Todos (${todos.length})'),
                       ),
-                      items: [
-                        for (final customer in clientes)
-                          DropdownMenuItem(
-                            value: customer.id,
-                            child: Text(
-                              '${customer.name}${customer.phone.isEmpty ? '' : ' · ${customer.phone}'}',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        const DropdownMenuItem(
-                          value: _novoClienteNaReserva,
-                          child: Row(
-                            children: [
-                              Icon(Icons.person_add_alt, size: 18),
-                              SizedBox(width: 8),
-                              Text('Novo cliente…'),
-                            ],
+                      ButtonSegment(
+                        value: true,
+                        // O rótulo diz o período em vista — "esta semana"
+                        // ou "este mês" — porque sem isso "sem reserva" não
+                        // responde à pergunta "sem reserva quando?".
+                        label: Text(
+                          'Sem reserva ${widget.rotuloDoPeriodo} '
+                          '(${semReserva.length})',
+                        ),
+                      ),
+                    ],
+                    selected: {soSemReserva},
+                    onSelectionChanged: (escolha) => setState(() {
+                      soSemReserva = escolha.first;
+                      // O cliente escolhido pode ter acabado de sair da
+                      // lista: deixá-lo seleccionado punha o dropdown com
+                      // um valor que não está nos itens, e isso rebenta.
+                      if (!clientesContem(
+                        soSemReserva ? semReserva : todos,
+                        customerId,
+                      )) {
+                        customerId = null;
+                      }
+                    }),
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    initialValue: customerId,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: 'Cliente',
+                      hintText: clientes.isEmpty
+                          ? 'Ainda não tens clientes — cria o primeiro'
+                          : null,
+                    ),
+                    items: [
+                      for (final customer in clientes)
+                        DropdownMenuItem(
+                          value: customer.id,
+                          child: Text(
+                            '${customer.name}${customer.phone.isEmpty ? '' : ' · ${customer.phone}'}',
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ],
-                      onChanged: (value) async {
-                        if (value == null) return;
-                        if (value != _novoClienteNaReserva) {
-                          setState(() => customerId = value);
-                          return;
-                        }
-                        final novo = await _customerDialog(context, ref);
-                        if (novo != null) {
-                          setState(() => customerId = novo);
-                        } else {
-                          // Desistiu de criar: repõe o que estava, senão o campo
-                          // ficava preso em "Novo cliente…".
-                          setState(() {});
-                        }
-                      },
-                    ),
-                  ],
-                );
-              },
-            ),
-            DropdownButtonFormField<BookingStatus>(
-              initialValue: status,
-              decoration: const InputDecoration(labelText: 'Estado inicial'),
-              items: const [
-                DropdownMenuItem(
-                  value: BookingStatus.request,
-                  child: Text('Pedido'),
-                ),
-                DropdownMenuItem(
-                  value: BookingStatus.proposalSent,
-                  child: Text('Proposta enviada'),
-                ),
-                DropdownMenuItem(
-                  value: BookingStatus.confirmed,
-                  child: Text('Confirmada'),
-                ),
-              ],
-              onChanged: (value) => setState(() => status = value!),
-            ),
-            TextField(
-              controller: expectedValue,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+                      const DropdownMenuItem(
+                        value: _novoClienteNaReserva,
+                        child: Row(
+                          children: [
+                            Icon(Icons.person_add_alt, size: 18),
+                            SizedBox(width: 8),
+                            Text('Novo cliente…'),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) async {
+                      if (value == null) return;
+                      if (value != _novoClienteNaReserva) {
+                        setState(() => customerId = value);
+                        return;
+                      }
+                      final novo = await _customerDialog(context, ref);
+                      if (novo != null) {
+                        setState(() => customerId = novo);
+                      } else {
+                        // Desistiu de criar: repõe o que estava, senão o campo
+                        // ficava preso em "Novo cliente…".
+                        setState(() {});
+                      }
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+          DropdownButtonFormField<BookingStatus>(
+            initialValue: status,
+            decoration: const InputDecoration(labelText: 'Estado inicial'),
+            items: const [
+              DropdownMenuItem(
+                value: BookingStatus.request,
+                child: Text('Pedido'),
               ),
-              decoration: const InputDecoration(
-                labelText: 'Valor previsto (€)',
+              DropdownMenuItem(
+                value: BookingStatus.proposalSent,
+                child: Text('Proposta enviada'),
               ),
-            ),
-            TextField(
-              controller: notes,
-              maxLines: 2,
-              decoration: const InputDecoration(labelText: 'Notas'),
-            ),
-          ],
-        ),
+              DropdownMenuItem(
+                value: BookingStatus.confirmed,
+                child: Text('Confirmada'),
+              ),
+            ],
+            onChanged: (value) => setState(() => status = value!),
+          ),
+          TextField(
+            controller: expectedValue,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(labelText: 'Valor previsto (€)'),
+          ),
+          TextField(
+            controller: notes,
+            maxLines: 2,
+            decoration: const InputDecoration(labelText: 'Notas'),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          // Sem cliente não há reserva. Desactivar diz isso melhor do que
-          // deixar carregar e mostrar um erro depois.
-          onPressed: customerId == null
-              ? null
-              : () {
-                  final cents =
-                      ((double.tryParse(
-                                    expectedValue.text.replaceAll(',', '.'),
-                                  ) ??
-                                  0) *
-                              100)
-                          .round();
-                  final conflict = ref
-                      .read(operationsProvider.notifier)
-                      .addBooking(
-                        Booking(
-                          id: 'b${DateTime.now().microsecondsSinceEpoch}',
-                          customerId: customerId!,
-                          machineIds: [widget.machine.id],
-                          startsAt: widget.startsAt,
-                          endsAt: widget.endsAt,
-                          status: status,
-                          expectedValueCents: cents > 0 ? cents : null,
-                          collaboratorResponsibleId: widget.responsibleId,
-                          notes: notes.text.trim(),
-                        ),
-                      );
-                  if (conflict != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Conflito: ${conflict.machine.name} já está ocupada.',
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-                  Navigator.pop(context, true);
-                },
-          child: const Text('Gravar reserva'),
-        ),
-      ],
+      aoGuardar: () {
+        // Sem cliente não há reserva.
+        if (customerId == null) {
+          setState(() => erro = 'Escolhe um cliente para confirmar a reserva.');
+          return;
+        }
+        final textoValor = expectedValue.text.trim();
+        final cents = centsDeTexto(expectedValue.text);
+        // Vazio é legítimo — nem toda a reserva tem valor previsto à
+        // cabeça. Texto que não se consegue ler é sempre erro: gravar em
+        // silêncio inventava um valor de zero.
+        if (textoValor.isNotEmpty && cents == null) {
+          setState(
+            () => erro =
+                'Valor previsto: não percebi "$textoValor" — escreve, por '
+                'exemplo, 1.500,00.',
+          );
+          return;
+        }
+        final conflict = ref
+            .read(operationsProvider.notifier)
+            .addBooking(
+              Booking(
+                id: 'b${DateTime.now().microsecondsSinceEpoch}',
+                customerId: customerId!,
+                machineIds: [widget.machine.id],
+                startsAt: widget.startsAt,
+                endsAt: widget.endsAt,
+                status: status,
+                expectedValueCents: cents,
+                collaboratorResponsibleId: widget.responsibleId,
+                notes: notes.text.trim(),
+              ),
+            );
+        if (conflict != null) {
+          setState(
+            () => erro = 'Conflito: ${conflict.machine.name} já está ocupada.',
+          );
+          return;
+        }
+        Navigator.pop(context, true);
+      },
     );
   }
 }
@@ -3376,8 +3357,7 @@ class _FormularioDeMarcacao extends ConsumerStatefulWidget {
       _FormularioDeMarcacaoState();
 }
 
-class _FormularioDeMarcacaoState
-    extends ConsumerState<_FormularioDeMarcacao> {
+class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
   // Fotografia do estado no instante em que o diálogo abriu, tal como
   // acontecia antes com o `state` capturado uma vez pela função que abria o
   // `showDialog`: um cliente ou máquina criados enquanto o diálogo está
@@ -3395,6 +3375,9 @@ class _FormularioDeMarcacaoState
   late String? collaboratorId = widget.responsibleId;
   final expectedValue = TextEditingController();
   final notes = TextEditingController();
+
+  /// Recusa a mostrar-se dentro do diálogo — ver [DialogoDeFormulario.aviso].
+  String? erro;
 
   @override
   void dispose() {
@@ -3421,266 +3404,254 @@ class _FormularioDeMarcacaoState
           ? availableMachines.first.id
           : state.machines.firstWhere((machine) => !machine.archived).id;
     }
-    return AlertDialog(
-      title: const Text('Nova marcação / reserva'),
-      content: SingleChildScrollView(
-        child: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                initialValue: customerId,
-                decoration: const InputDecoration(labelText: 'Cliente'),
-                items: state.customers
-                    .map(
-                      (customer) => DropdownMenuItem(
-                        value: customer.id,
-                        child: Text(customer.name),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) => setState(() => customerId = value!),
-              ),
-              DropdownButtonFormField<String>(
-                initialValue: machineId,
-                decoration: const InputDecoration(labelText: 'Máquina'),
-                items:
-                    (availableMachines.isEmpty
-                            ? state.machines
-                                  .where((machine) => !machine.archived)
-                                  .toList()
-                            : availableMachines)
-                        .map(
-                          (machine) => DropdownMenuItem(
-                            value: machine.id,
-                            child: Text(
-                              '${machine.name} · ${machine.reference}',
-                            ),
-                          ),
-                        )
-                        .toList(),
-                onChanged: availableMachines.isEmpty
-                    ? null
-                    : (value) => setState(() => machineId = value!),
-              ),
-              DropdownButtonFormField<_BookingDuration>(
-                initialValue: duration,
-                decoration: const InputDecoration(labelText: 'Duração'),
+    return DialogoDeFormulario(
+      titulo: 'Nova marcação / reserva',
+      rotuloGuardar: 'Guardar marcação',
+      aviso: erro,
+      corpo: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: customerId,
+              decoration: const InputDecoration(labelText: 'Cliente'),
+              items: state.customers
+                  .map(
+                    (customer) => DropdownMenuItem(
+                      value: customer.id,
+                      child: Text(customer.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) => setState(() => customerId = value!),
+            ),
+            DropdownButtonFormField<String>(
+              initialValue: machineId,
+              decoration: const InputDecoration(labelText: 'Máquina'),
+              items:
+                  (availableMachines.isEmpty
+                          ? state.machines
+                                .where((machine) => !machine.archived)
+                                .toList()
+                          : availableMachines)
+                      .map(
+                        (machine) => DropdownMenuItem(
+                          value: machine.id,
+                          child: Text('${machine.name} · ${machine.reference}'),
+                        ),
+                      )
+                      .toList(),
+              onChanged: availableMachines.isEmpty
+                  ? null
+                  : (value) => setState(() => machineId = value!),
+            ),
+            DropdownButtonFormField<_BookingDuration>(
+              initialValue: duration,
+              decoration: const InputDecoration(labelText: 'Duração'),
+              items: const [
+                DropdownMenuItem(
+                  value: _BookingDuration.halfDay,
+                  child: Text('Meio dia'),
+                ),
+                DropdownMenuItem(
+                  value: _BookingDuration.fullDay,
+                  child: Text('Dia inteiro'),
+                ),
+                DropdownMenuItem(
+                  value: _BookingDuration.multipleDays,
+                  child: Text('Vários dias seguidos'),
+                ),
+              ],
+              onChanged: (value) => setState(() {
+                duration = value!;
+                if (duration != _BookingDuration.multipleDays) {
+                  endDate = startDate;
+                }
+              }),
+            ),
+            if (duration == _BookingDuration.halfDay)
+              DropdownButtonFormField<_HalfDay>(
+                initialValue: halfDay,
+                decoration: const InputDecoration(labelText: 'Período'),
                 items: const [
                   DropdownMenuItem(
-                    value: _BookingDuration.halfDay,
-                    child: Text('Meio dia'),
+                    value: _HalfDay.morning,
+                    child: Text('Manhã'),
                   ),
                   DropdownMenuItem(
-                    value: _BookingDuration.fullDay,
-                    child: Text('Dia inteiro'),
-                  ),
-                  DropdownMenuItem(
-                    value: _BookingDuration.multipleDays,
-                    child: Text('Vários dias seguidos'),
+                    value: _HalfDay.afternoon,
+                    child: Text('Tarde'),
                   ),
                 ],
-                onChanged: (value) => setState(() {
-                  duration = value!;
-                  if (duration != _BookingDuration.multipleDays) {
-                    endDate = startDate;
-                  }
-                }),
+                onChanged: (value) => setState(() => halfDay = value!),
               ),
-              if (duration == _BookingDuration.halfDay)
-                DropdownButtonFormField<_HalfDay>(
-                  initialValue: halfDay,
-                  decoration: const InputDecoration(labelText: 'Período'),
-                  items: const [
-                    DropdownMenuItem(
-                      value: _HalfDay.morning,
-                      child: Text('Manhã'),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Período'),
+              subtitle: Text(
+                _bookingDatesLabel(startDate, endDate, duration, halfDay),
+              ),
+              trailing: const Icon(Icons.date_range_outlined),
+              onTap: () async {
+                if (duration == _BookingDuration.multipleDays) {
+                  final range = await showDateRangePicker(
+                    context: context,
+                    firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                    lastDate: DateTime.now().add(const Duration(days: 730)),
+                    initialDateRange: DateTimeRange(
+                      start: startDate,
+                      end: endDate,
                     ),
-                    DropdownMenuItem(
-                      value: _HalfDay.afternoon,
-                      child: Text('Tarde'),
-                    ),
-                  ],
-                  onChanged: (value) => setState(() => halfDay = value!),
+                  );
+                  if (range == null) return;
+                  setState(() {
+                    startDate = DateUtils.dateOnly(range.start);
+                    endDate = DateUtils.dateOnly(range.end);
+                  });
+                  return;
+                }
+                final date = await showDatePicker(
+                  context: context,
+                  firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                  lastDate: DateTime.now().add(const Duration(days: 730)),
+                  initialDate: startDate,
+                );
+                if (date == null) return;
+                setState(() {
+                  startDate = DateUtils.dateOnly(date);
+                  endDate = startDate;
+                });
+              },
+            ),
+            DropdownButtonFormField<BookingStatus>(
+              initialValue: status,
+              decoration: const InputDecoration(labelText: 'Estado inicial'),
+              items: const [
+                DropdownMenuItem(
+                  value: BookingStatus.request,
+                  child: Text('Pedido'),
                 ),
+                DropdownMenuItem(
+                  value: BookingStatus.proposalSent,
+                  child: Text('Proposta enviada'),
+                ),
+                DropdownMenuItem(
+                  value: BookingStatus.confirmed,
+                  child: Text('Confirmada'),
+                ),
+              ],
+              onChanged: (value) => setState(() => status = value!),
+            ),
+            if (widget.responsibleId == null)
+              DropdownButtonFormField<String?>(
+                initialValue: collaboratorId,
+                decoration: const InputDecoration(labelText: 'Responsável'),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('Gestor'),
+                  ),
+                  ...state.collaborators
+                      .where((collaborator) => !collaborator.archived)
+                      .map(
+                        (collaborator) => DropdownMenuItem<String?>(
+                          value: collaborator.id,
+                          child: Text(collaborator.name),
+                        ),
+                      ),
+                ],
+                onChanged: (value) => setState(() => collaboratorId = value),
+              )
+            else
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Período'),
+                leading: const Icon(Icons.person_outline),
+                title: const Text('Registada por'),
                 subtitle: Text(
-                  _bookingDatesLabel(startDate, endDate, duration, halfDay),
-                ),
-                trailing: const Icon(Icons.date_range_outlined),
-                onTap: () async {
-                  if (duration == _BookingDuration.multipleDays) {
-                    final range = await showDateRangePicker(
-                      context: context,
-                      firstDate: DateTime.now().subtract(
-                        const Duration(days: 1),
-                      ),
-                      lastDate: DateTime.now().add(const Duration(days: 730)),
-                      initialDateRange: DateTimeRange(
-                        start: startDate,
-                        end: endDate,
-                      ),
-                    );
-                    if (range == null) return;
-                    setState(() {
-                      startDate = DateUtils.dateOnly(range.start);
-                      endDate = DateUtils.dateOnly(range.end);
-                    });
-                    return;
-                  }
-                  final date = await showDatePicker(
-                    context: context,
-                    firstDate: DateTime.now().subtract(
-                      const Duration(days: 1),
-                    ),
-                    lastDate: DateTime.now().add(const Duration(days: 730)),
-                    initialDate: startDate,
-                  );
-                  if (date == null) return;
-                  setState(() {
-                    startDate = DateUtils.dateOnly(date);
-                    endDate = startDate;
-                  });
-                },
-              ),
-              DropdownButtonFormField<BookingStatus>(
-                initialValue: status,
-                decoration: const InputDecoration(labelText: 'Estado inicial'),
-                items: const [
-                  DropdownMenuItem(
-                    value: BookingStatus.request,
-                    child: Text('Pedido'),
-                  ),
-                  DropdownMenuItem(
-                    value: BookingStatus.proposalSent,
-                    child: Text('Proposta enviada'),
-                  ),
-                  DropdownMenuItem(
-                    value: BookingStatus.confirmed,
-                    child: Text('Confirmada'),
-                  ),
-                ],
-                onChanged: (value) => setState(() => status = value!),
-              ),
-              if (widget.responsibleId == null)
-                DropdownButtonFormField<String?>(
-                  initialValue: collaboratorId,
-                  decoration: const InputDecoration(labelText: 'Responsável'),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('Gestor'),
-                    ),
-                    ...state.collaborators
-                        .where((collaborator) => !collaborator.archived)
-                        .map(
-                          (collaborator) => DropdownMenuItem<String?>(
-                            value: collaborator.id,
-                            child: Text(collaborator.name),
-                          ),
-                        ),
-                  ],
-                  onChanged: (value) => setState(() => collaboratorId = value),
-                )
-              else
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.person_outline),
-                  title: const Text('Registada por'),
-                  subtitle: Text(
-                    state.collaborators
-                            .where(
-                              (collaborator) =>
-                                  collaborator.id == widget.responsibleId,
-                            )
-                            .map((collaborator) => collaborator.name)
-                            .firstOrNull ??
-                        'Colaborador',
-                  ),
-                ),
-              TextField(
-                controller: expectedValue,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(
-                  labelText: 'Valor previsto (€)',
+                  state.collaborators
+                          .where(
+                            (collaborator) =>
+                                collaborator.id == widget.responsibleId,
+                          )
+                          .map((collaborator) => collaborator.name)
+                          .firstOrNull ??
+                      'Colaborador',
                 ),
               ),
-              TextField(
-                controller: notes,
-                maxLines: 2,
-                decoration: const InputDecoration(labelText: 'Notas'),
+            TextField(
+              controller: expectedValue,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
               ),
-              if (availableMachines.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 12),
-                  child: Text('Não há máquinas disponíveis neste período.'),
-                ),
-            ],
-          ),
+              decoration: const InputDecoration(
+                labelText: 'Valor previsto (€)',
+              ),
+            ),
+            TextField(
+              controller: notes,
+              maxLines: 2,
+              decoration: const InputDecoration(labelText: 'Notas'),
+            ),
+            if (availableMachines.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 12),
+                child: Text('Não há máquinas disponíveis neste período.'),
+              ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: availableMachines.isEmpty
-              ? null
-              : () {
-                  final cents =
-                      ((double.tryParse(
-                                    expectedValue.text.replaceAll(',', '.'),
-                                  ) ??
-                                  0) *
-                              100)
-                          .round();
-                  // addBooking valida duração mínima, máquinas por
-                  // identificar e máquinas paradas com ArgumentError. Sem
-                  // este try a excepção subia por tratar e rebentava o ecrã.
-                  final BookingConflict? conflict;
-                  try {
-                    conflict = ref
-                        .read(operationsProvider.notifier)
-                        .addBooking(
-                          Booking(
-                            id: 'b${DateTime.now().microsecondsSinceEpoch}',
-                            customerId: customerId,
-                            machineIds: [machineId],
-                            startsAt: startsAt,
-                            endsAt: endsAt,
-                            status: status,
-                            expectedValueCents: cents > 0 ? cents : null,
-                            collaboratorResponsibleId: collaboratorId,
-                            notes: notes.text.trim(),
-                          ),
-                        );
-                  } on ArgumentError catch (error) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('${error.message}')),
-                    );
-                    return;
-                  }
-                  if (conflict != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Conflito: ${conflict.machine.name} já está ocupada.',
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-                  Navigator.pop(context);
-                },
-          child: const Text('Guardar marcação'),
-        ),
-      ],
+      aoGuardar: () {
+        if (availableMachines.isEmpty) {
+          setState(() => erro = 'Não há máquinas disponíveis neste período.');
+          return;
+        }
+        final textoValor = expectedValue.text.trim();
+        final cents = centsDeTexto(expectedValue.text);
+        // Vazio é legítimo — nem toda a marcação tem valor previsto à
+        // cabeça. Texto que não se consegue ler é sempre erro: gravar em
+        // silêncio inventava um valor de zero.
+        if (textoValor.isNotEmpty && cents == null) {
+          setState(
+            () => erro =
+                'Valor previsto: não percebi "$textoValor" — escreve, por '
+                'exemplo, 1.500,00.',
+          );
+          return;
+        }
+        // addBooking valida duração mínima, máquinas por identificar e
+        // máquinas paradas com ArgumentError. Sem este try a excepção subia
+        // por tratar e rebentava o ecrã.
+        final BookingConflict? conflict;
+        try {
+          conflict = ref
+              .read(operationsProvider.notifier)
+              .addBooking(
+                Booking(
+                  id: 'b${DateTime.now().microsecondsSinceEpoch}',
+                  customerId: customerId,
+                  machineIds: [machineId],
+                  startsAt: startsAt,
+                  endsAt: endsAt,
+                  status: status,
+                  expectedValueCents: cents,
+                  collaboratorResponsibleId: collaboratorId,
+                  notes: notes.text.trim(),
+                ),
+              );
+        } on ArgumentError catch (error) {
+          setState(() => erro = '${error.message}');
+          return;
+        }
+        if (conflict != null) {
+          final maquinaEmConflito = conflict.machine.name;
+          setState(
+            () => erro = 'Conflito: $maquinaEmConflito já está ocupada.',
+          );
+          return;
+        }
+        Navigator.pop(context);
+      },
     );
   }
 }
@@ -3732,12 +3703,6 @@ String _bookingDatesLabel(
     _BookingDuration.multipleDays => 'Dias seguidos',
   };
   return '$dates · $detail';
-}
-
-int? _moneyCents(String value) {
-  if (value.trim().isEmpty) return null;
-  final parsed = double.tryParse(value.trim().replaceAll(',', '.'));
-  return parsed == null || parsed < 0 ? null : (parsed * 100).round();
 }
 
 String _date(DateTime value) =>
