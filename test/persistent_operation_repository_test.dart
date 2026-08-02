@@ -87,35 +87,41 @@ void main() {
     expect(repositorio.onboarding, isNull);
   });
 
-  test('archiveCustomer e archiveVehicle sobrevivem a recriar o repositório', (
-  ) async {
-    final primeiro = await PersistentOperationRepository.create();
-    primeiro.saveCustomer(
-      const Customer(id: 'c-arq', name: 'Cliente antigo', phone: '911 000 000'),
-    );
-    primeiro.saveVehicle(
-      const Vehicle(
-        id: 'v-arq',
-        plate: 'AA-11-BB',
-        type: 'Carrinha',
-        status: VehicleStatus.active,
-      ),
-    );
-    primeiro.archiveCustomer('c-arq');
-    primeiro.archiveVehicle('v-arq');
-    await Future<void>.delayed(Duration.zero);
+  test(
+    'archiveCustomer e archiveVehicle sobrevivem a recriar o repositório',
+    () async {
+      final primeiro = await PersistentOperationRepository.create();
+      primeiro.saveCustomer(
+        const Customer(
+          id: 'c-arq',
+          name: 'Cliente antigo',
+          phone: '911 000 000',
+        ),
+      );
+      primeiro.saveVehicle(
+        const Vehicle(
+          id: 'v-arq',
+          plate: 'AA-11-BB',
+          type: 'Carrinha',
+          status: VehicleStatus.active,
+        ),
+      );
+      primeiro.archiveCustomer('c-arq');
+      primeiro.archiveVehicle('v-arq');
+      await Future<void>.delayed(Duration.zero);
 
-    final restaurado = await PersistentOperationRepository.create();
+      final restaurado = await PersistentOperationRepository.create();
 
-    expect(
-      restaurado.customers.firstWhere((c) => c.id == 'c-arq').archived,
-      isTrue,
-    );
-    expect(
-      restaurado.vehicles.firstWhere((v) => v.id == 'v-arq').archived,
-      isTrue,
-    );
-  });
+      expect(
+        restaurado.customers.firstWhere((c) => c.id == 'c-arq').archived,
+        isTrue,
+      );
+      expect(
+        restaurado.vehicles.firstWhere((v) => v.id == 'v-arq').archived,
+        isTrue,
+      );
+    },
+  );
 
   test('cliente antigo sem "archived" no JSON lê-se como false', () async {
     SharedPreferences.setMockInitialValues({
@@ -129,6 +135,54 @@ void main() {
     final repositorio = await PersistentOperationRepository.create();
 
     expect(repositorio.customers.single.archived, isFalse);
+  });
+
+  test(
+    'purchasePriceCents e acquiredOn sobrevivem a recriar o repositório',
+    () async {
+      final primeiro = await PersistentOperationRepository.create();
+      primeiro.saveMachine(
+        Machine(
+          id: 'm-compra',
+          name: 'Mini escavadora',
+          reference: 'ME-09',
+          category: 'Escavação',
+          status: MachineStatus.available,
+          acquiredOn: DateTime(2023, 4, 12),
+          purchasePriceCents: 1850000,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final restaurado = await PersistentOperationRepository.create();
+
+      final maquina = restaurado.machines.firstWhere((m) => m.id == 'm-compra');
+      expect(maquina.acquiredOn, DateTime(2023, 4, 12));
+      expect(maquina.purchasePriceCents, 1850000);
+    },
+  );
+
+  test('máquina antiga sem "purchasePriceCents" no JSON lê-se como null, não '
+      'zero', () async {
+    SharedPreferences.setMockInitialValues({
+      'punho.operations.v1': jsonEncode({
+        'machines': [
+          {
+            'id': 'm-antiga',
+            'name': 'Máquina pré-histórica',
+            'reference': '',
+            'category': '',
+            'status': 'available',
+          },
+        ],
+      }),
+    });
+
+    final repositorio = await PersistentOperationRepository.create();
+
+    final maquina = repositorio.machines.single;
+    expect(maquina.purchasePriceCents, isNull);
+    expect(maquina.acquiredOn, isNull);
   });
 
   test('resetAll apaga o que estava guardado', () async {

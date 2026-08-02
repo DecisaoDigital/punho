@@ -1172,6 +1172,65 @@ Future<void> _confirmarEliminarMaquina(
   );
 }
 
+/// Eliminar cliente é soft-delete, como nas máquinas e nos colaboradores:
+/// confirmação + 6 segundos para anular. As reservas e recebimentos antigos
+/// deste cliente não se perdem — `archiveCustomer` só marca `archived`.
+Future<void> _confirmarEliminarCliente(
+  BuildContext context,
+  WidgetRef ref,
+  Customer customer,
+) async {
+  final confirmado = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => AlertDialog(
+      title: Text('Eliminar ${customer.name}?'),
+      content: const Text(
+        'A ficha sai da lista. Reservas e recebimentos antigos deste cliente '
+        'não se perdem.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Eliminar'),
+        ),
+      ],
+    ),
+  );
+  if (confirmado != true || !context.mounted) return;
+
+  final notifier = ref.read(operationsProvider.notifier);
+  notifier.archiveCustomer(customer.id);
+  if (!context.mounted) return;
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text('${customer.name} eliminado.'),
+      duration: const Duration(seconds: 6),
+      action: SnackBarAction(
+        label: 'Anular',
+        onPressed: () {
+          notifier.unarchiveCustomer(customer.id);
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Cliente restaurado.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+      ),
+    ),
+  );
+}
+
 /// O chip é o **único** controlo de estado: toca-se nele e escolhe-se.
 class _MachineStatusChip extends ConsumerWidget {
   const _MachineStatusChip({required this.machine});
@@ -1335,6 +1394,17 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
         ? ''
         : (current!.dailyRateCents! / 100).toStringAsFixed(2),
   );
+  // Os dois campos que faltavam para a célula "Utilização vs Rentabilidade"
+  // (`sintese_slide.dart:95-124`) sair de "Por apurar": sem eles há como
+  // contar dias alugados, mas não como dizer se isso compensou o que a
+  // máquina custou. Opcionais os dois — quem não souber grava a máquina na
+  // mesma, e a célula continua "Por apurar", agora com o motivo certo.
+  late final purchasePrice = TextEditingController(
+    text: current?.purchasePriceCents == null
+        ? ''
+        : (current!.purchasePriceCents! / 100).toStringAsFixed(2),
+  );
+  late var acquiredOn = current?.acquiredOn;
   late final notes = TextEditingController(text: current?.notes);
   late final photoPaths = ValueNotifier<List<String>>(
     List<String>.of(current?.photoPaths ?? const []),
@@ -1352,6 +1422,7 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
     reference.dispose();
     category.dispose();
     dailyRate.dispose();
+    purchasePrice.dispose();
     notes.dispose();
     photoPaths.dispose();
     super.dispose();
@@ -1384,6 +1455,31 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
         dailyRate,
         'Preço diário de aluguer (€)',
         teclado: const TextInputType.numberWithOptions(decimal: true),
+      ),
+      _campo(
+        purchasePrice,
+        'Valor de compra (€) — opcional',
+        teclado: const TextInputType.numberWithOptions(decimal: true),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Data de aquisição'),
+          subtitle: Text(
+            acquiredOn == null ? 'Não indicada' : _date(acquiredOn!),
+          ),
+          trailing: const Icon(Icons.event_outlined),
+          onTap: () async {
+            final escolhida = await showDatePicker(
+              context: context,
+              firstDate: DateTime(2000),
+              lastDate: DateTime.now(),
+              initialDate: acquiredOn ?? DateTime.now(),
+            );
+            if (escolhida != null) setState(() => acquiredOn = escolhida);
+          },
+        ),
       ),
       DropdownButtonFormField<MachineStatus>(
         initialValue: status,
@@ -1460,6 +1556,8 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
                 category: category.text,
                 status: status,
                 dailyRateCents: centsDeTexto(dailyRate.text),
+                acquiredOn: acquiredOn,
+                purchasePriceCents: centsDeTexto(purchasePrice.text),
                 notes: notes.text.trim(),
                 photoPaths: photoPaths.value,
               )
@@ -1470,6 +1568,8 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
                 category: category.text,
                 status: status,
                 dailyRateCents: centsDeTexto(dailyRate.text),
+                acquiredOn: acquiredOn,
+                purchasePriceCents: centsDeTexto(purchasePrice.text),
                 notes: notes.text.trim(),
                 photoPaths: photoPaths.value,
               );
@@ -1642,7 +1742,9 @@ class ClientsPage extends ConsumerWidget {
       child: ListView(
         children: [
           const Text('Clientes', style: TextStyle(fontWeight: FontWeight.w800)),
-          for (final c in state.customers)
+          // Um cliente arquivado não serve de nada se continuar na lista — é
+          // exactamente esse o ponto de o arquivar.
+          for (final c in state.customers.where((c) => !c.archived))
             Card(
               // Mesmo padrão do cartão de máquina: margem de 3 dp e ListTile
               // compacto, para caber mais linhas em landscape mobile.
@@ -1663,10 +1765,21 @@ class ClientsPage extends ConsumerWidget {
                 // Ecrã de detalhe do cliente: mesmo caminho do de máquina — o
                 // NIF, email, morada e notas que o servidor já traz não tinham
                 // onde aparecer.
-                trailing: IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  tooltip: 'Editar cliente',
-                  onPressed: () => _customerDialog(context, ref, c),
+                trailing: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Editar cliente',
+                      onPressed: () => _customerDialog(context, ref, c),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: 'Eliminar cliente',
+                      onPressed: () =>
+                          _confirmarEliminarCliente(context, ref, c),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -3082,7 +3195,10 @@ class _FormularioDeConfirmacaoDeReservaState
   String? erro;
 
   String? _clienteInicial() {
-    final customers = ref.read(operationsProvider).customers;
+    final customers = ref
+        .read(operationsProvider)
+        .customers
+        .where((c) => !c.archived);
     return customers.isEmpty ? null : customers.first.id;
   }
 
@@ -3119,7 +3235,7 @@ class _FormularioDeConfirmacaoDeReservaState
           Builder(
             builder: (context) {
               final estado = ref.watch(operationsProvider);
-              final todos = estado.customers;
+              final todos = estado.customers.where((c) => !c.archived).toList();
               final semReserva = clientesSemReservaNoPeriodo(
                 todos,
                 estado.bookings,
@@ -3310,7 +3426,7 @@ Future<void> _showBookingForm(
   _HalfDay? initialHalfDay,
 }) async {
   final state = ref.read(operationsProvider);
-  if (state.customers.isEmpty ||
+  if (state.customers.where((c) => !c.archived).isEmpty ||
       state.machines.where((m) => !m.archived).isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -3363,7 +3479,13 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
   // `showDialog`: um cliente ou máquina criados enquanto o diálogo está
   // aberto só aparecem da próxima vez que se abrir.
   late final state = ref.read(operationsProvider);
-  late var customerId = state.customers.first.id;
+  // Um cliente arquivado não é uma opção válida para uma marcação nova — só
+  // continua a existir para as reservas antigas continuarem a apontar para
+  // alguém.
+  late final activeCustomers = state.customers
+      .where((c) => !c.archived)
+      .toList();
+  late var customerId = activeCustomers.first.id;
   late var machineId = state.machines.firstWhere((m) => !m.archived).id;
   var status = BookingStatus.request;
   late var startDate = DateUtils.dateOnly(
@@ -3416,7 +3538,7 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
             DropdownButtonFormField<String>(
               initialValue: customerId,
               decoration: const InputDecoration(labelText: 'Cliente'),
-              items: state.customers
+              items: activeCustomers
                   .map(
                     (customer) => DropdownMenuItem(
                       value: customer.id,

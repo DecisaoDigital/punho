@@ -79,6 +79,7 @@ class Machine {
     required this.status,
     this.dailyRateCents,
     this.acquiredOn,
+    this.purchasePriceCents,
     this.notes = '',
     this.photoPaths = const [],
     this.archived = false,
@@ -88,6 +89,12 @@ class Machine {
   final MachineStatus status;
   final int? dailyRateCents;
   final DateTime? acquiredOn;
+
+  /// Valor de compra, em cêntimos. Opcional: quem não souber quanto pagou
+  /// pela máquina tem de a poder gravar na mesma — a célula "Utilização vs
+  /// Rentabilidade" (`sintese_slide.dart`) fica "Por apurar", com motivo, em
+  /// vez de bloquear o resto da ficha.
+  final int? purchasePriceCents;
   final bool archived;
 
   Machine copyWith({
@@ -96,6 +103,11 @@ class Machine {
     String? category,
     MachineStatus? status,
     int? dailyRateCents,
+    // Ganha o parâmetro que faltava: o campo existe na classe desde sempre,
+    // mas o copyWith nunca o recebia — editar uma máquina preservava sempre
+    // a data de aquisição original, mesmo tentando mudá-la.
+    DateTime? acquiredOn,
+    int? purchasePriceCents,
     String? notes,
     List<String>? photoPaths,
     bool? archived,
@@ -106,7 +118,8 @@ class Machine {
     category: category ?? this.category,
     status: status ?? this.status,
     dailyRateCents: dailyRateCents ?? this.dailyRateCents,
-    acquiredOn: acquiredOn,
+    acquiredOn: acquiredOn ?? this.acquiredOn,
+    purchasePriceCents: purchasePriceCents ?? this.purchasePriceCents,
     notes: notes ?? this.notes,
     photoPaths: photoPaths ?? this.photoPaths,
     archived: archived ?? this.archived,

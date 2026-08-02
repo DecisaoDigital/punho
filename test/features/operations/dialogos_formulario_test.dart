@@ -129,15 +129,17 @@ void main() {
       tester,
     ) async {
       final container = containerCom(estadoComMovimento());
-      container.read(operationsProvider.notifier).saveMachine(
-        const Machine(
-          id: 'maquina-7',
-          name: 'Máquina 7',
-          reference: '',
-          category: 'Escavação',
-          status: MachineStatus.available,
-        ),
-      );
+      container
+          .read(operationsProvider.notifier)
+          .saveMachine(
+            const Machine(
+              id: 'maquina-7',
+              name: 'Máquina 7',
+              reference: '',
+              category: 'Escavação',
+              status: MachineStatus.available,
+            ),
+          );
       await montarLandscape(
         tester,
         container,
@@ -162,6 +164,79 @@ void main() {
           .firstWhere((m) => m.id == 'maquina-7');
       expect(guardada.name, 'Mini escavadora 1.8T');
     });
+
+    // Achado da auditoria: a célula "Utilização vs Rentabilidade"
+    // (`sintese_slide.dart:95-124`) nunca saía de "Por apurar" porque nenhum
+    // ecrã pedia o valor de compra da máquina, e o `acquiredOn` que já
+    // existia no modelo nunca chegava ao `copyWith`.
+    testWidgets(
+      'guarda valor de compra e data de aquisição, os dois opcionais',
+      (tester) async {
+        final container = containerCom(estadoComMovimento());
+        await montarLandscape(
+          tester,
+          container,
+          const MachinesPage(),
+          tamanho: const Size(1280, 800),
+        );
+        await tester.tap(find.text('Adicionar máquina'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Nome'),
+          'Gerador novo',
+        );
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Valor de compra (€) — opcional'),
+          '18.500,00',
+        );
+        expect(find.text('Não indicada'), findsOneWidget);
+        await tester.tap(find.text('Data de aquisição'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('OK'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+        await tester.pumpAndSettle();
+
+        final maquina = container
+            .read(operationsProvider)
+            .machines
+            .firstWhere((m) => m.name == 'Gerador novo');
+        expect(maquina.purchasePriceCents, 1850000);
+        expect(maquina.acquiredOn, isNotNull);
+      },
+    );
+
+    testWidgets(
+      'sem valor de compra nem data, grava a máquina na mesma — quem não '
+      'sabe não fica bloqueado',
+      (tester) async {
+        final container = containerCom(estadoComMovimento());
+        await montarLandscape(
+          tester,
+          container,
+          const MachinesPage(),
+          tamanho: const Size(1280, 800),
+        );
+        await tester.tap(find.text('Adicionar máquina'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Nome'),
+          'Máquina sem histórico de compra',
+        );
+        await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+        await tester.pumpAndSettle();
+
+        final maquina = container
+            .read(operationsProvider)
+            .machines
+            .firstWhere((m) => m.name == 'Máquina sem histórico de compra');
+        expect(maquina.purchasePriceCents, isNull);
+        expect(maquina.acquiredOn, isNull);
+      },
+    );
   });
 
   group('Diálogo de lead', () {
@@ -179,7 +254,10 @@ void main() {
       final guardar = find.widgetWithText(FilledButton, 'Guardar');
 
       expect(find.byType(DialogoDeFormulario), findsOneWidget);
-      expect(tester.getTopLeft(telefone).dx, greaterThan(tester.getTopLeft(nome).dx));
+      expect(
+        tester.getTopLeft(telefone).dx,
+        greaterThan(tester.getTopLeft(nome).dx),
+      );
       expect(
         (tester.getTopLeft(telefone).dy - tester.getTopLeft(nome).dy).abs(),
         lessThan(8),
@@ -202,7 +280,10 @@ void main() {
       await tester.tap(find.text('Novo lead'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.widgetWithText(TextField, 'Nome'), 'Obra Nova');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Nome'),
+        'Obra Nova',
+      );
       await tester.enterText(
         find.widgetWithText(TextField, 'Telemóvel'),
         '914 555 555',

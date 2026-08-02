@@ -553,4 +553,78 @@ void main() {
     );
     expect(estado.registeredVehiclesCount, 1);
   });
+
+  // --- Machine.purchasePriceCents / acquiredOn (achado mais grave da
+  // auditoria: a célula "Utilização vs Rentabilidade" nunca saía de "Por
+  // apurar" porque nenhum campo guardava o valor de compra, e o `acquiredOn`
+  // que já existia no modelo era ignorado pelo `copyWith`) --------------------
+
+  test('Machine.copyWith aplica acquiredOn e purchasePriceCents — antes eram '
+      'ignorados na edição', () {
+    const original = Machine(
+      id: 'm-compra',
+      name: 'Mini escavadora',
+      reference: 'ME-09',
+      category: 'Escavação',
+      status: MachineStatus.available,
+    );
+    expect(original.acquiredOn, isNull);
+    expect(original.purchasePriceCents, isNull);
+
+    final editada = original.copyWith(
+      acquiredOn: DateTime(2024, 3, 10),
+      purchasePriceCents: 1250000,
+    );
+    expect(editada.acquiredOn, DateTime(2024, 3, 10));
+    expect(editada.purchasePriceCents, 1250000);
+    // O resto da máquina não se perde por causa da edição.
+    expect(editada.name, 'Mini escavadora');
+    expect(original.acquiredOn, isNull, reason: 'copyWith não muta o original');
+  });
+
+  test(
+    'Machine.copyWith sem tocar em acquiredOn/purchasePriceCents preserva-os '
+    '— era este o bug: editar qualquer outro campo apagava a data',
+    () {
+      final original = Machine(
+        id: 'm-preserva',
+        name: 'Plataforma',
+        reference: 'PE-03',
+        category: 'Elevação',
+        status: MachineStatus.available,
+        acquiredOn: DateTime(2023, 1, 15),
+        purchasePriceCents: 800000,
+      );
+
+      final renomeada = original.copyWith(name: 'Plataforma elevatória');
+
+      expect(renomeada.acquiredOn, DateTime(2023, 1, 15));
+      expect(renomeada.purchasePriceCents, 800000);
+    },
+  );
+
+  test('saveMachine grava e relê purchasePriceCents e acquiredOn através do '
+      'controlador', () {
+    final c = container();
+    addTearDown(c.dispose);
+    final n = c.read(operationsProvider.notifier);
+    n.saveMachine(
+      Machine(
+        id: 'm-controlador',
+        name: 'Martelo',
+        reference: 'MD-09',
+        category: 'Demolição',
+        status: MachineStatus.available,
+        acquiredOn: DateTime(2022, 6, 1),
+        purchasePriceCents: 450000,
+      ),
+    );
+
+    final maquina = c
+        .read(operationsProvider)
+        .machines
+        .firstWhere((m) => m.id == 'm-controlador');
+    expect(maquina.acquiredOn, DateTime(2022, 6, 1));
+    expect(maquina.purchasePriceCents, 450000);
+  });
 }

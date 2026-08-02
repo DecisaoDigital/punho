@@ -721,6 +721,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'status': item.status.name,
     'dailyRateCents': item.dailyRateCents,
     'acquiredOn': item.acquiredOn?.toIso8601String(),
+    'purchasePriceCents': item.purchasePriceCents,
     'notes': item.notes,
     'photoPaths': item.photoPaths,
     'archived': item.archived,
@@ -734,6 +735,9 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     status: MachineStatus.values.byName(_string(data, 'status', 'available')),
     dailyRateCents: _nullableInt(data['dailyRateCents']),
     acquiredOn: _nullableDate(data['acquiredOn']),
+    // Ausente no JSON (fichas antigas, gravadas antes deste campo existir) =
+    // `null` — nunca zero inventado.
+    purchasePriceCents: _nullableInt(data['purchasePriceCents']),
     notes: _string(data, 'notes'),
     photoPaths: data['photoPaths'] is List
         ? List<String>.from(data['photoPaths'] as List)
