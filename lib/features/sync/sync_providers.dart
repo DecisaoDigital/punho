@@ -89,6 +89,14 @@ class SyncController extends Notifier<InfoSync> {
 
   @override
   InfoSync build() {
+    // O Riverpod reaproveita esta instância entre reconstruções, mas corre o
+    // `onDispose` de cada uma antes da seguinte. Sem repor a bandeira aqui, o
+    // primeiro `onDispose` deixava `_vivo` a `false` para sempre — e como o
+    // motor só existe **depois** de o acesso resolver, ou seja depois de pelo
+    // menos uma reconstrução, `sincronizar()` saía sempre na primeira linha,
+    // em silêncio. A app dizia "em espera", a fila enchia e nada subia nem
+    // descia. Foi assim que 15 máquinas ficaram presas no telemóvel.
+    _vivo = true;
     ref.onDispose(() {
       _vivo = false;
       _timer?.cancel();
@@ -131,14 +139,16 @@ class SyncController extends Notifier<InfoSync> {
 
     // Cada alteração local entra em fila e agenda um envio.
     motor.ouvirAlteracoesLocais();
-    final repo = ref.read(operationRepositoryProvider);
-    if (repo is PersistentOperationRepository) {
-      final anterior = repo.aoRegistarOperacao;
-      repo.aoRegistarOperacao = (entidade, id, payload) {
-        anterior?.call(entidade, id, payload);
-        _agendar();
-      };
-    }
+    // O repositório vem do motor e não de `ref.read`: isto corre numa
+    // microtarefa, já depois de a dependência do provider ter mudado, e aí o
+    // Riverpod recusa qualquer `ref` ("Cannot use ref functions after the
+    // dependency of a provider changed"). O motor traz o mesmo objecto.
+    final repo = motor.repositorio;
+    final anterior = repo.aoRegistarOperacao;
+    repo.aoRegistarOperacao = (entidade, id, payload) {
+      anterior?.call(entidade, id, payload);
+      _agendar();
+    };
 
     _observador = _ObservadorDeRegresso(() => unawaited(sincronizar()));
     WidgetsBinding.instance.addObserver(_observador!);
@@ -225,14 +235,22 @@ class SyncController extends Notifier<InfoSync> {
   void _tocarCampainha() {
     final canal = _canal;
     if (canal == null) return;
-    try {
-      unawaited(canal.sendBroadcastMessage(
-        event: 'nova_operacao',
-        payload: const {},
-      ));
-    } catch (erro) {
-      debugPrint('[Sync] não deu para tocar a campainha: $erro');
-    }
+    // O `payload` tem de ser um mapa **mutável**: o `realtime_client` escreve-lhe
+    // dentro antes de enviar, e com um `const {}` rebentava com "Cannot modify
+    // unmodifiable map" a cada envio. E o try/catch tinha de passar a envolver o
+    // `await`: a excepção nascia dentro do future, não na chamada, por isso
+    // escapava ao catch antigo e subia como erro não tratado — a campainha nunca
+    // tocou uma única vez, e ninguém deu por isso.
+    unawaited(() async {
+      try {
+        await canal.sendBroadcastMessage(
+          event: 'nova_operacao',
+          payload: <String, dynamic>{},
+        );
+      } catch (erro) {
+        debugPrint('[Sync] não deu para tocar a campainha: $erro');
+      }
+    }());
   }
 
   void _agendar() {
