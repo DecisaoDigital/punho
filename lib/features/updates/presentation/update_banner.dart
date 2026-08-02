@@ -59,7 +59,11 @@ class PunhoUpdateBanner extends ConsumerWidget {
                   ] else if (update.releaseNotes?.trim().isNotEmpty ??
                       false) ...[
                     const SizedBox(height: 4),
-                    Text(update.releaseNotes!),
+                    Text(
+                      update.releaseNotes!,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ],
               ),

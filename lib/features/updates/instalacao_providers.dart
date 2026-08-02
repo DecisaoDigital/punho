@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/orientacao/orientacao_do_contexto.dart';
 import '../../core/updates/instalador_de_update.dart';
 import '../../core/updates/update_info.dart';
 import 'update_providers.dart';
@@ -29,6 +30,9 @@ final estadoDoUpdateProvider =
     );
 
 class InstalacaoController extends Notifier<EstadoDoUpdate> {
+  bool _vivo = true;
+  _ObservadorDeRegressoDoInstalador? _observador;
+
   @override
   EstadoDoUpdate build() {
     // Uma versão nova a aparecer arranca a descarga por si. Só isso, e só se o
@@ -38,6 +42,28 @@ class InstalacaoController extends Notifier<EstadoDoUpdate> {
       if (anterior?.buildNumber == actual.buildNumber) return;
       if ((actual.sha256 ?? '').isEmpty) return;
       unawaited(descarregar(actual));
+    });
+    _observador = _ObservadorDeRegressoDoInstalador(() {
+      if (!_vivo) return;
+      // Voltar à app ainda à espera do Android só acontece quando o gestor
+      // recusou ou saiu do instalador sem decidir — a instalação real mata o
+      // processo. Devolve a orientação que o ecrã de baixo pedia e deixa
+      // tentar outra vez.
+      if (state.fase == FaseDoUpdate.aInstalar ||
+          state.fase == FaseDoUpdate.aguardaConfirmacao) {
+        unawaited(OrientacaoDoContexto.largarSobreposicao());
+        state = EstadoDoUpdate(
+          fase: FaseDoUpdate.pronta,
+          caminho: state.caminho,
+        );
+      }
+    });
+    WidgetsBinding.instance.addObserver(_observador!);
+    ref.onDispose(() {
+      _vivo = false;
+      if (_observador != null) {
+        WidgetsBinding.instance.removeObserver(_observador!);
+      }
     });
     return const EstadoDoUpdate(fase: FaseDoUpdate.disponivel);
   }
@@ -92,9 +118,17 @@ class InstalacaoController extends Notifier<EstadoDoUpdate> {
       return;
     }
 
+    // O ecrã do Android para instalar — e o scan do Play Protect que o
+    // precede na primeira vez — não está preparado para landscape: os botões
+    // de confirmação ficam fora do ecrã e o gestor não tem como tocar-lhes.
+    // O shell dele pode estar em landscape (Decisão 13), por isso força-se
+    // retrato só para esta janela, como o cadeado já faz por cima de tudo.
+    await OrientacaoDoContexto.sobrepor(Orientacao.portrait);
+
     state = state.com(fase: FaseDoUpdate.aInstalar);
     final desfecho = await instalador.instalar(caminho);
     if (desfecho == null) {
+      await OrientacaoDoContexto.largarSobreposicao();
       state = state.com(
         fase: FaseDoUpdate.falhou,
         erro: 'A instalação não arrancou.',
@@ -124,5 +158,17 @@ class InstalacaoController extends Notifier<EstadoDoUpdate> {
       debugPrint('[Instalador] não consegui ver a rede: $erro');
       return false;
     }
+  }
+}
+
+/// Observador mínimo do ciclo de vida, só para saber quando se volta do
+/// instalador do Android sem ter instalado nada.
+class _ObservadorDeRegressoDoInstalador extends WidgetsBindingObserver {
+  _ObservadorDeRegressoDoInstalador(this.aoRegressar);
+  final VoidCallback aoRegressar;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState estado) {
+    if (estado == AppLifecycleState.resumed) aoRegressar();
   }
 }
