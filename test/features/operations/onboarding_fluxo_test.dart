@@ -45,8 +45,14 @@ void main() {
   }
 
   /// Avança até ao passo do switch (índice 6), que é o 7º de dados.
+  ///
+  /// Passa pelo passo 3 (forma jurídica + NIF), que desde a decisão do NIF
+  /// obrigatório (2026-08-02) já não avança sem um NIF válido — preenche-o
+  /// com um valor de 9 dígitos antes de continuar.
   Future<void> irAteAoSwitch(WidgetTester tester) async {
-    await continuar(tester, vezes: 6);
+    await continuar(tester, vezes: 3);
+    await tester.enterText(find.byType(TextField).last, '509442129');
+    await continuar(tester, vezes: 3);
     expect(find.text('Continuar com os dados operacionais?'), findsOneWidget);
   }
 

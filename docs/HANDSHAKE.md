@@ -13,6 +13,18 @@ linha de base, não tentes limpá-los.
 
 ---
 
+## Sessão de 2 de Agosto, mais tarde — NIF obrigatório no onboarding
+
+Decisão fechada pelo Cesar: o NIF da empresa deixa de poder ficar como
+"tarefa aberta" no onboarding — passa a obrigatório (9 dígitos) para avançar
+o passo "Forma jurídica e NIF da empresa". Resolve um bug real: a Edge
+Function `sincronizar-empresa-punho` sempre rejeitava (400, payload inteiro)
+quem terminava o onboarding sem NIF, e a ficha ficava presa para sempre com
+`punho_empresas.dados={}`. Detalhe completo na secção 3.6 de
+`docs/DECISOES_E_ROADMAP_VIVO.md`. Não mexe na Edge Function nem corrige
+retroactivamente fichas já presas (ex.: Lavandaria Mare Alta) — só previne o
+problema em onboardings futuros.
+
 ## Sessão de 2 de Agosto, à noite — aparelho desbloqueado, confirmação visual completa
 
 O César desbloqueou o Redmi fisicamente. `com.example.punho` não estava

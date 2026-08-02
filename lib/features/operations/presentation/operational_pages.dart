@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/widgets/brand_lockup.dart';
@@ -58,6 +59,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   final revenueThisYear = TextEditingController();
   final maintenanceLastYear = TextEditingController();
   final fixedMonthlyCosts = TextEditingController();
+  // Erro inline do passo do NIF. Decisão do Cesar: o NIF passa a obrigatório
+  // no onboarding — deixou de poder ficar como "tarefa aberta". A Edge
+  // Function `sincronizar-empresa-punho` sempre rejeitou (400, payload
+  // inteiro) empresas com `nif.length < 9`, e a ficha ficava presa para
+  // sempre em `punho_empresas.dados={}`. Isto fecha a porta na origem.
+  String? nifErro;
 
   @override
   void initState() {
@@ -204,7 +211,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       '',
       '',
       'O gestor decide e vê tudo. O colaborador só regista o seu próprio trabalho.',
-      'A forma jurídica pode ser alterada mais tarde. O NIF é importante para a identificação — se não souber agora, ficará como tarefa aberta.',
+      'A forma jurídica pode ser alterada mais tarde. O NIF é obrigatório: 9 dígitos, sem espaços nem pontos.',
       'Morada, código-postal e localidade + telemóvel e email. Não é pedido país.',
       'Número de colaboradores e de veículos (podem ser 0). Os separadores Funcionários e Veículos ficam activos quando forem maiores que 0.',
       'Podes saltar e preencher depois, em Definições. Sem estes números o painel mostra "Por apurar" em vez de recomendações.',
@@ -344,9 +351,17 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   TextField(
                     controller: taxId,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(9),
+                    ],
+                    onChanged: (_) {
+                      if (nifErro != null) setState(() => nifErro = null);
+                    },
+                    decoration: InputDecoration(
                       labelText: 'NIF da empresa',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
+                      errorText: nifErro,
                     ),
                   ),
                 ],
@@ -521,6 +536,18 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                             const Spacer(),
                             FilledButton(
                               onPressed: () {
+                                // Passo 3 (só gestor): forma jurídica + NIF. O NIF é
+                                // obrigatório para avançar — ver comentário em
+                                // `nifErro` para o porquê.
+                                if (passoDeDados == 3 &&
+                                    role != 'colaborador' &&
+                                    !nifValido(taxId.text)) {
+                                  setState(
+                                    () => nifErro =
+                                        'O NIF é obrigatório: 9 dígitos.',
+                                  );
+                                  return;
+                                }
                                 if (step < percurso.length - 1) {
                                   setState(() => step++);
                                 } else {

@@ -31,7 +31,7 @@ O Punho não é contabilidade e não toma decisões sozinho. Mostra o número, e
 
 ### 3.1 Estrutura operacional
 
-- [x] Onboarding guiado com nome do empresário/responsável, empresa, forma jurídica, NIF, contacto, morada, equipa, frota, máquinas e referências financeiras.
+- [x] Onboarding guiado com nome do empresário/responsável, empresa, forma jurídica, NIF (obrigatório, 9 dígitos, desde 2 de agosto de 2026 — ver secção 3.6), contacto, morada, equipa, frota, máquinas e referências financeiras.
 - [x] Os dados que o utilizador não sabe no momento ficam em **Dados por completar**, em vez de bloquear o início.
 - [x] Cliente com nome, telemóvel, NIF, email, morada, código-postal, localidade e notas. Não existe campo país.
 - [x] Proteção local contra cliente duplicado por telemóvel ou NIF.
@@ -180,6 +180,24 @@ recusar o cadastro, só avisa,
 peça do lado do Control: a RPC `punho_definir_limite`
 (`supabase/migrations/20260802_punho_definir_limite.sql`, `4bbc60e`) está
 pronta mas confirmada como **não aplicada em produção**.
+
+**Decisão fechada — NIF da empresa passa a obrigatório no onboarding
+(Opção B):** o passo "Forma jurídica e NIF da empresa" deixou de aceitar
+avançar com o campo vazio ou com menos de 9 dígitos. Resolve um bug real em
+produção: a Edge Function `sincronizar-empresa-punho` sempre validou
+`nif.length < 9` e devolvia 400 rejeitando o payload **inteiro** — qualquer
+empresa que terminasse o onboarding sem NIF ficava com
+`punho_empresas.dados={}` para sempre, sem retry nenhum a corrigir isso (o
+`EmpresaSyncController` insiste, mas reenvia o mesmo payload sem NIF e volta
+a levar 400). Não foi mexido na Edge Function nem na validação de dígito de
+controlo — só na forma (9 dígitos), igual ao que a EF já exige. Implementado
+em `lib/features/operations/presentation/operational_pages.dart` (validação
+inline + texto de ajuda) e `lib/core/format/campos.dart` (`nifValido`). Uma
+empresa de teste já presa em produção (Lavandaria Mare Alta,
+`punho_empresas.dados={}`) **não é corrigida retroactivamente** por esta
+mudança — só resincroniza quando alguém preencher o NIF real em Definições
+da Empresa no aparelho, que continua a aceitar o NIF em branco por ser dado
+legado, fora do âmbito desta correcção.
 
 ## 3.4 Decisoes recentes: faturas e fotografias (26 de julho de 2026)
 

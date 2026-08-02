@@ -34,3 +34,11 @@ int contagemDeTexto(String valor) {
   final parsed = int.tryParse(valor.trim());
   return parsed == null || parsed < 0 ? 0 : parsed;
 }
+
+/// Um NIF português válido em forma: exactamente 9 dígitos.
+///
+/// Não verifica o dígito de controlo — só a forma, que é o que a Edge
+/// Function `sincronizar-empresa-punho` também exige (`nif.length < 9`
+/// rejeita o payload inteiro com 400). Ficar aquém disso deixava fichas de
+/// empresa presas para sempre com `dados={}` no Supabase.
+bool nifValido(String valor) => RegExp(r'^\d{9}$').hasMatch(valor.trim());

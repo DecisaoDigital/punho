@@ -42,6 +42,13 @@ void main() {
 
   Future<void> avancar(WidgetTester tester, int passos) async {
     for (var i = 0; i < passos; i++) {
+      // Passo do NIF (obrigatório desde 2026-08-02): sem preencher, o botão
+      // fica no mesmo passo e este loop nunca chega à morada.
+      final nif = find.widgetWithText(TextField, 'NIF da empresa');
+      if (nif.evaluate().isNotEmpty) {
+        await tester.enterText(nif, '509442129');
+        await tester.pumpAndSettle();
+      }
       // Com o teclado aberto o botão fica abaixo do que se vê. Está na árvore
       // — o que é preciso é rolar até ele, tal como faz quem usa a app.
       await tester.ensureVisible(find.text('Continuar'));
