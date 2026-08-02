@@ -64,7 +64,7 @@ void main() {
     await abrirReservas(tester);
     await tester.tap(find.byType(DropdownButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('PE-02').last);
+    await tester.tap(find.textContaining('PE-02').last);
     await tester.pumpAndSettle();
 
     expect(find.text('Manhã'), findsOneWidget);
@@ -97,7 +97,7 @@ void main() {
     await abrirReservas(tester);
     await tester.tap(find.byType(DropdownButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('PE-02').last);
+    await tester.tap(find.textContaining('PE-02').last);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.add_circle_outline).first);
@@ -117,7 +117,7 @@ void main() {
     await abrirReservas(tester);
     await tester.tap(find.byType(DropdownButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('PE-02').last);
+    await tester.tap(find.textContaining('PE-02').last);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.add_circle_outline).first);
@@ -166,7 +166,7 @@ void main() {
 
     await tester.tap(find.byType(DropdownButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('PE-02').last);
+    await tester.tap(find.textContaining('PE-02').last);
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Escolhe uma máquina'), findsNothing);

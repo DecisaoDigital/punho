@@ -314,7 +314,7 @@ void main() {
       await abrirReservas(tester);
       await tester.tap(find.byType(DropdownButton<String>));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('PE-02').last);
+      await tester.tap(find.textContaining('PE-02').last);
       await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.add_circle_outline).first);
