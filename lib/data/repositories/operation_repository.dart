@@ -342,6 +342,53 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     aoRegistarOperacao?.call(entidade, id, payload);
   }
 
+  /// Põe **tudo o que já existe no aparelho** na fila de envio, como se
+  /// tivesse acabado de ser escrito.
+  ///
+  /// Existe porque [_registar] só dispara em gravações novas. Quem já usava a
+  /// app antes de haver sincronização — ou antes de entrar numa empresa — tinha
+  /// máquinas, clientes e reservas no telemóvel que **nunca subiriam**: não
+  /// houve gravação depois de a fila existir, portanto não havia nada a
+  /// registar. O gestor via os dados no seu aparelho e mais ninguém os via, sem
+  /// erro nenhum à vista.
+  ///
+  /// Chamado uma vez por empresa (ver `SincronizacaoEntreDispositivos`).
+  /// Correr duas vezes não estraga nada: a mesma entidade chega com o mesmo
+  /// conteúdo e a última a chegar ganha — mas é desperdício, daí a marca.
+  int carregarTudoParaFila() {
+    var enfileiradas = 0;
+    void registar(String entidade, String id, Map<String, Object?> payload) {
+      _registar(entidade, id, payload);
+      enfileiradas++;
+    }
+
+    for (final m in _machines) {
+      registar('machine', m.id, _machineToJson(m));
+    }
+    for (final c in _customers) {
+      registar('customer', c.id, _customerToJson(c));
+    }
+    for (final l in _leads) {
+      registar('lead', l.id, _leadToJson(l));
+    }
+    for (final b in _bookings) {
+      registar('booking', b.id, _bookingToJson(b));
+    }
+    for (final d in _expenses) {
+      registar('expense', d.id, _expenseToJson(d));
+    }
+    for (final r in _receipts) {
+      registar('receipt', r.id, _receiptToJson(r));
+    }
+    for (final c in _collaborators) {
+      registar('collaborator', c.id, _collaboratorToJson(c));
+    }
+    for (final v in _vehicles) {
+      registar('vehicle', v.id, _vehicleToJson(v));
+    }
+    return enfileiradas;
+  }
+
   /// Aplica uma alteração feita noutro dispositivo.
   ///
   /// A ordem é a do servidor (`seq`), portanto quem chega depois fica por cima:

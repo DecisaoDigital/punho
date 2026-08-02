@@ -72,6 +72,7 @@ class SyncController extends Notifier<InfoSync> {
   Timer? _timer;
   Timer? _debounce;
   _ObservadorDeRegresso? _observador;
+  RealtimeChannel? _canal;
   bool _vivo = true;
 
   /// De quanto em quanto tempo se volta a perguntar, com a app aberta.
@@ -92,6 +93,9 @@ class SyncController extends Notifier<InfoSync> {
       _vivo = false;
       _timer?.cancel();
       _debounce?.cancel();
+      final canal = _canal;
+      _canal = null;
+      if (canal != null) unawaited(canal.unsubscribe());
       if (_observador != null) {
         WidgetsBinding.instance.removeObserver(_observador!);
       }
@@ -139,7 +143,96 @@ class SyncController extends Notifier<InfoSync> {
     _observador = _ObservadorDeRegresso(() => unawaited(sincronizar()));
     WidgetsBinding.instance.addObserver(_observador!);
     _timer = Timer.periodic(_intervalo, (_) => unawaited(sincronizar()));
+
+    // Antes da primeira sincronização: subir o que já estava no aparelho.
+    // Depois de `ouvirAlteracoesLocais`, para as operações caírem na fila.
+    final carga = await motor.cargaInicialSePreciso();
+
+    _ligarCampainha(motor.empresaId);
+
     await sincronizar();
+
+    // Só agora se dá a carga por feita: se o envio falhou, o próximo arranque
+    // volta a tentar. Marcar antes de saber o resultado deixava os dados
+    // presos no aparelho para sempre.
+    if (carga > 0 && state.estado != EstadoSync.falhou) {
+      await motor.marcarCargaInicialConcluida();
+    } else if (carga == 0) {
+      // Nada para subir (instalação de fresco): não vale a pena voltar a
+      // percorrer tudo a cada arranque.
+      await motor.marcarCargaInicialConcluida();
+    }
+  }
+
+  /// Liga a campainha: os aparelhos da empresa avisam-se uns aos outros quando
+  /// gravam alguma coisa.
+  ///
+  /// **O que chega é um aviso, não os dados.** Ao ouvir, faz-se o que já se
+  /// fazia: puxar desde o cursor. A razão é que um WebSocket não é de confiança
+  /// para entrega — cai, reconecta, e o que passou durante a queda perdeu-se.
+  /// Aplicar o que chega deixaria buracos silenciosos nos dados; assim, o pior
+  /// que uma campainha perdida causa é esperar pelo temporizador, que continua
+  /// ligado de propósito.
+  ///
+  /// ## Porque é entre aparelhos e não a partir da base de dados
+  ///
+  /// O caminho melhor seria um trigger no `punho_operacoes` a chamar
+  /// `realtime.send()` — funciona mesmo que quem escreveu feche a app logo a
+  /// seguir. Está escrito e pronto (`supabase/punho_campainha_tempo_real.sql`),
+  /// mas **não funciona neste projecto**: o `realtime.messages` é particionado
+  /// por dia, o projecto não tem uma única partição, e o próprio Realtime
+  /// recusa a subscrição com `MissingPartition`. Criar partições exige
+  /// permissões no schema `realtime`, que não temos.
+  ///
+  /// Daí o canal ser **público**: um canal privado obriga o Realtime a validar
+  /// as políticas contra o `realtime.messages` — e volta a esbarrar na mesma
+  /// partição em falta.
+  ///
+  /// O que isso expõe: quem souber o UUID da empresa consegue ouvir "há
+  /// novidades" e, no limite, provocar sincronizações extra. **Não há dados no
+  /// canal** — nem payload, nem entidade, nem quem fez. O nome da empresa não
+  /// vai lá, o UUID não é público, e o pior caso é gastar-se rede à toa.
+  ///
+  /// Falhar a ligar não é erro: sem campainha a app volta ao comportamento de
+  /// antes, mais lenta e igualmente correcta. Por isso isto não mexe no
+  /// [InfoSync] nem mostra nada ao utilizador.
+  void _ligarCampainha(String empresaId) {
+    try {
+      _canal = Supabase.instance.client.channel('punho:empresa:$empresaId')
+        ..onBroadcast(
+          event: 'nova_operacao',
+          callback: (_) => _agendar(),
+        )
+        ..subscribe((estado, erro) {
+          if (estado == RealtimeSubscribeStatus.subscribed) {
+            // Sincronizar SEMPRE ao (re)ligar, sem esperar por campainha: é
+            // durante a queda que os avisos se perdem, e é ao voltar que se
+            // apanha o que passou.
+            unawaited(sincronizar());
+          } else if (erro != null) {
+            debugPrint('[Sync] campainha: $estado $erro');
+          }
+        });
+    } catch (erro) {
+      debugPrint('[Sync] campainha não ligou: $erro');
+    }
+  }
+
+  /// Toca a campainha aos outros aparelhos, depois de termos enviado algo.
+  ///
+  /// Best-effort: se falhar, os outros vêem a novidade no temporizador
+  /// seguinte. Nunca deve fazer barulho nem alterar o estado da sincronização.
+  void _tocarCampainha() {
+    final canal = _canal;
+    if (canal == null) return;
+    try {
+      unawaited(canal.sendBroadcastMessage(
+        event: 'nova_operacao',
+        payload: const {},
+      ));
+    } catch (erro) {
+      debugPrint('[Sync] não deu para tocar a campainha: $erro');
+    }
   }
 
   void _agendar() {
@@ -162,6 +255,9 @@ class SyncController extends Notifier<InfoSync> {
     if (resultado.recebidas > 0) {
       ref.read(operationsProvider.notifier).recarregarDoRepositorio();
     }
+    // Enviámos alguma coisa → avisar os outros aparelhos, para não esperarem
+    // pelo temporizador.
+    if (resultado.enviadas > 0) _tocarCampainha();
     state = InfoSync(
       estado: resultado.correu ? EstadoSync.emEspera : EstadoSync.falhou,
       pendentes: _registo?.pendentes.length ?? 0,

@@ -107,31 +107,79 @@ class RegistoDeOperacoes {
     return resultado;
   }
 
-  Future<void> acrescentar(OperacaoPendente operacao) async {
-    final fila = _prefs.getStringList(_kFila) ?? <String>[];
-    fila.add(jsonEncode(operacao.paraFila()));
-    if (fila.length > maximoNaFila) {
-      fila.removeRange(0, fila.length - maximoNaFila);
-      debugPrint('[Sync] fila cheia — descartadas as mais antigas');
-    }
-    await _prefs.setStringList(_kFila, fila);
+  /// Escritas em fila indiana.
+  ///
+  /// Sem isto, gravar várias entidades de seguida perdia quase todas: cada
+  /// chamada lê a lista, acrescenta a sua e escreve — e como quem chama não
+  /// espera pelo resultado, onze chamadas ao mesmo tempo liam **a mesma** lista
+  /// e escreviam por cima umas das outras. Sobrava a última.
+  ///
+  /// Não é hipótese: aconteceu na primeira carga inicial a sério, com 11
+  /// entidades enfileiradas e nenhuma a chegar ao servidor.
+  Future<void> _emFila = Future.value();
+
+  Future<void> acrescentar(OperacaoPendente operacao) =>
+      acrescentarVarias([operacao]);
+
+  /// Espera que todas as escritas pendentes na fila indiana terminem.
+  ///
+  /// Quem enfileira à solta (o `aoRegistarOperacao` do repositório não espera
+  /// por nada) precisa disto antes de ler `pendentes`, senão lê uma fila que
+  /// ainda não foi gravada.
+  Future<void> esperarEscritas() => _emFila;
+
+  /// Acrescenta várias de uma vez — uma só leitura e uma só escrita.
+  Future<void> acrescentarVarias(List<OperacaoPendente> operacoes) {
+    if (operacoes.isEmpty) return Future.value();
+    _emFila = _emFila.then((_) async {
+      final fila = _prefs.getStringList(_kFila) ?? <String>[];
+      for (final operacao in operacoes) {
+        fila.add(jsonEncode(operacao.paraFila()));
+      }
+      if (fila.length > maximoNaFila) {
+        fila.removeRange(0, fila.length - maximoNaFila);
+        debugPrint('[Sync] fila cheia — descartadas as mais antigas');
+      }
+      await _prefs.setStringList(_kFila, fila);
+    });
+    return _emFila;
   }
 
   /// Remove as que já foram aceites pelo servidor.
-  Future<void> remover(Set<String> ids) async {
-    if (ids.isEmpty) return;
-    final fila = (_prefs.getStringList(_kFila) ?? const <String>[]).where((
-      linha,
-    ) {
-      try {
-        final json = Map<String, dynamic>.from(jsonDecode(linha) as Map);
-        return !ids.contains(json['id']);
-      } catch (_) {
-        return false;
-      }
-    }).toList();
-    await _prefs.setStringList(_kFila, fila);
+  ///
+  /// Entra na mesma fila indiana das escritas: remover enquanto se acrescenta
+  /// fazia ressuscitar operações já enviadas, ou perder operações novas.
+  Future<void> remover(Set<String> ids) {
+    if (ids.isEmpty) return Future.value();
+    _emFila = _emFila.then((_) async {
+      final fila = (_prefs.getStringList(_kFila) ?? const <String>[]).where((
+        linha,
+      ) {
+        try {
+          final json = Map<String, dynamic>.from(jsonDecode(linha) as Map);
+          return !ids.contains(json['id']);
+        } catch (_) {
+          return false;
+        }
+      }).toList();
+      await _prefs.setStringList(_kFila, fila);
+    });
+    return _emFila;
   }
+
+  /// A carga inicial desta empresa já foi feita neste aparelho?
+  ///
+  /// Por empresa e não global: quem entra noutra empresa tem de voltar a subir
+  /// o que tem, senão os dados ficavam presos na primeira.
+  /// `v2` e não `v1`: a primeira versão marcava a carga como feita mesmo
+  /// quando as operações se perdiam na corrida de escritas (ver
+  /// [acrescentarVarias]). Quem tiver a marca antiga tem de repetir a carga uma
+  /// vez, senão os dados ficam presos no aparelho para sempre.
+  bool cargaInicialFeita(String empresaId) =>
+      _prefs.getBool('punho_sync.carga_inicial_v3.$empresaId') ?? false;
+
+  Future<void> marcarCargaInicialFeita(String empresaId) =>
+      _prefs.setBool('punho_sync.carga_inicial_v3.$empresaId', true);
 
   Future<void> limpar() async {
     await _prefs.remove(_kFila);

@@ -61,6 +61,36 @@ class SincronizacaoEntreDispositivos {
 
   bool _aCorrer = false;
 
+  /// Põe na fila tudo o que já está no aparelho, **uma vez por empresa**.
+  ///
+  /// [ouvirAlteracoesLocais] só apanha o que for gravado a partir daqui. Quem
+  /// já usava a app antes de haver sincronização — ou antes de entrar numa
+  /// empresa — tinha máquinas e clientes no telemóvel que nunca subiriam: não
+  /// houve gravação nenhuma depois de a fila existir, portanto não havia nada
+  /// para registar. Via os dados no seu aparelho, mais ninguém os via, e não
+  /// aparecia erro nenhum.
+  ///
+  /// Devolve quantas foram enfileiradas (0 se já tinha sido feita).
+  Future<int> cargaInicialSePreciso() async {
+    if (registo.cargaInicialFeita(empresaId)) return 0;
+    final quantas = repositorio.carregarTudoParaFila();
+    // Esperar que a fila esteja mesmo gravada antes de seguir: `acrescentar`
+    // devolve um future, e sincronizar sem o esperar lia uma fila ainda vazia.
+    await registo.esperarEscritas();
+    if (quantas > 0) {
+      debugPrint('[Sync] carga inicial: $quantas entidades para enviar');
+    }
+    // A marca NÃO se põe aqui. Põe-se depois de o envio correr bem
+    // ([marcarCargaInicialConcluida]) — marcá-la agora e falhar o envio deixava
+    // os dados presos no aparelho sem nunca mais haver segunda tentativa. Foi
+    // exactamente isso que aconteceu na primeira vez que isto correu a sério.
+    return quantas;
+  }
+
+  /// Dá a carga inicial por concluída. Só depois de o servidor ter aceite.
+  Future<void> marcarCargaInicialConcluida() =>
+      registo.marcarCargaInicialFeita(empresaId);
+
   /// Liga o repositório à fila: cada alteração local passa a ficar registada.
   void ouvirAlteracoesLocais() {
     repositorio.aoRegistarOperacao = (entidade, id, payload) {
@@ -88,8 +118,17 @@ class SincronizacaoEntreDispositivos {
     }
     _aCorrer = true;
     try {
+      // A fila é escrita sem ninguém esperar pelo resultado (o repositório
+      // chama e segue). Ler `pendentes` antes de as escritas assentarem
+      // deixava operações por enviar até à sincronização seguinte.
+      await registo.esperarEscritas();
+      debugPrint(
+        '[Sync] a correr: fila=${registo.pendentes.length} '
+        'cursor=${registo.cursor} empresa=$empresaId',
+      );
       final recebidas = await _receber();
       final enviadas = await _enviar();
+      debugPrint('[Sync] fim: enviadas=$enviadas recebidas=$recebidas');
       return ResultadoDaSincronizacao(enviadas: enviadas, recebidas: recebidas);
     } catch (erro) {
       debugPrint('[Sync] falhou: $erro');
