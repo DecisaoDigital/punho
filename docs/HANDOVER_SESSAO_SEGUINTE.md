@@ -1,220 +1,260 @@
 # Handover — próxima sessão Cowork · Punho
 
-**Data do handover:** 2 de Agosto de 2026 (revisto às 13h, após commitar)
-**Última branch activa:** `main` — **árvore limpa, nada por commitar**
-(`git status` vazio em `902059c`)
-**Versão instalada no aparelho de teste:** v0.1.4+25 (`v0.1.4` taggeada)
-**Skill de contexto a invocar primeiro:** nenhuma para Punho ainda
+**Data do handover:** 2 de Agosto de 2026 (segunda revisão do dia, ao fim da
+tarde)
+**Branch:** `main` — árvore limpa em `d46065c`
+**Versão instalada no aparelho de teste:** v0.1.4+25 (`v0.1.4` taggeada) —
+**anterior a todo o trabalho de hoje**
+**Duas correcções em curso por agentes** quando este ficheiro foi escrito: ver
+"Em voo".
 
 ---
 
-## Onde estás agora
+## O que mudou de fundo nesta sessão
 
-Fechou-se a primeira campanha de testes a sério num aparelho real (Redmi Note
-10 Pro, por `adb`/`flutter run` a partir do i9). Três faixas: dados semeados
-no servidor a chegar ao telemóvel, onboarding do zero simulando um
-empresário, e a bateria de oito testes manuais que já existia no repo, mais
-verificação da campainha e das notificações no Control. Checklist viva,
-achados 1–21 e comandos exactos usados estão em
-`docs/PLANO_DE_TESTES_2026-08-02.md` — não repetidos aqui.
+Não foram só correcções. Mudaram três regras de produto, ditas pelo Cesar, e
+elas explicam quase todos os commits abaixo. Um agente que não as saiba vai
+tentar repor o que foi deliberadamente tirado.
 
-Resultado por faixa: A passa; B falha o critério "dashboard sem por apurar";
-C tem 4 de 8 pontos limpos; D passa.
+**1. A app começa vazia.** O onboarding não cria registos. Quem declara quinze
+máquinas fica sem nenhuma e regista-as uma a uma; a app só o lembra do que
+falta, pela conta declarado menos registado. As fichas placeholder ("Máquina
+1…15") foram-se, e o campo `placeholder` saiu por inteiro dos modelos, da
+gravação em disco e da interface — **sem leitura de compatibilidade**.
 
-O achado maior: **a sincronização entre dispositivos nunca tinha corrido uma
-única vez** desde que existe. Já está corrigida e commitada, tal como a
-campainha em tempo real (também nunca tinha tocado) e a rotação indevida do
-ecrã no arranque.
+**2. Não se disfarçam falhas.** Palavras dele: «se parte, tem de partir com
+estrondo». Nada de `try/catch` decorativos, valores por omissão a mascarar
+erro, nem migrações silenciosas. Instalações antigas com placeholders gravados
+deixam simplesmente de os ver lidos — se isso partir alguma coisa, é isso que
+ele quer ver. Quem encontrar um sítio onde a app maquilha uma falha, **aponta,
+não remenda por iniciativa própria**.
+
+**3. Dados a fingir só para testes, e por outra via.** Em vez de placeholders,
+um seed com dados inventados mas coerentes, aplicado no servidor. Está escrito
+e por aplicar (ver abaixo).
+
+**4. Limite de colaboradores — decisão fechada.** O limite é o que o Cesar
+autoriza no Control (`punho_subscricoes.limite_colaboradores_ativos`),
+combinado quando o empresário assina o plano. O número do onboarding é **só
+informativo**: quantos tem activos de momento. Exceder **não impede o
+cadastro** — impede o **acesso** sem autorização expressa dele. E autorizar o
+sétimo não é excepção àquela pessoa: significa que o contrato subiu.
 
 ---
 
-## Já commitado nesta sessão
+## Commitado nesta sessão (sobre `94362b4`)
 
 ```
-902059c docs(testes): campanha de 2 Ago, decisoes e handover actualizados
-8b3b5ec fix(copy): textos alinhados com a versao real e com o telemovel
-d50be94 feat(tarefas): colaboradores por registar aparecem na lista
-2710fa4 fix(kpis): tesouraria usa o historico mensal preenchido a mao
-3db013b fix(ui): cabecalho cortado, avisos escondidos e ecra vermelho do cliente
-e4a8bb0 test(sync): regressoes da carga inicial e da fila concorrente
-a8e916b feat(sync): a ficha da empresa insiste ate subir
-3c7fe1c feat(subscricao): o limite de colaboradores passa a vir do servidor
-3a64e49 docs(testes): checklist viva da campanha de 2 Ago 2026
-4dfcb0f fix(sync): sincronização presa, campainha muda e ref inválido pós-microtarefa
-5dcc5c5 fix(splash): o punho não gira mais durante a animação de arranque
-29aee10 fix(sync): os dados do aparelho nunca subiam, e a fila perdia-se
+d46065c docs(auditoria): o que a app entrega a um empresario que responde a tudo
+8d84d6d test(dados): empresa de teste com dados inventados a serio
+f90a576 feat(onboarding): a app comeca vazia, sem fichas a fingir
+5a2d41b fix(empresa): o empresario deixa de poder apagar os dados da app
+ce85079 docs(push): porque e que a notificacao de instalacao do Punho nao se percebia
+59fb98c feat(colaboradores): o limite autoriza o acesso, nao trava o cadastro
+091d5d8 feat(onboarding): a frota declarada aparece, e a facturacao enche o historico
+de11645 feat(clientes): ficha do cliente abre para leitura e edicao
 ```
 
-- `_vivo = true` reposto no `build()` do `SyncController` — o motor deixa de
-  morrer na primeira reconstrução do provider.
-- Campainha: mapa mutável em vez de `const {}`, `try/catch` a envolver o
-  `await` (a excepção nascia dentro do future e escapava ao catch de fora).
-- Assert do Riverpod: repositório passa a vir de `motor.repositorio` em vez
-  de `ref.read` dentro da microtarefa `_montar`.
-- Splash declara `portraitJa()` no `initState`.
+`flutter analyze` com os 8 avisos `info` pré-existentes e zero erros;
+`flutter test` verde (593 testes, 1 skipped) na árvore combinada.
+
+Notas sobre commits que enganam pela mensagem:
+
+- `091d5d8` criou placeholders de **veículos**; `f90a576`, horas depois,
+  tirou-os outra vez junto com os das máquinas, por decisão do Cesar. O que
+  ficou de `091d5d8` foi a escrita do `historicalMonths` a partir da facturação
+  do ano passado — divisão igual pelos doze meses, resto nos primeiros, sem
+  pisar meses afinados à mão nem se repetir num segundo onboarding.
+- A recusa por limite saiu do `saveCollaborator` dentro de `091d5d8` (o ficheiro
+  vinha de lá), e não em `59fb98c`, que é o commit da regra.
 
 ---
 
-## O que os 8 commits de 13h fizeram — e o que falta confirmar
+## Em voo — dois agentes a trabalhar quando isto foi escrito
 
-`flutter test` verde (576 testes, 1 skipped) e `flutter analyze` com 8 avisos
-`info` pré-existentes (deprecações do Flutter e chavetas), zero erros. Os
-commits foram feitos directamente sobre `main`, como o resto do dia.
+Ambos com ficheiros disjuntos, ambos sem commitar. Se a árvore tiver alterações
+por commitar ao retomar, é deles: correr `flutter analyze` e `flutter test`
+antes de julgar o que quer que seja, e commitar por ficheiro.
 
-Além do que a lista abaixo já descrevia, entraram duas peças novas que **não
-foram testadas no aparelho** — só têm testes automáticos:
+- **Dono de `operational_pages.dart` e `test/features/operations/`:** bug do
+  dinheiro nas reservas e marcações; e a pergunta em falta — valor de compra e
+  data de aquisição no formulário da máquina, ambos opcionais.
+- **Dono de `finance_pages.dart`, `workforce_pages.dart`, modelos e
+  controlador:** o mesmo bug do dinheiro em despesas, recebimentos e custos de
+  colaborador; ciclo de vida do veículo (editar e arquivar, que não existiam);
+  e `archived` no cliente, com a operação pronta no modelo mas **a interface por
+  ligar** — essa vive no ficheiro do outro agente.
 
-- `lib/features/auth/data/subscricao_service.dart` +
-  `subscricao_providers.dart` — o limite de colaboradores passa a ser
-  autorizado pela subscrição no servidor, com o valor do onboarding como
-  fallback se a rede falhar. Fecha a implementação, **não** a decisão (ver
-  "Por decidir").
-- `lib/core/empresa_sync/empresa_sync_controller.dart` + `ficha_pendente.dart`
-  — a ficha da empresa insiste até subir: sobrevive a fechar a app, repete de
-  20 em 20 minutos e ao voltar do fundo; terminar o onboarding envia logo.
+---
 
-**Por confirmar no Redmi na próxima sessão** (foram corrigidos às cegas, o
-aparelho não voltou a ser usado depois):
+## Por autorizar pelo Cesar (nada disto é decisão de agente)
+
+1. **Migração da notificação de instalação.** `CREATE OR REPLACE` da função
+   `notificar_novo_terminal`, só muda o texto. SQL pronto na adenda de
+   `docs/PLANO_PUSH_INSTALACAO_PUNHO.md`. Foi-me recusada a escrita na base de
+   dados de produção pelo classificador de permissões — não contornar; pedir.
+2. **Aplicar o seed** `supabase/seeds/mare_alta.sql` (ver
+   `docs/DADOS_DE_TESTE.md`). Idempotente, com bloco de limpeza.
+3. **Apagar cinco tokens FCM mortos** em `admin_dispositivos` (4 a 17 dias,
+   todos `NotRegistered`). Não impedem nada, sujam os logs.
+
+---
+
+## O bug do dinheiro, para quem chegar a meio
+
+`1.500,00 €` é gravado como **zero**, calado, em oito sítios. A causa é
+`(double.tryParse(texto.replaceAll(',', '.')) ?? 0)`: para `1.500,00` dá
+`1.500.00`, que não é número, e o `?? 0` inventa o zero. O ajudante correcto já
+existe — `centsDeTexto` em `lib/core/format/campos.dart`, que trata milhares e
+devolve `null`, nunca zero. A app tinha duas maneiras de ler euros, uma certa e
+uma partida, e a partida estava espalhada. Os agentes em voo estão a deixar só
+uma.
+
+---
+
+## Achado estrutural que ninguém pediu, e é o mais importante daqui
+
+**As tabelas por entidade estão vazias.** `punho_clientes`, `punho_maquinas` e
+companhia têm zero linhas apesar de a empresa de teste ter uso real. A fonte de
+verdade é o log append-only `punho_operacoes` (payload JSON por entidade, sync
+por `seq`, Realtime pelo trigger `punho_operacoes_avisar`), e é só de lá que o
+telemóvel puxa. Ou aquelas tabelas são resto de um desenho abandonado, ou
+alguém as devia estar a preencher e não preenche.
+
+Isto tem de ser esclarecido **antes** de se construir o Control em cima delas —
+ver a secção seguinte.
+
+---
+
+## Control — menus do Punho, proposta em aberto
+
+O Cesar quer comandar os colaboradores a partir do Control. Hoje existe lá um
+único ecrã, "Pedidos Punho" (5.º separador, só admin), com aprovar/recusar/
+revogar via RPC `punho_decidir_pedido`. O limite só se escreve **na criação da
+empresa**, num campo do modal de decisão; depois disso é SQL à mão. Não há ecrã
+de empresa, nem badge, nem alerta.
+
+Proposta apresentada, por ordem de valor:
+
+1. **Ecrã "Empresas Punho"** — lista com `ativos / limite` e marca quando o
+   declarado passa o autorizado.
+2. **Editar o limite fora da criação** — RPC nova `punho_definir_limite`
+   com `is_admin()`, a par do `punho_decidir_pedido`. É a peça mais pequena e a
+   que o desbloqueia. Como autorizar o sétimo *é* subir o contrato, esta peça
+   serve as duas coisas: o botão de aprovar, quando o pedido excede o plano,
+   avisa que o contrato sobe e só grava com confirmação.
+3. **Aviso da discrepância** — o `n_colaboradores` que a app já sobe para
+   `punho_empresas` entra no RPC de listagem; badge no separador. Sem migração.
+
+Por decidir com ele: se o aviso chega dentro do Control (badge) ou se quer push.
+
+---
+
+## Notificações de instalação — o que já se sabe
+
+A cadeia **existe e dispara para o Punho**: `registar-terminal` insere em
+`licencas` → `trg_notificar_novo_terminal` → `notificar_novo_terminal()` →
+`enviar-push` → FCM. Não filtra por app. Duas instalações Punho passaram por lá
+(Redmi a 1 de Agosto às 15:21, emulador a 2 de Agosto às 00:42), ambas com
+`http_post` disparado.
+
+O que falhava era o **texto**: o corpo lê `info_host->>'hostname'`, chave que só
+o POS escreve — o Punho escreve `host`, `fabricante`, `versao_app` — e o título
+nunca diz de que app se trata. O Cesar recebia «Novo terminal registado —
+(máquina sem nome) — 339ed162…». Som: não há canal Android custom nenhum, tudo
+cai no canal por omissão, que toca; só é silencioso com o Control em primeiro
+plano, e isso é por desenho.
+
+---
+
+## Telemóvel de testes
+
+O Cesar vai deixar um Android antigo ligado ao i9 em permanência, e liga o dele
+pontualmente para ecrãs de tamanho diferente. Do lado do i9 está tudo pronto:
+`adb` em `~/android-sdk/platform-tools/adb` (o PATH do `.bashrc` não chega a
+shells não interactivos — usar caminho completo ou exportar), regras `udev` em
+`/etc/udev/rules.d/51-android.rules`, utilizador no grupo `plugdev`.
+
+Falta o que só ele pode fazer: Opções de programador, Depuração USB e — em
+Xiaomi/MIUI — «Instalar via USB» e «Depuração USB (definições de segurança)»,
+sem as quais o `pm install` recusa. Depois, aceitar a impressão digital RSA com
+«Permitir sempre a partir deste computador». À hora deste handover **não havia
+aparelho ligado** (`adb devices` vazio, nada no `lsusb`).
+
+Lembrete de custo: capturas de ecrã nunca com `Read` no thread principal.
+
+---
+
+## Por confirmar no aparelho (nada disto foi visto a correr)
+
+Arrastado da sessão anterior, e ainda por fechar:
+
 - Cabeçalho do login/registo com `SafeArea` — era achado P0.
 - Aviso de recusa visível com teclado aberto em landscape.
 - Gravar cliente duplicado sem ecrã vermelho.
 - Ficha da empresa a chegar ao Control depois de fechar a app.
 
----
-
-## Detalhe do que foi commitado (referência)
-
-`git status` mostra estes ficheiros modificados em `lib/` e `test/` (mais
-`docs/PLANO_DE_TESTES_2026-08-02.md`, já actualizado por esta sessão):
-
-- `lib/core/layout/dialogo_de_formulario.dart` — parâmetro `aviso`: mensagem
-  de recusa fora do scroll, por cima dos botões (antes ia em `SnackBar`, que
-  em telemóvel deitado com teclado aberto nasce escondida).
-- `lib/core/operations/kpis.dart` — `tesourariaDoMes` passa a usar
-  `historicalMonths` quando preenchido à mão.
-- `lib/features/auth/presentation/login_screen.dart`,
-  `registo_screen.dart` — `SafeArea` no cabeçalho, cortado pela barra de
-  estado.
-- `lib/features/empresa/presentation/empresa_page.dart` — copy «em
-  preparação para a v0.0.9» → «em preparação».
-- `lib/features/operations/presentation/boas_vindas_screen.dart` — «Ready?»
-  → «Vamos a isto?»; «o teu tablet» → «o teu ecrã».
-- `lib/features/operations/presentation/operational_pages.dart` —
-  `_FormularioDeCliente` (`StatefulWidget` dono dos seus
-  `TextEditingController`) substitui o diálogo antigo que causava o ecrã
-  vermelho ao gravar cliente; aviso de duplicado ligado ao novo parâmetro
-  `aviso`.
-- `lib/features/tarefas/data/tarefas_service.dart` — tarefa nova «N
-  colaboradores por registar».
-- `lib/features/workforce/presentation/workforce_pages.dart` — aviso de
-  limite de colaboradores ligado ao novo parâmetro `aviso`.
-- Testes actualizados: `test/features/dashboard/kpis_test.dart`,
-  `test/features/tarefas/tarefas_page_test.dart`.
-- Novos, ainda não adicionados ao git: `test/core/sync/carga_inicial_test.dart`,
-  `test/core/sync/fila_sem_corridas_test.dart`.
-
-**Fica por resolver:** os diálogos de lead, reserva e marcação continuam com
-o padrão antigo de `TextEditingController` (o mesmo bug do ecrã vermelho, que
-só foi corrigido no formulário de cliente) — não foram tocados por serem
-formulários grandes e a conversão sem testes de UI ser arriscada. Vai rebentar
-igual quando alguém os usar.
+Desta sessão, tudo o que está commitado só tem testes automáticos por trás.
+Prioridade ao retomar: onboarding a começar vazio (a mudança de maior alcance),
+ficha do cliente a abrir e a editar, os três diálogos convertidos (lead, reserva
+e marcação — o ecrã vermelho só se via fora dos testes, na animação real de
+fecho), e o painel de tesouraria a sair de "Por apurar".
 
 ---
 
-## Decisão já tomada, por implementar agora
+## Achados por corrigir (ver detalhe em `docs/PLANO_DE_TESTES_2026-08-02.md`
+## e `docs/AUDITORIA_EMPRESARIO_EXEMPLAR.md`)
 
-Uma máquina alugada deve bloquear **apenas a data ocupada**, não a máquina
-inteira. Hoje, uma reserva confirmada deixa a máquina "alugada" e recusa
-qualquer nova reserva em **todas** as semanas seguintes, mesmo vazias
-(achado 18 do plano de testes). Há testes que fixam o comportamento actual
-(`máquina parada não pode receber nova reserva`) — vão precisar de revisão,
-não é só mudar a regra de negócio.
+**Decisão tomada, por implementar:** uma máquina alugada deve bloquear **apenas
+a data ocupada**, não a máquina inteira. Hoje uma reserva confirmada recusa
+qualquer nova reserva em todas as semanas seguintes, mesmo vazias (achado 18).
+Há testes que fixam o comportamento actual — precisam de revisão, não é só
+mudar a regra.
 
----
+**Por fazer:**
+- Rotação de ecrã indevida — a do splash foi corrigida em `5dcc5c5`; falta
+  reproduzir em que outro ecrã ainda acontece.
+- Máquinas com referência perdem o nome no selector de reservas.
+- Ordem das listas de despesas e clientes não segue data nem alfabeto.
+- «Recomendação do dia: Quarta-feira fraca» num domingo — confirmar a regra do
+  dia da semana.
+- PIN 1234 por pôr (arrastado do relatório de 1 de Agosto).
+- Origem/campanha do lead e a ligação lead → cliente → recebimento nunca são
+  perguntadas (auditoria, eixo 2).
 
-## Por decidir
-
-Se o limite de colaboradores activos deve vir da subscrição no servidor
-(`limite_colaboradores_ativos`) ou continuar a vir do que o gestor declara no
-onboarding. Hoje vem só do onboarding — a regra de recusa funciona, mas um
-gestor dá-se as vagas que quiser; na empresa de teste o valor real da
-subscrição é 1, o declarado é 3.
-
----
-
-## Achados por corrigir, por urgência (ver detalhe no plano de testes)
-
-**P0 — partem a app ou deixam o painel vazio**
-
-1. Detalhe de cliente não abre — NIF, email, morada e notas chegam do
-   servidor mas não há ecrã que os mostre. É o único ecrã que existe para
-   máquinas e não existe para clientes; assimetria visível a qualquer
-   utilizador.
-2. Onboarding não cria colaboradores nem veículos (só as máquinas viram
-   placeholders). A frota fica por identificar.
-3. Facturação do ano passado não gera `historicalMonths`. **Metade resolvida:**
-   o commit `2710fa4` fez os KPIs *lerem* o histórico quando existe; quem o
-   *escreve* a partir da facturação continua a não escrever, por isso o painel
-   ainda fica em "Por apurar" com o onboarding 100% preenchido.
-
-**P1 — risco técnico e decisões que bloqueiam**
-
-4. Diálogos de lead, reserva e marcação com o padrão antigo de
-   `TextEditingController` — mesmo bug do ecrã vermelho, por rebentar.
-5. Máquina alugada bloqueia todas as semanas seguintes (secção acima).
-6. Limite de colaboradores: decisão por fechar (secção acima).
-7. Rotação de ecrã indevida — a do splash foi corrigida em `5dcc5c5`; falta
-   reproduzir em que outro ecrã ainda acontece.
-
-**P2/P3 — incomodam, não travam**
-
-8. Máquinas com referência perdem o nome no selector de reservas (as 15
-   placeholders "Máquina N" enterram as reais).
-9. Ordem das listas de despesas e clientes não segue data nem alfabeto.
-10. "Recomendação do dia: Quarta-feira fraca" num domingo — confirmar a
-    regra do dia da semana.
-11. PIN 1234 por pôr (arrastado do relatório de 1 de Agosto).
-
-**Testes por executar** (não são bugs): Faixa C ponto 5 (documentos, só se faz
-em Windows) e Faixa D (uma verificação no Control por **cada** empresa nova —
-só houve uma).
+**Testes por executar:** Faixa C ponto 5 (documentos, só em Windows) e Faixa D
+(uma verificação no Control por **cada** empresa nova — só houve uma).
 
 ---
 
-## Passo imediato ao retomar
+## Como trabalhar aqui
 
-1. Instalar a build actual no Redmi e confirmar os quatro pontos da lista
-   "Por confirmar no Redmi" acima. São correcções feitas às cegas; até serem
-   vistas no aparelho não contam como fechadas — o cabeçalho do login era P0.
-2. Perguntar ao Cesar as duas decisões em aberto antes de mexer no código
-   que dependem delas: limite de colaboradores (subscrição vs onboarding) e
-   se o bloqueio por data da máquina alugada já está em curso por outro
-   agente.
-3. Atacar os P0 por ordem: detalhe de cliente, depois onboarding a criar
-   colaboradores e veículos, depois a escrita de `historicalMonths`.
+Builds, `flutter analyze`, `flutter test` e APK **no i9** — e a sessão de hoje
+correu **dentro** do i9 (`hostname` = `home-lab-claude`), sem SSH: o `flutter`
+está no PATH e chama-se directamente. Ver `CLAUDE.md` na raiz.
 
-**Como trabalhar aqui:** builds, `flutter analyze`, `flutter test` e APK no i9
-(ver `CLAUDE.md` na raiz). `git add` explícito por ficheiro, nunca `-A`.
-Commits vão directos a `main`. Publicar (APK + Release + `versoes_apps`) só a
-pedido explícito do Cesar.
+`git add` explícito por ficheiro, nunca `-A`. Commits directos a `main`.
+Publicar (APK + GitHub Release + `versoes_apps`) **só a pedido explícito** do
+Cesar, e aí vai até ao fim.
+
+Ficheiros grandes (>500 linhas) não se lêem inteiros no thread principal —
+delegar. `operational_pages.dart` tem 3600+.
 
 ---
 
 ## Estado dos push notifications (ainda válido)
 
 Trigger `trg_notificar_novo_pedido_punho` (`AFTER INSERT` em
-`punho_pedidos_acesso`) confirmado a funcionar em produção: para a empresa
-de teste desta campanha, `enviar-push` devolveu 200 três segundos depois do
-pedido de acesso, e o Cesar aprovou no Control um minuto depois. Task #196
-permanece fechada.
+`punho_pedidos_acesso`) confirmado a funcionar em produção. Task #196 fechada.
 
 ---
 
-## Dados de teste deixados no servidor
+## Dados de teste no servidor
 
 Empresa **Lavandaria Mare Alta** (`1a267759-…`), conta
 `cesarmendes78+punhoteste@gmail.com` / `MareAlta2026`, com 36 operações
-semeadas mais alguns registos criados pela app durante os testes
-(`Teste Duplicados`, `Campainha Teste`, `Cliente Sino`, `Lavadora 8 kg`,
-colaboradora `Ana Ferreira`, uma reserva confirmada em 29/07). Apagar quando
-a empresa deixar de servir para testes.
+semeadas mais registos criados pela app durante os testes (`Teste Duplicados`,
+`Campainha Teste`, `Cliente Sino`, `Lavadora 8 kg`, colaboradora
+`Ana Ferreira`, uma reserva confirmada em 29/07). O seed novo, quando for
+aplicado, acrescenta 54 operações etiquetadas `por_dispositivo='seed-mare-alta'`
+e não toca em nada disto. Apagar quando a empresa deixar de servir para testes.
