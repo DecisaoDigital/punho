@@ -59,96 +59,104 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
+  // `SafeArea`: este ecrã é montado directamente pelo `AuthGate`, antes de
+  // qualquer `AppShell` — não há moldura nenhuma por cima a descontar a
+  // barra de estado (Decisão 8 do padrão visual). Sem isto, o topo do
+  // `BrandLockup` («Punho / Agarra o comando.») ficava por baixo da barra de
+  // estado do Android (visto no Redmi Note 10 Pro, Android 13, retrato).
   Widget build(BuildContext context) => Scaffold(
-    body: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            24,
-            24,
-            MediaQuery.viewInsetsOf(context).bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const BrandLockup(),
-              const SizedBox(height: 24),
-              Text(
-                'Iniciar sessão',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 16),
-              // `AutofillGroup` à volta dos dois campos, e não um por um: é o
-              // grupo que diz ao Android que aquilo é um formulário de login.
-              // Sem ele o gestor de palavras-passe não decora nem oferece o que
-              // já tem guardado, e a app parece não se lembrar de ninguém.
-              AutofillGroup(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: _email,
-                      autofocus: true,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      autofillHints: const [
-                        AutofillHints.username,
-                        AutofillHints.email,
-                      ],
-                      decoration: const InputDecoration(labelText: 'Email'),
-                    ),
-                    TextField(
-                      controller: _password,
-                      obscureText: _obscurarPass,
-                      textInputAction: TextInputAction.done,
-                      autofillHints: const [AutofillHints.password],
-                      onSubmitted: (_) => _busy ? null : _entrar(),
-                      decoration: InputDecoration(
-                        labelText: 'Palavra-passe',
-                        // Ver o que se escreveu. Numa palavra-passe longa num
-                        // teclado de telemóvel, escrever às cegas é a diferença
-                        // entre entrar e tentar três vezes.
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurarPass
-                                ? Icons.visibility
-                                : Icons.visibility_off,
+    body: SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              24,
+              24,
+              24,
+              MediaQuery.viewInsetsOf(context).bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const BrandLockup(),
+                const SizedBox(height: 24),
+                Text(
+                  'Iniciar sessão',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 16),
+                // `AutofillGroup` à volta dos dois campos, e não um por um: é o
+                // grupo que diz ao Android que aquilo é um formulário de
+                // login. Sem ele o gestor de palavras-passe não decora nem
+                // oferece o que já tem guardado, e a app parece não se
+                // lembrar de ninguém.
+                AutofillGroup(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: _email,
+                        autofocus: true,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        autofillHints: const [
+                          AutofillHints.username,
+                          AutofillHints.email,
+                        ],
+                        decoration: const InputDecoration(labelText: 'Email'),
+                      ),
+                      TextField(
+                        controller: _password,
+                        obscureText: _obscurarPass,
+                        textInputAction: TextInputAction.done,
+                        autofillHints: const [AutofillHints.password],
+                        onSubmitted: (_) => _busy ? null : _entrar(),
+                        decoration: InputDecoration(
+                          labelText: 'Palavra-passe',
+                          // Ver o que se escreveu. Numa palavra-passe longa
+                          // num teclado de telemóvel, escrever às cegas é a
+                          // diferença entre entrar e tentar três vezes.
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurarPass
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            tooltip: _obscurarPass
+                                ? 'Mostrar palavra-passe'
+                                : 'Esconder palavra-passe',
+                            onPressed: () =>
+                                setState(() => _obscurarPass = !_obscurarPass),
                           ),
-                          tooltip: _obscurarPass
-                              ? 'Mostrar palavra-passe'
-                              : 'Esconder palavra-passe',
-                          onPressed: () =>
-                              setState(() => _obscurarPass = !_obscurarPass),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(
-                    _error!,
-                    style: const TextStyle(color: Colors.red),
+                    ],
                   ),
                 ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: _busy ? null : _entrar,
-                child: const Text('Entrar'),
-              ),
-              TextButton(
-                onPressed: _busy ? null : _recuperarPalavraPasse,
-                child: const Text('Esqueci a palavra-passe'),
-              ),
-              TextButton(
-                onPressed: _busy ? null : widget.aoCriarConta,
-                child: const Text('Criar conta'),
-              ),
-            ],
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: _busy ? null : _entrar,
+                  child: const Text('Entrar'),
+                ),
+                TextButton(
+                  onPressed: _busy ? null : _recuperarPalavraPasse,
+                  child: const Text('Esqueci a palavra-passe'),
+                ),
+                TextButton(
+                  onPressed: _busy ? null : widget.aoCriarConta,
+                  child: const Text('Criar conta'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

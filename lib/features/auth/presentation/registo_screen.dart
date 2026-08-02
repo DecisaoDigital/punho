@@ -116,106 +116,116 @@ class _RegistoScreenState extends ConsumerState<RegistoScreen> {
   }
 
   @override
+  // `SafeArea`: tal como o `LoginScreen`, este ecrã é montado directamente
+  // pelo `AuthGate`, sem `AppShell` por cima a descontar a barra de estado
+  // (Decisão 8 do padrão visual). Sem isto, o `BrandLockup` do topo ficava
+  // por baixo da barra de estado do Android.
   Widget build(BuildContext context) => Scaffold(
-    body: Center(
-      child: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            // Depois de a conta ser criada o formulário desaparece. Ficava lá,
-            // preenchido, com o botão a dizer "Pedir acesso" — e quem acabara de
-            // pedir não tinha como saber se devia carregar outra vez. O ecrã
-            // passa a ter um estado só: ou se pede, ou já se pediu.
-            child: _sucesso != null
-                ? _Concluido(
-                    mensagem: _sucesso!,
-                    aoVoltarParaLogin: widget.aoVoltarParaLogin,
-                  )
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const BrandLockup(),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Criar conta',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _nome,
-                        decoration: const InputDecoration(labelText: 'Nome'),
-                      ),
-                      TextField(
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(labelText: 'Email'),
-                      ),
-                      TextField(
-                        controller: _palavraPasse,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Palavra-passe',
-                          helperText: 'Pelo menos 8 caracteres.',
+    body: SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              // Depois de a conta ser criada o formulário desaparece. Ficava
+              // lá, preenchido, com o botão a dizer "Pedir acesso" — e quem
+              // acabara de pedir não tinha como saber se devia carregar outra
+              // vez. O ecrã passa a ter um estado só: ou se pede, ou já se
+              // pediu.
+              child: _sucesso != null
+                  ? _Concluido(
+                      mensagem: _sucesso!,
+                      aoVoltarParaLogin: widget.aoVoltarParaLogin,
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const BrandLockup(),
+                        const SizedBox(height: 20),
+                        Text(
+                          'Criar conta',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.headlineMedium,
                         ),
-                      ),
-                      TextField(
-                        controller: _empresa,
-                        decoration: const InputDecoration(
-                          labelText: 'Empresa / organização',
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _nome,
+                          decoration: const InputDecoration(labelText: 'Nome'),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _perfil,
-                        decoration: const InputDecoration(
-                          labelText: 'Cargo pretendido',
+                        TextField(
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(labelText: 'Email'),
                         ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'gestor',
-                            child: Text('Gestor'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'colaborador',
-                            child: Text('Colaborador'),
-                          ),
-                        ],
-                        onChanged: _ocupado
-                            ? null
-                            : (v) =>
-                                  setState(() => _perfil = v ?? 'colaborador'),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _convite,
-                        textCapitalization: TextCapitalization.characters,
-                        decoration: const InputDecoration(
-                          labelText: 'Código de convite (opcional)',
-                        ),
-                      ),
-                      if (_erro != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Text(
-                            _erro!,
-                            style: const TextStyle(color: Colors.red),
+                        TextField(
+                          controller: _palavraPasse,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Palavra-passe',
+                            helperText: 'Pelo menos 8 caracteres.',
                           ),
                         ),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: _ocupado ? null : _submeter,
-                        child: Text(_ocupado ? 'A criar...' : 'Pedir acesso'),
-                      ),
-                      if (widget.aoVoltarParaLogin != null)
-                        TextButton(
-                          onPressed: _ocupado ? null : widget.aoVoltarParaLogin,
-                          child: const Text('Já tenho conta'),
+                        TextField(
+                          controller: _empresa,
+                          decoration: const InputDecoration(
+                            labelText: 'Empresa / organização',
+                          ),
                         ),
-                    ],
-                  ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          initialValue: _perfil,
+                          decoration: const InputDecoration(
+                            labelText: 'Cargo pretendido',
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'gestor',
+                              child: Text('Gestor'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'colaborador',
+                              child: Text('Colaborador'),
+                            ),
+                          ],
+                          onChanged: _ocupado
+                              ? null
+                              : (v) => setState(
+                                  () => _perfil = v ?? 'colaborador',
+                                ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _convite,
+                          textCapitalization: TextCapitalization.characters,
+                          decoration: const InputDecoration(
+                            labelText: 'Código de convite (opcional)',
+                          ),
+                        ),
+                        if (_erro != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Text(
+                              _erro!,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: _ocupado ? null : _submeter,
+                          child: Text(_ocupado ? 'A criar...' : 'Pedir acesso'),
+                        ),
+                        if (widget.aoVoltarParaLogin != null)
+                          TextButton(
+                            onPressed: _ocupado
+                                ? null
+                                : widget.aoVoltarParaLogin,
+                            child: const Text('Já tenho conta'),
+                          ),
+                      ],
+                    ),
+            ),
           ),
         ),
       ),

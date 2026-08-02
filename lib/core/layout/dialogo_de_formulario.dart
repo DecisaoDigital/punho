@@ -24,6 +24,7 @@ class DialogoDeFormulario extends StatelessWidget {
     required this.titulo,
     required this.corpo,
     required this.aoGuardar,
+    this.aviso,
     this.rotuloGuardar = 'Guardar',
     this.larguraMaxima = 640,
   });
@@ -31,6 +32,15 @@ class DialogoDeFormulario extends StatelessWidget {
   final String titulo;
   final Widget corpo;
   final VoidCallback aoGuardar;
+
+  /// Recusa a mostrar a quem carregou em *Guardar*, logo por cima dos botões.
+  ///
+  /// Fica **fora** do scroll de propósito. Estas mensagens andavam em
+  /// `SnackBar`, que num telemóvel deitado nasce por baixo do teclado: a
+  /// gravação era recusada e o que se via era o botão a não fazer nada. Dentro
+  /// do corpo também não servia — o corpo rola, e com o teclado aberto o que
+  /// está à vista é o campo que tem o cursor.
+  final String? aviso;
 
   /// O diálogo da máquina usa "Guardar e identificar" quando está a baptizar
   /// uma linha criada pelo total declarado no onboarding.
@@ -85,6 +95,30 @@ class DialogoDeFormulario extends StatelessWidget {
                   child: corpo,
                 ),
               ),
+              if (aviso != null)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(24, apertado ? 4 : 8, 24, 0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 18,
+                        color: tema.colorScheme.error,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          aviso!,
+                          style: tema.textTheme.bodySmall?.copyWith(
+                            color: tema.colorScheme.error,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               Padding(
                 padding: EdgeInsets.fromLTRB(
                   16,

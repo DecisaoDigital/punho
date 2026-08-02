@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/brand_lockup.dart';
 
 import '../../../core/config/supabase_config.dart';
+import '../../../core/empresa_sync/empresa_sync_controller.dart';
+import '../../../core/empresa_sync/ficha_da_empresa.dart';
 import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/theme/punho_theme.dart';
@@ -118,6 +121,49 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           maintenanceLastYearCents: _euroCents(maintenanceLastYear.text),
           fixedMonthlyCostsCents: _euroCents(fixedMonthlyCosts.text),
         );
+    // Best-effort e invisível, como em Definições da Empresa: sem isto a
+    // ficha só chegava ao servidor se o gestor mais tarde abrisse Definições
+    // e carregasse em Guardar — e até lá a empresa aparecia no Control sem
+    // NIF e sem nome. Fica pendente e o `EmpresaSyncController` insiste
+    // sozinho de 20 em 20 minutos; se falhar (sem rede, sem Supabase, modo
+    // demonstração), o onboarding termina na mesma — nada bloqueia aqui.
+    final payload = _payloadSincronizacaoOnboarding();
+    if (payload != null) {
+      unawaited(
+        ref
+            .read(empresaSyncControllerProvider.notifier)
+            .atualizarFicha(payload),
+      );
+    }
+  }
+
+  /// A ficha da empresa tal como o onboarding a recolheu, pronta a enviar.
+  ///
+  /// `null` para o colaborador: ele não preenche NIF, morada nem números da
+  /// empresa (não lhe é sequer pedido — ver `titlesColab`), e mandar isto em
+  /// branco apagava a ficha real de quem já a tinha preenchido.
+  Map<String, dynamic>? _payloadSincronizacaoOnboarding() {
+    if (role == 'colaborador') return null;
+    return FichaDaEmpresa(
+      nif: _optional(taxId.text),
+      nomeComercial: name.text.trim().isEmpty
+          ? 'A minha empresa'
+          : name.text.trim(),
+      formaJuridica: legal,
+      nomeGestor: _optional(ownerName.text),
+      morada: _optional(address.text),
+      codigoPostal: _optional(postalCode.text),
+      localidade: _optional(locality.text),
+      telefone: _optional(phone.text),
+      email: _optional(email.text),
+      nColaboradores: collaborators,
+      nVeiculos: vehicles,
+      nMaquinas: machines,
+      facturacaoAnoPassadoCentavos: _euroCents(revenueLastYear.text),
+      facturacaoEsteAnoCentavos: _euroCents(revenueThisYear.text),
+      manutencaoAnoPassadoCentavos: _euroCents(maintenanceLastYear.text),
+      custosFixosMensaisCentavos: _euroCents(fixedMonthlyCosts.text),
+    ).paraPayload();
   }
 
   @override
@@ -1685,8 +1731,34 @@ class ClientsPage extends ConsumerWidget {
 ///
 /// Devolver o id é o que permite criar um cliente a meio de uma reserva e
 /// continuar de onde se estava, em vez de sair do ecrã e voltar a começar.
-Future<String?> _customerDialog(BuildContext context, WidgetRef ref) async {
-  String? criado;
+Future<String?> _customerDialog(BuildContext context, WidgetRef ref) =>
+    showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _FormularioDeCliente(
+        notifier: ref.read(operationsProvider.notifier),
+      ),
+    );
+
+/// Tal como o [_FormularioDeMaquina], é um widget com estado porque é ele quem
+/// tem de ser dono dos controladores.
+///
+/// Enquanto viveram na função e eram descartados a seguir ao `await
+/// showDialog`, bastava a lista por baixo reconstruir-se durante a animação de
+/// fecho para os campos serem construídos outra vez com controladores já
+/// mortos: "A TextEditingController was used after being disposed", e daí o
+/// ecrã vermelho. Acontecia ao gravar um cliente cujo telemóvel já existia
+/// noutro — é a gravação que mexe na lista de baixo.
+class _FormularioDeCliente extends StatefulWidget {
+  const _FormularioDeCliente({required this.notifier});
+
+  final OperationsController notifier;
+
+  @override
+  State<_FormularioDeCliente> createState() => _FormularioDeClienteState();
+}
+
+class _FormularioDeClienteState extends State<_FormularioDeCliente> {
   final name = TextEditingController();
   final phone = TextEditingController();
   final taxId = TextEditingController();
@@ -1695,10 +1767,30 @@ Future<String?> _customerDialog(BuildContext context, WidgetRef ref) async {
   final postalCode = TextEditingController();
   final locality = TextEditingController();
   final notes = TextEditingController();
-  await showDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (dialogContext) => DialogoDeFormulario(
+
+  /// A recusa mostra-se **dentro** do diálogo e não num `SnackBar`.
+  ///
+  /// Num telemóvel deitado com o teclado aberto, o `SnackBar` nasce por baixo
+  /// do teclado: quem tentava gravar um cliente repetido carregava em Guardar e
+  /// via o botão não fazer nada.
+  String? erro;
+
+  @override
+  void dispose() {
+    name.dispose();
+    phone.dispose();
+    taxId.dispose();
+    email.dispose();
+    address.dispose();
+    postalCode.dispose();
+    locality.dispose();
+    notes.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DialogoDeFormulario(
       titulo: 'Novo cliente',
       corpo: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1744,12 +1836,15 @@ Future<String?> _customerDialog(BuildContext context, WidgetRef ref) async {
           ),
         ],
       ),
+      aviso: erro,
       aoGuardar: () {
-        if (name.text.trim().isEmpty) return;
+        if (name.text.trim().isEmpty) {
+          setState(() => erro = 'O nome é obrigatório.');
+          return;
+        }
         try {
           final novoId = 'c${DateTime.now().microsecondsSinceEpoch}';
-          ref
-              .read(operationsProvider.notifier)
+          widget.notifier
               .addCustomer(
                 Customer(
                   id: novoId,
@@ -1769,25 +1864,13 @@ Future<String?> _customerDialog(BuildContext context, WidgetRef ref) async {
                   notes: notes.text.trim(),
                 ),
               );
-          criado = novoId;
-          Navigator.pop(dialogContext);
+          Navigator.pop(context, novoId);
         } on StateError catch (error) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(error.message.toString())));
+          setState(() => erro = error.message.toString());
         }
       },
-    ),
-  );
-  name.dispose();
-  phone.dispose();
-  taxId.dispose();
-  email.dispose();
-  address.dispose();
-  postalCode.dispose();
-  locality.dispose();
-  notes.dispose();
-  return criado;
+    );
+  }
 }
 
 Future<void> _leadDialog(BuildContext context, WidgetRef ref) async {
@@ -1889,9 +1972,15 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
     return matches.isEmpty ? null : matches.first;
   }
 
+  // Só a manutenção bloqueia a máquina inteira. "Alugada" e "reservada" são
+  // um retrato do que já está marcado, não uma proibição para sempre — a
+  // mesma máquina pode voltar a reservar-se para uma data livre, e é o
+  // `machineAvailable`/`conflictFor` (por período) quem trava as datas que
+  // já têm reserva. Antes disto, uma máquina alugada hoje ficava sem poder
+  // receber reservas em nenhuma semana futura, o que inviabilizava o
+  // negócio de aluguer.
   bool _machineCanReceiveReservation(Machine machine) =>
-      machine.status != MachineStatus.maintenance &&
-      machine.status != MachineStatus.rented;
+      machine.status != MachineStatus.maintenance;
 
   void _toggleSlot(BuildContext context, DateTime startsAt) {
     setState(() {

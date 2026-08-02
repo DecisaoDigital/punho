@@ -285,6 +285,141 @@ void main() {
     );
   });
 
+  test(
+    'máquina alugada numa reserva pode ser reservada noutra semana livre',
+    () {
+      // Decisão de 02/08/2026: alugar bloqueia a data, não a máquina inteira.
+      // Antes desta mudança, uma máquina que passasse a `rented` ficava sem
+      // poder receber reservas em nenhuma semana futura — inviável para um
+      // negócio de aluguer, onde a mesma máquina volta a ficar livre.
+      final c = container();
+      addTearDown(c.dispose);
+      final controller = c.read(operationsProvider.notifier);
+      final now = DateTime.now();
+      // Reserva confirmada e já em curso: o `_syncMachineCycle` marca a
+      // máquina como alugada.
+      expect(
+        controller.addBooking(
+          Booking(
+            id: 'semana-1',
+            customerId: 'c1',
+            machineIds: const ['m1'],
+            startsAt: now.subtract(const Duration(hours: 6)),
+            endsAt: now.add(const Duration(hours: 6)),
+            status: BookingStatus.rented,
+          ),
+        ),
+        isNull,
+      );
+      expect(
+        c.read(operationsProvider).machines.first.status,
+        MachineStatus.rented,
+      );
+
+      // A mesma máquina, numa semana à frente sem qualquer sobreposição: tem
+      // de continuar disponível.
+      final proximaSemanaInicio = now.add(const Duration(days: 7));
+      final proximaSemanaFim = now.add(const Duration(days: 8));
+      expect(
+        controller.machineAvailable(
+          'm1',
+          proximaSemanaInicio,
+          proximaSemanaFim,
+        ),
+        isTrue,
+      );
+      expect(
+        controller.addBooking(
+          Booking(
+            id: 'semana-2',
+            customerId: 'c1',
+            machineIds: const ['m1'],
+            startsAt: proximaSemanaInicio,
+            endsAt: proximaSemanaFim,
+            status: BookingStatus.confirmed,
+          ),
+        ),
+        isNull,
+      );
+    },
+  );
+
+  test(
+    'reservar por cima do mesmo período de uma máquina alugada é recusado',
+    () {
+      // A barreira certa é a sobreposição de datas, não o estado da máquina —
+      // e essa continua a recusar quando há mesmo conflito.
+      final c = container();
+      addTearDown(c.dispose);
+      final controller = c.read(operationsProvider.notifier);
+      final now = DateTime.now();
+      controller.addBooking(
+        Booking(
+          id: 'em-curso',
+          customerId: 'c1',
+          machineIds: const ['m1'],
+          startsAt: now.subtract(const Duration(hours: 6)),
+          endsAt: now.add(const Duration(hours: 6)),
+          status: BookingStatus.rented,
+        ),
+      );
+
+      expect(
+        controller.machineAvailable(
+          'm1',
+          now.subtract(const Duration(hours: 3)),
+          now.add(const Duration(hours: 3)),
+        ),
+        isFalse,
+      );
+      final conflict = controller.addBooking(
+        Booking(
+          id: 'sobreposta',
+          customerId: 'c1',
+          machineIds: const ['m1'],
+          // 12h (o mínimo de uma reserva) e a sobrepor-se às -6h..+6h já
+          // alugadas.
+          startsAt: now.subtract(const Duration(hours: 3)),
+          endsAt: now.add(const Duration(hours: 9)),
+          status: BookingStatus.confirmed,
+        ),
+      );
+      expect(conflict, isNotNull);
+      expect(conflict!.machine.id, 'm1');
+    },
+  );
+
+  test('máquina em manutenção continua a recusar qualquer data', () {
+    // A única excepção que se mantém: manutenção é uma decisão sobre a
+    // máquina, não sobre um período, por isso bloqueia sempre.
+    final c = container();
+    addTearDown(c.dispose);
+    final controller = c.read(operationsProvider.notifier);
+    controller.updateMachineStatus('m1', MachineStatus.maintenance);
+
+    expect(
+      controller.machineAvailable(
+        'm1',
+        DateTime.now().add(const Duration(days: 30)),
+        DateTime.now().add(const Duration(days: 31)),
+      ),
+      isFalse,
+    );
+    expect(
+      () => controller.addBooking(
+        Booking(
+          id: 'manutencao',
+          customerId: 'c1',
+          machineIds: const ['m1'],
+          startsAt: DateTime.now().add(const Duration(days: 30)),
+          endsAt: DateTime.now().add(const Duration(days: 31)),
+          status: BookingStatus.confirmed,
+        ),
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('reserva inferior a meio dia é rejeitada', () {
     final c = container();
     addTearDown(c.dispose);
