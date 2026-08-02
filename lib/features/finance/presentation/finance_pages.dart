@@ -97,6 +97,16 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
   String? machineId;
   String? vehicleId;
 
+  /// Recusa a mostrar-se junto ao campo, não num `SnackBar`.
+  ///
+  /// Este ecrã é uma página inteira, não um diálogo — não tem o `aviso` do
+  /// [DialogoDeFormulario]. Mas o problema é o mesmo que o originou: num
+  /// telemóvel deitado com o teclado aberto, o `SnackBar` nasce por baixo do
+  /// teclado, escondido. Ficar junto ao campo do valor garante que se vê
+  /// mesmo com o teclado ainda aberto — o botão *Guardar*, mais abaixo, pode
+  /// não estar.
+  String? erro;
+
   @override
   void initState() {
     super.initState();
@@ -110,188 +120,197 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
     final operations = ref.watch(operationsProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Registar despesa')),
+      // SingleChildScrollView: com o teclado aberto num telemóvel deitado,
+      // este formulário (valor, documento, duas listas de máquinas/veículos,
+      // nota, estado) não cabe todo — sem rolar, transbordava.
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(
-              controller: amount,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Valor (€)'),
-            ),
-            Wrap(
-              spacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final path = await ExpenseDocumentCapture.pickImage();
-                    if (path != null) await _useInvoicePhoto(path);
-                  },
-                  icon: const Icon(Icons.attach_file),
-                  label: const Text('Escolher ficheiro'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final path =
-                        await ExpenseDocumentCapture.captureFromCamera();
-                    if (path != null) await _useInvoicePhoto(path);
-                  },
-                  icon: const Icon(Icons.document_scanner_outlined),
-                  label: const Text('Tirar e ler QR'),
-                ),
-              ],
-            ),
-            if (documentPath != null)
-              Text(
-                'Documento associado: $documentPath',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              TextField(
+                controller: amount,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Valor (€)'),
               ),
-            const Text(
-              'Sugestões QR/OCR são sempre confirmadas manualmente. Neste dispositivo, se a leitura automática não estiver disponível, preencha os dados abaixo.',
-              style: TextStyle(fontSize: 12),
-            ),
-            DropdownButtonFormField(
-              initialValue: category,
-              items: ExpenseCategory.values
-                  .map((x) => DropdownMenuItem(value: x, child: Text(x.name)))
-                  .toList(),
-              onChanged: (v) => setState(() => category = v!),
-            ),
-            DropdownButtonFormField<String?>(
-              initialValue: machineId,
-              decoration: const InputDecoration(
-                labelText: 'Máquina associada (opcional)',
+              if (erro != null) _AvisoDeValor(texto: erro!),
+              Wrap(
+                spacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final path = await ExpenseDocumentCapture.pickImage();
+                      if (path != null) await _useInvoicePhoto(path);
+                    },
+                    icon: const Icon(Icons.attach_file),
+                    label: const Text('Escolher ficheiro'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final path =
+                          await ExpenseDocumentCapture.captureFromCamera();
+                      if (path != null) await _useInvoicePhoto(path);
+                    },
+                    icon: const Icon(Icons.document_scanner_outlined),
+                    label: const Text('Tirar e ler QR'),
+                  ),
+                ],
               ),
-              items: [
-                const DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text('Sem máquina associada'),
+              if (documentPath != null)
+                Text(
+                  'Documento associado: $documentPath',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                ...operations.machines
-                    .where((machine) => !machine.archived)
-                    .map(
-                      (machine) => DropdownMenuItem<String?>(
-                        value: machine.id,
-                        child: Text(machine.name),
-                      ),
-                    ),
-              ],
-              onChanged: (value) => setState(() => machineId = value),
-            ),
-            DropdownButtonFormField<String?>(
-              initialValue: vehicleId,
-              decoration: const InputDecoration(
-                labelText: 'Veículo associado (opcional)',
+              const Text(
+                'Sugestões QR/OCR são sempre confirmadas manualmente. Neste dispositivo, se a leitura automática não estiver disponível, preencha os dados abaixo.',
+                style: TextStyle(fontSize: 12),
               ),
-              items: [
-                const DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text('Sem veículo associado'),
-                ),
-                ...operations.vehicles
-                    .where((vehicle) => !vehicle.archived)
-                    .map(
-                      (vehicle) => DropdownMenuItem<String?>(
-                        value: vehicle.id,
-                        child: Text(vehicle.alias ?? vehicle.plate),
-                      ),
-                    ),
-              ],
-              onChanged: (value) => setState(() => vehicleId = value),
-            ),
-            TextField(
-              controller: note,
-              decoration: const InputDecoration(labelText: 'Nota / descrição'),
-            ),
-            if (widget.recordedByCollaboratorId == null)
               DropdownButtonFormField(
-                initialValue: status,
-                items: ExpensePaymentStatus.values
-                    .map(
-                      (x) => DropdownMenuItem(
-                        value: x,
-                        child: Text(
-                          x == ExpensePaymentStatus.paid ? 'Paga' : 'Por pagar',
+                initialValue: category,
+                items: ExpenseCategory.values
+                    .map((x) => DropdownMenuItem(value: x, child: Text(x.name)))
+                    .toList(),
+                onChanged: (v) => setState(() => category = v!),
+              ),
+              DropdownButtonFormField<String?>(
+                initialValue: machineId,
+                decoration: const InputDecoration(
+                  labelText: 'Máquina associada (opcional)',
+                ),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('Sem máquina associada'),
+                  ),
+                  ...operations.machines
+                      .where((machine) => !machine.archived)
+                      .map(
+                        (machine) => DropdownMenuItem<String?>(
+                          value: machine.id,
+                          child: Text(machine.name),
                         ),
                       ),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => status = v!),
-              )
-            else
-              const ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.pending_actions_outlined),
-                title: Text('Enviada para validação da empresa'),
-                subtitle: Text(
-                  'Fica por pagar até o gestor confirmar o pagamento ou reembolso.',
+                ],
+                onChanged: (value) => setState(() => machineId = value),
+              ),
+              DropdownButtonFormField<String?>(
+                initialValue: vehicleId,
+                decoration: const InputDecoration(
+                  labelText: 'Veículo associado (opcional)',
+                ),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('Sem veículo associado'),
+                  ),
+                  ...operations.vehicles
+                      .where((vehicle) => !vehicle.archived)
+                      .map(
+                        (vehicle) => DropdownMenuItem<String?>(
+                          value: vehicle.id,
+                          child: Text(vehicle.alias ?? vehicle.plate),
+                        ),
+                      ),
+                ],
+                onChanged: (value) => setState(() => vehicleId = value),
+              ),
+              TextField(
+                controller: note,
+                decoration: const InputDecoration(
+                  labelText: 'Nota / descrição',
                 ),
               ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: () async {
-                // `centsDeTexto` devolve `null` tanto para o campo vazio como
-                // para texto ilegível ("1.500.00", letras) — nunca inventa um
-                // zero. Distinguimos os dois só para a mensagem: vazio pede
-                // para preencher, lixo diz o que não se percebeu.
-                final cents = centsDeTexto(amount.text);
-                if (cents == null || cents <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(_mensagemDeValorInvalido(amount.text)),
-                    ),
-                  );
-                  return;
-                }
-                final expenseId = 'e${DateTime.now().microsecondsSinceEpoch}';
-                ref
-                    .read(operationsProvider.notifier)
-                    .saveExpense(
-                      Expense(
-                        id: expenseId,
-                        date: expenseDate,
-                        amountCents: cents,
-                        category: category,
-                        status: status,
-                        note: note.text,
-                        documentPath: documentPath,
-                        machineId: machineId,
-                        vehicleId: vehicleId,
-                        recordedByCollaboratorId:
-                            widget.recordedByCollaboratorId,
-                        dataSource: qrDetected
-                            ? DocumentDataSource.qr
-                            : DocumentDataSource.manual,
-                      ),
-                    );
-                if (documentPath != null) {
-                  try {
-                    await ExpenseDocumentStorage.upload(
-                      localPath: documentPath!,
-                      expenseId: expenseId,
-                    );
-                  } catch (_) {
-                    // context.mounted (não só mounted) — o linter só aceita
-                    // esta forma para garantir que o próprio context ainda
-                    // pertence à árvore, não só que o State existe.
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'A despesa foi guardada, mas o comprovativo ainda não foi enviado para o arquivo privado.',
+              if (widget.recordedByCollaboratorId == null)
+                DropdownButtonFormField(
+                  initialValue: status,
+                  items: ExpensePaymentStatus.values
+                      .map(
+                        (x) => DropdownMenuItem(
+                          value: x,
+                          child: Text(
+                            x == ExpensePaymentStatus.paid
+                                ? 'Paga'
+                                : 'Por pagar',
                           ),
                         ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setState(() => status = v!),
+                )
+              else
+                const ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.pending_actions_outlined),
+                  title: Text('Enviada para validação da empresa'),
+                  subtitle: Text(
+                    'Fica por pagar até o gestor confirmar o pagamento ou reembolso.',
+                  ),
+                ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: () async {
+                  // `centsDeTexto` devolve `null` tanto para o campo vazio como
+                  // para texto ilegível ("1.500.00", letras) — nunca inventa um
+                  // zero. Distinguimos os dois só para a mensagem: vazio pede
+                  // para preencher, lixo diz o que não se percebeu.
+                  final cents = centsDeTexto(amount.text);
+                  if (cents == null || cents <= 0) {
+                    setState(
+                      () => erro = _mensagemDeValorInvalido(amount.text),
+                    );
+                    return;
+                  }
+                  setState(() => erro = null);
+                  final expenseId = 'e${DateTime.now().microsecondsSinceEpoch}';
+                  ref
+                      .read(operationsProvider.notifier)
+                      .saveExpense(
+                        Expense(
+                          id: expenseId,
+                          date: expenseDate,
+                          amountCents: cents,
+                          category: category,
+                          status: status,
+                          note: note.text,
+                          documentPath: documentPath,
+                          machineId: machineId,
+                          vehicleId: vehicleId,
+                          recordedByCollaboratorId:
+                              widget.recordedByCollaboratorId,
+                          dataSource: qrDetected
+                              ? DocumentDataSource.qr
+                              : DocumentDataSource.manual,
+                        ),
                       );
+                  if (documentPath != null) {
+                    try {
+                      await ExpenseDocumentStorage.upload(
+                        localPath: documentPath!,
+                        expenseId: expenseId,
+                      );
+                    } catch (_) {
+                      // context.mounted (não só mounted) — o linter só aceita
+                      // esta forma para garantir que o próprio context ainda
+                      // pertence à árvore, não só que o State existe.
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'A despesa foi guardada, mas o comprovativo ainda não foi enviado para o arquivo privado.',
+                            ),
+                          ),
+                        );
+                      }
                     }
                   }
-                }
-                if (!context.mounted) return;
-                Navigator.pop(context);
-              },
-              child: const Text('Guardar'),
-            ),
-          ],
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                },
+                child: const Text('Guardar'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -335,6 +354,10 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
   PaymentMethod method = PaymentMethod.transfer;
   String? customerId;
   String? bookingId;
+
+  /// Ver o comentário simétrico em [_RegisterExpensePageState.erro].
+  String? erro;
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(operationsProvider);
@@ -346,101 +369,104 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
         .toList();
     return Scaffold(
       appBar: AppBar(title: const Text('Registar recebimento')),
+      // SingleChildScrollView, pela mesma razão da Despesa: com o teclado
+      // aberto, o formulário (valor, cliente, reserva, método, nota) não
+      // cabia todo.
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(
-              controller: amount,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Valor (€)'),
-            ),
-            DropdownButtonFormField<String>(
-              initialValue: selectedCustomerId,
-              decoration: const InputDecoration(labelText: 'Cliente'),
-              items: customers
-                  .map(
-                    (customer) => DropdownMenuItem(
-                      value: customer.id,
-                      child: Text(customer.name),
-                    ),
-                  )
-                  .toList(),
-              onChanged: customers.isEmpty
-                  ? null
-                  : (value) => setState(() {
-                      customerId = value;
-                      bookingId = null;
-                    }),
-            ),
-            DropdownButtonFormField<String?>(
-              initialValue: bookingId,
-              decoration: const InputDecoration(
-                labelText: 'Associar a reserva (opcional)',
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              TextField(
+                controller: amount,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Valor (€)'),
               ),
-              items: [
-                const DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text('Sem reserva associada'),
+              if (erro != null) _AvisoDeValor(texto: erro!),
+              DropdownButtonFormField<String>(
+                initialValue: selectedCustomerId,
+                decoration: const InputDecoration(labelText: 'Cliente'),
+                items: customers
+                    .map(
+                      (customer) => DropdownMenuItem(
+                        value: customer.id,
+                        child: Text(customer.name),
+                      ),
+                    )
+                    .toList(),
+                onChanged: customers.isEmpty
+                    ? null
+                    : (value) => setState(() {
+                        customerId = value;
+                        bookingId = null;
+                      }),
+              ),
+              DropdownButtonFormField<String?>(
+                initialValue: bookingId,
+                decoration: const InputDecoration(
+                  labelText: 'Associar a reserva (opcional)',
                 ),
-                ...customerBookings.map(
-                  (booking) => DropdownMenuItem<String?>(
-                    value: booking.id,
-                    child: Text(
-                      '${booking.startsAt.day}/${booking.startsAt.month} · ${booking.status.name}',
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('Sem reserva associada'),
+                  ),
+                  ...customerBookings.map(
+                    (booking) => DropdownMenuItem<String?>(
+                      value: booking.id,
+                      child: Text(
+                        '${booking.startsAt.day}/${booking.startsAt.month} · ${booking.status.name}',
+                      ),
                     ),
                   ),
-                ),
-              ],
-              onChanged: (value) => setState(() => bookingId = value),
-            ),
-            DropdownButtonFormField(
-              initialValue: method,
-              items: PaymentMethod.values
-                  .map((x) => DropdownMenuItem(value: x, child: Text(x.name)))
-                  .toList(),
-              onChanged: (v) => setState(() => method = v!),
-            ),
-            TextField(
-              controller: note,
-              decoration: const InputDecoration(labelText: 'Nota'),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: customers.isEmpty
-                  ? null
-                  : () {
-                      final cents = centsDeTexto(amount.text);
-                      if (cents == null || cents <= 0) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              _mensagemDeValorInvalido(amount.text),
-                            ),
-                          ),
-                        );
-                        return;
-                      }
-                      ref
-                          .read(operationsProvider.notifier)
-                          .saveReceipt(
-                            Receipt(
-                              id: 'r${DateTime.now().microsecondsSinceEpoch}',
-                              date: DateTime.now(),
-                              amountCents: cents,
-                              customerId: selectedCustomerId!,
-                              bookingId: bookingId,
-                              recordedByCollaboratorId:
-                                  widget.recordedByCollaboratorId,
-                              method: method,
-                              note: note.text,
-                            ),
+                ],
+                onChanged: (value) => setState(() => bookingId = value),
+              ),
+              DropdownButtonFormField(
+                initialValue: method,
+                items: PaymentMethod.values
+                    .map((x) => DropdownMenuItem(value: x, child: Text(x.name)))
+                    .toList(),
+                onChanged: (v) => setState(() => method = v!),
+              ),
+              TextField(
+                controller: note,
+                decoration: const InputDecoration(labelText: 'Nota'),
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: customers.isEmpty
+                    ? null
+                    : () {
+                        final cents = centsDeTexto(amount.text);
+                        if (cents == null || cents <= 0) {
+                          setState(
+                            () => erro = _mensagemDeValorInvalido(amount.text),
                           );
-                      Navigator.pop(context);
-                    },
-              child: const Text('Guardar'),
-            ),
-          ],
+                          return;
+                        }
+                        setState(() => erro = null);
+                        ref
+                            .read(operationsProvider.notifier)
+                            .saveReceipt(
+                              Receipt(
+                                id: 'r${DateTime.now().microsecondsSinceEpoch}',
+                                date: DateTime.now(),
+                                amountCents: cents,
+                                customerId: selectedCustomerId!,
+                                bookingId: bookingId,
+                                recordedByCollaboratorId:
+                                    widget.recordedByCollaboratorId,
+                                method: method,
+                                note: note.text,
+                              ),
+                            );
+                        Navigator.pop(context);
+                      },
+                child: const Text('Guardar'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -449,3 +475,35 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
 
 String _money(int cents) =>
     '${(cents / 100).toStringAsFixed(2).replaceAll('.', ',')} €';
+
+/// Recusa a mostrar-se dentro do formulário, junto ao campo do valor — o
+/// mesmo desenho visual do `aviso` de [DialogoDeFormulario], para quem não
+/// vive num diálogo. Ver o comentário em `_RegisterExpensePageState.erro`.
+class _AvisoDeValor extends StatelessWidget {
+  const _AvisoDeValor({required this.texto});
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.error_outline, size: 18, color: tema.colorScheme.error),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              texto,
+              style: tema.textTheme.bodySmall?.copyWith(
+                color: tema.colorScheme.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

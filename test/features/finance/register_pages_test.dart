@@ -154,6 +154,55 @@ void main() {
     });
   });
 
+  group('aviso visível com o teclado aberto — não escondido atrás dele como o '
+      'SnackBar ficava', () {
+    // Simula o teclado aberto, tal como em dialogos_formulario_test.dart:
+    // é isto que o sistema faz ao focar um campo.
+    void abrirTeclado(WidgetTester tester, {double altura = 220}) {
+      tester.view.viewInsets = FakeViewPadding(
+        bottom: altura * tester.view.devicePixelRatio,
+      );
+      addTearDown(tester.view.resetViewInsets);
+    }
+
+    testWidgets('Despesa: o aviso fica dentro da área visível', (tester) async {
+      await _abrirEmpurrado(tester, const RegisterExpensePage());
+      abrirTeclado(tester);
+      await tester.pumpAndSettle();
+      await escreverEGuardar(tester, '1.500.00');
+
+      // A altura útil é o ecrã (800) menos o teclado (220): um SnackBar
+      // nasce encostado aos 800 e fica invisível; o aviso, dentro do
+      // Scaffold que encolhe com o teclado, tem de ficar acima de 580.
+      final aviso = tester.getRect(
+        find.text(
+          'Não consigo ler o valor "1.500.00" — escreve por exemplo '
+          '1.500,00.',
+        ),
+      );
+      expect(aviso.bottom, lessThanOrEqualTo(800 - 220));
+      // E não é um SnackBar: essa era a causa da mensagem ficar escondida.
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('Recebimento: o aviso fica dentro da área visível', (
+      tester,
+    ) async {
+      await _abrirEmpurrado(tester, const RegisterReceiptPage());
+      abrirTeclado(tester);
+      await tester.pumpAndSettle();
+      await escreverEGuardar(tester, 'abc');
+
+      final aviso = tester.getRect(
+        find.text(
+          'Não consigo ler o valor "abc" — escreve por exemplo 1.500,00.',
+        ),
+      );
+      expect(aviso.bottom, lessThanOrEqualTo(800 - 220));
+      expect(find.byType(SnackBar), findsNothing);
+    });
+  });
+
   group('Recebimento', () {
     testWidgets('"1.500,00" (separador de milhar PT) grava 1500 €, não zero', (
       tester,
@@ -180,7 +229,9 @@ void main() {
       await escreverEGuardar(tester, 'abc');
 
       expect(
-        find.text('Não consigo ler o valor "abc" — escreve por exemplo 1.500,00.'),
+        find.text(
+          'Não consigo ler o valor "abc" — escreve por exemplo 1.500,00.',
+        ),
         findsOneWidget,
       );
       expect(container.read(operationsProvider).receipts.length, antes);
