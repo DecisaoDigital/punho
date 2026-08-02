@@ -162,14 +162,19 @@ class Vehicle {
   final InsuranceFrequency? insuranceFrequency;
   final bool archived;
 
+  /// Os campos opcionais usam o sentinela [_naoMexer] em vez de `null`, para
+  /// distinguir **não mexer** de **apagar** — mesma ideia do
+  /// `Collaborator.copyWith` acima. Sem isto, editar um veículo para limpar
+  /// uma prestação ou um seguro escritos errado não tinha efeito: `valor ??
+  /// this.valor` ignora silenciosamente um `null` passado de propósito.
   Vehicle copyWith({
     String? plate,
     String? type,
     VehicleStatus? status,
-    String? alias,
-    int? monthlyPaymentCents,
-    int? insuranceCents,
-    InsuranceFrequency? insuranceFrequency,
+    Object? alias = _naoMexer,
+    Object? monthlyPaymentCents = _naoMexer,
+    Object? insuranceCents = _naoMexer,
+    Object? insuranceFrequency = _naoMexer,
     String? notes,
     bool? archived,
   }) => Vehicle(
@@ -177,10 +182,16 @@ class Vehicle {
     plate: plate ?? this.plate,
     type: type ?? this.type,
     status: status ?? this.status,
-    alias: alias ?? this.alias,
-    monthlyPaymentCents: monthlyPaymentCents ?? this.monthlyPaymentCents,
-    insuranceCents: insuranceCents ?? this.insuranceCents,
-    insuranceFrequency: insuranceFrequency ?? this.insuranceFrequency,
+    alias: alias == _naoMexer ? this.alias : alias as String?,
+    monthlyPaymentCents: monthlyPaymentCents == _naoMexer
+        ? this.monthlyPaymentCents
+        : monthlyPaymentCents as int?,
+    insuranceCents: insuranceCents == _naoMexer
+        ? this.insuranceCents
+        : insuranceCents as int?,
+    insuranceFrequency: insuranceFrequency == _naoMexer
+        ? this.insuranceFrequency
+        : insuranceFrequency as InsuranceFrequency?,
     notes: notes ?? this.notes,
     archived: archived ?? this.archived,
   );

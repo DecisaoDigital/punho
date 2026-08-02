@@ -125,10 +125,40 @@ class Customer {
     this.locality,
     this.notes = '',
     this.companyId = 'local-company',
+    this.archived = false,
   });
   final String id, name, phone, notes;
   final String companyId;
   final String? taxId, email, address, postalCode, locality;
+
+  /// Soft-delete, como em [Machine], [Vehicle] e [Collaborator]: um cliente
+  /// arquivado sai das listas activas, mas o registo continua a existir —
+  /// reservas e recebimentos antigos apontam sempre para alguém que existe.
+  final bool archived;
+
+  Customer copyWith({
+    String? name,
+    String? phone,
+    String? taxId,
+    String? email,
+    String? address,
+    String? postalCode,
+    String? locality,
+    String? notes,
+    bool? archived,
+  }) => Customer(
+    id: id,
+    name: name ?? this.name,
+    phone: phone ?? this.phone,
+    taxId: taxId ?? this.taxId,
+    email: email ?? this.email,
+    address: address ?? this.address,
+    postalCode: postalCode ?? this.postalCode,
+    locality: locality ?? this.locality,
+    notes: notes ?? this.notes,
+    companyId: companyId,
+    archived: archived ?? this.archived,
+  );
 }
 
 class Lead {

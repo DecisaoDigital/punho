@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide TimeOfDay;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/finance/regime_fiscal.dart';
+import '../../../core/format/campos.dart';
 import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/finance/retencao_irs.dart';
 import '../../../core/layout/dialogo_de_formulario.dart';
@@ -10,6 +11,19 @@ import '../../../data/repositories/operation_repository.dart';
 import '../../../domain/models/workforce.dart';
 import '../../auth/subscricao_providers.dart';
 import 'ficha_fiscal_form.dart';
+
+/// Erro de leitura para um campo de euros opcional: `null` quando o campo
+/// está vazio (o valor é mesmo desconhecido, fica "por apurar") ou legível;
+/// mensagem quando tem texto que não se lê como euro — "1.500.00" com dois
+/// pontos, letras, o que for. Nunca se grava um zero calado por um texto que
+/// não se conseguiu ler: se parte, tem de partir com estrondo.
+String? _erroDeValorOpcional(String rotulo, String textoEscrito) {
+  final texto = textoEscrito.trim();
+  if (texto.isEmpty) return null;
+  return centsDeTexto(textoEscrito) == null
+      ? 'Não consigo ler $rotulo: "$texto" — escreve por exemplo 1.500,00.'
+      : null;
+}
 
 /// "N vagas contratadas", com o singular tratado: "1 vaga contratada" e não
 /// "1 vagas contratadas".
@@ -318,12 +332,12 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
   /// O bruto escrito no campo, em cêntimos. `null` enquanto estiver vazio — a
   /// estimativa mostra "por apurar" em vez de zeros.
   int? get _brutoCents {
-    final valor = double.tryParse(cost.text.replaceAll(',', '.'));
-    if (valor == null || valor <= 0) return null;
+    final cents = centsDeTexto(cost.text);
+    if (cents == null || cents <= 0) return null;
     return frequency == CostFrequency.monthly
-        ? (valor * 100).round()
+        ? cents
         // O custo semanal mensaliza-se para a estimativa: as taxas são mensais.
-        : (valor * 100 * 52 / 12).round();
+        : (cents * 52 / 12).round();
   }
 
   @override
@@ -450,10 +464,21 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
           setState(() => erro = 'Indica o nome do colaborador.');
           return;
         }
+        // Custo: campo opcional (fica "por apurar" em branco), mas texto que
+        // não se lê como euro recusa a gravação em vez de virar zero calado —
+        // era exactamente isto que `(double.tryParse(...) ?? 0)` fazia com
+        // "1.500,00" (separador de milhar): lia até ao primeiro erro e
+        // inventava zero.
+        final erroDeCusto = _erroDeValorOpcional(
+          'o custo estimado',
+          cost.text,
+        );
+        if (erroDeCusto != null) {
+          setState(() => erro = erroDeCusto);
+          return;
+        }
         final anterior = current;
-        final custoCents =
-            ((double.tryParse(cost.text.replaceAll(',', '.')) ?? 0) * 100)
-                .round();
+        final custoCents = centsDeTexto(cost.text);
         final horario = _scheduleFromWeeklyHours(
           int.tryParse(hours.text.trim()) ?? 0,
         );
@@ -665,7 +690,11 @@ class VehiclesPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(operationsProvider);
-    final total = s.vehicles.fold(0, (sum, v) => sum + monthlyFleetCost(v));
+    // Arquivados fora da lista e do custo da frota: eliminar tem de fazer a
+    // linha (e o número) desaparecer, ou não se acredita que eliminou — mesma
+    // regra das outras entidades.
+    final veiculos = s.vehicles.where((v) => !v.archived).toList();
+    final total = veiculos.fold(0, (sum, v) => sum + monthlyFleetCost(v));
     return Scaffold(
       body: Padding(
         // Começa por texto: margem vertical inteira. Ver [MargensDoCanvas].
@@ -680,7 +709,7 @@ class VehiclesPage extends ConsumerWidget {
           children: [
             Text('Veículos', style: Theme.of(context).textTheme.headlineMedium),
             Text(
-              s.vehicles.isEmpty
+              veiculos.isEmpty
                   ? 'Frota declarada, veículos por identificar'
                   : 'Custo mensal estimado da frota: ${(total / 100).toStringAsFixed(2)} €',
             ),
@@ -693,12 +722,31 @@ class VehiclesPage extends ConsumerWidget {
             Expanded(
               child: ListView(
                 children: [
-                  for (final v in s.vehicles)
+                  for (final v in veiculos)
                     Card(
                       child: ListTile(
+                        // Tocar na linha edita, como nos colaboradores: era o
+                        // gesto que não fazia nada antes desta correcção.
+                        onTap: () => _vehicleDialog(context, ref, v),
                         title: Text(v.plate),
                         subtitle: Text(
                           '${v.type} · ${(monthlyFleetCost(v) / 100).toStringAsFixed(2)} €/mês',
+                        ),
+                        trailing: Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined),
+                              tooltip: 'Editar veículo',
+                              onPressed: () => _vehicleDialog(context, ref, v),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              tooltip: 'Eliminar veículo',
+                              onPressed: () =>
+                                  _confirmarEliminarVeiculo(context, ref, v),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -712,33 +760,91 @@ class VehiclesPage extends ConsumerWidget {
   }
 }
 
-Future<void> _vehicleDialog(BuildContext context, WidgetRef ref) => showDialog(
+/// Eliminar com 6 segundos para anular, como nas máquinas e nos colaboradores.
+Future<void> _confirmarEliminarVeiculo(
+  BuildContext context,
+  WidgetRef ref,
+  Vehicle v,
+) async {
+  final confirmado = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text('Eliminar ${v.plate}?'),
+      content: const Text(
+        'O veículo sai da lista. As despesas já associadas a ele não se '
+        'perdem.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: const Text('Eliminar'),
+        ),
+      ],
+    ),
+  );
+  if (confirmado != true || !context.mounted) return;
+  ref.read(operationsProvider.notifier).archiveVehicle(v.id);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('${v.plate} eliminado.'),
+      duration: const Duration(seconds: 6),
+      action: SnackBarAction(
+        label: 'Anular',
+        onPressed: () =>
+            ref.read(operationsProvider.notifier).unarchiveVehicle(v.id),
+      ),
+    ),
+  );
+}
+
+Future<void> _vehicleDialog(
+  BuildContext context,
+  WidgetRef ref, [
+  Vehicle? current,
+]) => showDialog(
   context: context,
   // Os mesmos quatro defeitos que o diálogo dos colaboradores tinha e que o
   // Cesar apanhou no smoke da v0.0.4: fechava ao tocar fora, o título dizia
   // "Novo" (leu-se como "já foi criado"), não validava nada e não punha o
   // cursor no primeiro campo.
   barrierDismissible: false,
-  builder: (_) =>
-      _FormularioDeVeiculo(notifier: ref.read(operationsProvider.notifier)),
+  builder: (_) => _FormularioDeVeiculo(
+    notifier: ref.read(operationsProvider.notifier),
+    current: current,
+  ),
 );
 
 class _FormularioDeVeiculo extends StatefulWidget {
-  const _FormularioDeVeiculo({required this.notifier});
+  const _FormularioDeVeiculo({required this.notifier, this.current});
 
   final OperationsController notifier;
+  final Vehicle? current;
 
   @override
   State<_FormularioDeVeiculo> createState() => _FormularioDeVeiculoState();
 }
 
 class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
-  final plate = TextEditingController();
-  final type = TextEditingController();
-  final alias = TextEditingController();
-  final monthlyPayment = TextEditingController();
-  final insurance = TextEditingController();
-  var insuranceFrequency = InsuranceFrequency.annual;
+  late final Vehicle? current = widget.current;
+  late final plate = TextEditingController(text: current?.plate);
+  late final type = TextEditingController(text: current?.type);
+  late final alias = TextEditingController(text: current?.alias);
+  late final monthlyPayment = TextEditingController(
+    text: textoDeCents(current?.monthlyPaymentCents),
+  );
+  late final insurance = TextEditingController(
+    text: textoDeCents(current?.insuranceCents),
+  );
+  late var insuranceFrequency =
+      current?.insuranceFrequency ?? InsuranceFrequency.annual;
+
+  /// Mensagem mostrada dentro do diálogo, como no de colaborador — não num
+  /// `SnackBar`, que nasce debaixo do teclado num telemóvel deitado.
+  String? erro;
 
   @override
   void dispose() {
@@ -753,7 +859,7 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
   @override
   Widget build(BuildContext context) {
     return DialogoDeFormulario(
-      titulo: 'Adicionar veículo',
+      titulo: current == null ? 'Adicionar veículo' : 'Editar veículo',
       corpo: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -810,38 +916,60 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
           ),
         ],
       ),
+      aviso: erro,
       aoGuardar: () {
         // Sem matrícula o veículo não se identifica. Não se valida o formato
         // AA-11-BB: pode ser matrícula estrangeira ou histórica.
         final matricula = plate.text.trim();
         if (matricula.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Indica a matrícula do veículo.')),
-          );
+          setState(() => erro = 'Indica a matrícula do veículo.');
           return;
         }
+        // Prestação e seguro são opcionais (ficam "por apurar" em branco),
+        // mas texto ilegível — "1.500.00" com dois pontos, letras — recusa a
+        // gravação em vez de virar zero calado.
+        final erroDaPrestacao = _erroDeValorOpcional(
+          'a prestação mensal',
+          monthlyPayment.text,
+        );
+        final erroDoSeguro = _erroDeValorOpcional('o seguro', insurance.text);
+        final erroDeValor = erroDaPrestacao ?? erroDoSeguro;
+        if (erroDeValor != null) {
+          setState(() => erro = erroDeValor);
+          return;
+        }
+        final anterior = current;
+        final prestacaoCents = centsDeTexto(monthlyPayment.text);
+        final seguroCents = centsDeTexto(insurance.text);
+        // A editar mantém-se o mesmo id e passa-se por copyWith: construir um
+        // Vehicle novo criava um segundo registo e deixava o antigo na lista.
         widget.notifier.saveVehicle(
-          Vehicle(
-            id: 'v${DateTime.now().microsecondsSinceEpoch}',
-            plate: matricula,
-            type: type.text,
-            status: VehicleStatus.active,
-            alias: alias.text.trim().isEmpty ? null : alias.text.trim(),
-            monthlyPaymentCents: _cents(monthlyPayment.text),
-            insuranceCents: _cents(insurance.text),
-            insuranceFrequency: insurance.text.trim().isEmpty
-                ? null
-                : insuranceFrequency,
-          ),
+          anterior != null
+              ? anterior.copyWith(
+                  plate: matricula,
+                  type: type.text,
+                  alias: alias.text.trim().isEmpty ? null : alias.text.trim(),
+                  monthlyPaymentCents: prestacaoCents,
+                  insuranceCents: seguroCents,
+                  insuranceFrequency: insurance.text.trim().isEmpty
+                      ? null
+                      : insuranceFrequency,
+                )
+              : Vehicle(
+                  id: 'v${DateTime.now().microsecondsSinceEpoch}',
+                  plate: matricula,
+                  type: type.text,
+                  status: VehicleStatus.active,
+                  alias: alias.text.trim().isEmpty ? null : alias.text.trim(),
+                  monthlyPaymentCents: prestacaoCents,
+                  insuranceCents: seguroCents,
+                  insuranceFrequency: insurance.text.trim().isEmpty
+                      ? null
+                      : insuranceFrequency,
+                ),
         );
         Navigator.pop(context);
       },
     );
   }
-}
-
-int? _cents(String value) {
-  if (value.trim().isEmpty) return null;
-  final parsed = double.tryParse(value.replaceAll(',', '.'));
-  return parsed == null || parsed < 0 ? null : (parsed * 100).round();
 }

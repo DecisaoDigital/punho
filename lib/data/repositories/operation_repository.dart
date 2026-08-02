@@ -22,11 +22,13 @@ abstract interface class OperationRepository {
   void archiveMachine(String id);
   void saveLead(Lead item);
   void saveCustomer(Customer item);
+  void archiveCustomer(String id);
   void saveBooking(Booking item);
   void saveExpense(Expense item);
   void saveReceipt(Receipt item);
   void saveCollaborator(Collaborator item);
   void saveVehicle(Vehicle item);
+  void archiveVehicle(String id);
   void saveHistoricalMonth(HistoricalMonth item);
   void saveOnboarding(OnboardingData value);
 
@@ -218,6 +220,14 @@ class LocalDemoOperationRepository implements OperationRepository {
   }
 
   @override
+  void archiveCustomer(String id) {
+    final i = _customers.indexWhere((x) => x.id == id);
+    if (i >= 0) {
+      _customers[i] = _customers[i].copyWith(archived: true);
+    }
+  }
+
+  @override
   void saveBooking(Booking item) {
     final index = _bookings.indexWhere((booking) => booking.id == item.id);
     if (index < 0) {
@@ -264,6 +274,14 @@ class LocalDemoOperationRepository implements OperationRepository {
       _vehicles.add(item);
     } else {
       _vehicles[i] = item;
+    }
+  }
+
+  @override
+  void archiveVehicle(String id) {
+    final i = _vehicles.indexWhere((x) => x.id == id);
+    if (i >= 0) {
+      _vehicles[i] = _vehicles[i].copyWith(archived: true);
     }
   }
 
@@ -461,6 +479,17 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   }
 
   @override
+  void archiveCustomer(String id) {
+    super.archiveCustomer(id);
+    // Mesmo padrão do archiveMachine: viaja como o estado final do cliente.
+    final arquivado = _customers.where((c) => c.id == id).firstOrNull;
+    if (arquivado != null) {
+      _registar('customer', id, _customerToJson(arquivado));
+    }
+    _markDirty();
+  }
+
+  @override
   void saveBooking(Booking item) {
     super.saveBooking(item);
     _registar('booking', item.id, _bookingToJson(item));
@@ -492,6 +521,16 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   void saveVehicle(Vehicle item) {
     super.saveVehicle(item);
     _registar('vehicle', item.id, _vehicleToJson(item));
+    _markDirty();
+  }
+
+  @override
+  void archiveVehicle(String id) {
+    super.archiveVehicle(id);
+    final arquivado = _vehicles.where((v) => v.id == id).firstOrNull;
+    if (arquivado != null) {
+      _registar('vehicle', id, _vehicleToJson(arquivado));
+    }
     _markDirty();
   }
 
@@ -736,6 +775,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'locality': item.locality,
     'notes': item.notes,
     'companyId': item.companyId,
+    'archived': item.archived,
   };
 
   static Customer _customerFromJson(Map<String, dynamic> data) => Customer(
@@ -749,6 +789,9 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     locality: _nullableString(data['locality']),
     notes: _string(data, 'notes'),
     companyId: _string(data, 'companyId', 'local-company'),
+    // Ausente nas gravações anteriores a este campo: fica false, como nos
+    // outros booleanos (`_bool` devolve false quando a chave não existe).
+    archived: _bool(data, 'archived'),
   );
 
   static Map<String, Object?> _leadToJson(Lead item) => {

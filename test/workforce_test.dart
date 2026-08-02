@@ -68,4 +68,32 @@ void main() {
     const label = 'Resultado atribuível';
     expect(label, isNot(contains('lucro')));
   });
+
+  test(
+    'Vehicle.copyWith apaga um valor com null — não fica preso por "??"',
+    () {
+      const original = Vehicle(
+        id: 'v',
+        plate: 'AA-11-BB',
+        type: 'Carrinha',
+        status: VehicleStatus.active,
+        monthlyPaymentCents: 25000,
+        insuranceCents: 12000,
+        insuranceFrequency: InsuranceFrequency.annual,
+        alias: 'Carrinha velha',
+      );
+      final limpo = original.copyWith(
+        monthlyPaymentCents: null,
+        insuranceCents: null,
+        insuranceFrequency: null,
+        alias: null,
+      );
+      expect(limpo.monthlyPaymentCents, isNull);
+      expect(limpo.insuranceCents, isNull);
+      expect(limpo.insuranceFrequency, isNull);
+      expect(limpo.alias, isNull);
+      // Sem passar o parâmetro, mantém o que já lá estava.
+      expect(original.copyWith(plate: 'ZZ-99-XX').monthlyPaymentCents, 25000);
+    },
+  );
 }

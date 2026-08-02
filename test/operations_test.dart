@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/operations.dart';
 import 'package:punho/domain/models/historical_month.dart';
+import 'package:punho/domain/models/workforce.dart';
 
 void main() {
   ProviderContainer container() => ProviderContainer();
@@ -441,5 +442,115 @@ void main() {
       throwsArgumentError,
     );
     expect(minimumBookingDuration, const Duration(hours: 12));
+  });
+
+  // --- Arquivo de cliente (Tarefa 3 da auditoria: Customer não tinha
+  // `archived` nem forma de sair da lista) ---------------------------------
+
+  test('Customer.copyWith distingue não mexer de apagar', () {
+    const original = Customer(
+      id: 'c-copy',
+      name: 'Original',
+      phone: '910 000 000',
+      taxId: '123456789',
+    );
+    final semAlteracao = original.copyWith();
+    expect(semAlteracao.taxId, '123456789');
+    final marcadoComoArquivado = original.copyWith(archived: true);
+    expect(marcadoComoArquivado.archived, isTrue);
+    expect(marcadoComoArquivado.name, 'Original');
+    expect(original.archived, isFalse, reason: 'copyWith não muta o original');
+  });
+
+  test('archiveCustomer arquiva sem apagar — a reserva antiga continua a '
+      'apontar para um registo que existe', () {
+    final c = container();
+    addTearDown(c.dispose);
+    final n = c.read(operationsProvider.notifier);
+
+    n.archiveCustomer('c1');
+
+    final estado = c.read(operationsProvider);
+    final cliente = estado.customers.firstWhere((x) => x.id == 'c1');
+    expect(cliente.archived, isTrue);
+    // Continua no repositório — só a interface é que o deve deixar de listar
+    // como activo.
+    expect(estado.customers.map((x) => x.id), contains('c1'));
+  });
+
+  test('unarchiveCustomer é o "Anular" do arquivo', () {
+    final c = container();
+    addTearDown(c.dispose);
+    final n = c.read(operationsProvider.notifier);
+
+    n.archiveCustomer('c1');
+    n.unarchiveCustomer('c1');
+
+    final cliente = c
+        .read(operationsProvider)
+        .customers
+        .firstWhere((x) => x.id == 'c1');
+    expect(cliente.archived, isFalse);
+  });
+
+  test('arquivar um cliente inexistente não rebenta', () {
+    final c = container();
+    addTearDown(c.dispose);
+    c.read(operationsProvider.notifier).archiveCustomer('não-existe');
+    // Não lança e não altera a lista.
+    expect(c.read(operationsProvider).customers, isNotEmpty);
+  });
+
+  // --- Ciclo de vida do veículo (Tarefa 2: só se criava, nunca se editava
+  // nem arquivava) ----------------------------------------------------------
+
+  test('saveVehicle edita mantendo o id — não duplica a linha', () {
+    final c = container();
+    addTearDown(c.dispose);
+    final n = c.read(operationsProvider.notifier);
+    const original = Vehicle(
+      id: 'v-edit',
+      plate: 'AA-11-BB',
+      type: 'Carrinha',
+      status: VehicleStatus.active,
+    );
+    n.saveVehicle(original);
+
+    n.saveVehicle(original.copyWith(plate: 'ZZ-99-XX'));
+
+    final veiculos = c.read(operationsProvider).vehicles;
+    expect(veiculos.where((v) => v.id == 'v-edit'), hasLength(1));
+    expect(veiculos.firstWhere((v) => v.id == 'v-edit').plate, 'ZZ-99-XX');
+  });
+
+  test('archiveVehicle / unarchiveVehicle — soft-delete com desfazer', () {
+    final c = container();
+    addTearDown(c.dispose);
+    final n = c.read(operationsProvider.notifier);
+    n.saveVehicle(
+      const Vehicle(
+        id: 'v-archive',
+        plate: 'AA-11-BB',
+        type: 'Carrinha',
+        status: VehicleStatus.active,
+      ),
+    );
+
+    n.archiveVehicle('v-archive');
+    var estado = c.read(operationsProvider);
+    expect(
+      estado.vehicles.firstWhere((v) => v.id == 'v-archive').archived,
+      isTrue,
+    );
+    // Fora da contagem de identificados — mesma regra das máquinas.
+    expect(estado.registeredVehiclesCount, 0);
+
+    n.unarchiveVehicle('v-archive');
+    estado = c.read(operationsProvider);
+    expect(
+      estado.vehicles.firstWhere((v) => v.id == 'v-archive').archived,
+      isFalse,
+    );
+    expect(estado.registeredVehiclesCount, 1);
   });
 }

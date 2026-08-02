@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/data/repositories/operation_repository.dart';
 import 'package:punho/domain/models/operations.dart';
 import 'package:punho/domain/models/historical_month.dart';
+import 'package:punho/domain/models/workforce.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -82,6 +85,50 @@ void main() {
     expect(repositorio.machines, isEmpty);
     expect(repositorio.customers, isEmpty);
     expect(repositorio.onboarding, isNull);
+  });
+
+  test('archiveCustomer e archiveVehicle sobrevivem a recriar o repositório', (
+  ) async {
+    final primeiro = await PersistentOperationRepository.create();
+    primeiro.saveCustomer(
+      const Customer(id: 'c-arq', name: 'Cliente antigo', phone: '911 000 000'),
+    );
+    primeiro.saveVehicle(
+      const Vehicle(
+        id: 'v-arq',
+        plate: 'AA-11-BB',
+        type: 'Carrinha',
+        status: VehicleStatus.active,
+      ),
+    );
+    primeiro.archiveCustomer('c-arq');
+    primeiro.archiveVehicle('v-arq');
+    await Future<void>.delayed(Duration.zero);
+
+    final restaurado = await PersistentOperationRepository.create();
+
+    expect(
+      restaurado.customers.firstWhere((c) => c.id == 'c-arq').archived,
+      isTrue,
+    );
+    expect(
+      restaurado.vehicles.firstWhere((v) => v.id == 'v-arq').archived,
+      isTrue,
+    );
+  });
+
+  test('cliente antigo sem "archived" no JSON lê-se como false', () async {
+    SharedPreferences.setMockInitialValues({
+      'punho.operations.v1': jsonEncode({
+        'customers': [
+          {'id': 'c-antigo', 'name': 'Cliente pré-histórico', 'phone': ''},
+        ],
+      }),
+    });
+
+    final repositorio = await PersistentOperationRepository.create();
+
+    expect(repositorio.customers.single.archived, isFalse);
   });
 
   test('resetAll apaga o que estava guardado', () async {

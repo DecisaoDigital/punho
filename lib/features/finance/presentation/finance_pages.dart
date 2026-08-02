@@ -1,10 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/format/campos.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../core/documents/at_invoice_qr.dart';
 import '../../../core/documents/expense_document_capture.dart';
 import '../../../core/documents/expense_document_storage.dart';
 import '../../../domain/models/finance.dart';
+
+/// Mensagem do valor recusado: distingue campo vazio (falta preencher) de
+/// texto que não se consegue ler (escreveu-se algo, mas não é um euro válido —
+/// por exemplo "1.500.00" com dois pontos, ou letras). Nenhum dos dois casos
+/// grava um zero calado; ambos recusam com aviso visível.
+String _mensagemDeValorInvalido(String textoEscrito) {
+  final texto = textoEscrito.trim();
+  return texto.isEmpty
+      ? 'Indica um valor superior a zero.'
+      : 'Não consigo ler o valor "$texto" — escreve por exemplo 1.500,00.';
+}
 
 class FinanceListPage extends ConsumerWidget {
   const FinanceListPage({
@@ -219,15 +231,15 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
             const SizedBox(height: 20),
             FilledButton(
               onPressed: () async {
-                final cents =
-                    ((double.tryParse(amount.text.replaceAll(',', '.')) ?? 0) *
-                            100)
-                        .round();
-                // Antes o botão não fazia rigorosamente nada e não dizia porquê.
-                if (cents <= 0) {
+                // `centsDeTexto` devolve `null` tanto para o campo vazio como
+                // para texto ilegível ("1.500.00", letras) — nunca inventa um
+                // zero. Distinguimos os dois só para a mensagem: vazio pede
+                // para preencher, lixo diz o que não se percebeu.
+                final cents = centsDeTexto(amount.text);
+                if (cents == null || cents <= 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Indica um valor superior a zero.'),
+                    SnackBar(
+                      content: Text(_mensagemDeValorInvalido(amount.text)),
                     ),
                   );
                   return;
@@ -326,7 +338,7 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(operationsProvider);
-    final customers = state.customers;
+    final customers = state.customers.where((c) => !c.archived).toList();
     final selectedCustomerId =
         customerId ?? (customers.isEmpty ? null : customers.first.id);
     final customerBookings = state.bookings
@@ -398,15 +410,13 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
               onPressed: customers.isEmpty
                   ? null
                   : () {
-                      final cents =
-                          ((double.tryParse(amount.text.replaceAll(',', '.')) ??
-                                      0) *
-                                  100)
-                              .round();
-                      if (cents <= 0) {
+                      final cents = centsDeTexto(amount.text);
+                      if (cents == null || cents <= 0) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Indica um valor superior a zero.'),
+                          SnackBar(
+                            content: Text(
+                              _mensagemDeValorInvalido(amount.text),
+                            ),
                           ),
                         );
                         return;

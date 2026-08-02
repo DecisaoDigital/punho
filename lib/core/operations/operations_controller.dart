@@ -645,6 +645,25 @@ class OperationsController extends Notifier<OperationsState> {
     state = _fromRepo();
   }
 
+  /// Eliminar um cliente é soft-delete, como nas máquinas e nos colaboradores:
+  /// o utilizador lê "Eliminar" e tem 6 segundos para anular, e por dentro
+  /// nada se perde — reservas e recebimentos antigos continuam a apontar para
+  /// um registo que existe.
+  void archiveCustomer(String id) {
+    final atual = state.customers.where((x) => x.id == id).firstOrNull;
+    if (atual == null) return;
+    _repo.archiveCustomer(id);
+    state = _fromRepo();
+  }
+
+  /// O "Anular" do snackbar de eliminar cliente.
+  void unarchiveCustomer(String id) {
+    final atual = state.customers.where((x) => x.id == id).firstOrNull;
+    if (atual == null) return;
+    _repo.saveCustomer(atual.copyWith(archived: false));
+    state = _fromRepo();
+  }
+
   void saveExpense(Expense item) {
     if (item.amountCents <= 0) {
       throw ArgumentError('O valor deve ser superior a zero.');
@@ -698,6 +717,25 @@ class OperationsController extends Notifier<OperationsState> {
 
   void saveVehicle(Vehicle item) {
     _repo.saveVehicle(item);
+    state = _fromRepo();
+  }
+
+  /// Eliminar um veículo é soft-delete, como nas máquinas: o utilizador lê
+  /// "Eliminar" e tem 6 segundos para anular, e por dentro nada se perde — as
+  /// despesas associadas ao veículo continuam a apontar para um registo que
+  /// existe.
+  void archiveVehicle(String id) {
+    final atual = state.vehicles.where((x) => x.id == id).firstOrNull;
+    if (atual == null) return;
+    _repo.archiveVehicle(id);
+    state = _fromRepo();
+  }
+
+  /// O "Anular" do snackbar de eliminar veículo.
+  void unarchiveVehicle(String id) {
+    final atual = state.vehicles.where((x) => x.id == id).firstOrNull;
+    if (atual == null) return;
+    _repo.saveVehicle(atual.copyWith(archived: false));
     state = _fromRepo();
   }
 

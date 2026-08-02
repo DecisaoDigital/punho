@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/layout/dialogo_de_formulario.dart';
 import 'package:punho/core/operations/operations_controller.dart';
@@ -119,6 +120,126 @@ void main() {
     expect(
       container.read(operationsProvider).vehicles.map((v) => v.plate),
       isNot(contains('AA-11-BB')),
+    );
+  });
+
+  // Tarefa 2 da auditoria: "o veículo não se edita nem se arquiva" — só
+  // existia criação. `_confirmarEliminarVeiculo`/`_FormularioDeVeiculo`
+  // ganharam o mesmo ciclo de vida do colaborador: editar por `onTap` e por
+  // ícone, e eliminar com 6 segundos para anular.
+  group('ciclo de vida (editar e arquivar)', () {
+    Future<ProviderContainer> comUmVeiculo(WidgetTester tester) async {
+      final container = containerCom(estadoComMovimento());
+      await abrirVeiculos(tester, container);
+      await tester.enterText(find.byType(TextField).first, 'AA-11-BB');
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+      await tester.pumpAndSettle();
+      return container;
+    }
+
+    testWidgets('tocar na linha abre "Editar veículo" com os campos preenchidos', (
+      tester,
+    ) async {
+      await comUmVeiculo(tester);
+
+      await tester.tap(find.text('AA-11-BB'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Editar veículo'), findsOneWidget);
+      final campoMatricula = tester.widget<TextField>(
+        find.byType(TextField).first,
+      );
+      expect(campoMatricula.controller?.text, 'AA-11-BB');
+    });
+
+    testWidgets('editar grava sem duplicar a linha', (tester) async {
+      final container = await comUmVeiculo(tester);
+
+      await tester.tap(find.text('AA-11-BB'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'ZZ-99-XX');
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+      await tester.pumpAndSettle();
+
+      final veiculos = container.read(operationsProvider).vehicles;
+      expect(veiculos, hasLength(1));
+      expect(veiculos.single.plate, 'ZZ-99-XX');
+    });
+
+    testWidgets('eliminar arquiva com 6 segundos para anular', (
+      tester,
+    ) async {
+      final container = await comUmVeiculo(tester);
+
+      await tester.tap(find.byTooltip('Eliminar veículo'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Eliminar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('AA-11-BB'), findsNothing);
+      expect(
+        container.read(operationsProvider).vehicles.single.archived,
+        isTrue,
+      );
+
+      await tester.tap(find.widgetWithText(SnackBarAction, 'Anular'));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(operationsProvider).vehicles.single.archived,
+        isFalse,
+      );
+      expect(find.text('AA-11-BB'), findsOneWidget);
+    });
+  });
+
+  // Regressão do achado "valor gravado como zero, sem aviso"
+  // (docs/AUDITORIA_EMPRESARIO_EXEMPLAR.md, achado 1): prestação e seguro
+  // usavam `_cents`, que já devolvia `null` em vez de zero, mas engolia texto
+  // ilegível em silêncio — sem tratar o milhar nem avisar quem escreveu.
+  group('prestação e seguro (€) — separador de milhar', () {
+    testWidgets('"1.500,00" na prestação grava 1500 €, não zero', (
+      tester,
+    ) async {
+      final container = containerCom(estadoComMovimento());
+      await abrirVeiculos(tester, container);
+      await tester.enterText(find.byType(TextField).first, 'AA-11-BB');
+      final campoPrestacao = find.ancestor(
+        of: find.text('Prestação mensal (€)'),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(campoPrestacao, '1.500,00');
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(operationsProvider).vehicles.single.monthlyPaymentCents,
+        150000,
+      );
+    });
+
+    testWidgets(
+      'texto ilegível no seguro recusa a gravação com aviso visível',
+      (tester) async {
+        final container = containerCom(estadoComMovimento());
+        await abrirVeiculos(tester, container);
+        await tester.enterText(find.byType(TextField).first, 'AA-11-BB');
+        final campoSeguro = find.ancestor(
+          of: find.text('Seguro (€)'),
+          matching: find.byType(TextField),
+        );
+        await tester.enterText(campoSeguro, '1.500.00');
+        await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('Não consigo ler o seguro'), findsOneWidget);
+        expect(find.byType(DialogoDeFormulario), findsOneWidget);
+        expect(
+          container.read(operationsProvider).vehicles.map((v) => v.plate),
+          isNot(contains('AA-11-BB')),
+        );
+      },
     );
   });
 }

@@ -122,4 +122,67 @@ void main() {
       expect(find.textContaining('só acede depois de'), findsOneWidget);
     },
   );
+
+  // Regressão do achado "valor gravado como zero, sem aviso"
+  // (docs/AUDITORIA_EMPRESARIO_EXEMPLAR.md, achado 1): o custo do colaborador
+  // usava a mesma leitura de euros que só trocava vírgula por ponto, sem
+  // tratar o separador de milhar português.
+  group('custo estimado (€) — separador de milhar', () {
+    Future<ProviderContainer> preencherNomeECusto(
+      WidgetTester tester,
+      String custo,
+    ) async {
+      final h = await abrir(tester);
+      await tester.enterText(find.byType(TextField).first, 'Manuel Silva');
+      final campoCusto = find.ancestor(
+        of: find.text('Custo estimado para a empresa (€)'),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(campoCusto, custo);
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+      await tester.pumpAndSettle();
+      return h;
+    }
+
+    testWidgets('"1.500,00" grava 1500 € de custo, não zero', (tester) async {
+      final h = await preencherNomeECusto(tester, '1.500,00');
+
+      expect(find.byType(DialogoDeFormulario), findsNothing);
+      final colaborador = h
+          .read(operationsProvider)
+          .collaborators
+          .firstWhere((c) => c.name == 'Manuel Silva');
+      expect(colaborador.costCents, 150000);
+    });
+
+    testWidgets('campo de custo vazio fica "por apurar", não grava zero', (
+      tester,
+    ) async {
+      final h = await preencherNomeECusto(tester, '');
+
+      expect(find.byType(DialogoDeFormulario), findsNothing);
+      final colaborador = h
+          .read(operationsProvider)
+          .collaborators
+          .firstWhere((c) => c.name == 'Manuel Silva');
+      expect(colaborador.costCents, isNull);
+    });
+
+    testWidgets(
+      'texto ilegível ("1.500.00") recusa a gravação com aviso visível',
+      (tester) async {
+        final h = await preencherNomeECusto(tester, '1.500.00');
+
+        expect(find.byType(DialogoDeFormulario), findsOneWidget);
+        expect(
+          find.textContaining('Não consigo ler o custo estimado'),
+          findsOneWidget,
+        );
+        expect(
+          h.read(operationsProvider).collaborators.map((c) => c.name),
+          isNot(contains('Manuel Silva')),
+        );
+      },
+    );
+  });
 }
