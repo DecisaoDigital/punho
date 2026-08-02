@@ -1743,8 +1743,13 @@ class ClientsPage extends ConsumerWidget {
         children: [
           const Text('Clientes', style: TextStyle(fontWeight: FontWeight.w800)),
           // Um cliente arquivado não serve de nada se continuar na lista — é
-          // exactamente esse o ponto de o arquivar.
-          for (final c in state.customers.where((c) => !c.archived))
+          // exactamente esse o ponto de o arquivar. Ordem alfabética: sem
+          // isto saía pela ordem de chegada da sincronização (achado 20).
+          for (final c
+              in state.customers.where((c) => !c.archived).toList()..sort(
+                (a, b) =>
+                    a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+              ))
             Card(
               // Mesmo padrão do cartão de máquina: margem de 3 dp e ListTile
               // compacto, para caber mais linhas em landscape mobile.
@@ -2488,9 +2493,14 @@ class _EscolhaDeMaquina extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
+                    // O nome nunca desaparece: uma máquina com referência
+                    // ("LAV-11B") ficava só com a referência, sem o nome, e
+                    // as placeholders ("Máquina 15", sem referência) ficavam
+                    // com o nome — inconsistente e sem forma de reconhecer a
+                    // máquina real pelo nome (achado 13).
                     machine.reference.isEmpty
                         ? machine.name
-                        : machine.reference,
+                        : '${machine.name} · ${machine.reference}',
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
