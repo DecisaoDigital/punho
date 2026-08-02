@@ -958,6 +958,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'insuranceFrequency': item.insuranceFrequency?.name,
     'notes': item.notes,
     'archived': item.archived,
+    'placeholder': item.placeholder,
   };
 
   static Vehicle _vehicleFromJson(Map<String, dynamic> data) => Vehicle(
@@ -973,6 +974,9 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
         : InsuranceFrequency.values.byName(_string(data, 'insuranceFrequency')),
     notes: _string(data, 'notes'),
     archived: _bool(data, 'archived'),
+    // Ausente nas gravações anteriores a este campo: veículos antigos foram
+    // identificados à mão, portanto não são placeholders.
+    placeholder: _bool(data, 'placeholder'),
   );
 
   static Map<String, dynamic>? _mapOrNull(Object? value) =>

@@ -91,6 +91,11 @@ class OperationsState {
   /// reconciliar o contador declarado nas Definições.
   int get placeholdersDeMaquinas =>
       machines.where((m) => !m.archived && m.placeholder).length;
+
+  /// Mesma ideia do [placeholdersDeMaquinas], para a frota: veículos criados
+  /// a partir do total declarado no onboarding e ainda por identificar.
+  int get placeholdersDeVeiculos =>
+      vehicles.where((v) => !v.archived && v.placeholder).length;
   bool get inventoryIdentifiedAboveEstimate =>
       registeredMachinesCount > totalMachinesDeclared;
   final bool insertMachinesNow;
@@ -323,6 +328,9 @@ class OperationsController extends Notifier<OperationsState> {
         custosFixos: custosFixos ?? const [],
       ),
     );
+    // Escreve o histórico mensal antes do `_fromRepo()` abaixo, para o
+    // primeiro estado pós-onboarding já vir com a tesouraria calculável.
+    _distribuirFaturacaoDoAnoPassado(revenueLastYearCents);
     state = _fromRepo().copyWith(
       onboarded: true,
       ownerName: ownerName,
@@ -350,6 +358,13 @@ class OperationsController extends Notifier<OperationsState> {
     if (state.machines.where((m) => !m.archived).isEmpty) {
       criarPlaceholdersDeMaquinas(quantidade: totalMachinesDeclared);
     }
+    // Mesma guarda, para a frota. Ao contrário dos colaboradores (ficha com
+    // NIF/NISS — ver `tarefas_service.dart`), um veículo sem matrícula não
+    // carrega risco fiscal nenhum, por isso aqui vale o mesmo tratamento das
+    // máquinas.
+    if (state.vehicles.where((v) => !v.archived).isEmpty) {
+      criarPlaceholdersDeVeiculos(quantidade: declaredVehicleCount);
+    }
   }
 
   /// Cria linhas de máquina prontas a serem baptizadas.
@@ -374,6 +389,58 @@ class OperationsController extends Notifier<OperationsState> {
       );
     }
     state = _fromRepo();
+  }
+
+  /// Cria linhas de veículo prontas a serem identificadas — mesma ideia do
+  /// [criarPlaceholdersDeMaquinas], para a frota.
+  void criarPlaceholdersDeVeiculos({required int quantidade, int inicio = 1}) {
+    if (quantidade <= 0) return;
+    for (var i = 0; i < quantidade; i++) {
+      final numero = inicio + i;
+      _repo.saveVehicle(
+        Vehicle(
+          id: 'veic-placeholder-$numero-${DateTime.now().microsecondsSinceEpoch}',
+          plate: '',
+          type: 'Por identificar',
+          status: VehicleStatus.active,
+          placeholder: true,
+        ),
+      );
+    }
+    state = _fromRepo();
+  }
+
+  /// Distribui a facturação do ano passado pelos 12 meses do histórico, para
+  /// a tesouraria deixar de mostrar "Por apurar" com o onboarding preenchido
+  /// (ver `kpis.dart`, `_recebidoDoMesComHistorico`).
+  ///
+  /// **Regra escolhida: divisão igual pelos 12 meses.** Um único número anual
+  /// não diz nada sobre sazonalidade — inventar uma curva (mais em Dezembro,
+  /// menos em Agosto) seria dado fabricado a fingir de facto. O resto da
+  /// divisão inteira cai nos primeiros meses, para a soma dos 12 bater
+  /// certo com o valor declarado, cêntimo a cêntimo.
+  ///
+  /// Só corre quando ainda não há nenhum mês desse ano no histórico — mesma
+  /// guarda do onboarding para as máquinas: re-onboarding não pisa meses que
+  /// o gestor já tenha afinado à mão no ecrã de Definições.
+  void _distribuirFaturacaoDoAnoPassado(int? totalCents) {
+    if (totalCents == null) return;
+    final ano = DateTime.now().year - 1;
+    final jaTemHistoricoDoAno = _repo.historicalMonths.any(
+      (m) => m.year == ano,
+    );
+    if (jaTemHistoricoDoAno) return;
+    final base = totalCents ~/ 12;
+    final resto = totalCents % 12;
+    for (var mes = 1; mes <= 12; mes++) {
+      _repo.saveHistoricalMonth(
+        HistoricalMonth(
+          year: ano,
+          month: mes,
+          revenueReceivedCents: base + (mes <= resto ? 1 : 0),
+        ),
+      );
+    }
   }
 
   /// Edita os dados da empresa depois do onboarding — é o que o ecrã de
@@ -650,28 +717,17 @@ class OperationsController extends Notifier<OperationsState> {
     state = _fromRepo();
   }
 
-  /// [limiteColaboradoresAtivos] é o limite a respeitar. Por omissão usa-se
-  /// `state.activeCollaboratorLimit` (o valor local, do onboarding); quem
-  /// chama pode passar o valor efectivo — o da subscrição no servidor, que
-  /// manda desde a decisão de 2026-08-02 — sem que este controlador precise de
-  /// saber nada de Supabase. Ver `limiteColaboradoresEfetivoProvider` em
-  /// `features/auth/subscricao_providers.dart`, que combina os dois e cai no
-  /// local sempre que o servidor não responde.
-  void saveCollaborator(Collaborator item, {int? limiteColaboradoresAtivos}) {
-    final limite = limiteColaboradoresAtivos ?? state.activeCollaboratorLimit;
-    final existing = state.collaborators
-        .where(
-          (x) =>
-              x.id != item.id &&
-              !x.archived &&
-              x.status == CollaboratorStatus.active,
-        )
-        .length;
-    if (item.status == CollaboratorStatus.active && existing >= limite) {
-      throw StateError(
-        'A empresa atingiu o limite de colaboradores ativos. Aumente as vagas contratadas no controlo da subscrição.',
-      );
-    }
+  /// Grava sempre — nunca recusa por causa das vagas contratadas.
+  ///
+  /// Decisão de 2026-08-02: o limite de colaboradores activos que a
+  /// subscrição autoriza (`limiteColaboradoresEfetivoProvider`, em
+  /// `features/auth/subscricao_providers.dart`) é informativo, não uma porta.
+  /// Um colaborador acima do autorizado fica registado na mesma — quem o
+  /// impede de *entrar* na app sem uma aprovação do gestor da subscrição é o
+  /// circuito de pedidos de acesso no Control (`punho_pedidos_acesso`), não
+  /// esta gravação. Foi por aqui que passava a recusa antiga, que bloqueava a
+  /// ficha mesmo sem ter nada que ver com acesso.
+  void saveCollaborator(Collaborator item) {
     _repo.saveCollaborator(item);
     state = _fromRepo();
   }
@@ -687,9 +743,9 @@ class OperationsController extends Notifier<OperationsState> {
     state = _fromRepo();
   }
 
-  /// O "Anular" do snackbar. Passa pelo [saveCollaborator] de propósito: se as
-  /// vagas contratadas encolheram nestes 6 segundos, desarquivar tem de bater
-  /// no mesmo limite que criar.
+  /// O "Anular" do snackbar. Passa pelo [saveCollaborator] de propósito, para
+  /// seguir sempre o mesmo caminho de gravação — já não há limite a bater,
+  /// desde a decisão de 2026-08-02.
   void unarchiveCollaborator(String id) {
     final atual = state.collaborators.where((x) => x.id == id).firstOrNull;
     if (atual == null) return;

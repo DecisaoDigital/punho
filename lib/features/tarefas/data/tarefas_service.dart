@@ -197,8 +197,27 @@ List<Tarefa> tarefasPendentes(
     );
   }
 
-  // 6. Frota declarada e sem veículos registados.
-  if (state.hasFleet && state.vehicles.where((v) => !v.archived).isEmpty) {
+  // 6. Veículos criados a partir do total declarado e ainda por identificar.
+  // Mesmo tratamento das máquinas (achado 8): desde que o onboarding passou a
+  // criar linhas de veículo placeholder, a frota nunca mais fica vazia — o
+  // que ficava por identificar tinha de passar a contar-se, ou a tarefa
+  // desaparecia sozinha sem ninguém ter identificado nada.
+  final veiculosPorIdentificar = state.placeholdersDeVeiculos;
+  if (veiculosPorIdentificar > 0) {
+    tarefas.add(
+      Tarefa(
+        id: 'frota-sem-veiculos',
+        severidade: SeveridadeTarefa.aCompletar,
+        titulo: veiculosPorIdentificar == 1
+            ? '1 veículo por identificar'
+            : '$veiculosPorIdentificar veículos por identificar',
+        subtitulo: 'Dá-lhes matrícula e detalhes quando puderes',
+        cta: 'Abrir Frota',
+        destino: DestinoTarefa.frota,
+      ),
+    );
+  } else if (state.hasFleet && state.vehicles.where((v) => !v.archived).isEmpty) {
+    // Instalações anteriores aos placeholders: só têm o contador.
     tarefas.add(
       const Tarefa(
         id: 'frota-sem-veiculos',
