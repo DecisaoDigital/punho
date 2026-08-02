@@ -206,35 +206,6 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
     ).paraPayload();
   }
 
-  Future<void> _reporDados() async {
-    final confirmado = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Repor dados desta app?'),
-        content: const Text(
-          'Apaga tudo o que está guardado neste dispositivo — empresa, '
-          'máquinas, clientes, reservas, despesas e recebimentos — e volta ao '
-          'arranque. Não afecta nada no servidor.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Repor'),
-          ),
-        ],
-      ),
-    );
-    if (confirmado != true || !mounted) return;
-    ref.read(operationsProvider.notifier).resetAll();
-    if (!mounted) return;
-    // A shell volta ao onboarding sozinha assim que `onboarded` fica falso.
-    Navigator.of(context).maybePop();
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!_podeEditar(ref)) return const _SoGestor();
@@ -362,24 +333,6 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
       OutlinedButton(
         onPressed: () => Navigator.of(context).maybePop(),
         child: const Text('Cancelar'),
-      ),
-      const SizedBox(height: 28),
-      _CardSeccao(
-        icone: Icons.warning_amber_outlined,
-        titulo: 'Repor',
-        children: [
-          const Text(
-            'Se este dispositivo tem dados de testes antigos — máquinas '
-            'ou clientes que não reconhece — pode apagar tudo e começar '
-            'do zero.',
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _reporDados,
-            icon: const Icon(Icons.restart_alt),
-            label: const Text('Repor dados desta app'),
-          ),
-        ],
       ),
     ],
   );
