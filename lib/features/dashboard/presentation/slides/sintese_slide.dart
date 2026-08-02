@@ -108,11 +108,18 @@ class SinteseSlide extends ConsumerWidget {
       nivel: NivelSemaforo.laranja,
       rotulo: 'Utilização vs Rentabilidade',
       texto: 'Por apurar',
+      // O último ramo dizia "Falta o preço de 0 de 21 máquinas" quando já não
+      // faltava nenhum — o parque todo com preço e o cartão a pedir preços. O
+      // que falta aí não são os preços: é o **valor de compra**, que a máquina
+      // ainda não guarda, e sem ele não há retorno para pôr ao lado da
+      // ocupação. Dizer isso é mais honesto do que apontar para um zero.
       subtexto: total == 0
           ? 'Ainda não há máquinas identificadas'
           : comPreco == 0
           ? 'Falta o preço por dia das $total máquinas'
-          : 'Falta o preço de ${total - comPreco} de $total máquinas',
+          : comPreco < total
+          ? 'Falta o preço de ${total - comPreco} de $total máquinas'
+          : 'Falta o valor de compra das máquinas para calcular o retorno',
     );
   }
 

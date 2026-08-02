@@ -98,11 +98,7 @@ TesourariaMes tesourariaDoMes(OperationsState state, DateTime mes) {
       _inicioDoMes(anterior),
       _fimDoMes(anterior),
     ),
-    recebidoMesHomologoCents: receiptTotal(
-      state.receipts,
-      _inicioDoMes(homologo),
-      _fimDoMes(homologo),
-    ),
+    recebidoMesHomologoCents: _recebidoDoMesComHistorico(state, homologo),
     serieDiariaCents: [
       for (var dia = 1; dia <= diasNoMes; dia++)
         receiptTotal(
@@ -112,6 +108,30 @@ TesourariaMes tesourariaDoMes(OperationsState state, DateTime mes) {
         ),
     ],
   );
+}
+
+/// Recebido do mês homólogo, com o histórico mensal como rede de segurança.
+///
+/// **Prefere sempre os recebimentos registados.** Só quando não há nenhum é
+/// que cai para o valor que o gestor preencheu à mão no histórico mensal do
+/// ano passado (ecrã de Definições da Empresa) — o mesmo tomba-prioridades já
+/// usado em `_receitaHomologa` (recomendacao_do_dia.dart) para a recomendação
+/// do dia. Antes desta função, `tesourariaDoMes` só olhava para os recebimentos
+/// e ignorava por completo o histórico mensal: um gestor que preenchesse o mês
+/// de Agosto do ano passado continuava a ver "Por apurar" no painel, porque a
+/// comparação nunca ia lá buscar o número.
+///
+/// **Nunca inventa.** Sem recebimentos e sem histórico preenchido, devolve
+/// zero — e é esse zero que faz `variacaoVsHomologo` sair `null` em vez de uma
+/// percentagem fabricada (regra do ficheiro, ver comentário no topo).
+int _recebidoDoMesComHistorico(OperationsState state, DateTime mes) {
+  final registado = receiptTotal(
+    state.receipts,
+    _inicioDoMes(mes),
+    _fimDoMes(mes),
+  );
+  if (registado > 0) return registado;
+  return state.historicalMonth(mes.year, mes.month)?.revenueReceivedCents ?? 0;
 }
 
 /// Resultado do mês, sem prometer lucro.

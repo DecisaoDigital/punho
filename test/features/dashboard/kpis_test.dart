@@ -4,6 +4,7 @@ import 'package:punho/core/finance/regime_fiscal.dart';
 import 'package:punho/core/operations/kpis.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/finance.dart';
+import 'package:punho/domain/models/historical_month.dart';
 import 'package:punho/domain/models/operations.dart';
 
 import 'fixtura.dart';
@@ -45,6 +46,69 @@ void main() {
 
       expect(maio.recebidoCents, 0);
       expect(maio.variacaoVsMesAnterior, isNull);
+    });
+
+    test(
+      'sem recebimentos do homólogo mas com histórico mensal preenchido, usa '
+      'o histórico',
+      () {
+        // Antes desta correcção, tesourariaDoMes só olhava para `receipts` e
+        // ignorava `historicalMonths` por completo: um gestor que preenchesse
+        // Julho de 2025 à mão continuava a ver "Por apurar" no painel — o
+        // histórico existia, mas ninguém ia lá buscar o número (achado 9/10).
+        final comHistorico = estado.copyWith(
+          historicalMonths: const [
+            HistoricalMonth(
+              year: 2025,
+              month: 7,
+              revenueReceivedCents: 100000,
+            ),
+          ],
+        );
+
+        final julho = tesourariaDoMes(comHistorico, agoraFixa);
+
+        expect(julho.recebidoMesHomologoCents, 100000);
+        expect(julho.variacaoVsHomologo, isNotNull);
+        expect(julho.comparacao?.homologo, isTrue);
+      },
+    );
+
+    test('recebimentos reais do homólogo ganham ao histórico preenchido', () {
+      // O histórico é a rede de segurança, nunca a fonte preferida — se já há
+      // recebimentos a sério para o mês, é neles que se confia.
+      final comAmbos = estado.copyWith(
+        receipts: [
+          ...estado.receipts,
+          Receipt(
+            id: 'r-homologo',
+            date: DateTime(2025, 7, 10),
+            amountCents: 50000,
+            customerId: 'c1',
+            method: PaymentMethod.cash,
+          ),
+        ],
+        historicalMonths: const [
+          HistoricalMonth(
+            year: 2025,
+            month: 7,
+            revenueReceivedCents: 100000,
+          ),
+        ],
+      );
+
+      final julho = tesourariaDoMes(comAmbos, agoraFixa);
+
+      expect(julho.recebidoMesHomologoCents, 50000);
+    });
+
+    test('sem recebimentos nem histórico, continua "Por apurar"', () {
+      // A regra do ficheiro: falta de dados devolve `null`, nunca um número
+      // inventado — mesmo depois desta correcção.
+      final julho = tesourariaDoMes(estado, agoraFixa);
+
+      expect(julho.recebidoMesHomologoCents, 0);
+      expect(julho.variacaoVsHomologo, isNull);
     });
   });
 
