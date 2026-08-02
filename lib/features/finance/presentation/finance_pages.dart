@@ -31,7 +31,10 @@ class FinanceListPage extends ConsumerWidget {
     final state = ref.watch(operationsProvider);
     final now = DateTime.now();
     final from = DateTime(now.year, now.month, 1);
-    final list = expenses ? state.expenses : state.receipts;
+    // Sem isto a lista saía pela ordem de chegada da sincronização — nem
+    // data nem nada (achado 20). Mais recente primeiro, como um extracto.
+    final list = (expenses ? state.expenses : state.receipts).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
     final total = expenses
         ? paidExpenseTotal(state.expenses, from, now)
         : receiptTotal(state.receipts, from, now);
