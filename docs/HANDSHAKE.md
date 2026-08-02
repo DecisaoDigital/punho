@@ -71,9 +71,9 @@ que o contrato subiu.
    editar, os três diálogos convertidos (lead, reserva, marcação), painel de
    tesouraria a sair de "Por apurar", e o cabeçalho do login com `SafeArea`
    (era P0, corrigido às cegas na sessão anterior).
-2. **Máquina alugada bloqueia todas as semanas seguintes** (achado 18).
-   Decisão já tomada: bloquear só a data ocupada. Há testes a fixar o
-   comportamento antigo — precisam de revisão, não é só mudar a regra.
+2. ~~Máquina alugada bloqueia todas as semanas seguintes~~ (achado 18) —
+   **resolvido**: bloqueia só a data ocupada. Lógica em `3c7fe1c`, testes em
+   `3db013b`.
 3. **Control — menus do Punho.** Proposta em aberto, três peças, detalhe no
    handover. A peça pequena que o desbloqueia: RPC `punho_definir_limite` para
    editar o limite fora da criação da empresa.

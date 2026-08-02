@@ -205,11 +205,13 @@ fecho), e o painel de tesouraria a sair de "Por apurar".
 ## Achados por corrigir (ver detalhe em `docs/PLANO_DE_TESTES_2026-08-02.md`
 ## e `docs/AUDITORIA_EMPRESARIO_EXEMPLAR.md`)
 
-**Decisão tomada, por implementar:** uma máquina alugada deve bloquear **apenas
-a data ocupada**, não a máquina inteira. Hoje uma reserva confirmada recusa
-qualquer nova reserva em todas as semanas seguintes, mesmo vazias (achado 18).
-Há testes que fixam o comportamento actual — precisam de revisão, não é só
-mudar a regra.
+**Resolvido (achado 18):** uma máquina alugada bloqueia **apenas a data
+ocupada**, não a máquina inteira. `machineAvailable`/`conflictFor`
+(`lib/core/operations/operations_controller.dart`) já não olham para
+`status == rented` — só para sobreposição real de datas, com excepção da
+manutenção, que continua a bloquear sempre. Lógica em `3c7fe1c`, testes que a
+fixam em `3db013b` (comentário "Decisão de 02/08/2026" em
+`test/operations_test.dart`).
 
 **Por fazer:**
 - Rotação de ecrã indevida — a do splash foi corrigida em `5dcc5c5`; falta
