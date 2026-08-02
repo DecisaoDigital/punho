@@ -195,9 +195,24 @@ em `lib/features/operations/presentation/operational_pages.dart` (validação
 inline + texto de ajuda) e `lib/core/format/campos.dart` (`nifValido`). Uma
 empresa de teste já presa em produção (Lavandaria Mare Alta,
 `punho_empresas.dados={}`) **não é corrigida retroactivamente** por esta
-mudança — só resincroniza quando alguém preencher o NIF real em Definições
-da Empresa no aparelho, que continua a aceitar o NIF em branco por ser dado
-legado, fora do âmbito desta correcção.
+mudança — só resincroniza quando alguém preencher o NIF real.
+
+**Ponta fechada — o mesmo vale em Definições da Empresa:** a Opção B era
+"o NIF nunca pode ficar em branco", não só no onboarding. Faltava
+`company_settings_page.dart` (Definições da Empresa), que ainda aceitava
+gravar com o NIF vazio e reabria o mesmo bug 400 pela mesma via. Fechado
+com o mesmo padrão do onboarding: `_nifErro` inline, `inputFormatters`
+(dígitos, máx. 9), `errorText`, e um gate no início de `_guardar()` que usa
+`nifValido()` de `lib/core/format/campos.dart` — sem `Form`/`GlobalKey`,
+que este ecrã nunca teve. O texto de ajuda "Pode ficar em branco" saiu.
+Contas antigas sem NIF (a tarefa "Indicar o NIF da empresa" em
+`initialDataTasks`, `core/operations/operations_controller.dart`) continuam
+a abrir a app normalmente; só ficam impedidas de gravar Definições com um
+NIF vazio ou inválido quando lá forem preencher. `InitialDataTasksPage`
+(`operational_pages.dart`) tem o seu próprio campo de NIF mas está órfã —
+nenhuma navegação no código a alcança (a tarefa navega para
+`CompanySettingsPage`, ver `tarefas_page.dart`) — por isso ficou fora desta
+correcção.
 
 ## 3.4 Decisoes recentes: faturas e fotografias (26 de julho de 2026)
 

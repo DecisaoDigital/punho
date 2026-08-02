@@ -25,6 +25,21 @@ quem terminava o onboarding sem NIF, e a ficha ficava presa para sempre com
 retroactivamente fichas já presas (ex.: Lavandaria Mare Alta) — só previne o
 problema em onboardings futuros.
 
+## Sessão de 2 de Agosto, mais tarde ainda — mesma regra em Definições da Empresa
+
+Ponta que tinha ficado aberta na sessão anterior: a Opção B ("NIF nunca em
+branco") só tinha sido aplicada ao onboarding. `company_settings_page.dart`
+(Definições da Empresa) continuava a aceitar gravar com o NIF vazio,
+reabrindo o mesmo 400 da Edge Function `sincronizar-empresa-punho` por essa
+via. Fechado com o mesmo padrão: `_nifErro` inline, `inputFormatters`
+(dígitos, máx. 9), `errorText`, gate em `_guardar()` com `nifValido()`
+(`lib/core/format/campos.dart`), sem `Form`/`GlobalKey` (o ecrã nunca teve).
+`InitialDataTasksPage` ficou de fora — confirmado que está órfã, sem
+navegação nenhuma no código a alcançá-la (a tarefa "Indicar o NIF" navega
+para `CompanySettingsPage`, ver `DestinoTarefa.definicoesEmpresa` em
+`tarefas_page.dart`). Detalhe completo na secção 3.6 de
+`docs/DECISOES_E_ROADMAP_VIVO.md`.
+
 ## Sessão de 2 de Agosto, à noite — aparelho desbloqueado, confirmação visual completa
 
 O César desbloqueou o Redmi fisicamente. `com.example.punho` não estava

@@ -55,6 +55,13 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
   late String _legalForm;
   late List<CustoFixo> _custosFixos;
 
+  // Erro inline do campo do NIF. Decisão do Cesar (opção B, já aplicada ao
+  // onboarding no commit 7269953): o NIF nunca pode ficar em branco — nem
+  // aqui. A Edge Function `sincronizar-empresa-punho` rejeita (400, payload
+  // inteiro) fichas com `nif.length < 9`, e a ficha ficava presa para sempre
+  // com `dados={}` no Supabase. Ver `nifValido` em `core/format/campos.dart`.
+  String? _nifErro;
+
   @override
   void initState() {
     super.initState();
@@ -131,6 +138,13 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
   }
 
   void _guardar() {
+    // O NIF é obrigatório para gravar — ver comentário em `_nifErro` para o
+    // porquê. Sem `Form`/`GlobalKey` neste ecrã (nunca teve), o gate é este
+    // `if` manual antes de tocar no estado, mesmo esquema do onboarding.
+    if (!nifValido(_taxId.text)) {
+      setState(() => _nifErro = 'O NIF é obrigatório: 9 dígitos.');
+      return;
+    }
     ref
         .read(operationsProvider.notifier)
         .updateCompanySettings(
@@ -251,7 +265,15 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
             _taxId,
             'NIF da empresa',
             teclado: TextInputType.number,
-            ajuda: 'Pode ficar em branco — preenche-se quando souber.',
+            ajuda: 'Obrigatório: 9 dígitos, sem espaços nem pontos.',
+            erro: _nifErro,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(9),
+            ],
+            onChanged: (_) {
+              if (_nifErro != null) setState(() => _nifErro = null);
+            },
           ),
         ],
       ),
@@ -342,15 +364,25 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
     String etiqueta, {
     TextInputType? teclado,
     String? ajuda,
+    String? erro,
+    List<TextInputFormatter>? inputFormatters,
+    ValueChanged<String>? onChanged,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: TextField(
       controller: controller,
       keyboardType: teclado,
-      inputFormatters: teclado == TextInputType.number
-          ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))]
-          : null,
-      decoration: InputDecoration(labelText: etiqueta, helperText: ajuda),
+      inputFormatters:
+          inputFormatters ??
+          (teclado == TextInputType.number
+              ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))]
+              : null),
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: etiqueta,
+        helperText: ajuda,
+        errorText: erro,
+      ),
     ),
   );
 }
