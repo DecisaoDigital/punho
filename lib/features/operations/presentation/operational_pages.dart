@@ -15,6 +15,7 @@ import '../../../core/theme/punho_theme.dart';
 import '../../../core/media/machine_image_store.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../core/orientacao/orientacao_do_contexto.dart';
+import '../../../data/repositories/operation_repository.dart';
 import '../../../domain/models/operations.dart';
 import '../../../domain/models/historical_month.dart';
 import '../../auth/acesso_providers.dart';
@@ -1681,7 +1682,12 @@ class ClientsPage extends ConsumerWidget {
           const Text('Clientes', style: TextStyle(fontWeight: FontWeight.w800)),
           for (final c in state.customers)
             Card(
+              // Mesmo padrão do cartão de máquina: margem de 3 dp e ListTile
+              // compacto, para caber mais linhas em landscape mobile.
+              margin: const EdgeInsets.symmetric(vertical: 3),
               child: ListTile(
+                dense: true,
+                visualDensity: VisualDensity.compact,
                 title: Text(c.name),
                 subtitle: Text(
                   [
@@ -1691,6 +1697,14 @@ class ClientsPage extends ConsumerWidget {
                         .where((value) => value.isNotEmpty)
                         .join(' '),
                   ].where((value) => value.isNotEmpty).join(' · '),
+                ),
+                // Ecrã de detalhe do cliente: mesmo caminho do de máquina — o
+                // NIF, email, morada e notas que o servidor já traz não tinham
+                // onde aparecer.
+                trailing: IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Editar cliente',
+                  onPressed: () => _customerDialog(context, ref, c),
                 ),
               ),
             ),
@@ -1727,18 +1741,28 @@ class ClientsPage extends ConsumerWidget {
   }
 }
 
-/// Devolve o id do cliente criado, ou `null` se desistiu.
+/// Devolve o id do cliente criado ou editado, ou `null` se desistiu.
 ///
 /// Devolver o id é o que permite criar um cliente a meio de uma reserva e
 /// continuar de onde se estava, em vez de sair do ecrã e voltar a começar.
-Future<String?> _customerDialog(BuildContext context, WidgetRef ref) =>
-    showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _FormularioDeCliente(
-        notifier: ref.read(operationsProvider.notifier),
-      ),
-    );
+///
+/// Com [current], abre no modo edição — é o ecrã de detalhe do cliente: o
+/// NIF, o email, a morada e as notas que o servidor já traz não tinham onde
+/// aparecer, tal como acontecia com as máquinas antes do
+/// [_FormularioDeMaquina] ganhar o parâmetro `current`.
+Future<String?> _customerDialog(
+  BuildContext context,
+  WidgetRef ref, [
+  Customer? current,
+]) => showDialog<String>(
+  context: context,
+  barrierDismissible: false,
+  builder: (_) => _FormularioDeCliente(
+    notifier: ref.read(operationsProvider.notifier),
+    repository: ref.read(operationRepositoryProvider),
+    current: current,
+  ),
+);
 
 /// Tal como o [_FormularioDeMaquina], é um widget com estado porque é ele quem
 /// tem de ser dono dos controladores.
@@ -1750,23 +1774,38 @@ Future<String?> _customerDialog(BuildContext context, WidgetRef ref) =>
 /// ecrã vermelho. Acontecia ao gravar um cliente cujo telemóvel já existia
 /// noutro — é a gravação que mexe na lista de baixo.
 class _FormularioDeCliente extends StatefulWidget {
-  const _FormularioDeCliente({required this.notifier});
+  const _FormularioDeCliente({
+    required this.notifier,
+    required this.repository,
+    this.current,
+  });
 
   final OperationsController notifier;
+
+  /// Só é preciso para gravar uma edição: [OperationsController.addCustomer]
+  /// recusa como duplicado um cliente cujo telemóvel ou NIF já exista — e ao
+  /// editar, o próprio cliente antes de mudar nada é sempre esse duplicado.
+  /// A gravação da edição repete aqui a mesma regra (lendo [customers]
+  /// directamente do repositório, porque `notifier.state` não é acessível
+  /// fora do próprio `Notifier`), mas excluindo o cliente que está a ser
+  /// editado, e grava directamente no repositório.
+  final OperationRepository repository;
+  final Customer? current;
 
   @override
   State<_FormularioDeCliente> createState() => _FormularioDeClienteState();
 }
 
 class _FormularioDeClienteState extends State<_FormularioDeCliente> {
-  final name = TextEditingController();
-  final phone = TextEditingController();
-  final taxId = TextEditingController();
-  final email = TextEditingController();
-  final address = TextEditingController();
-  final postalCode = TextEditingController();
-  final locality = TextEditingController();
-  final notes = TextEditingController();
+  late final Customer? current = widget.current;
+  late final name = TextEditingController(text: current?.name);
+  late final phone = TextEditingController(text: current?.phone);
+  late final taxId = TextEditingController(text: current?.taxId);
+  late final email = TextEditingController(text: current?.email);
+  late final address = TextEditingController(text: current?.address);
+  late final postalCode = TextEditingController(text: current?.postalCode);
+  late final locality = TextEditingController(text: current?.locality);
+  late final notes = TextEditingController(text: current?.notes);
 
   /// A recusa mostra-se **dentro** do diálogo e não num `SnackBar`.
   ///
@@ -1791,7 +1830,7 @@ class _FormularioDeClienteState extends State<_FormularioDeCliente> {
   @override
   Widget build(BuildContext context) {
     return DialogoDeFormulario(
-      titulo: 'Novo cliente',
+      titulo: current == null ? 'Novo cliente' : 'Editar cliente',
       corpo: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1842,44 +1881,122 @@ class _FormularioDeClienteState extends State<_FormularioDeCliente> {
           setState(() => erro = 'O nome é obrigatório.');
           return;
         }
-        try {
-          final novoId = 'c${DateTime.now().microsecondsSinceEpoch}';
-          widget.notifier
-              .addCustomer(
-                Customer(
-                  id: novoId,
-                  name: name.text.trim(),
-                  phone: phone.text.trim(),
-                  taxId: taxId.text.trim().isEmpty ? null : taxId.text.trim(),
-                  email: email.text.trim().isEmpty ? null : email.text.trim(),
-                  address: address.text.trim().isEmpty
-                      ? null
-                      : address.text.trim(),
-                  postalCode: postalCode.text.trim().isEmpty
-                      ? null
-                      : postalCode.text.trim(),
-                  locality: locality.text.trim().isEmpty
-                      ? null
-                      : locality.text.trim(),
-                  notes: notes.text.trim(),
-                ),
-              );
-          Navigator.pop(context, novoId);
-        } on StateError catch (error) {
-          setState(() => erro = error.message.toString());
+        final anterior = current;
+        if (anterior == null) {
+          try {
+            final novoId = 'c${DateTime.now().microsecondsSinceEpoch}';
+            widget.notifier
+                .addCustomer(
+                  Customer(
+                    id: novoId,
+                    name: name.text.trim(),
+                    phone: phone.text.trim(),
+                    taxId: taxId.text.trim().isEmpty
+                        ? null
+                        : taxId.text.trim(),
+                    email: email.text.trim().isEmpty
+                        ? null
+                        : email.text.trim(),
+                    address: address.text.trim().isEmpty
+                        ? null
+                        : address.text.trim(),
+                    postalCode: postalCode.text.trim().isEmpty
+                        ? null
+                        : postalCode.text.trim(),
+                    locality: locality.text.trim().isEmpty
+                        ? null
+                        : locality.text.trim(),
+                    notes: notes.text.trim(),
+                  ),
+                );
+            Navigator.pop(context, novoId);
+          } on StateError catch (error) {
+            setState(() => erro = error.message.toString());
+          }
+          return;
         }
+        // Edição: mesma regra de duplicados do addCustomer, mas excluindo o
+        // próprio cliente — sem isto, gravar sem mudar o telemóvel ou o NIF
+        // chocava sempre consigo mesmo.
+        final telemovel = phone.text.trim();
+        final nif = taxId.text.trim();
+        final duplicado = widget.repository.customers.any(
+          (outro) =>
+              outro.id != anterior.id &&
+              outro.companyId == anterior.companyId &&
+              ((telemovel.isNotEmpty && outro.phone == telemovel) ||
+                  (nif.isNotEmpty && outro.taxId == nif)),
+        );
+        if (duplicado) {
+          setState(
+            () => erro =
+                'Já existe um cliente com o mesmo telemóvel ou NIF na empresa.',
+          );
+          return;
+        }
+        widget.repository.saveCustomer(
+          Customer(
+            id: anterior.id,
+            name: name.text.trim(),
+            phone: telemovel,
+            taxId: nif.isEmpty ? null : nif,
+            email: email.text.trim().isEmpty ? null : email.text.trim(),
+            address: address.text.trim().isEmpty ? null : address.text.trim(),
+            postalCode: postalCode.text.trim().isEmpty
+                ? null
+                : postalCode.text.trim(),
+            locality: locality.text.trim().isEmpty
+                ? null
+                : locality.text.trim(),
+            notes: notes.text.trim(),
+            companyId: anterior.companyId,
+          ),
+        );
+        widget.notifier.recarregarDoRepositorio();
+        Navigator.pop(context, anterior.id);
       },
     );
   }
 }
 
-Future<void> _leadDialog(BuildContext context, WidgetRef ref) async {
+Future<void> _leadDialog(BuildContext context, WidgetRef ref) => showDialog<void>(
+  context: context,
+  barrierDismissible: false,
+  builder: (_) =>
+      _FormularioDeLead(notifier: ref.read(operationsProvider.notifier)),
+);
+
+/// Tal como o [_FormularioDeMaquina] e o [_FormularioDeCliente], é um widget
+/// com estado porque é ele quem tem de ser dono dos controladores.
+///
+/// Antes viviam na função `_leadDialog` e eram descartados logo a seguir ao
+/// `await showDialog`, que devolve no instante do `Navigator.pop` — a
+/// animação de fecho ainda estava a correr e reconstruía os campos com
+/// controladores já mortos ("A TextEditingController was used after being
+/// disposed"), daí o ecrã vermelho ao gravar.
+class _FormularioDeLead extends StatefulWidget {
+  const _FormularioDeLead({required this.notifier});
+
+  final OperationsController notifier;
+
+  @override
+  State<_FormularioDeLead> createState() => _FormularioDeLeadState();
+}
+
+class _FormularioDeLeadState extends State<_FormularioDeLead> {
   final name = TextEditingController();
   final phone = TextEditingController();
-  await showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (dialogContext) => DialogoDeFormulario(
+
+  @override
+  void dispose() {
+    name.dispose();
+    phone.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DialogoDeFormulario(
       titulo: 'Novo lead',
       corpo: LayoutBuilder(
         builder: (context, constraints) => Column(
@@ -1929,24 +2046,20 @@ Future<void> _leadDialog(BuildContext context, WidgetRef ref) async {
       ),
       aoGuardar: () {
         if (name.text.isNotEmpty && phone.text.isNotEmpty) {
-          ref
-              .read(operationsProvider.notifier)
-              .addLead(
-                Lead(
-                  id: 'l${DateTime.now().microsecondsSinceEpoch}',
-                  name: name.text,
-                  phone: phone.text,
-                  status: LeadStatus.newLead,
-                  createdAt: DateTime.now(),
-                ),
-              );
+          widget.notifier.addLead(
+            Lead(
+              id: 'l${DateTime.now().microsecondsSinceEpoch}',
+              name: name.text,
+              phone: phone.text,
+              status: LeadStatus.newLead,
+              createdAt: DateTime.now(),
+            ),
+          );
         }
-        Navigator.pop(dialogContext);
+        Navigator.pop(context);
       },
-    ),
-  );
-  name.dispose();
-  phone.dispose();
+    );
+  }
 }
 
 class BookingsPage extends ConsumerStatefulWidget {
@@ -2937,16 +3050,63 @@ Future<bool> _showCalendarBookingConfirmation(
   required String rotuloDoPeriodo,
   String? responsibleId,
 }) async {
+  final saved = await showDialog<bool>(
+    context: context,
+    builder: (_) => _FormularioDeConfirmacaoDeReserva(
+      machine: machine,
+      startsAt: startsAt,
+      endsAt: endsAt,
+      periodoEmVista: periodoEmVista,
+      rotuloDoPeriodo: rotuloDoPeriodo,
+      responsibleId: responsibleId,
+    ),
+  );
+  return saved ?? false;
+}
+
+/// Tal como o [_FormularioDeMaquina] e o [_FormularioDeCliente], é um widget
+/// com estado porque é ele quem tem de ser dono dos controladores.
+///
+/// Antes viviam na função `_showCalendarBookingConfirmation`, junto com
+/// `customerId`/`status`/`soSemReserva` num `StatefulBuilder` — os
+/// controladores eram descartados logo a seguir ao `await showDialog`, que
+/// devolve no instante do `Navigator.pop` enquanto a animação de fecho ainda
+/// está a correr, e reconstruíam campos com controladores já mortos ("A
+/// TextEditingController was used after being disposed"), daí o ecrã
+/// vermelho ao gravar. Aqui é `ConsumerStatefulWidget` — e não só
+/// `StatefulWidget` como os outros dois — porque a lista de clientes tem de
+/// se manter viva enquanto o diálogo está aberto (`ref.watch`).
+class _FormularioDeConfirmacaoDeReserva extends ConsumerStatefulWidget {
+  const _FormularioDeConfirmacaoDeReserva({
+    required this.machine,
+    required this.startsAt,
+    required this.endsAt,
+    required this.periodoEmVista,
+    required this.rotuloDoPeriodo,
+    this.responsibleId,
+  });
+
+  final Machine machine;
+  final DateTime startsAt;
+  final DateTime endsAt;
+  final DateTimeRange periodoEmVista;
+  final String rotuloDoPeriodo;
+  final String? responsibleId;
+
+  @override
+  ConsumerState<_FormularioDeConfirmacaoDeReserva> createState() =>
+      _FormularioDeConfirmacaoDeReservaState();
+}
+
+class _FormularioDeConfirmacaoDeReservaState
+    extends ConsumerState<_FormularioDeConfirmacaoDeReserva> {
   // Sem clientes já não se desiste com um aviso.
   //
   // Era um beco: o Cesar carregava em "+ Reservar", via passar uma faixa de
   // texto e concluía que o campo de cliente não existia. Existia — o diálogo é
   // que nunca chegava a abrir. Agora abre sempre, e cria-se o cliente aqui
   // mesmo, sem sair do calendário nem perder os períodos escolhidos.
-  final state = ref.read(operationsProvider);
-  String? customerId = state.customers.isEmpty
-      ? null
-      : state.customers.first.id;
+  late String? customerId = _clienteInicial();
   var status = BookingStatus.request;
   // Quem já tem reserva no período em vista fica de fora da lista.
   //
@@ -2956,217 +3116,227 @@ Future<bool> _showCalendarBookingConfirmation(
   var soSemReserva = false;
   final expectedValue = TextEditingController();
   final notes = TextEditingController();
-  final saved = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) => StatefulBuilder(
-      builder: (context, setDialogState) => AlertDialog(
-        title: const Text('Confirmar reserva'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.precision_manufacturing_outlined),
-                title: Text('${machine.name} · ${machine.reference}'),
-                subtitle: Text(
-                  _calendarPeriodLabel(
-                    DateTimeRange(start: startsAt, end: endsAt),
-                  ),
+
+  String? _clienteInicial() {
+    final customers = ref.read(operationsProvider).customers;
+    return customers.isEmpty ? null : customers.first.id;
+  }
+
+  @override
+  void dispose() {
+    expectedValue.dispose();
+    notes.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Confirmar reserva'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.precision_manufacturing_outlined),
+              title: Text(
+                '${widget.machine.name} · ${widget.machine.reference}',
+              ),
+              subtitle: Text(
+                _calendarPeriodLabel(
+                  DateTimeRange(start: widget.startsAt, end: widget.endsAt),
                 ),
               ),
-              const SizedBox(height: 8),
-              // Lido do provider a cada reconstrução, e não da fotografia
-              // inicial: um cliente criado agora mesmo tem de aparecer já aqui.
-              Builder(
-                builder: (context) {
-                  final estado = ref.watch(operationsProvider);
-                  final todos = estado.customers;
-                  final semReserva = clientesSemReservaNoPeriodo(
-                    todos,
-                    estado.bookings,
-                    periodoEmVista,
-                  );
-                  final clientes = soSemReserva ? semReserva : todos;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SegmentedButton<bool>(
-                        showSelectedIcon: false,
-                        style: SegmentedButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        segments: [
-                          ButtonSegment(
-                            value: false,
-                            label: Text('Todos (${todos.length})'),
-                          ),
-                          ButtonSegment(
-                            value: true,
-                            // O rótulo diz o período em vista — "esta semana"
-                            // ou "este mês" — porque sem isso "sem reserva" não
-                            // responde à pergunta "sem reserva quando?".
-                            label: Text(
-                              'Sem reserva $rotuloDoPeriodo '
-                              '(${semReserva.length})',
-                            ),
-                          ),
-                        ],
-                        selected: {soSemReserva},
-                        onSelectionChanged: (escolha) => setDialogState(() {
-                          soSemReserva = escolha.first;
-                          // O cliente escolhido pode ter acabado de sair da
-                          // lista: deixá-lo seleccionado punha o dropdown com
-                          // um valor que não está nos itens, e isso rebenta.
-                          if (!clientesContem(
-                            soSemReserva ? semReserva : todos,
-                            customerId,
-                          )) {
-                            customerId = null;
-                          }
-                        }),
+            ),
+            const SizedBox(height: 8),
+            // Lido do provider a cada reconstrução, e não da fotografia
+            // inicial: um cliente criado agora mesmo tem de aparecer já aqui.
+            Builder(
+              builder: (context) {
+                final estado = ref.watch(operationsProvider);
+                final todos = estado.customers;
+                final semReserva = clientesSemReservaNoPeriodo(
+                  todos,
+                  estado.bookings,
+                  widget.periodoEmVista,
+                );
+                final clientes = soSemReserva ? semReserva : todos;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SegmentedButton<bool>(
+                      showSelectedIcon: false,
+                      style: SegmentedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
                       ),
-                      const SizedBox(height: 10),
-                      DropdownButtonFormField<String>(
-                        initialValue: customerId,
-                        isExpanded: true,
-                        decoration: InputDecoration(
-                          labelText: 'Cliente',
-                          hintText: clientes.isEmpty
-                              ? 'Ainda não tens clientes — cria o primeiro'
-                              : null,
+                      segments: [
+                        ButtonSegment(
+                          value: false,
+                          label: Text('Todos (${todos.length})'),
                         ),
-                        items: [
-                          for (final customer in clientes)
-                            DropdownMenuItem(
-                              value: customer.id,
-                              child: Text(
-                                '${customer.name}${customer.phone.isEmpty ? '' : ' · ${customer.phone}'}',
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          const DropdownMenuItem(
-                            value: _novoClienteNaReserva,
-                            child: Row(
-                              children: [
-                                Icon(Icons.person_add_alt, size: 18),
-                                SizedBox(width: 8),
-                                Text('Novo cliente…'),
-                              ],
+                        ButtonSegment(
+                          value: true,
+                          // O rótulo diz o período em vista — "esta semana"
+                          // ou "este mês" — porque sem isso "sem reserva" não
+                          // responde à pergunta "sem reserva quando?".
+                          label: Text(
+                            'Sem reserva ${widget.rotuloDoPeriodo} '
+                            '(${semReserva.length})',
+                          ),
+                        ),
+                      ],
+                      selected: {soSemReserva},
+                      onSelectionChanged: (escolha) => setState(() {
+                        soSemReserva = escolha.first;
+                        // O cliente escolhido pode ter acabado de sair da
+                        // lista: deixá-lo seleccionado punha o dropdown com
+                        // um valor que não está nos itens, e isso rebenta.
+                        if (!clientesContem(
+                          soSemReserva ? semReserva : todos,
+                          customerId,
+                        )) {
+                          customerId = null;
+                        }
+                      }),
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      initialValue: customerId,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: 'Cliente',
+                        hintText: clientes.isEmpty
+                            ? 'Ainda não tens clientes — cria o primeiro'
+                            : null,
+                      ),
+                      items: [
+                        for (final customer in clientes)
+                          DropdownMenuItem(
+                            value: customer.id,
+                            child: Text(
+                              '${customer.name}${customer.phone.isEmpty ? '' : ' · ${customer.phone}'}',
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ],
-                        onChanged: (value) async {
-                          if (value == null) return;
-                          if (value != _novoClienteNaReserva) {
-                            setDialogState(() => customerId = value);
-                            return;
-                          }
-                          final novo = await _customerDialog(context, ref);
-                          if (novo != null) {
-                            setDialogState(() => customerId = novo);
-                          } else {
-                            // Desistiu de criar: repõe o que estava, senão o campo
-                            // ficava preso em "Novo cliente…".
-                            setDialogState(() {});
-                          }
-                        },
-                      ),
-                    ],
-                  );
-                },
-              ),
-              DropdownButtonFormField<BookingStatus>(
-                initialValue: status,
-                decoration: const InputDecoration(labelText: 'Estado inicial'),
-                items: const [
-                  DropdownMenuItem(
-                    value: BookingStatus.request,
-                    child: Text('Pedido'),
-                  ),
-                  DropdownMenuItem(
-                    value: BookingStatus.proposalSent,
-                    child: Text('Proposta enviada'),
-                  ),
-                  DropdownMenuItem(
-                    value: BookingStatus.confirmed,
-                    child: Text('Confirmada'),
-                  ),
-                ],
-                onChanged: (value) => setDialogState(() => status = value!),
-              ),
-              TextField(
-                controller: expectedValue,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                        const DropdownMenuItem(
+                          value: _novoClienteNaReserva,
+                          child: Row(
+                            children: [
+                              Icon(Icons.person_add_alt, size: 18),
+                              SizedBox(width: 8),
+                              Text('Novo cliente…'),
+                            ],
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) async {
+                        if (value == null) return;
+                        if (value != _novoClienteNaReserva) {
+                          setState(() => customerId = value);
+                          return;
+                        }
+                        final novo = await _customerDialog(context, ref);
+                        if (novo != null) {
+                          setState(() => customerId = novo);
+                        } else {
+                          // Desistiu de criar: repõe o que estava, senão o campo
+                          // ficava preso em "Novo cliente…".
+                          setState(() {});
+                        }
+                      },
+                    ),
+                  ],
+                );
+              },
+            ),
+            DropdownButtonFormField<BookingStatus>(
+              initialValue: status,
+              decoration: const InputDecoration(labelText: 'Estado inicial'),
+              items: const [
+                DropdownMenuItem(
+                  value: BookingStatus.request,
+                  child: Text('Pedido'),
                 ),
-                decoration: const InputDecoration(
-                  labelText: 'Valor previsto (€)',
+                DropdownMenuItem(
+                  value: BookingStatus.proposalSent,
+                  child: Text('Proposta enviada'),
                 ),
+                DropdownMenuItem(
+                  value: BookingStatus.confirmed,
+                  child: Text('Confirmada'),
+                ),
+              ],
+              onChanged: (value) => setState(() => status = value!),
+            ),
+            TextField(
+              controller: expectedValue,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
               ),
-              TextField(
-                controller: notes,
-                maxLines: 2,
-                decoration: const InputDecoration(labelText: 'Notas'),
+              decoration: const InputDecoration(
+                labelText: 'Valor previsto (€)',
               ),
-            ],
-          ),
+            ),
+            TextField(
+              controller: notes,
+              maxLines: 2,
+              decoration: const InputDecoration(labelText: 'Notas'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            // Sem cliente não há reserva. Desactivar diz isso melhor do que
-            // deixar carregar e mostrar um erro depois.
-            onPressed: customerId == null
-                ? null
-                : () {
-                    final cents =
-                        ((double.tryParse(
-                                      expectedValue.text.replaceAll(',', '.'),
-                                    ) ??
-                                    0) *
-                                100)
-                            .round();
-                    final conflict = ref
-                        .read(operationsProvider.notifier)
-                        .addBooking(
-                          Booking(
-                            id: 'b${DateTime.now().microsecondsSinceEpoch}',
-                            customerId: customerId!,
-                            machineIds: [machine.id],
-                            startsAt: startsAt,
-                            endsAt: endsAt,
-                            status: status,
-                            expectedValueCents: cents > 0 ? cents : null,
-                            collaboratorResponsibleId: responsibleId,
-                            notes: notes.text.trim(),
-                          ),
-                        );
-                    if (conflict != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Conflito: ${conflict.machine.name} já está ocupada.',
-                          ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          // Sem cliente não há reserva. Desactivar diz isso melhor do que
+          // deixar carregar e mostrar um erro depois.
+          onPressed: customerId == null
+              ? null
+              : () {
+                  final cents =
+                      ((double.tryParse(
+                                    expectedValue.text.replaceAll(',', '.'),
+                                  ) ??
+                                  0) *
+                              100)
+                          .round();
+                  final conflict = ref
+                      .read(operationsProvider.notifier)
+                      .addBooking(
+                        Booking(
+                          id: 'b${DateTime.now().microsecondsSinceEpoch}',
+                          customerId: customerId!,
+                          machineIds: [widget.machine.id],
+                          startsAt: widget.startsAt,
+                          endsAt: widget.endsAt,
+                          status: status,
+                          expectedValueCents: cents > 0 ? cents : null,
+                          collaboratorResponsibleId: widget.responsibleId,
+                          notes: notes.text.trim(),
                         ),
                       );
-                      return;
-                    }
-                    Navigator.pop(dialogContext, true);
-                  },
-            child: const Text('Gravar reserva'),
-          ),
-        ],
-      ),
-    ),
-  );
-  expectedValue.dispose();
-  notes.dispose();
-  return saved ?? false;
+                  if (conflict != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Conflito: ${conflict.machine.name} já está ocupada.',
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+                  Navigator.pop(context, true);
+                },
+          child: const Text('Gravar reserva'),
+        ),
+      ],
+    );
+  }
 }
 
 /// Abre a marcação operacional usada também pela área do colaborador.
@@ -3197,314 +3367,351 @@ Future<void> _showBookingForm(
     );
     return;
   }
-  var customerId = state.customers.first.id;
-  var machineId = state.machines.firstWhere((m) => !m.archived).id;
-  var status = BookingStatus.request;
-  var startDate = DateUtils.dateOnly(
-    initialDate ?? DateTime.now().add(const Duration(days: 1)),
+  await showDialog<void>(
+    context: context,
+    builder: (_) => _FormularioDeMarcacao(
+      responsibleId: responsibleId,
+      initialDate: initialDate,
+      initialDuration: initialDuration,
+      initialHalfDay: initialHalfDay,
+    ),
   );
-  var endDate = startDate;
-  var duration = initialDuration ?? _BookingDuration.halfDay;
-  var halfDay = initialHalfDay ?? _HalfDay.morning;
-  String? collaboratorId = responsibleId;
+}
+
+/// Tal como os outros formulários deste ficheiro, é um widget com estado
+/// porque é ele quem tem de ser dono dos controladores.
+///
+/// Antes vivia na função `_showBookingForm`, com `customerId`/`machineId`/
+/// `status`/as datas/`collaboratorId` capturados por um `StatefulBuilder` —
+/// os controladores `expectedValue`/`notes` eram descartados logo a seguir ao
+/// `await showDialog`, que devolve enquanto a animação de fecho ainda está a
+/// correr, e por vezes reconstruíam campos já mortos ("A TextEditingController
+/// was used after being disposed"), daí o ecrã vermelho ao gravar.
+class _FormularioDeMarcacao extends ConsumerStatefulWidget {
+  const _FormularioDeMarcacao({
+    this.responsibleId,
+    this.initialDate,
+    this.initialDuration,
+    this.initialHalfDay,
+  });
+
+  final String? responsibleId;
+  final DateTime? initialDate;
+  final _BookingDuration? initialDuration;
+  final _HalfDay? initialHalfDay;
+
+  @override
+  ConsumerState<_FormularioDeMarcacao> createState() =>
+      _FormularioDeMarcacaoState();
+}
+
+class _FormularioDeMarcacaoState
+    extends ConsumerState<_FormularioDeMarcacao> {
+  // Fotografia do estado no instante em que o diálogo abriu, tal como
+  // acontecia antes com o `state` capturado uma vez pela função que abria o
+  // `showDialog`: um cliente ou máquina criados enquanto o diálogo está
+  // aberto só aparecem da próxima vez que se abrir.
+  late final state = ref.read(operationsProvider);
+  late var customerId = state.customers.first.id;
+  late var machineId = state.machines.firstWhere((m) => !m.archived).id;
+  var status = BookingStatus.request;
+  late var startDate = DateUtils.dateOnly(
+    widget.initialDate ?? DateTime.now().add(const Duration(days: 1)),
+  );
+  late var endDate = startDate;
+  late var duration = widget.initialDuration ?? _BookingDuration.halfDay;
+  late var halfDay = widget.initialHalfDay ?? _HalfDay.morning;
+  late String? collaboratorId = widget.responsibleId;
   final expectedValue = TextEditingController();
   final notes = TextEditingController();
 
-  await showDialog<void>(
-    context: context,
-    builder: (dialogContext) => StatefulBuilder(
-      builder: (context, setDialogState) {
-        final startsAt = _bookingStartsAt(startDate, duration, halfDay);
-        final endsAt = _bookingEndsAt(endDate, duration, halfDay);
-        final availableMachines = state.machines
-            .where(
-              (machine) =>
-                  !machine.archived &&
-                  ref
-                      .read(operationsProvider.notifier)
-                      .machineAvailable(machine.id, startsAt, endsAt),
-            )
-            .toList();
-        if (!availableMachines.any((machine) => machine.id == machineId)) {
-          machineId = availableMachines.isNotEmpty
-              ? availableMachines.first.id
-              : state.machines.firstWhere((machine) => !machine.archived).id;
-        }
-        return AlertDialog(
-          title: const Text('Nova marcação / reserva'),
-          content: SingleChildScrollView(
-            child: SizedBox(
-              width: 420,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String>(
-                    initialValue: customerId,
-                    decoration: const InputDecoration(labelText: 'Cliente'),
-                    items: state.customers
+  @override
+  void dispose() {
+    expectedValue.dispose();
+    notes.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final startsAt = _bookingStartsAt(startDate, duration, halfDay);
+    final endsAt = _bookingEndsAt(endDate, duration, halfDay);
+    final availableMachines = state.machines
+        .where(
+          (machine) =>
+              !machine.archived &&
+              ref
+                  .read(operationsProvider.notifier)
+                  .machineAvailable(machine.id, startsAt, endsAt),
+        )
+        .toList();
+    if (!availableMachines.any((machine) => machine.id == machineId)) {
+      machineId = availableMachines.isNotEmpty
+          ? availableMachines.first.id
+          : state.machines.firstWhere((machine) => !machine.archived).id;
+    }
+    return AlertDialog(
+      title: const Text('Nova marcação / reserva'),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: customerId,
+                decoration: const InputDecoration(labelText: 'Cliente'),
+                items: state.customers
+                    .map(
+                      (customer) => DropdownMenuItem(
+                        value: customer.id,
+                        child: Text(customer.name),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => setState(() => customerId = value!),
+              ),
+              DropdownButtonFormField<String>(
+                initialValue: machineId,
+                decoration: const InputDecoration(labelText: 'Máquina'),
+                items:
+                    (availableMachines.isEmpty
+                            ? state.machines
+                                  .where((machine) => !machine.archived)
+                                  .toList()
+                            : availableMachines)
                         .map(
-                          (customer) => DropdownMenuItem(
-                            value: customer.id,
-                            child: Text(customer.name),
+                          (machine) => DropdownMenuItem(
+                            value: machine.id,
+                            child: Text(
+                              '${machine.name} · ${machine.reference}',
+                            ),
                           ),
                         )
                         .toList(),
-                    onChanged: (value) =>
-                        setDialogState(() => customerId = value!),
-                  ),
-                  DropdownButtonFormField<String>(
-                    initialValue: machineId,
-                    decoration: const InputDecoration(labelText: 'Máquina'),
-                    items:
-                        (availableMachines.isEmpty
-                                ? state.machines
-                                      .where((machine) => !machine.archived)
-                                      .toList()
-                                : availableMachines)
-                            .map(
-                              (machine) => DropdownMenuItem(
-                                value: machine.id,
-                                child: Text(
-                                  '${machine.name} · ${machine.reference}',
-                                ),
-                              ),
-                            )
-                            .toList(),
-                    onChanged: availableMachines.isEmpty
-                        ? null
-                        : (value) => setDialogState(() => machineId = value!),
-                  ),
-                  DropdownButtonFormField<_BookingDuration>(
-                    initialValue: duration,
-                    decoration: const InputDecoration(labelText: 'Duração'),
-                    items: const [
-                      DropdownMenuItem(
-                        value: _BookingDuration.halfDay,
-                        child: Text('Meio dia'),
-                      ),
-                      DropdownMenuItem(
-                        value: _BookingDuration.fullDay,
-                        child: Text('Dia inteiro'),
-                      ),
-                      DropdownMenuItem(
-                        value: _BookingDuration.multipleDays,
-                        child: Text('Vários dias seguidos'),
-                      ),
-                    ],
-                    onChanged: (value) => setDialogState(() {
-                      duration = value!;
-                      if (duration != _BookingDuration.multipleDays) {
-                        endDate = startDate;
-                      }
-                    }),
-                  ),
-                  if (duration == _BookingDuration.halfDay)
-                    DropdownButtonFormField<_HalfDay>(
-                      initialValue: halfDay,
-                      decoration: const InputDecoration(labelText: 'Período'),
-                      items: const [
-                        DropdownMenuItem(
-                          value: _HalfDay.morning,
-                          child: Text('Manhã'),
-                        ),
-                        DropdownMenuItem(
-                          value: _HalfDay.afternoon,
-                          child: Text('Tarde'),
-                        ),
-                      ],
-                      onChanged: (value) =>
-                          setDialogState(() => halfDay = value!),
-                    ),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Período'),
-                    subtitle: Text(
-                      _bookingDatesLabel(startDate, endDate, duration, halfDay),
-                    ),
-                    trailing: const Icon(Icons.date_range_outlined),
-                    onTap: () async {
-                      if (duration == _BookingDuration.multipleDays) {
-                        final range = await showDateRangePicker(
-                          context: context,
-                          firstDate: DateTime.now().subtract(
-                            const Duration(days: 1),
-                          ),
-                          lastDate: DateTime.now().add(
-                            const Duration(days: 730),
-                          ),
-                          initialDateRange: DateTimeRange(
-                            start: startDate,
-                            end: endDate,
-                          ),
-                        );
-                        if (range == null) return;
-                        setDialogState(() {
-                          startDate = DateUtils.dateOnly(range.start);
-                          endDate = DateUtils.dateOnly(range.end);
-                        });
-                        return;
-                      }
-                      final date = await showDatePicker(
-                        context: context,
-                        firstDate: DateTime.now().subtract(
-                          const Duration(days: 1),
-                        ),
-                        lastDate: DateTime.now().add(const Duration(days: 730)),
-                        initialDate: startDate,
-                      );
-                      if (date == null) return;
-                      setDialogState(() {
-                        startDate = DateUtils.dateOnly(date);
-                        endDate = startDate;
-                      });
-                    },
-                  ),
-                  DropdownButtonFormField<BookingStatus>(
-                    initialValue: status,
-                    decoration: const InputDecoration(
-                      labelText: 'Estado inicial',
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: BookingStatus.request,
-                        child: Text('Pedido'),
-                      ),
-                      DropdownMenuItem(
-                        value: BookingStatus.proposalSent,
-                        child: Text('Proposta enviada'),
-                      ),
-                      DropdownMenuItem(
-                        value: BookingStatus.confirmed,
-                        child: Text('Confirmada'),
-                      ),
-                    ],
-                    onChanged: (value) => setDialogState(() => status = value!),
-                  ),
-                  if (responsibleId == null)
-                    DropdownButtonFormField<String?>(
-                      initialValue: collaboratorId,
-                      decoration: const InputDecoration(
-                        labelText: 'Responsável',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Gestor'),
-                        ),
-                        ...state.collaborators
-                            .where((collaborator) => !collaborator.archived)
-                            .map(
-                              (collaborator) => DropdownMenuItem<String?>(
-                                value: collaborator.id,
-                                child: Text(collaborator.name),
-                              ),
-                            ),
-                      ],
-                      onChanged: (value) =>
-                          setDialogState(() => collaboratorId = value),
-                    )
-                  else
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.person_outline),
-                      title: const Text('Registada por'),
-                      subtitle: Text(
-                        state.collaborators
-                                .where(
-                                  (collaborator) =>
-                                      collaborator.id == responsibleId,
-                                )
-                                .map((collaborator) => collaborator.name)
-                                .firstOrNull ??
-                            'Colaborador',
-                      ),
-                    ),
-                  TextField(
-                    controller: expectedValue,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Valor previsto (€)',
-                    ),
-                  ),
-                  TextField(
-                    controller: notes,
-                    maxLines: 2,
-                    decoration: const InputDecoration(labelText: 'Notas'),
-                  ),
-                  if (availableMachines.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 12),
-                      child: Text('Não há máquinas disponíveis neste período.'),
-                    ),
-                ],
+                onChanged: availableMachines.isEmpty
+                    ? null
+                    : (value) => setState(() => machineId = value!),
               ),
-            ),
+              DropdownButtonFormField<_BookingDuration>(
+                initialValue: duration,
+                decoration: const InputDecoration(labelText: 'Duração'),
+                items: const [
+                  DropdownMenuItem(
+                    value: _BookingDuration.halfDay,
+                    child: Text('Meio dia'),
+                  ),
+                  DropdownMenuItem(
+                    value: _BookingDuration.fullDay,
+                    child: Text('Dia inteiro'),
+                  ),
+                  DropdownMenuItem(
+                    value: _BookingDuration.multipleDays,
+                    child: Text('Vários dias seguidos'),
+                  ),
+                ],
+                onChanged: (value) => setState(() {
+                  duration = value!;
+                  if (duration != _BookingDuration.multipleDays) {
+                    endDate = startDate;
+                  }
+                }),
+              ),
+              if (duration == _BookingDuration.halfDay)
+                DropdownButtonFormField<_HalfDay>(
+                  initialValue: halfDay,
+                  decoration: const InputDecoration(labelText: 'Período'),
+                  items: const [
+                    DropdownMenuItem(
+                      value: _HalfDay.morning,
+                      child: Text('Manhã'),
+                    ),
+                    DropdownMenuItem(
+                      value: _HalfDay.afternoon,
+                      child: Text('Tarde'),
+                    ),
+                  ],
+                  onChanged: (value) => setState(() => halfDay = value!),
+                ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Período'),
+                subtitle: Text(
+                  _bookingDatesLabel(startDate, endDate, duration, halfDay),
+                ),
+                trailing: const Icon(Icons.date_range_outlined),
+                onTap: () async {
+                  if (duration == _BookingDuration.multipleDays) {
+                    final range = await showDateRangePicker(
+                      context: context,
+                      firstDate: DateTime.now().subtract(
+                        const Duration(days: 1),
+                      ),
+                      lastDate: DateTime.now().add(const Duration(days: 730)),
+                      initialDateRange: DateTimeRange(
+                        start: startDate,
+                        end: endDate,
+                      ),
+                    );
+                    if (range == null) return;
+                    setState(() {
+                      startDate = DateUtils.dateOnly(range.start);
+                      endDate = DateUtils.dateOnly(range.end);
+                    });
+                    return;
+                  }
+                  final date = await showDatePicker(
+                    context: context,
+                    firstDate: DateTime.now().subtract(
+                      const Duration(days: 1),
+                    ),
+                    lastDate: DateTime.now().add(const Duration(days: 730)),
+                    initialDate: startDate,
+                  );
+                  if (date == null) return;
+                  setState(() {
+                    startDate = DateUtils.dateOnly(date);
+                    endDate = startDate;
+                  });
+                },
+              ),
+              DropdownButtonFormField<BookingStatus>(
+                initialValue: status,
+                decoration: const InputDecoration(labelText: 'Estado inicial'),
+                items: const [
+                  DropdownMenuItem(
+                    value: BookingStatus.request,
+                    child: Text('Pedido'),
+                  ),
+                  DropdownMenuItem(
+                    value: BookingStatus.proposalSent,
+                    child: Text('Proposta enviada'),
+                  ),
+                  DropdownMenuItem(
+                    value: BookingStatus.confirmed,
+                    child: Text('Confirmada'),
+                  ),
+                ],
+                onChanged: (value) => setState(() => status = value!),
+              ),
+              if (widget.responsibleId == null)
+                DropdownButtonFormField<String?>(
+                  initialValue: collaboratorId,
+                  decoration: const InputDecoration(labelText: 'Responsável'),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('Gestor'),
+                    ),
+                    ...state.collaborators
+                        .where((collaborator) => !collaborator.archived)
+                        .map(
+                          (collaborator) => DropdownMenuItem<String?>(
+                            value: collaborator.id,
+                            child: Text(collaborator.name),
+                          ),
+                        ),
+                  ],
+                  onChanged: (value) => setState(() => collaboratorId = value),
+                )
+              else
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.person_outline),
+                  title: const Text('Registada por'),
+                  subtitle: Text(
+                    state.collaborators
+                            .where(
+                              (collaborator) =>
+                                  collaborator.id == widget.responsibleId,
+                            )
+                            .map((collaborator) => collaborator.name)
+                            .firstOrNull ??
+                        'Colaborador',
+                  ),
+                ),
+              TextField(
+                controller: expectedValue,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Valor previsto (€)',
+                ),
+              ),
+              TextField(
+                controller: notes,
+                maxLines: 2,
+                decoration: const InputDecoration(labelText: 'Notas'),
+              ),
+              if (availableMachines.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 12),
+                  child: Text('Não há máquinas disponíveis neste período.'),
+                ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: availableMachines.isEmpty
-                  ? null
-                  : () {
-                      final cents =
-                          ((double.tryParse(
-                                        expectedValue.text.replaceAll(',', '.'),
-                                      ) ??
-                                      0) *
-                                  100)
-                              .round();
-                      // addBooking valida duração mínima, máquinas por
-                      // identificar e máquinas paradas com ArgumentError. Sem
-                      // este try a excepção subia por tratar e rebentava o ecrã.
-                      final BookingConflict? conflict;
-                      try {
-                        conflict = ref
-                            .read(operationsProvider.notifier)
-                            .addBooking(
-                              Booking(
-                                id: 'b${DateTime.now().microsecondsSinceEpoch}',
-                                customerId: customerId,
-                                machineIds: [machineId],
-                                startsAt: startsAt,
-                                endsAt: endsAt,
-                                status: status,
-                                expectedValueCents: cents > 0 ? cents : null,
-                                collaboratorResponsibleId: collaboratorId,
-                                notes: notes.text.trim(),
-                              ),
-                            );
-                      } on ArgumentError catch (error) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('${error.message}')),
-                        );
-                        return;
-                      }
-                      if (conflict != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Conflito: ${conflict.machine.name} já está ocupada.',
-                            ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: availableMachines.isEmpty
+              ? null
+              : () {
+                  final cents =
+                      ((double.tryParse(
+                                    expectedValue.text.replaceAll(',', '.'),
+                                  ) ??
+                                  0) *
+                              100)
+                          .round();
+                  // addBooking valida duração mínima, máquinas por
+                  // identificar e máquinas paradas com ArgumentError. Sem
+                  // este try a excepção subia por tratar e rebentava o ecrã.
+                  final BookingConflict? conflict;
+                  try {
+                    conflict = ref
+                        .read(operationsProvider.notifier)
+                        .addBooking(
+                          Booking(
+                            id: 'b${DateTime.now().microsecondsSinceEpoch}',
+                            customerId: customerId,
+                            machineIds: [machineId],
+                            startsAt: startsAt,
+                            endsAt: endsAt,
+                            status: status,
+                            expectedValueCents: cents > 0 ? cents : null,
+                            collaboratorResponsibleId: collaboratorId,
+                            notes: notes.text.trim(),
                           ),
                         );
-                        return;
-                      }
-                      Navigator.pop(dialogContext);
-                    },
-              child: const Text('Guardar marcação'),
-            ),
-          ],
-        );
-      },
-    ),
-  );
-  expectedValue.dispose();
-  notes.dispose();
+                  } on ArgumentError catch (error) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('${error.message}')),
+                    );
+                    return;
+                  }
+                  if (conflict != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Conflito: ${conflict.machine.name} já está ocupada.',
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+                  Navigator.pop(context);
+                },
+          child: const Text('Guardar marcação'),
+        ),
+      ],
+    );
+  }
 }
 
 enum _BookingDuration { halfDay, fullDay, multipleDays }

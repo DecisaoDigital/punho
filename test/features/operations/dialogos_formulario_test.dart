@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/layout/dialogo_de_formulario.dart';
 import 'package:punho/core/operations/operations_controller.dart';
@@ -190,6 +191,97 @@ void main() {
       );
       expect(tester.getRect(nome).bottom, lessThanOrEqualTo(500 - 220));
       expect(tester.getRect(guardar).bottom, lessThanOrEqualTo(500 - 220));
+    });
+
+    testWidgets('gravar fecha sem excepção e o lead aparece na lista', (
+      tester,
+    ) async {
+      // Regressão: os controladores de nome/telemóvel viviam na função
+      // `_leadDialog` e eram descartados logo a seguir ao `await showDialog`,
+      // que devolve no instante do `Navigator.pop` enquanto a animação de
+      // fecho ainda está a correr — a lista de leads por baixo reconstruía-se
+      // a meio dela com controladores já mortos ("A TextEditingController was
+      // used after being disposed"), e daí o ecrã vermelho ao gravar.
+      await abrirClientes(tester, const Size(1280, 800));
+      await tester.tap(find.text('Novo lead'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.widgetWithText(TextField, 'Nome'), 'Obra Nova');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Telemóvel'),
+        '914 555 555',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(DialogoDeFormulario), findsNothing);
+      expect(find.text('Obra Nova'), findsOneWidget);
+    });
+  });
+
+  group('Diálogo de confirmação de reserva', () {
+    Future<void> abrirReservas(WidgetTester tester) => montarLandscape(
+      tester,
+      containerCom(estadoComMovimento()),
+      const BookingsPage(),
+      tamanho: const Size(1280, 800),
+    );
+
+    testWidgets('gravar fecha sem excepção e cria a reserva', (tester) async {
+      // Regressão: `customerId`/`status`/`soSemReserva` viviam num
+      // `StatefulBuilder` dentro de `_showCalendarBookingConfirmation`, e
+      // `expectedValue`/`notes` eram descartados logo a seguir ao `await
+      // showDialog` — a gravação mexe no calendário por baixo, que se
+      // reconstrói a meio da animação de fecho com controladores já mortos.
+      await abrirReservas(tester);
+      await tester.tap(find.byType(DropdownButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('PE-02').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add_circle_outline).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Reservar (1)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Confirmar reserva'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Gravar reserva'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Confirmar reserva'), findsNothing);
+    });
+  });
+
+  group('Diálogo de nova marcação', () {
+    testWidgets('gravar fecha sem excepção e cria a reserva', (tester) async {
+      // Regressão: tal como na confirmação de reserva, `customerId`/
+      // `machineId`/as datas/`collaboratorId` viviam num `StatefulBuilder`
+      // dentro de `_showBookingForm`, e `expectedValue`/`notes` eram
+      // descartados logo a seguir ao `await showDialog`.
+      final container = containerCom(estadoComMovimento());
+      await montarLandscape(
+        tester,
+        container,
+        Consumer(
+          builder: (context, ref, _) => ElevatedButton(
+            onPressed: () => showBookingForm(context, ref),
+            child: const Text('abrir marcação'),
+          ),
+        ),
+        tamanho: const Size(1280, 800),
+      );
+
+      await tester.tap(find.text('abrir marcação'));
+      await tester.pumpAndSettle();
+      expect(find.text('Nova marcação / reserva'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar marcação'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Nova marcação / reserva'), findsNothing);
     });
   });
 }
