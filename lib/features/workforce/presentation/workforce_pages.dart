@@ -6,6 +6,7 @@ import '../../../core/finance/retencao_irs.dart';
 import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/operations/kpis.dart';
 import '../../../core/operations/operations_controller.dart';
+import '../../../data/repositories/operation_repository.dart';
 import '../../../domain/models/workforce.dart';
 import '../../auth/subscricao_providers.dart';
 import 'ficha_fiscal_form.dart';
@@ -30,6 +31,19 @@ String mensagemVagasDeColaboradores(int ativos, int limite) {
         'com o suporte para ajustar a subscrição antes de adicionar mais.';
   }
   return '$ativos colaboradores ativos de ${_vagasContratadas(limite)}';
+}
+
+/// Aviso mostrado no diálogo depois de gravar um colaborador que deixou a
+/// empresa acima das vagas autorizadas pelo plano.
+///
+/// Não bloqueia nada — decisão de 2026-08-02: a ficha já está gravada quando
+/// isto aparece. Só avisa que o colaborador não ganha acesso à app sem uma
+/// aprovação explícita do gestor da subscrição no Control.
+String _avisoDeLimiteExcedido(int ativos, int limite) {
+  final vagas = limite == 1 ? '1 vaga autorizada' : '$limite vagas autorizadas';
+  return '$ativos colaboradores ativos, $vagas pelo plano — este colaborador '
+      'consegue cadastrar-se, mas só acede depois de o gestor da subscrição '
+      'autorizar.';
 }
 
 class CollaboratorsPage extends ConsumerWidget {
@@ -226,6 +240,11 @@ Future<void> _collaboratorDialog(
   barrierDismissible: false,
   builder: (_) => _FormularioDeColaborador(
     notifier: ref.read(operationsProvider.notifier),
+    // Só é preciso para reler os activos depois de gravar e montar o aviso de
+    // limite excedido: `notifier.state` não é acessível fora do próprio
+    // `Notifier` (mesma razão do `repository` em `_FormularioDeCliente`, em
+    // `operational_pages.dart`).
+    repository: ref.read(operationRepositoryProvider),
     // O regime vem da forma jurídica da empresa, não de um valor assumido
     // (Decisão 1). É ele que decide se há estimativa e qual.
     regime: regimeDaFormaJuridica(ref.read(operationsProvider).legalForm),
@@ -240,12 +259,14 @@ Future<void> _collaboratorDialog(
 class _FormularioDeColaborador extends StatefulWidget {
   const _FormularioDeColaborador({
     required this.notifier,
+    required this.repository,
     required this.regime,
     required this.limiteColaboradoresAtivos,
     this.current,
   });
 
   final OperationsController notifier;
+  final OperationRepository repository;
   final int limiteColaboradoresAtivos;
   final RegimeFiscal regime;
   final Collaborator? current;
@@ -273,12 +294,14 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
   late var estadoCivil = current?.maritalStatus ?? MaritalStatus.unmarried;
   late final ficha = ControladoresDaFicha(de: current);
 
-  /// A recusa mostra-se **dentro** do diálogo e não num `SnackBar`.
+  /// Mensagem mostrada **dentro** do diálogo e não num `SnackBar`.
   ///
   /// Num telemóvel deitado com o teclado aberto, o `SnackBar` nasce por baixo
-  /// do teclado: quem tentava exceder as vagas contratadas carregava em
-  /// Guardar e via o botão não fazer nada. Apanhado no Redmi Note 10 Pro com
-  /// 3 colaboradores activos de 3 vagas.
+  /// do teclado — apanhado no Redmi Note 10 Pro. Servia para a recusa por
+  /// exceder vagas; desde a decisão de 2026-08-02 essa recusa não existe, e o
+  /// campo passou a mostrar validação (nome em falta) e o aviso não
+  /// bloqueante de limite excedido, que fica visível porque o diálogo só
+  /// fecha depois de o gestor ler.
   String? erro;
 
   @override
@@ -451,48 +474,59 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
         final estado = campos.contains(CampoDaFichaFiscal.estadoCivil)
             ? estadoCivil
             : MaritalStatus.unmarried;
-        try {
-          // A editar mantém-se o mesmo id e passa-se por copyWith: construir um
-          // Collaborator novo criava um segundo registo e deixava o antigo na
-          // lista, além de perder as notas que este diálogo não mostra.
-          widget.notifier.saveCollaborator(
-            anterior != null
-                ? anterior.copyWith(
-                    name: name.text.trim(),
-                    phone: _semVazio(phone.text),
-                    role: _semVazio(role.text),
-                    costFrequency: frequency,
-                    costCents: custoCents,
-                    schedule: horario,
-                    employmentType: vinculo,
-                    socialSecurityNumber: niss,
-                    taxId: nif,
-                    maritalStatus: estado,
-                    dependents: dependentes,
-                  )
-                : Collaborator(
-                    id: 'co${DateTime.now().microsecondsSinceEpoch}',
-                    name: name.text.trim(),
-                    status: CollaboratorStatus.active,
-                    phone: _semVazio(phone.text),
-                    role: _semVazio(role.text),
-                    costFrequency: frequency,
-                    costCents: custoCents,
-                    schedule: horario,
-                    employmentType: vinculo,
-                    socialSecurityNumber: niss,
-                    taxId: nif,
-                    maritalStatus: estado,
-                    dependents: dependentes,
-                  ),
-            limiteColaboradoresAtivos: widget.limiteColaboradoresAtivos,
+        // A editar mantém-se o mesmo id e passa-se por copyWith: construir um
+        // Collaborator novo criava um segundo registo e deixava o antigo na
+        // lista, além de perder as notas que este diálogo não mostra.
+        widget.notifier.saveCollaborator(
+          anterior != null
+              ? anterior.copyWith(
+                  name: name.text.trim(),
+                  phone: _semVazio(phone.text),
+                  role: _semVazio(role.text),
+                  costFrequency: frequency,
+                  costCents: custoCents,
+                  schedule: horario,
+                  employmentType: vinculo,
+                  socialSecurityNumber: niss,
+                  taxId: nif,
+                  maritalStatus: estado,
+                  dependents: dependentes,
+                )
+              : Collaborator(
+                  id: 'co${DateTime.now().microsecondsSinceEpoch}',
+                  name: name.text.trim(),
+                  status: CollaboratorStatus.active,
+                  phone: _semVazio(phone.text),
+                  role: _semVazio(role.text),
+                  costFrequency: frequency,
+                  costCents: custoCents,
+                  schedule: horario,
+                  employmentType: vinculo,
+                  socialSecurityNumber: niss,
+                  taxId: nif,
+                  maritalStatus: estado,
+                  dependents: dependentes,
+                ),
+        );
+        // Grava sempre — a decisão de 2026-08-02 tirou a recusa por vagas.
+        // O que resta é avisar, sem bloquear: se isto deixou a empresa acima
+        // do autorizado, o diálogo fica aberto com o aviso em vez de fechar,
+        // para o gestor não o perder por trás de um `SnackBar`. Lê-se do
+        // repositório e não de `notifier.state` (inacessível fora do
+        // `Notifier`) — mesma contagem de `OperationsState.activeCollaborators`.
+        final ativos = widget.repository.collaborators
+            .where((c) => !c.archived && c.status == CollaboratorStatus.active)
+            .length;
+        if (ativos > widget.limiteColaboradoresAtivos) {
+          setState(
+            () => erro = _avisoDeLimiteExcedido(
+              ativos,
+              widget.limiteColaboradoresAtivos,
+            ),
           );
-          Navigator.pop(context);
-        } on StateError catch (e) {
-          // Excedeu as vagas contratadas: o diálogo fica aberto com o que
-          // estava escrito.
-          setState(() => erro = e.message.toString());
+          return;
         }
+        Navigator.pop(context);
       },
     );
   }

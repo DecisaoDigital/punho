@@ -97,27 +97,29 @@ void main() {
     expect(find.text('Horas semanais previstas'), findsOneWidget);
   });
 
-  testWidgets('exceder as vagas contratadas não fecha o diálogo', (
-    tester,
-  ) async {
-    // O limite vem das vagas contratadas; o saveCollaborator lança StateError.
-    // Antes a mensagem aparecia e o diálogo ficava aberto — comportamento certo
-    // que se mantém agora que há Cancelar.
-    final container = containerCom(
-      estadoComMovimento().copyWith(activeCollaboratorLimit: 0),
-    );
-    await montarLandscape(tester, container, const CollaboratorsPage());
-    await tester.tap(find.text('Adicionar colaborador').first);
-    await tester.pumpAndSettle();
+  testWidgets(
+    'exceder as vagas contratadas grava na mesma e avisa sem fechar',
+    (tester) async {
+      // Decisão de 2026-08-02: exceder o autorizado já não recusa a
+      // gravação — só avisa, e o diálogo fica aberto para o gestor ler o
+      // aviso em vez de o perder atrás de um `SnackBar`.
+      final container = containerCom(
+        estadoComMovimento().copyWith(activeCollaboratorLimit: 0),
+      );
+      await montarLandscape(tester, container, const CollaboratorsPage());
+      await tester.tap(find.text('Adicionar colaborador').first);
+      await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField).first, 'Manuel Silva');
-    await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
-    await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Manuel Silva');
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+      await tester.pumpAndSettle();
 
-    expect(find.byType(DialogoDeFormulario), findsOneWidget);
-    expect(
-      container.read(operationsProvider).collaborators.map((c) => c.name),
-      isNot(contains('Manuel Silva')),
-    );
-  });
+      expect(find.byType(DialogoDeFormulario), findsOneWidget);
+      expect(
+        container.read(operationsProvider).collaborators.map((c) => c.name),
+        contains('Manuel Silva'),
+      );
+      expect(find.textContaining('só acede depois de'), findsOneWidget);
+    },
+  );
 }

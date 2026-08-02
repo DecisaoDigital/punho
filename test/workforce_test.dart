@@ -4,7 +4,7 @@ import 'package:punho/core/operations/operations_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
-  test('bloqueia exceder vagas', () {
+  test('exceder as vagas não bloqueia — grava na mesma (decisão 2026-08-02)', () {
     final c = ProviderContainer();
     addTearDown(c.dispose);
     final n = c.read(operationsProvider.notifier);
@@ -13,16 +13,14 @@ void main() {
         Collaborator(id: '$i', name: 'n', status: CollaboratorStatus.active),
       );
     }
-    expect(
-      () => n.saveCollaborator(
-        const Collaborator(
-          id: '4',
-          name: 'n',
-          status: CollaboratorStatus.active,
-        ),
-      ),
-      throwsStateError,
+    n.saveCollaborator(
+      const Collaborator(id: '4', name: 'n', status: CollaboratorStatus.active),
     );
+    final ativos = c
+        .read(operationsProvider)
+        .collaborators
+        .where((x) => !x.archived && x.status == CollaboratorStatus.active);
+    expect(ativos.length, 4);
   });
   test('seguro anual e semestral mensalizado', () {
     expect(

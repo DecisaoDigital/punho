@@ -13,13 +13,15 @@ final subscricaoServiceProvider = Provider<SubscricaoService>(
   (ref) => SupabaseSubscricaoService(Supabase.instance.client),
 );
 
-/// Limite de colaboradores activos que a subscrição no servidor autoriza.
+/// Vagas de colaboradores activos que a subscrição no servidor autoriza.
 ///
-/// `null` quando não há como saber — sem Supabase configurado (modo
+/// Puramente informativo desde a decisão de 2026-08-02: já não é um limite a
+/// impor, é o número que a app mostra ao gestor para ele saber se está acima
+/// do plano. `null` quando não há como saber — sem Supabase configurado (modo
 /// demonstração), sem sessão, sem empresa, ou a leitura falhou — e nesse caso
-/// quem usa isto tem de cair no valor local, nunca bloquear. Mesmo padrão do
-/// `motorSyncProvider` em `features/sync/sync_providers.dart`: espera pelo
-/// acesso resolver antes de perguntar ao servidor.
+/// quem usa isto cai no valor local. Mesmo padrão do `motorSyncProvider` em
+/// `features/sync/sync_providers.dart`: espera pelo acesso resolver antes de
+/// perguntar ao servidor.
 final limiteColaboradoresServidorProvider = FutureProvider<int?>((ref) async {
   if (!SupabaseConfig.enabled) return null;
   final acesso = ref.watch(estadoAcessoProvider).valueOrNull;
@@ -30,12 +32,17 @@ final limiteColaboradoresServidorProvider = FutureProvider<int?>((ref) async {
       .limiteColaboradoresAtivos(empresaId);
 });
 
-/// Limite de colaboradores activos que a app deve mesmo aplicar.
+/// Vagas autorizadas a mostrar ao gestor — o número usado nos avisos e no
+/// cabeçalho de Funcionários.
 ///
-/// O do servidor manda sempre que se conseguiu ler; falhando isso (rede em
-/// baixo, modo demonstração, sem sessão), vale o valor local do onboarding
-/// (`OperationsState.activeCollaboratorLimit`) — nunca se bloqueia a criação
-/// de colaboradores por causa de uma falha de rede.
+/// O do servidor vale sempre que se conseguiu ler; falhando isso (rede em
+/// baixo, modo demonstração, sem sessão), cai no valor que o gestor declarou
+/// no onboarding (`OperationsState.activeCollaboratorLimit`) — que aqui é só
+/// o número declarado, não um limite de recurso. Desde a decisão de
+/// 2026-08-02 nada nesta app bloqueia a criação de um colaborador por causa
+/// disto, servidor a responder ou não: quem impede o acesso de quem excede o
+/// autorizado é o circuito de aprovação no Control (`punho_pedidos_acesso`),
+/// não `OperationsController.saveCollaborator`.
 final limiteColaboradoresEfetivoProvider = Provider<int>((ref) {
   final doServidor = ref
       .watch(limiteColaboradoresServidorProvider)
