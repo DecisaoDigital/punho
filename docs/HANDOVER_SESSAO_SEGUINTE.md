@@ -1,8 +1,8 @@
 # Handover — próxima sessão Cowork · Punho
 
-**Data do handover:** 2 de Agosto de 2026
-**Última branch activa:** `main` (sem branch de sprint aberta; há alterações
-por commitar directamente sobre `main`, ver abaixo)
+**Data do handover:** 2 de Agosto de 2026 (revisto às 13h, após commitar)
+**Última branch activa:** `main` — **árvore limpa, nada por commitar**
+(`git status` vazio em `902059c`)
 **Versão instalada no aparelho de teste:** v0.1.4+25 (`v0.1.4` taggeada)
 **Skill de contexto a invocar primeiro:** nenhuma para Punho ainda
 
@@ -31,6 +31,14 @@ ecrã no arranque.
 ## Já commitado nesta sessão
 
 ```
+902059c docs(testes): campanha de 2 Ago, decisoes e handover actualizados
+8b3b5ec fix(copy): textos alinhados com a versao real e com o telemovel
+d50be94 feat(tarefas): colaboradores por registar aparecem na lista
+2710fa4 fix(kpis): tesouraria usa o historico mensal preenchido a mao
+3db013b fix(ui): cabecalho cortado, avisos escondidos e ecra vermelho do cliente
+e4a8bb0 test(sync): regressoes da carga inicial e da fila concorrente
+a8e916b feat(sync): a ficha da empresa insiste ate subir
+3c7fe1c feat(subscricao): o limite de colaboradores passa a vir do servidor
 3a64e49 docs(testes): checklist viva da campanha de 2 Ago 2026
 4dfcb0f fix(sync): sincronização presa, campainha muda e ref inválido pós-microtarefa
 5dcc5c5 fix(splash): o punho não gira mais durante a animação de arranque
@@ -47,7 +55,34 @@ ecrã no arranque.
 
 ---
 
-## Por commitar — verificado no aparelho, `flutter analyze` limpo, 535 testes
+## O que os 8 commits de 13h fizeram — e o que falta confirmar
+
+`flutter test` verde (576 testes, 1 skipped) e `flutter analyze` com 8 avisos
+`info` pré-existentes (deprecações do Flutter e chavetas), zero erros. Os
+commits foram feitos directamente sobre `main`, como o resto do dia.
+
+Além do que a lista abaixo já descrevia, entraram duas peças novas que **não
+foram testadas no aparelho** — só têm testes automáticos:
+
+- `lib/features/auth/data/subscricao_service.dart` +
+  `subscricao_providers.dart` — o limite de colaboradores passa a ser
+  autorizado pela subscrição no servidor, com o valor do onboarding como
+  fallback se a rede falhar. Fecha a implementação, **não** a decisão (ver
+  "Por decidir").
+- `lib/core/empresa_sync/empresa_sync_controller.dart` + `ficha_pendente.dart`
+  — a ficha da empresa insiste até subir: sobrevive a fechar a app, repete de
+  20 em 20 minutos e ao voltar do fundo; terminar o onboarding envia logo.
+
+**Por confirmar no Redmi na próxima sessão** (foram corrigidos às cegas, o
+aparelho não voltou a ser usado depois):
+- Cabeçalho do login/registo com `SafeArea` — era achado P0.
+- Aviso de recusa visível com teclado aberto em landscape.
+- Gravar cliente duplicado sem ecrã vermelho.
+- Ficha da empresa a chegar ao Control depois de fechar a app.
+
+---
+
+## Detalhe do que foi commitado (referência)
 
 `git status` mostra estes ficheiros modificados em `lib/` e `test/` (mais
 `docs/PLANO_DE_TESTES_2026-08-02.md`, já actualizado por esta sessão):
@@ -78,11 +113,11 @@ ecrã no arranque.
 - Novos, ainda não adicionados ao git: `test/core/sync/carga_inicial_test.dart`,
   `test/core/sync/fila_sem_corridas_test.dart`.
 
-**Antes de commitar:** os diálogos de lead, reserva e marcação continuam com
-o padrão antigo de `TextEditingController` (o mesmo bug do ecrã vermelho,
-por rebentar) — não foram tocados nesta sessão por serem formulários grandes
-e a conversão sem testes de UI ser arriscada. Não bloqueia o commit do resto,
-mas fica registado para não se dar como resolvido.
+**Fica por resolver:** os diálogos de lead, reserva e marcação continuam com
+o padrão antigo de `TextEditingController` (o mesmo bug do ecrã vermelho, que
+só foi corrigido no formulário de cliente) — não foram tocados por serem
+formulários grandes e a conversão sem testes de UI ser arriscada. Vai rebentar
+igual quando alguém os usar.
 
 ---
 
@@ -109,32 +144,59 @@ subscrição é 1, o declarado é 3.
 
 ## Achados por corrigir, por urgência (ver detalhe no plano de testes)
 
+**P0 — partem a app ou deixam o painel vazio**
+
 1. Detalhe de cliente não abre — NIF, email, morada e notas chegam do
-   servidor mas não há ecrã que os mostre.
+   servidor mas não há ecrã que os mostre. É o único ecrã que existe para
+   máquinas e não existe para clientes; assimetria visível a qualquer
+   utilizador.
 2. Onboarding não cria colaboradores nem veículos (só as máquinas viram
-   placeholders).
-3. Facturação do ano passado não gera `historicalMonths` — painel fica em
-   "Por apurar" mesmo com onboarding 100% preenchido.
-4. Máquinas com referência perdem o nome no selector de reservas (as 15
+   placeholders). A frota fica por identificar.
+3. Facturação do ano passado não gera `historicalMonths`. **Metade resolvida:**
+   o commit `2710fa4` fez os KPIs *lerem* o histórico quando existe; quem o
+   *escreve* a partir da facturação continua a não escrever, por isso o painel
+   ainda fica em "Por apurar" com o onboarding 100% preenchido.
+
+**P1 — risco técnico e decisões que bloqueiam**
+
+4. Diálogos de lead, reserva e marcação com o padrão antigo de
+   `TextEditingController` — mesmo bug do ecrã vermelho, por rebentar.
+5. Máquina alugada bloqueia todas as semanas seguintes (secção acima).
+6. Limite de colaboradores: decisão por fechar (secção acima).
+7. Rotação de ecrã indevida — a do splash foi corrigida em `5dcc5c5`; falta
+   reproduzir em que outro ecrã ainda acontece.
+
+**P2/P3 — incomodam, não travam**
+
+8. Máquinas com referência perdem o nome no selector de reservas (as 15
    placeholders "Máquina N" enterram as reais).
-5. Ordem das listas de despesas e clientes não segue data nem alfabeto.
-6. PIN 1234 por pôr (arrastado do relatório de 1 de Agosto).
+9. Ordem das listas de despesas e clientes não segue data nem alfabeto.
+10. "Recomendação do dia: Quarta-feira fraca" num domingo — confirmar a
+    regra do dia da semana.
+11. PIN 1234 por pôr (arrastado do relatório de 1 de Agosto).
+
+**Testes por executar** (não são bugs): Faixa C ponto 5 (documentos, só se faz
+em Windows) e Faixa D (uma verificação no Control por **cada** empresa nova —
+só houve uma).
 
 ---
 
 ## Passo imediato ao retomar
 
-1. Rever o `git diff` do que está por commitar (lista acima), confirmar que
-   nada ficou esquecido a meio, e commitar em Portugal — no i9, com
-   `flutter analyze` e `flutter test` a correr limpo antes do commit
-   (`git add` explícito por ficheiro, não `-A`).
-2. Confirmar com o Cesar se a implementação do bloqueio por data (máquina
-   alugada) já está em curso por outro agente ou se falta arrancar.
-3. Perguntar se o limite de colaboradores deve passar a vir da subscrição
-   antes de mexer em `workforce_pages.dart` outra vez.
-4. Seguir pela lista de achados por corrigir acima, começando pelo detalhe
-   de cliente (é o único ecrã que existe para máquinas e não existe para
-   clientes — assimetria visível a qualquer utilizador).
+1. Instalar a build actual no Redmi e confirmar os quatro pontos da lista
+   "Por confirmar no Redmi" acima. São correcções feitas às cegas; até serem
+   vistas no aparelho não contam como fechadas — o cabeçalho do login era P0.
+2. Perguntar ao Cesar as duas decisões em aberto antes de mexer no código
+   que dependem delas: limite de colaboradores (subscrição vs onboarding) e
+   se o bloqueio por data da máquina alugada já está em curso por outro
+   agente.
+3. Atacar os P0 por ordem: detalhe de cliente, depois onboarding a criar
+   colaboradores e veículos, depois a escrita de `historicalMonths`.
+
+**Como trabalhar aqui:** builds, `flutter analyze`, `flutter test` e APK no i9
+(ver `CLAUDE.md` na raiz). `git add` explícito por ficheiro, nunca `-A`.
+Commits vão directos a `main`. Publicar (APK + Release + `versoes_apps`) só a
+pedido explícito do Cesar.
 
 ---
 
