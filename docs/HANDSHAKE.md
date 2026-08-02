@@ -7,7 +7,7 @@ vai lá quando precisares, não antes.
 `home-lab-claude`). `flutter` está no PATH — corre directamente, **não uses
 ssh**. Branch `main`, commits directos, `git add` por ficheiro, nunca `-A`.
 
-**Estado:** limpo em `7269953` (branch `main`). `flutter test` verde (641, 1
+**Estado:** limpo em `21b269a` (branch `main`). `flutter test` verde (641, 1
 skipped), `flutter analyze` com os mesmos 8 avisos `info` pré-existentes —
 linha de base, não tentes limpá-los.
 
