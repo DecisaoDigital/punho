@@ -6,12 +6,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/auth/auth_rules.dart';
 import '../../../core/config/supabase_config.dart';
+import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../shared/widgets/versao_app.dart';
 import '../../auth/acesso_providers.dart';
 import '../../company/presentation/company_settings_page.dart';
 import '../../licenca/presentation/diagnostico_licenca.dart';
 import '../../gestao/presentation/convites_screen.dart';
+import '../data/sugestoes_service.dart';
 
 /// Quem está autenticado, e como sair.
 ///
@@ -147,6 +149,15 @@ class PerfilPopup extends ConsumerWidget {
                 ],
                 const SizedBox(height: 8),
               ],
+              if (SupabaseConfig.enabled) ...[
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      _enviarSugestao(context, estado.companyTaxId),
+                  icon: const Icon(Icons.lightbulb_outline),
+                  label: const Text('Sugestões'),
+                ),
+                const SizedBox(height: 8),
+              ],
               if (comSessao)
                 OutlinedButton.icon(
                   onPressed: () => _terminarSessao(context, ref),
@@ -204,6 +215,13 @@ class PerfilPopup extends ConsumerWidget {
     context: context,
     builder: (_) => const _MudarPalavraPasseDialog(),
   );
+
+  Future<void> _enviarSugestao(BuildContext context, String? nif) =>
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _SugestaoDialog(nif: nif),
+      );
 
   void _abrirConvites(BuildContext context) {
     final navegador = Navigator.of(context, rootNavigator: true);
@@ -538,5 +556,77 @@ class _Versao extends StatelessWidget {
   Widget build(BuildContext context) => VersaoApp(
     formato: (versao) => 'Punho v$versao',
     style: Theme.of(context).textTheme.bodySmall,
+  );
+}
+
+/// Sugestão livre, a chegar ao Control — o mesmo caminho que já existe na
+/// WashInvoice. Um campo de texto só, sem categorias nem obrigatoriedade de
+/// contexto: quem escreve já sabe o que quer dizer.
+class _SugestaoDialog extends StatefulWidget {
+  const _SugestaoDialog({this.nif});
+  final String? nif;
+
+  @override
+  State<_SugestaoDialog> createState() => _SugestaoDialogState();
+}
+
+class _SugestaoDialogState extends State<_SugestaoDialog> {
+  final _texto = TextEditingController();
+  String? erro;
+  bool aEnviar = false;
+
+  @override
+  void dispose() {
+    _texto.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => DialogoDeFormulario(
+    titulo: 'Enviar sugestão',
+    rotuloGuardar: aEnviar ? 'A enviar…' : 'Enviar',
+    corpo: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text('Escreve o que quiseres — chega directamente ao César.'),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _texto,
+          autofocus: true,
+          maxLines: 4,
+          decoration: const InputDecoration(labelText: 'Sugestão'),
+        ),
+      ],
+    ),
+    aviso: erro,
+    aoGuardar: aEnviar
+        ? () {}
+        : () async {
+            final texto = _texto.text.trim();
+            if (texto.isEmpty) {
+              setState(() => erro = 'Escreve alguma coisa antes de enviar.');
+              return;
+            }
+            setState(() {
+              erro = null;
+              aEnviar = true;
+            });
+            try {
+              await SugestoesService(
+                Supabase.instance.client,
+              ).enviar(texto, nif: widget.nif);
+              if (!context.mounted) return;
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Sugestão enviada. Obrigado!')),
+              );
+            } catch (e) {
+              if (!context.mounted) return;
+              setState(() {
+                aEnviar = false;
+                erro = 'Não foi possível enviar. Tenta outra vez.';
+              });
+            }
+          },
   );
 }
