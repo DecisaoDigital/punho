@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/guidance/guidance_engine.dart';
+import 'package:punho/core/operations/kpis.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/finance.dart';
 import 'package:punho/domain/models/historical_month.dart';
 import 'package:punho/domain/models/operations.dart';
 import 'package:punho/domain/models/workforce.dart';
-import 'package:punho/features/dashboard/kpis/recomendacao_do_dia.dart';
 
 import 'fixtura.dart';
 
@@ -36,6 +36,15 @@ OperationsState _limpo({
   List<Lead> leads = const [],
   List<Collaborator> collaborators = const [],
   List<HistoricalMonth> historicalMonths = const [],
+  List<Machine> machines = const [
+    Machine(
+      id: 'm1',
+      name: 'Mini escavadora',
+      reference: 'ME-01',
+      category: 'Escavação',
+      status: MachineStatus.available,
+    ),
+  ],
 }) => OperationsState(
   onboarded: true,
   companyName: 'Alugueres Norte',
@@ -45,15 +54,7 @@ OperationsState _limpo({
   leads: leads,
   collaborators: collaborators,
   historicalMonths: historicalMonths,
-  machines: const [
-    Machine(
-      id: 'm1',
-      name: 'Mini escavadora',
-      reference: 'ME-01',
-      category: 'Escavação',
-      status: MachineStatus.available,
-    ),
-  ],
+  machines: machines,
 );
 
 void main() {
@@ -71,15 +72,13 @@ void main() {
         ],
       );
 
-      final r = recomendacaoDoDia(estado, agoraFixa);
+      final r = recomendacaoDaSemana(estado, agoraFixa);
 
       expect(r, isNotNull);
-      expect(r!.regra, 'divida-urgente');
+      expect(r!.id, 'divida-urgente');
       expect(r.gravidade, GravidadeRecomendacao.urgente);
-      expect(r.texto, 'Cobrar João Pereira — 40 dias em atraso, 400,00 €');
-      expect(r.cta, 'Abrir ficha →');
-      expect(r.accao, AccaoDoDia.fichaCliente);
-      expect(r.clienteId, 'c9');
+      expect(r.title, 'Cobrar João Pereira — 40 dias em atraso, 400 €');
+      expect(r.action, 'Abrir ficha →');
     });
 
     test('valor pequeno não sobe a urgente, mesmo com 40 dias', () {
@@ -99,7 +98,7 @@ void main() {
       );
 
       expect(
-        recomendacaoDoDia(estado, agoraFixa)?.regra,
+        recomendacaoDaSemana(estado, agoraFixa)?.id,
         isNot('divida-urgente'),
       );
     });
@@ -124,11 +123,11 @@ void main() {
         ],
       );
 
-      final r = recomendacaoDoDia(estado, agoraFixa);
+      final r = recomendacaoDaSemana(estado, agoraFixa);
 
-      expect(r!.regra, 'divida-urgente', reason: '60 + 60 passa os 100 €');
-      expect(r.texto, contains('40 dias'));
-      expect(r.texto, contains('120,00 €'));
+      expect(r!.id, 'divida-urgente', reason: '60 + 60 passa os 100 €');
+      expect(r.title, contains('40 dias'));
+      expect(r.title, contains('120 €'));
     });
   });
 
@@ -154,15 +153,14 @@ void main() {
         ],
       );
 
-      final r = recomendacaoDoDia(estado, agoraFixa);
+      final r = recomendacaoDaSemana(estado, agoraFixa);
 
-      expect(r!.regra, 'custos-criticos');
+      expect(r!.id, 'custos-criticos');
       expect(r.gravidade, GravidadeRecomendacao.urgente);
       // 850 € de bruto sobre 1.000 € de receita liam-se como 85%. Com a TSU
       // patronal — que é dinheiro que sai da empresa — são 1.051 €, ou seja
       // 105%: a empresa está a gastar mais do que recebe. Decisão 12.
-      expect(r.texto, 'Custos a comer a receita — 105% do que entrou já saiu');
-      expect(r.accao, AccaoDoDia.slideCustos);
+      expect(r.title, 'Custos a comer a receita — 105% do que entrou já saiu');
     });
 
     test('um custo que parecia seguro passa a disparar', () {
@@ -189,10 +187,10 @@ void main() {
         ],
       );
 
-      final r = recomendacaoDoDia(estado, agoraFixa);
+      final r = recomendacaoDaSemana(estado, agoraFixa);
 
-      expect(r!.regra, 'custos-criticos');
-      expect(r.texto, 'Custos a comer a receita — 87% do que entrou já saiu');
+      expect(r!.id, 'custos-criticos');
+      expect(r.title, 'Custos a comer a receita — 87% do que entrou já saiu');
     });
 
     test('quem está a recibos verdes não leva carga social', () {
@@ -220,7 +218,7 @@ void main() {
       );
 
       expect(
-        recomendacaoDoDia(estado, agoraFixa)?.regra,
+        recomendacaoDaSemana(estado, agoraFixa)?.id,
         isNot('custos-criticos'),
       );
     });
@@ -238,7 +236,7 @@ void main() {
       );
 
       expect(
-        recomendacaoDoDia(estado, agoraFixa)?.regra,
+        recomendacaoDaSemana(estado, agoraFixa)?.id,
         isNot('custos-criticos'),
       );
     });
@@ -258,12 +256,11 @@ void main() {
         ],
       );
 
-      final r = recomendacaoDoDia(estado, agoraFixa);
+      final r = recomendacaoDaSemana(estado, agoraFixa);
 
-      expect(r!.regra, 'divida-atencao');
+      expect(r!.id, 'divida-atencao');
       expect(r.gravidade, GravidadeRecomendacao.atencao);
-      expect(r.texto, 'Construções Silva — 20 dias sem pagar');
-      expect(r.accao, AccaoDoDia.fichaCliente);
+      expect(r.title, 'Construções Silva — 20 dias sem pagar');
     });
 
     test('a dívida urgente passa-lhe à frente', () {
@@ -286,7 +283,7 @@ void main() {
         ],
       );
 
-      expect(recomendacaoDoDia(estado, agoraFixa)!.regra, 'divida-urgente');
+      expect(recomendacaoDaSemana(estado, agoraFixa)!.id, 'divida-urgente');
     });
   });
 
@@ -311,12 +308,11 @@ void main() {
         ],
       );
 
-      final r = recomendacaoDoDia(estado, agoraFixa);
+      final r = recomendacaoDaSemana(estado, agoraFixa);
 
-      expect(r!.regra, 'queda-homologa');
+      expect(r!.id, 'queda-homologa');
       expect(r.gravidade, GravidadeRecomendacao.atencao);
-      expect(r.texto, 'A facturar 40% do que fizeste em Julho do ano passado');
-      expect(r.accao, AccaoDoDia.todasAsMetricas);
+      expect(r.title, 'A facturar 40% do que fizeste em Julho do ano passado');
     });
 
     test(
@@ -341,7 +337,7 @@ void main() {
           ],
         );
 
-        expect(recomendacaoDoDia(estado, agoraFixa)!.regra, 'queda-homologa');
+        expect(recomendacaoDaSemana(estado, agoraFixa)!.id, 'queda-homologa');
       },
     );
 
@@ -361,7 +357,7 @@ void main() {
       );
 
       expect(
-        recomendacaoDoDia(estado, agoraFixa)?.regra,
+        recomendacaoDaSemana(estado, agoraFixa)?.id,
         isNot('queda-homologa'),
       );
     });
@@ -390,16 +386,18 @@ void main() {
         ],
       );
 
-      final r = recomendacaoDoDia(estado, agoraFixa);
+      final r = recomendacaoDaSemana(estado, agoraFixa);
 
-      expect(r!.regra, 'conversao-boa');
+      expect(r!.id, 'conversao-boa');
       expect(r.gravidade, GravidadeRecomendacao.oportunidade);
-      expect(r.texto, startsWith('Conversão a 30 dias em 40%'));
-      expect(r.accao, AccaoDoDia.slidePipeline);
+      expect(r.title, startsWith('Conversão a 30 dias em 40%'));
     });
 
     test('conversão fraca não é notícia', () {
+      // Sem máquina nenhuma, pela mesma razão do teste "Sem regra
+      // aplicável": isola o teste da regra "quarta-feira fraca".
       final estado = _limpo(
+        machines: const [],
         leads: [
           Lead(
             id: 'l1',
@@ -419,14 +417,21 @@ void main() {
         ],
       );
 
-      expect(recomendacaoDoDia(estado, agoraFixa), isNull);
+      expect(recomendacaoDaSemana(estado, agoraFixa), isNull);
     });
   });
 
   group('Sem regra aplicável', () {
     test('devolve null em vez de conselho genérico', () {
-      expect(recomendacaoDoDia(_limpo(), agoraFixa), isNull);
-      expect(recomendacaoDoDia(estadoSemMovimento(), agoraFixa), isNull);
+      // Sem máquina nenhuma: a regra "quarta-feira fraca" do GuidanceEngine
+      // não dispara (precisa de uma máquina disponível e parada — testado à
+      // parte em guidance_engine_test.dart), o que isola este teste ao que
+      // ele quer verificar: nenhuma das regras específicas se aplica.
+      expect(
+        recomendacaoDaSemana(_limpo(machines: const []), agoraFixa),
+        isNull,
+      );
+      expect(recomendacaoDaSemana(estadoSemMovimento(), agoraFixa), isNull);
     });
   });
 
@@ -435,9 +440,9 @@ void main() {
       // A fixture recebe 1320 € e tem 1730 € de custos (131%): a regra 2 é
       // urgente e passa à frente da dívida de 20 dias, que é só atenção. A
       // regra 1 não se aplica porque 20 < 30 dias.
-      final r = recomendacaoDoDia(estadoComMovimento(), agoraFixa);
+      final r = recomendacaoDaSemana(estadoComMovimento(), agoraFixa);
 
-      expect(r!.regra, 'custos-criticos');
+      expect(r!.id, 'custos-criticos');
       expect(r.gravidade, GravidadeRecomendacao.urgente);
     });
 
@@ -448,10 +453,10 @@ void main() {
         expenses: const [],
       );
 
-      final r = recomendacaoDoDia(semCustos, agoraFixa);
+      final r = recomendacaoDaSemana(semCustos, agoraFixa);
 
-      expect(r!.regra, 'divida-atencao');
-      expect(r.texto, 'João Pereira — 20 dias sem pagar');
+      expect(r!.id, 'divida-atencao');
+      expect(r.title, 'João Pereira — 20 dias sem pagar');
     });
   });
 }

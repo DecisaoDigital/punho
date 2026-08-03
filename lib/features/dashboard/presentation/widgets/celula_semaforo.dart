@@ -110,7 +110,11 @@ class CelulaSemaforo extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 height: 1.25,
               ),
-              maxLines: 3,
+              // 3 linhas mais o rótulo e o subtexto não cabem nos 83 dp da
+              // célula em ecrãs estreitos — a recomendação, que é o único
+              // texto realmente longo, ganha reticências mais cedo em vez de
+              // rebentar a caixa (achado no teste de margens, 2026-08-03).
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           if (subtexto != null)

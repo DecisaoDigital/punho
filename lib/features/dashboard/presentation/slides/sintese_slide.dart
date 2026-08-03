@@ -51,7 +51,7 @@ class SinteseSlide extends ConsumerWidget {
                 destino: AppDestination.finances,
                 child: _entradas(mes, recebidoHoje),
               ),
-              _utilizacao(estado),
+              _utilizacao(estado, now),
               _encontroDeContas(mes),
               _recomendacao(recomendacao),
             ],
@@ -99,27 +99,56 @@ class SinteseSlide extends ConsumerWidget {
   /// compra: sem eles dá para contar dias alugados, mas não para dizer se isso
   /// é bom ou mau — e um número de ocupação sem retorno ao lado é o tipo de
   /// meia-verdade que leva a decisões erradas.
-  Widget _utilizacao(OperationsState estado) {
+  Widget _utilizacao(OperationsState estado, DateTime now) {
+    final total = estado.machines.where((m) => !m.archived).length;
+    if (total == 0) {
+      return const CelulaSemaforo(
+        nivel: NivelSemaforo.laranja,
+        rotulo: 'Utilização vs Rentabilidade',
+        texto: 'Por apurar',
+        subtexto: 'Ainda não há máquinas identificadas',
+      );
+    }
     final comPreco = estado.machines
         .where((m) => !m.archived && m.dailyRateCents != null)
         .length;
-    final total = estado.machines.where((m) => !m.archived).length;
+    if (comPreco < total) {
+      return CelulaSemaforo(
+        nivel: NivelSemaforo.laranja,
+        rotulo: 'Utilização vs Rentabilidade',
+        texto: 'Por apurar',
+        subtexto: comPreco == 0
+            ? 'Falta o preço por dia das $total máquinas'
+            : 'Falta o preço de ${total - comPreco} de $total máquinas',
+      );
+    }
+    final dados = utilizacaoERentabilidade(estado, now);
+    if (dados.maquinasComValorDeCompra == 0) {
+      return const CelulaSemaforo(
+        nivel: NivelSemaforo.laranja,
+        rotulo: 'Utilização vs Rentabilidade',
+        texto: 'Por apurar',
+        subtexto:
+            'Falta o valor de compra das máquinas para calcular o retorno',
+      );
+    }
+    final ocupacao = dados.ocupacaoPercent;
+    final recuperado = dados.percentInvestimentoRecuperado;
     return CelulaSemaforo(
-      nivel: NivelSemaforo.laranja,
+      nivel: (ocupacao ?? 0) >= 60
+          ? NivelSemaforo.verde
+          : (ocupacao ?? 0) >= 30
+          ? NivelSemaforo.laranja
+          : NivelSemaforo.vermelho,
       rotulo: 'Utilização vs Rentabilidade',
-      texto: 'Por apurar',
-      // O último ramo dizia "Falta o preço de 0 de 21 máquinas" quando já não
-      // faltava nenhum — o parque todo com preço e o cartão a pedir preços. O
-      // que falta aí não são os preços: é o **valor de compra**, que a máquina
-      // ainda não guarda, e sem ele não há retorno para pôr ao lado da
-      // ocupação. Dizer isso é mais honesto do que apontar para um zero.
-      subtexto: total == 0
-          ? 'Ainda não há máquinas identificadas'
-          : comPreco == 0
-          ? 'Falta o preço por dia das $total máquinas'
-          : comPreco < total
-          ? 'Falta o preço de ${total - comPreco} de $total máquinas'
-          : 'Falta o valor de compra das máquinas para calcular o retorno',
+      valor: ocupacao == null ? '—' : '${ocupacao.round()}',
+      unidade: '% ocupação',
+      subtexto: recuperado == null
+          ? 'Sem receita registada ainda para medir o retorno'
+          : dados.maquinasComValorDeCompra < total
+          ? '${recuperado.round()}% do investido recuperado '
+                '(${dados.maquinasComValorDeCompra} de $total máquinas)'
+          : '${recuperado.round()}% do investido recuperado',
     );
   }
 

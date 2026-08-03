@@ -316,17 +316,24 @@ void main() {
 
       expect(recomendacao, isNotNull);
       expect(recomendacao!.gravidade, GravidadeRecomendacao.urgente);
-      expect(recomendacao.id, 'pending', reason: 'dinheiro por receber manda');
+      expect(
+        recomendacao.id,
+        'custos-criticos',
+        reason:
+            'custos a comer 131% da receita é o problema real; o genérico '
+            '"pending" (qualquer cêntimo por receber, sem limiar) foi '
+            'substituído pelas regras específicas de dívida',
+      );
     });
 
     test('adiada deixa de aparecer até à data', () {
       final adiada = recomendacaoDaSemana(
         estado,
         agoraFixa,
-        adiadasAte: {'pending': agoraFixa.add(const Duration(days: 7))},
+        adiadasAte: {'custos-criticos': agoraFixa.add(const Duration(days: 7))},
       );
 
-      expect(adiada?.id, isNot('pending'));
+      expect(adiada?.id, isNot('custos-criticos'));
     });
 
     test('sem nada a dizer devolve nulo em vez de conselho genérico', () {
@@ -334,8 +341,8 @@ void main() {
     });
 
     test('a gravidade ordena acima da ordem do motor', () {
-      // Motor devolve pending (urgente) primeiro; com ela adiada sobra a de
-      // refeições (atenção) e não a inversa.
+      // Sem receita nem dívida, só a regra de refeições (atenção) e a de
+      // quarta-feira fraca (oportunidade) se aplicam — a de refeições ganha.
       final comRefeicoes = OperationsState(
         onboarded: true,
         expenses: [

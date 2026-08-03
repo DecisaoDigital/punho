@@ -115,9 +115,10 @@ TesourariaMes tesourariaDoMes(OperationsState state, DateTime mes) {
 /// **Prefere sempre os recebimentos registados.** Só quando não há nenhum é
 /// que cai para o valor que o gestor preencheu à mão no histórico mensal do
 /// ano passado (ecrã de Definições da Empresa) — o mesmo tomba-prioridades já
-/// usado em `_receitaHomologa` (recomendacao_do_dia.dart) para a recomendação
-/// do dia. Antes desta função, `tesourariaDoMes` só olhava para os recebimentos
-/// e ignorava por completo o histórico mensal: um gestor que preenchesse o mês
+/// usado em `_receitaHomologa`, mais abaixo neste ficheiro, para a
+/// recomendação da semana. Antes desta função, `tesourariaDoMes` só olhava
+/// para os recebimentos e ignorava por completo o histórico mensal: um
+/// gestor que preenchesse o mês
 /// de Agosto do ano passado continuava a ver "Por apurar" no painel, porque a
 /// comparação nunca ia lá buscar o número.
 ///
@@ -575,6 +576,77 @@ OcupacaoSemana ocupacaoMaquinasSemana(OperationsState state, DateTime now) {
   );
 }
 
+class UtilizacaoERentabilidade {
+  const UtilizacaoERentabilidade({
+    required this.ocupacaoPercent,
+    required this.percentInvestimentoRecuperado,
+    required this.maquinasComValorDeCompra,
+    required this.totalMaquinas,
+  });
+
+  /// Ocupação da semana corrente — a mesma leitura de [ocupacaoMaquinasSemana].
+  final double? ocupacaoPercent;
+
+  /// `null` enquanto nenhuma máquina tiver valor de compra registado — sem
+  /// isso não há denominador. Conta só as máquinas que o têm: dividir pela
+  /// frota toda subestimaria o retorno das que o gestor ainda não registou.
+  final double? percentInvestimentoRecuperado;
+
+  final int maquinasComValorDeCompra;
+  final int totalMaquinas;
+}
+
+/// Junta ocupação e retorno do investido: uma máquina sempre ocupada ainda
+/// não recuperou o que custou se o preço/dia for baixo, e uma máquina parada
+/// nunca recupera nada por muito caro que tenha sido o preço/dia — as duas
+/// leituras têm de andar juntas, não sozinhas.
+///
+/// A receita de cada reserva reparte-se por igual entre as máquinas dessa
+/// reserva (reservas com várias máquinas não têm o valor discriminado por
+/// máquina no modelo).
+UtilizacaoERentabilidade utilizacaoERentabilidade(
+  OperationsState state,
+  DateTime now,
+) {
+  final maquinas = state.machines.where((m) => !m.archived).toList();
+  final comValorDeCompra = maquinas
+      .where((m) => m.purchasePriceCents != null)
+      .toList();
+
+  final receitaPorMaquina = <String, int>{};
+  for (final booking in state.bookings) {
+    if (booking.status == BookingStatus.cancelled) continue;
+    final valor = booking.expectedValueCents;
+    if (valor == null || booking.machineIds.isEmpty) continue;
+    final porMaquina = valor ~/ booking.machineIds.length;
+    for (final id in booking.machineIds) {
+      receitaPorMaquina[id] = (receitaPorMaquina[id] ?? 0) + porMaquina;
+    }
+  }
+
+  double? percentRecuperado;
+  if (comValorDeCompra.isNotEmpty) {
+    final investido = comValorDeCompra.fold<int>(
+      0,
+      (soma, m) => soma + m.purchasePriceCents!,
+    );
+    if (investido > 0) {
+      final recuperado = comValorDeCompra.fold<int>(
+        0,
+        (soma, m) => soma + (receitaPorMaquina[m.id] ?? 0),
+      );
+      percentRecuperado = recuperado / investido * 100;
+    }
+  }
+
+  return UtilizacaoERentabilidade(
+    ocupacaoPercent: ocupacaoMaquinasSemana(state, now).percent,
+    percentInvestimentoRecuperado: percentRecuperado,
+    maquinasComValorDeCompra: comValorDeCompra.length,
+    totalMaquinas: maquinas.length,
+  );
+}
+
 class MaquinaAlugueres {
   const MaquinaAlugueres({required this.maquina, required this.alugueres});
   final Machine maquina;
@@ -877,34 +949,266 @@ RubricasFrota rubricasFrota(OperationsState state, DateTime now) {
 // Slide 5 — a semana
 // ---------------------------------------------------------------------------
 
+/// Limiares das regras específicas. Ficam à vista para poderem ser discutidos
+/// sem ler código.
+const diasDividaUrgente = 30;
+const diasDividaAtencao = 15;
+const valorMinimoDividaUrgenteCents = 10000; // 100 €
+const percentCustosCritica = 80.0;
+const percentQuedaHomologa = 60.0;
+const receitaHomologaMinimaCents = 50000; // 500 €
+const taxaConversaoBoa = 40.0;
+
+/// Dívida agregada por cliente: o gestor cobra a uma pessoa, não a uma reserva.
+class _DividaDeCliente {
+  const _DividaDeCliente({
+    required this.clienteId,
+    required this.nome,
+    required this.totalCents,
+    required this.dias,
+  });
+  final String clienteId, nome;
+  final int totalCents;
+
+  /// Dias da dívida mais antiga deste cliente.
+  final int dias;
+}
+
+List<_DividaDeCliente> _dividasPorCliente(OperationsState state, DateTime now) {
+  final porCliente = <String, _DividaDeCliente>{};
+  for (final cobranca in cobrancasPorReceber(state, now)) {
+    if (cobranca.diasDeAtraso <= 0) continue;
+    final id = cobranca.booking.customerId;
+    final actual = porCliente[id];
+    porCliente[id] = _DividaDeCliente(
+      clienteId: id,
+      nome: cobranca.clienteNome,
+      totalCents: (actual?.totalCents ?? 0) + cobranca.emDividaCents,
+      dias: actual == null
+          ? cobranca.diasDeAtraso
+          : (actual.dias > cobranca.diasDeAtraso
+                ? actual.dias
+                : cobranca.diasDeAtraso),
+    );
+  }
+  final lista = porCliente.values.toList()
+    ..sort((a, b) => b.dias.compareTo(a.dias));
+  return lista;
+}
+
+/// Receita do mesmo mês do ano passado.
+///
+/// Prefere os recebimentos registados; se não houver nenhum, usa o valor que o
+/// gestor declarou no histórico mensal. `null` quando não há nem um nem outro —
+/// sem termo de comparação a regra não se aplica.
+int? _receitaHomologa(OperationsState state, DateTime now) {
+  final ano = now.year - 1;
+  final registado = receiptTotal(
+    state.receipts,
+    DateTime(ano, now.month),
+    DateTime(ano, now.month + 1).subtract(const Duration(days: 1)),
+  );
+  if (registado > 0) return registado;
+  return state.historicalMonth(ano, now.month)?.revenueReceivedCents;
+}
+
+const _nomesDosMeses = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+];
+
+/// Regras concretas, ligadas ao estado real da empresa — dívida por cliente,
+/// custos a comer a receita, queda homóloga, boa conversão. Cada uma dispara
+/// no máximo uma [Recommendation]; várias podem disparar ao mesmo tempo, e é
+/// [recomendacaoDaSemana] que escolhe qual mostrar.
+List<Recommendation> _recomendacoesEspecificas(
+  OperationsState state,
+  DateTime now,
+) {
+  final resultado = <Recommendation>[];
+  final dividas = _dividasPorCliente(state, now);
+
+  // Dinheiro antigo e de valor: é o que aperta mais.
+  for (final divida in dividas) {
+    if (divida.dias > diasDividaUrgente &&
+        divida.totalCents >= valorMinimoDividaUrgenteCents) {
+      resultado.add(
+        Recommendation(
+          id: 'divida-urgente',
+          title:
+              'Cobrar ${divida.nome} — ${divida.dias} dias em atraso, '
+              '${_euros(divida.totalCents)}',
+          explanation:
+              'Tens dinheiro à espera há muito tempo e o valor já pesa.',
+          impact:
+              'Cobrar agora traz para trás dinheiro que já é teu; deixar '
+              'correr só faz crescer.',
+          quality: 'Calculado a partir das reservas e recebimentos',
+          action: 'Abrir ficha →',
+          measure: 'Confirma se o valor em dívida desceu depois de agires.',
+          lever: GuidanceLever.cash,
+          gravidade: GravidadeRecomendacao.urgente,
+        ),
+      );
+      break;
+    }
+  }
+
+  // Os custos a levar quase tudo o que entra.
+  //
+  // O peso é calculado sobre o custo **real** do pessoal, com a carga social
+  // incluída (Decisão 12) — dispara mais cedo do que um cálculo sem TSU
+  // patronal, e é o que se pretende.
+  final custos = custosMesAgregados(
+    state,
+    now,
+    regime: regimeDaFormaJuridica(state.legalForm),
+  );
+  final peso = custos.percentDaReceita;
+  if (peso != null && peso >= percentCustosCritica) {
+    resultado.add(
+      Recommendation(
+        id: 'custos-criticos',
+        title: 'Custos a comer a receita — ${peso.round()}% do que entrou já saiu',
+        explanation:
+            'Os custos reais (com a carga social incluída) estão a levar '
+            'quase tudo o que entrou este mês.',
+        impact: 'Rever custos agora evita fechar o mês no vermelho.',
+        quality: 'Custo real do pessoal com TSU patronal incluída',
+        action: 'Rever custos →',
+        measure: 'Compara a percentagem de custos no fim do mês.',
+        lever: GuidanceLever.margin,
+        gravidade: GravidadeRecomendacao.urgente,
+      ),
+    );
+  }
+
+  // Dívida a caminho de se tornar problema.
+  for (final divida in dividas) {
+    if (divida.dias >= diasDividaAtencao && divida.dias <= diasDividaUrgente) {
+      resultado.add(
+        Recommendation(
+          id: 'divida-atencao',
+          title: '${divida.nome} — ${divida.dias} dias sem pagar',
+          explanation: 'Ainda não é urgente, mas a dívida está a envelhecer.',
+          impact: 'Um lembrete agora evita que isto chegue a atraso grave.',
+          quality: 'Calculado a partir das reservas e recebimentos',
+          action: 'Abrir ficha →',
+          measure: 'Confirma se o valor em dívida desceu depois de agires.',
+          lever: GuidanceLever.cash,
+          gravidade: GravidadeRecomendacao.atencao,
+        ),
+      );
+      break;
+    }
+  }
+
+  // A facturar bem abaixo do mesmo mês do ano passado.
+  final homologa = _receitaHomologa(state, now);
+  if (homologa != null && homologa >= receitaHomologaMinimaCents) {
+    final esteMes = tesourariaDoMes(state, now).recebidoCents;
+    final proporcao = esteMes / homologa * 100;
+    if (proporcao < percentQuedaHomologa) {
+      resultado.add(
+        Recommendation(
+          id: 'queda-homologa',
+          title:
+              'A facturar ${proporcao.round()}% do que fizeste em '
+              '${_nomesDosMeses[now.month - 1]} do ano passado',
+          explanation:
+              'A faturação deste mês está bem abaixo do mesmo mês do ano '
+              'passado.',
+          impact:
+              'Perceber a causa agora — menos leads, menos máquinas '
+              'disponíveis, preço — evita repetir o mês.',
+          quality: 'Comparação com recebimentos ou histórico declarado',
+          action: 'Ver homóloga →',
+          measure: 'Compara a faturação deste mês com o mesmo mês, no fim do mês.',
+          lever: GuidanceLever.demand,
+          gravidade: GravidadeRecomendacao.atencao,
+        ),
+      );
+    }
+  }
+
+  // A converter bem: hora de pedir referências.
+  final taxa = funilProcura(state, now, 30).taxa;
+  if (taxa != null && taxa >= taxaConversaoBoa) {
+    resultado.add(
+      Recommendation(
+        id: 'conversao-boa',
+        title:
+            'Conversão a 30 dias em ${taxa.round()}% — pede referências aos '
+            'últimos clientes',
+        explanation: 'Estás a converter bem as leads em clientes.',
+        impact:
+            'É boa altura para pedir referências: quem ficou satisfeito '
+            'agora lembra-se.',
+        quality: 'Calculado sobre as leads e conversões dos últimos 30 dias',
+        action: 'Ver conversão →',
+        measure: 'Compara a taxa de conversão no próximo mês.',
+        lever: GuidanceLever.demand,
+        gravidade: GravidadeRecomendacao.oportunidade,
+      ),
+    );
+  }
+
+  return resultado;
+}
+
 /// A recomendação a mostrar: **uma**, não uma pilha.
 ///
-/// Ordena por gravidade (urgente primeiro) e salta as que foram adiadas e ainda
-/// não voltaram. Devolve `null` quando não há nada a dizer — melhor calar-se do
-/// que encher o ecrã com conselho genérico.
+/// Junta as regras genéricas ([GuidanceEngine]) com as específicas — dívida
+/// por cliente, custos críticos, queda homóloga, boa conversão — salta as
+/// que foram adiadas e ainda não voltaram, e escolhe a mais grave. Em
+/// empate ganha quem vier primeiro na lista: por isso as específicas entram
+/// antes das genéricas, e são elas que decidem quando as duas dizem a mesma
+/// coisa com gravidades iguais.
+///
+/// Devolve `null` quando não há nada a dizer — melhor calar-se do que encher
+/// o ecrã com conselho genérico.
 Recommendation? recomendacaoDaSemana(
   OperationsState state,
   DateTime now, {
   Map<String, DateTime> adiadasAte = const {},
 }) {
-  final todas = GuidanceEngine().evaluate(
-    GuidanceInput(
-      bookings: state.bookings,
-      machines: state.machines,
-      receipts: state.receipts,
-      expenses: state.expenses,
-      now: now,
-    ),
-  );
-  final elegiveis = todas.where((r) {
+  final todas = <Recommendation>[
+    ..._recomendacoesEspecificas(state, now),
+    // 'pending' fica de fora: dispara sempre que há um cêntimo por receber,
+    // sem olhar a dias nem a valor — 'divida-urgente' e 'divida-atencao'
+    // fazem o mesmo trabalho com limiares a sério, e sem o filtro o genérico
+    // ganhava sempre por ser sempre "urgente".
+    ...GuidanceEngine()
+        .evaluate(
+          GuidanceInput(
+            bookings: state.bookings,
+            machines: state.machines,
+            receipts: state.receipts,
+            expenses: state.expenses,
+            now: now,
+          ),
+        )
+        .where((r) => r.id != 'pending'),
+  ];
+  Recommendation? melhor;
+  for (final r in todas) {
     final ate = adiadasAte[r.id];
-    return ate == null || !now.isBefore(ate);
-  }).toList();
-  if (elegiveis.isEmpty) return null;
-  elegiveis.sort(
-    (a, b) => b.gravidade.prioridade.compareTo(a.gravidade.prioridade),
-  );
-  return elegiveis.first;
+    if (ate != null && now.isBefore(ate)) continue;
+    if (melhor == null || r.gravidade.prioridade > melhor.gravidade.prioridade) {
+      melhor = r;
+    }
+  }
+  return melhor;
 }
 
 /// Quanto é que este colaborador trouxe para dentro no mês de [mes].

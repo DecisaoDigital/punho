@@ -181,7 +181,13 @@ void main() {
     final contador = tester.getRect(find.textContaining('1/3').first);
     final ultimoNome = tester.getRect(find.text('Operacional'));
 
-    expect(contador.left - canvas.left, MargensDoCanvas.lateral);
-    expect(canvas.right - ultimoNome.right, MargensDoCanvas.lateral);
+    expect(
+      contador.left - canvas.left,
+      moreOrLessEquals(MargensDoCanvas.lateral, epsilon: 0.01),
+    );
+    expect(
+      canvas.right - ultimoNome.right,
+      moreOrLessEquals(MargensDoCanvas.lateral, epsilon: 0.01),
+    );
   });
 }
