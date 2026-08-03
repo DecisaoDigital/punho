@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../sync/supabase_operational_sync.dart';
 import '../sync/sync_engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -357,6 +359,11 @@ class OperationsController extends Notifier<OperationsState> {
     // com a app vazia e regista-as uma a uma — é o que as Tarefas passam a
     // lembrar (`state.machinesStillToIdentify`, `state.vehiclesStillToIdentify`,
     // consumidos por `tarefas_service.dart`).
+    //
+    // Best-effort e invisível: sem isto, `custosFixos` e o resto do onboarding
+    // só chegavam ao servidor se o gestor mais tarde carregasse manualmente em
+    // "Sincronizar" na página Finanças — o que ninguém faz a seguir a isto.
+    unawaited(synchronizeRemote());
   }
 
   /// Distribui a facturação do ano passado pelos 12 meses do histórico, para
@@ -479,6 +486,10 @@ class OperationsController extends Notifier<OperationsState> {
     // muda; a lista de máquinas fica intocada, e é a Tarefa
     // "N máquinas por identificar" que passa a reflectir a diferença.
     state = _comDadosDaEmpresa(novo);
+    // Best-effort e invisível, mesma razão do `completeOnboarding`: sem isto
+    // uma rubrica de custos fixos gravada aqui só chegava ao servidor pelo
+    // botão manual de Finanças.
+    unawaited(synchronizeRemote());
   }
 
   /// Reflecte no state um [OnboardingData] inteiro. Não passa por `copyWith`
@@ -570,6 +581,7 @@ class OperationsController extends Notifier<OperationsState> {
       maintenanceLastYearCents: updated.maintenanceLastYearCents,
       fixedMonthlyCostsCents: updated.fixedMonthlyCostsCents,
     );
+    unawaited(synchronizeRemote());
   }
 
   void saveHistoricalMonth(HistoricalMonth item) {
