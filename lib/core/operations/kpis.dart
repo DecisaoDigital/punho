@@ -147,6 +147,109 @@ int? resultadoMesConservador(OperationsState state, DateTime now) {
   return simpleOperatingResult(mes.recebidoCents, mes.pagoCents);
 }
 
+/// Previsão de como vai fechar o mês — diferente do "Encontro de contas".
+///
+/// **O "Encontro de contas" é real**: o que já entrou contra o que já saiu,
+/// até hoje. Não inclui despesas por pagar nem reservas por realizar — dizer
+/// isso seria inventar movimento que ainda não aconteceu.
+///
+/// A previsão é outra pergunta, complementar: "como vai ficar o mês, no
+/// final?". Aqui sim entram coisas que ainda não aconteceram, mas que já se
+/// sabem:
+/// - **entradas previstas** = o que já entrou + o valor ainda por receber das
+///   reservas já na agenda deste mês (não inventa clientes novos, só conta
+///   compromissos que já existem);
+/// - **saídas previstas** = os custos fixos declarados (exactos, não é média)
+///   + a média das despesas variáveis do mês anterior e do mês homólogo —
+///   a melhor estimativa que não exige adivinhar o futuro.
+class PrevisaoDoMes {
+  const PrevisaoDoMes({
+    required this.mes,
+    required this.entradasPrevistasCents,
+    required this.saidasPrevistasCents,
+  });
+
+  final DateTime mes;
+  final int entradasPrevistasCents;
+
+  /// `null` quando não há custos fixos declarados — sem eles a previsão de
+  /// saídas seria só a média das variáveis, o que sub-representa o mês.
+  final int? saidasPrevistasCents;
+
+  int? get saldoPrevistoCents =>
+      saidasPrevistasCents == null ? null : entradasPrevistasCents - saidasPrevistasCents!;
+}
+
+/// Despesas pagas de um mês que não correspondem a nenhuma rubrica de custo
+/// fixo declarada — a parte "variável" do que se gastou.
+///
+/// Exclui por categoria, não por registo: se "Renda" é uma rubrica de custo
+/// fixo, uma despesa paga com essa categoria não entra aqui, para não contar
+/// a renda duas vezes (uma nos custos fixos, outra na média das variáveis).
+int _despesasVariaveisDoMes(OperationsState state, DateTime mes) {
+  final categoriasFixas = state.custosFixos.map((c) => c.categoria).toSet();
+  final inicio = _inicioDoMes(mes);
+  final fim = _fimDoMes(mes);
+  return state.expenses
+      .where(
+        (x) =>
+            !x.archived &&
+            x.status == ExpensePaymentStatus.paid &&
+            isInPeriod(x.date, inicio, fim) &&
+            !categoriasFixas.contains(x.category),
+      )
+      .fold(0, (sum, x) => sum + x.amountCents);
+}
+
+/// Valor ainda por receber das reservas deste mês que ainda não foi cobrado.
+///
+/// Só reservas já na agenda (confirmadas, alugadas ou concluídas — nunca
+/// canceladas): a previsão não inventa clientes que ainda não existem.
+int _porReceberDeReservasDoMes(OperationsState state, DateTime mes) {
+  final inicio = _inicioDoMes(mes);
+  final fim = _fimDoMes(mes);
+  return state.bookings
+      .where(
+        (b) =>
+            b.status != BookingStatus.cancelled &&
+            !b.startsAt.isAfter(fim) &&
+            !b.endsAt.isBefore(inicio),
+      )
+      .fold(
+        0,
+        (sum, b) => sum + bookingPendingCents(
+          b.expectedValueCents ?? 0,
+          b.id,
+          state.receipts,
+        ),
+      );
+}
+
+PrevisaoDoMes previsaoDoMes(OperationsState state, DateTime now) {
+  final inicio = _inicioDoMes(now);
+  final fim = _fimDoMes(now);
+  final anterior = DateTime(now.year, now.month - 1);
+  final homologo = DateTime(now.year - 1, now.month);
+
+  final entradas = receiptTotal(state.receipts, inicio, fim) +
+      _porReceberDeReservasDoMes(state, now);
+
+  final custosFixos = state.custoFixoMensalCents;
+  int? saidas;
+  if (custosFixos != null) {
+    final variavelAnterior = _despesasVariaveisDoMes(state, anterior);
+    final variavelHomologo = _despesasVariaveisDoMes(state, homologo);
+    final mediaVariavel = (variavelAnterior + variavelHomologo) ~/ 2;
+    saidas = custosFixos + mediaVariavel;
+  }
+
+  return PrevisaoDoMes(
+    mes: inicio,
+    entradasPrevistasCents: entradas,
+    saidasPrevistasCents: saidas,
+  );
+}
+
 /// Reserva com dinheiro em atraso.
 class CobrancaEmAtraso {
   const CobrancaEmAtraso({
