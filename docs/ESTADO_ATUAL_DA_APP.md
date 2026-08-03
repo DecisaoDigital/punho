@@ -1,5 +1,33 @@
 # Estado atual do Punho
 
+> **Release v0.2.0** (tag `v0.2.0`, `version: 0.2.0+33`) — 3 de agosto de 2026
+>
+> Sincronização automática de custos fixos e de dados da empresa — deixa de
+> depender de botão manual — e o cartão "Previsão do mês" em Finanças, que soma
+> o que falta receber nas reservas já marcadas aos custos fixos e à média de
+> despesas variáveis recentes, sem inventar clientes novos. Publicada pela
+> cadeia completa (APK + GitHub Release + `versoes_apps`), a pedido do Cesar —
+> ver `docs/release_notes/v0.2.0.md`.
+>
+> Inclui também a Fase 0 da infra-estrutura de conflitos de reserva entre
+> colaboradores offline (`786d845`): modelo `ConflitoPendente` com id
+> determinístico, registo e sincronização próprios, tabela
+> `punho_conflitos_pendentes` com RLS (SELECT aberto a qualquer membro activo,
+> INSERT/UPDATE só Gestor — mesmo padrão de `punho_estado_operacional`). É
+> infra inerte por construção, não muda nenhum comportamento visível: a
+> deteção real dentro de `aplicarOperacaoRemota` (hoje aceita cegamente, "quem
+> chega depois fica por cima") e o banner de decisão do Gestor ficam para uma
+> iteração futura, a pedido.
+>
+> Dois achados fora do ciclo de features: o workflow antigo do GitHub Actions
+> foi removido (`65fae4e`) — a publicação passa a ser inteiramente manual a
+> partir do i9, nunca mais por push de tag; e um achado de segurança real
+> (`224853d`) em que a RLS de pedidos_ajuda/sugestoes deixava ler/alterar
+> pedidos de outra empresa e o `nif` vinha do que o próprio pedido dizia —
+> corrigido na Supabase (RLS + trigger a resolver sempre por `licencas`) e no
+> cliente, que passa a identificar-se por `machine_id`. Ícone adaptativo e
+> splash regenerados nesta sessão (`beb6cd1`), sem mudança de lógica.
+
 > **Campanha de testes no telemóvel — 2 de agosto de 2026** (v0.1.4+25, Redmi
 > Note 10 Pro)
 >
@@ -96,3 +124,9 @@ mais urgentes: detalhe de cliente que nao abre, painel que fica em "Por
 apurar" mesmo com onboarding completo, maquina alugada a bloquear reservas
 em todas as semanas seguintes (decisao ja tomada: bloquear so a data) e o
 aviso de limite de colaboradores invisivel no teclado.
+
+A Fase 0 da infra de conflitos entre dispositivos offline (v0.2.0, `786d845`)
+já está commitada, mas é inerte por construção — não muda nada visível. A
+prioridade seguinte nessa frente é a Fase 1: a deteção real dentro de
+`aplicarOperacaoRemota` e o banner de decisão do Gestor; fica para quando for
+pedida, não é hoje prioridade imediata face ao lote de correcções acima.

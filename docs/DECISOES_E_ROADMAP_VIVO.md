@@ -59,7 +59,7 @@ O Punho não é contabilidade e não toma decisões sozinho. Mostra o número, e
 
 - [x] Persistência local no dispositivo e testes automatizados.
 - [x] Autenticação Supabase inicial, migrations e RLS inicial documentadas.
-- [x] Estrutura inicial de sincronização/outbox, ainda não equivalente a sincronização real por entidade e perfil. **Verificada a correr de ponta a ponta em 2 de agosto de 2026** (envio e recepção, campainha em tempo real nos dois sentidos) depois de corrigido um bug que a mantinha sempre parada desde que existe — ver secção 3.6. Falta ainda a granularidade por entidade/perfil e a resolução de conflitos.
+- [x] Estrutura inicial de sincronização/outbox, ainda não equivalente a sincronização real por entidade e perfil. **Verificada a correr de ponta a ponta em 2 de agosto de 2026** (envio e recepção, campainha em tempo real nos dois sentidos) depois de corrigido um bug que a mantinha sempre parada desde que existe — ver secção 3.6. Falta ainda a granularidade por entidade/perfil e a resolução de conflitos; a Fase 0 da infra que a vai suportar já está commitada, inerte — ver secção 3.7.
 - [x] Estrutura de atualizações remotas pelo WashInvoice Control.
 - [x] Cliente de licenciamento inicial ligado ao padrão multi-app do Control, com trial técnico. Ver `LICENCIAMENTO.md`.
 
@@ -214,6 +214,24 @@ nenhuma navegação no código a alcança (a tarefa navega para
 `CompanySettingsPage`, ver `tarefas_page.dart`) — por isso ficou fora desta
 correcção.
 
+## 3.7 Decisão e progresso — 3 de agosto de 2026 (conflitos de reserva entre dispositivos offline)
+
+**Decisão fechada — a resolução de conflitos entra por fases, e a Fase 0 é só
+infra:** dois colaboradores offline podem reservar a mesma máquina para
+clientes diferentes; hoje `aplicarOperacaoRemota` aceita cegamente ("quem
+chega depois fica por cima"). Em vez de resolver tudo de uma vez, a Fase 0
+(`786d845`) criou apenas a infra que as fases seguintes vão precisar: modelo
+`ConflitoPendente` com id determinístico (par ordenado das duas reservas em
+conflito, para não duplicar o mesmo conflito quando os dois aparelhos o
+detectam cada um por si), registo local que nunca reabre um conflito já
+`resolvido`, e sincronização própria da tabela `punho_conflitos_pendentes`
+(RLS: SELECT aberto a qualquer membro activo da empresa, INSERT/UPDATE só
+Gestor — mesmo padrão de `punho_estado_operacional`), ligada ao mesmo
+temporizador de 5 min já existente. É inerte por construção: não muda nenhum
+comportamento visível. A deteção real dentro de `aplicarOperacaoRemota` e o
+banner laranja + ecrã de decisão do Gestor **não estão implementados** —
+ficam para uma iteração futura, só a pedido explícito.
+
 ## 3.4 Decisoes recentes: faturas e fotografias (26 de julho de 2026)
 
 - [x] Uma despesa pode ser criada a partir de uma fotografia da fatura. O QR da AT e lido no dispositivo para sugerir data, total, NIF do fornecedor, numero do documento e ATCUD; o utilizador confirma os valores antes de guardar.
@@ -363,7 +381,7 @@ Para isto será necessária a WhatsApp Business Platform/API, backend seguro, co
 ### Prioridade 1 — confiança nos dados
 
 - [ ] Criar ações dedicadas de levantamento e devolução, com checklist/fotografias/assinatura quando forem necessárias; a transição de estados base já é automática.
-- [ ] Sincronização real multi-dispositivo por entidade, com resolução de conflitos e outbox persistente. O motor de base já corre e foi verificado no aparelho a 2 de agosto de 2026 (secção 3.6); falta a granularidade por entidade/perfil e a resolução de conflitos.
+- [ ] Sincronização real multi-dispositivo por entidade, com resolução de conflitos e outbox persistente. O motor de base já corre e foi verificado no aparelho a 2 de agosto de 2026 (secção 3.6); falta a granularidade por entidade/perfil. Da resolução de conflitos só existe a Fase 0 (infra, inerte — secção 3.7); falta a deteção real e o banner de decisão do Gestor.
 - [ ] Autenticação e perfis reais de colaborador aplicados a todas as consultas e ecrãs.
 - [ ] RLS de produção, Storage privado e sincronização de fotografias/documentos.
 - [ ] Integração efetiva de autorização, planos e vagas pelo WashInvoice Control.

@@ -1,12 +1,17 @@
 # Handover — próxima sessão Cowork · Punho
 
-**Data do handover:** 2 de Agosto de 2026 (segunda revisão do dia, ao fim da
-tarde)
-**Branch:** `main` — árvore limpa em `d46065c`
-**Versão instalada no aparelho de teste:** v0.1.4+25 (`v0.1.4` taggeada) —
-**anterior a todo o trabalho de hoje**
-**Duas correcções em curso por agentes** quando este ficheiro foi escrito: ver
-"Em voo".
+**Data do handover:** 3 de Agosto de 2026 (actualização parcial — ver nota
+abaixo)
+**Branch:** `main` — árvore limpa em `beb6cd1`
+**Versão publicada:** v0.2.0 (`version: 0.2.0+33`), pela cadeia completa (APK
++ GitHub Release + `versoes_apps`) a partir do i9 — o workflow antigo do
+GitHub Actions foi removido nesta sessão. Instalação no aparelho de teste
+**não confirmada** nesta actualização.
+
+Nota: esta revisão só acrescenta os cinco commits mais recentes (ver secção
+abaixo); o resto do ficheiro — incluindo "Em voo" e "Por autorizar pelo
+Cesar" — não foi reverificado e pode já estar desactualizado por commits
+intermédios não cobertos aqui.
 
 ---
 
@@ -39,6 +44,49 @@ combinado quando o empresário assina o plano. O número do onboarding é **só
 informativo**: quantos tem activos de momento. Exceder **não impede o
 cadastro** — impede o **acesso** sem autorização expressa dele. E autorizar o
 sétimo não é excepção àquela pessoa: significa que o contrato subiu.
+
+---
+
+## Commitado em 3 de Agosto, os cinco mais recentes (sobre `786d845`)
+
+```
+786d845 feat(conflitos): Fase 0 — infra genérica de conflito pendente
+65fae4e chore(release): remove o workflow antigo, GH Actions deixa de compilar/assinar/publicar
+5c6a704 chore(release): v0.2.0
+224853d fix(sugestoes): deixa de enviar nif, identifica sempre por machine_id
+beb6cd1 chore(assets): regenera icones e splash (launcher_icons + native_splash)
+```
+
+- `786d845` — Fase 0, só infra e inerte por construção, para o caso de dois
+  colaboradores offline reservarem a mesma máquina para clientes diferentes:
+  modelo `ConflitoPendente` (id determinístico pelo par ordenado das reservas
+  em conflito), registo local que nunca reabre um conflito já resolvido, e
+  sincronização própria da tabela `punho_conflitos_pendentes` (RLS: SELECT
+  aberto, INSERT/UPDATE só Gestor). Deteção real em `aplicarOperacaoRemota` e
+  o banner de decisão do Gestor ficam para depois, a pedido.
+- `65fae4e` — apaga `.github/workflows/release.yml`; deixa de compilar/
+  assinar/publicar por push de tag. Publicação passa a ser inteiramente
+  manual a partir do i9 (`docs/PROCESSO_DE_RELEASE.md`).
+- `5c6a704` — release v0.2.0 (tag criada, notas em
+  `docs/release_notes/v0.2.0.md`), publicada pela cadeia completa a pedido
+  explícito do Cesar.
+- `224853d` — achado de segurança real: RLS de pedidos_ajuda/sugestoes
+  deixava um utilizador autenticado ler/alterar pedidos de **outra empresa**
+  (faltava `is_admin()` nas policies), e o `nif` de cada pedido vinha do que
+  o próprio pedido dizia. Corrigido na Supabase (RLS + trigger `BEFORE
+  INSERT` a resolver `nif`/`cliente_id` sempre por `licencas`, chave
+  `(machine_id, app)`) e no cliente — `sugestoes_service.dart` e
+  `perfil_popup.dart` deixam de enviar `nif`, passam a enviar `machine_id`.
+- `beb6cd1` — regenera ícone adaptativo e splash claro/escuro
+  (`flutter_launcher_icons`/`flutter_native_splash`); puramente visual, sem
+  lógica.
+
+Nota importante: entre `d46065c` (fecho do handover anterior) e `786d845`
+houve **muitos outros commits** nesta mesma sessão de 3 de Agosto — incluindo
+duas releases inteiras (`v0.1.5` até `v0.1.11`) — que este handover ainda não
+resume. Não tenho factos verificados o suficiente para os descrever aqui;
+sinalizar ao Cesar que o histórico abaixo (secções seguintes) pode estar mais
+desactualizado do que parece à primeira vista.
 
 ---
 
