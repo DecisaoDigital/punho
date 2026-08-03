@@ -152,6 +152,7 @@ class Vehicle {
     this.monthlyPaymentCents,
     this.insuranceCents,
     this.insuranceFrequency,
+    this.maintenanceCents,
     this.notes = '',
     this.archived = false,
   });
@@ -160,6 +161,11 @@ class Vehicle {
   final VehicleStatus status;
   final int? monthlyPaymentCents, insuranceCents;
   final InsuranceFrequency? insuranceFrequency;
+
+  /// Manutenção prevista, valor **anual** — mesma unidade em que o Cesar pensa
+  /// nela ("quanto vou gastar de manutenção este ano"), convertida para mensal
+  /// só no cálculo do custo da frota, tal como o seguro anual.
+  final int? maintenanceCents;
   final bool archived;
 
   /// Os campos opcionais usam o sentinela [_naoMexer] em vez de `null`, para
@@ -175,6 +181,7 @@ class Vehicle {
     Object? monthlyPaymentCents = _naoMexer,
     Object? insuranceCents = _naoMexer,
     Object? insuranceFrequency = _naoMexer,
+    Object? maintenanceCents = _naoMexer,
     String? notes,
     bool? archived,
   }) => Vehicle(
@@ -192,6 +199,9 @@ class Vehicle {
     insuranceFrequency: insuranceFrequency == _naoMexer
         ? this.insuranceFrequency
         : insuranceFrequency as InsuranceFrequency?,
+    maintenanceCents: maintenanceCents == _naoMexer
+        ? this.maintenanceCents
+        : maintenanceCents as int?,
     notes: notes ?? this.notes,
     archived: archived ?? this.archived,
   );
@@ -226,5 +236,9 @@ int? monthlyInsuranceCost(Vehicle v) =>
         InsuranceFrequency.semiannual => v.insuranceCents! ~/ 6,
         InsuranceFrequency.annual => v.insuranceCents! ~/ 12,
       };
+int? monthlyMaintenanceCost(Vehicle v) =>
+    v.maintenanceCents == null ? null : v.maintenanceCents! ~/ 12;
 int monthlyFleetCost(Vehicle v) =>
-    (v.monthlyPaymentCents ?? 0) + (monthlyInsuranceCost(v) ?? 0);
+    (v.monthlyPaymentCents ?? 0) +
+    (monthlyInsuranceCost(v) ?? 0) +
+    (monthlyMaintenanceCost(v) ?? 0);

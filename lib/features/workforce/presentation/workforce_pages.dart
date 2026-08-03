@@ -469,10 +469,7 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
         // era exactamente isto que `(double.tryParse(...) ?? 0)` fazia com
         // "1.500,00" (separador de milhar): lia até ao primeiro erro e
         // inventava zero.
-        final erroDeCusto = _erroDeValorOpcional(
-          'o custo estimado',
-          cost.text,
-        );
+        final erroDeCusto = _erroDeValorOpcional('o custo estimado', cost.text);
         if (erroDeCusto != null) {
           setState(() => erro = erroDeCusto);
           return;
@@ -730,7 +727,7 @@ class VehiclesPage extends ConsumerWidget {
                         onTap: () => _vehicleDialog(context, ref, v),
                         title: Text(v.plate),
                         subtitle: Text(
-                          '${v.type} · ${(monthlyFleetCost(v) / 100).toStringAsFixed(2)} €/mês',
+                          '${v.type} · Custo: ${(monthlyFleetCost(v) / 100).toStringAsFixed(2)} €/mês',
                         ),
                         trailing: Wrap(
                           crossAxisAlignment: WrapCrossAlignment.center,
@@ -841,6 +838,9 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
   );
   late var insuranceFrequency =
       current?.insuranceFrequency ?? InsuranceFrequency.annual;
+  late final maintenance = TextEditingController(
+    text: textoDeCents(current?.maintenanceCents),
+  );
 
   /// Mensagem mostrada dentro do diálogo, como no de colaborador — não num
   /// `SnackBar`, que nasce debaixo do teclado num telemóvel deitado.
@@ -853,6 +853,7 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
     alias.dispose();
     monthlyPayment.dispose();
     insurance.dispose();
+    maintenance.dispose();
     super.dispose();
   }
 
@@ -914,6 +915,13 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
             ],
             onChanged: (value) => setState(() => insuranceFrequency = value!),
           ),
+          TextField(
+            controller: maintenance,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Manutenção prevista — valor anual (€)',
+            ),
+          ),
         ],
       ),
       aviso: erro,
@@ -925,15 +933,19 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
           setState(() => erro = 'Indica a matrícula do veículo.');
           return;
         }
-        // Prestação e seguro são opcionais (ficam "por apurar" em branco),
-        // mas texto ilegível — "1.500.00" com dois pontos, letras — recusa a
-        // gravação em vez de virar zero calado.
+        // Prestação, seguro e manutenção são opcionais (ficam "por apurar" em
+        // branco), mas texto ilegível — "1.500.00" com dois pontos, letras —
+        // recusa a gravação em vez de virar zero calado.
         final erroDaPrestacao = _erroDeValorOpcional(
           'a prestação mensal',
           monthlyPayment.text,
         );
         final erroDoSeguro = _erroDeValorOpcional('o seguro', insurance.text);
-        final erroDeValor = erroDaPrestacao ?? erroDoSeguro;
+        final erroDaManutencao = _erroDeValorOpcional(
+          'a manutenção prevista',
+          maintenance.text,
+        );
+        final erroDeValor = erroDaPrestacao ?? erroDoSeguro ?? erroDaManutencao;
         if (erroDeValor != null) {
           setState(() => erro = erroDeValor);
           return;
@@ -941,6 +953,7 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
         final anterior = current;
         final prestacaoCents = centsDeTexto(monthlyPayment.text);
         final seguroCents = centsDeTexto(insurance.text);
+        final manutencaoCents = centsDeTexto(maintenance.text);
         // A editar mantém-se o mesmo id e passa-se por copyWith: construir um
         // Vehicle novo criava um segundo registo e deixava o antigo na lista.
         widget.notifier.saveVehicle(
@@ -954,6 +967,7 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
                   insuranceFrequency: insurance.text.trim().isEmpty
                       ? null
                       : insuranceFrequency,
+                  maintenanceCents: manutencaoCents,
                 )
               : Vehicle(
                   id: 'v${DateTime.now().microsecondsSinceEpoch}',
@@ -966,6 +980,7 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
                   insuranceFrequency: insurance.text.trim().isEmpty
                       ? null
                       : insuranceFrequency,
+                  maintenanceCents: manutencaoCents,
                 ),
         );
         Navigator.pop(context);

@@ -999,6 +999,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'monthlyPaymentCents': item.monthlyPaymentCents,
     'insuranceCents': item.insuranceCents,
     'insuranceFrequency': item.insuranceFrequency?.name,
+    'maintenanceCents': item.maintenanceCents,
     'notes': item.notes,
     'archived': item.archived,
   };
@@ -1014,6 +1015,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     insuranceFrequency: _nullableString(data['insuranceFrequency']) == null
         ? null
         : InsuranceFrequency.values.byName(_string(data, 'insuranceFrequency')),
+    maintenanceCents: _nullableInt(data['maintenanceCents']),
     notes: _string(data, 'notes'),
     archived: _bool(data, 'archived'),
   );
