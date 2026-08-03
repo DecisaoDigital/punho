@@ -6,11 +6,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/supabase_config.dart';
+import '../../core/conflitos/sincronizacao_de_conflitos.dart';
 import '../../core/operations/operations_controller.dart';
 import '../../core/sync/registo_de_operacoes.dart';
 import '../../core/sync/sincronizacao_entre_dispositivos.dart';
 import '../../data/repositories/operation_repository.dart';
 import '../auth/acesso_providers.dart';
+import '../conflitos/conflitos_providers.dart';
 
 /// Estado visível da sincronização, para a app poder dizer alguma coisa em vez
 /// de mexer nos dados às escondidas.
@@ -68,6 +70,11 @@ final syncProvider = NotifierProvider<SyncController, InfoSync>(
 class SyncController extends Notifier<InfoSync> {
   SincronizacaoEntreDispositivos? _motor;
   RegistoDeOperacoes? _registo;
+  // Conflitos pendentes (Fase 0, ver plano em curso): sem produtor ainda
+  // (nem detecção nem banner), mas já sincroniza no mesmo temporizador em
+  // vez de arranjar um segundo — mesmo raciocínio do `EmpresaSyncController`
+  // para o estado operacional.
+  SincronizacaoDeConflitos? _motorConflitos;
   Timer? _timer;
   Timer? _debounce;
   _ObservadorDeRegresso? _observador;
@@ -110,18 +117,22 @@ class SyncController extends Notifier<InfoSync> {
 
     final motor = ref.watch(motorSyncProvider).valueOrNull;
     if (motor == null) return const InfoSync(estado: EstadoSync.desligada);
+    final motorConflitos = ref.watch(motorConflitosSyncProvider).valueOrNull;
 
     // `Future.microtask` e não `unawaited` directo: `_arrancar` corre até ao
     // primeiro `await` de forma síncrona, e lá dentro `sincronizar()` escreve
     // no `state` — escrever no estado a meio do próprio `build` é proibido pelo
     // Riverpod e rebentava a construção do provider.
-    Future.microtask(() => _arrancar(motor));
+    Future.microtask(() => _arrancar(motor, motorConflitos));
     return const InfoSync(estado: EstadoSync.emEspera);
   }
 
-  Future<void> _arrancar(SincronizacaoEntreDispositivos motor) async {
+  Future<void> _arrancar(
+    SincronizacaoEntreDispositivos motor,
+    SincronizacaoDeConflitos? motorConflitos,
+  ) async {
     try {
-      await _montar(motor);
+      await _montar(motor, motorConflitos);
     } catch (erro) {
       // Um erro aqui deixava a sincronização desligada sem ninguém saber: o
       // arranque corre numa microtarefa, e uma excepção lá dentro não tem quem
@@ -132,8 +143,12 @@ class SyncController extends Notifier<InfoSync> {
     }
   }
 
-  Future<void> _montar(SincronizacaoEntreDispositivos motor) async {
+  Future<void> _montar(
+    SincronizacaoEntreDispositivos motor,
+    SincronizacaoDeConflitos? motorConflitos,
+  ) async {
     _motor = motor;
+    _motorConflitos = motorConflitos;
     _registo = motor.registo;
 
     // Cada alteração local entra em fila e agenda um envio.
@@ -267,6 +282,12 @@ class SyncController extends Notifier<InfoSync> {
     );
     final resultado = await motor.sincronizar();
     if (!_vivo) return;
+
+    // Best-effort e à parte do `InfoSync`: conflitos pendentes ainda não têm
+    // consumidor nenhum (Fase 0), e mesmo quando tiverem, não são o mesmo
+    // tipo de "houve alterações" que o resto desta função relata.
+    final motorConflitos = _motorConflitos;
+    if (motorConflitos != null) unawaited(motorConflitos.sincronizar());
 
     // O que chegou já está no repositório; falta o estado da app dar por isso.
     if (resultado.recebidas > 0) {
