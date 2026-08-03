@@ -55,8 +55,9 @@ abstract final class AtInvoiceQrReader {
     }
     if (!fields.containsKey('A') ||
         !fields.containsKey('F') ||
-        !fields.containsKey('O'))
+        !fields.containsKey('O')) {
       return null;
+    }
     return AtInvoiceQrData(
       raw: raw,
       supplierTaxId: fields['A'],

@@ -212,7 +212,9 @@ class _DefinicoesCadeadoPageState extends ConsumerState<DefinicoesCadeadoPage> {
                 RadioListTile<int>(
                   title: Text(opcao.$2),
                   value: opcao.$1,
+                  // ignore: deprecated_member_use
                   groupValue: _threshold,
+                  // ignore: deprecated_member_use
                   onChanged: _temPin ? _mudarThreshold : null,
                 ),
               const Divider(),

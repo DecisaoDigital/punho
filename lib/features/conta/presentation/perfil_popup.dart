@@ -309,8 +309,9 @@ class _EditarDadosDialogState extends State<_EditarDadosDialog> {
     } on AuthException catch (erro) {
       if (mounted) setState(() => _erro = AuthRules.mensagemSegura(erro.code));
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() => _erro = 'Não foi possível guardar os teus dados.');
+      }
     } finally {
       if (mounted) setState(() => _aGuardar = false);
     }
@@ -397,8 +398,9 @@ class _MudarPalavraPasseDialogState extends State<_MudarPalavraPasseDialog> {
     } on AuthException catch (erro) {
       if (mounted) setState(() => _erro = AuthRules.mensagemSegura(erro.code));
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() => _erro = 'Não foi possível mudar a palavra-passe.');
+      }
     } finally {
       if (mounted) setState(() => _aGuardar = false);
     }

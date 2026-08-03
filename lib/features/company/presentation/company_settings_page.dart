@@ -192,14 +192,14 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
   /// a sua própria [FichaDaEmpresa] a partir dos campos que recolheu e chama
   /// o mesmo `paraPayload`, para as duas pontas nunca dessincronizarem.
   Map<String, dynamic> _payloadSincronizacao() {
-    final txt = (String v) => v.trim().isEmpty ? null : v.trim();
-    final n = (String v) {
+    String? txt(String v) => v.trim().isEmpty ? null : v.trim();
+    int? n(String v) {
       final s = v.replaceAll(',', '.').trim();
       if (s.isEmpty) return null;
       final d = double.tryParse(s);
       if (d == null) return null;
       return (d * 100).round();
-    };
+    }
     return FichaDaEmpresa(
       nif: _taxId.text.trim(),
       nomeComercial: _companyName.text.trim(),
