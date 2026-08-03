@@ -64,10 +64,23 @@ anon_key="$(
 api="${SUPABASE_URL}/rest/v1/versoes_apps"
 android_url="https://github.com/${REPOSITORY}/releases/download/${tag}/${android_asset}"
 
+# O instalador automático do Punho (descarregarAgora) só corre com um sha256
+# publicado — sem ele o botão "Atualizar" cai sempre para o browser. Calcula-se
+# aqui, uma única vez, a partir do próprio asset da release.
+android_apk_tmp="$(mktemp)"
+trap 'rm -f "$android_apk_tmp"' EXIT
+gh release download "$tag" \
+  --repo "$REPOSITORY" \
+  --pattern "$android_asset" \
+  --output "$android_apk_tmp" \
+  --clobber
+android_sha256="$(sha256sum "$android_apk_tmp" | cut -d' ' -f1)"
+
 upsert_version() {
   local platform="$1"
   local download_url="$2"
   local notes="$3"
+  local sha="$4"
   local payload
   payload="$(
     jq -nc \
@@ -76,6 +89,7 @@ upsert_version() {
       --argjson build "$build" \
       --arg url "$download_url" \
       --arg notes "$notes" \
+      --arg sha "$sha" \
       '{
         app: "punho",
         plataforma: $platform,
@@ -84,7 +98,8 @@ upsert_version() {
         url_download: $url,
         obrigatoria: false,
         notas_lancamento: $notes,
-        activa: true
+        activa: true,
+        sha256: $sha
       }'
   )"
 
@@ -111,7 +126,8 @@ upsert_version() {
 upsert_version \
   "android" \
   "$android_url" \
-  "Nova versão Android do Punho."
+  "Nova versão Android do Punho." \
+  "$android_sha256"
 
 check_update() {
   local platform="$1"
