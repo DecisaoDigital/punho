@@ -7,7 +7,7 @@ import 'cadeado_service.dart';
 /// Página de definições do cadeado local.
 ///
 /// - Definir/alterar PIN
-/// - Threshold em minutos (Nunca / 1 / 5 / 15 / 30)
+/// - Threshold em minutos (Nunca / Sempre / 1 / 2 / 5 / 15 / 30)
 /// - Activar/desactivar biometria
 /// - Bloquear agora (útil para testar)
 class DefinicoesCadeadoPage extends ConsumerStatefulWidget {
@@ -205,7 +205,8 @@ class _DefinicoesCadeadoPageState extends ConsumerState<DefinicoesCadeadoPage> {
                 (-1, 'Nunca (só ao arrancar a app)'),
                 (0, 'Sempre'),
                 (1, '1 minuto'),
-                (5, '5 minutos (recomendado)'),
+                (2, '2 minutos (recomendado)'),
+                (5, '5 minutos'),
                 (15, '15 minutos'),
                 (30, '30 minutos'),
               ])

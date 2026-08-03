@@ -14,7 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// **Estado guardado:**
 ///   - PIN: hash sha256 com salt em `flutter_secure_storage` (keystore Android)
 ///   - Threshold em minutos: `SharedPreferences` (`cadeado.threshold_minutes`;
-///     -1 = nunca; 1/5/15/30). Default 5.
+///     -1 = nunca; 1/2/5/15/30). Default 2.
 ///   - Biometria activada: `SharedPreferences` (`cadeado.biometria`; default true
 ///     se disponível)
 ///   - Último `paused` (epoch ms): `SharedPreferences`
@@ -41,7 +41,7 @@ class CadeadoService {
   static const _kThreshold = 'cadeado.threshold_minutes';
   static const _kBiometria = 'cadeado.biometria';
   static const _kUltimoPausedMs = 'cadeado.ultimo_paused_ms';
-  static const thresholdDefault = 5;
+  static const thresholdDefault = 2;
 
   Future<bool> temPinDefinido() async {
     final h = await _secure.read(key: _kPinHash);
