@@ -31,6 +31,12 @@ final estadoDoUpdateProvider =
 
 class InstalacaoController extends Notifier<EstadoDoUpdate> {
   bool _vivo = true;
+
+  /// Verdadeiro enquanto o retrato estiver imposto por causa desta sequência
+  /// (pedido de permissão + instalação). Existe para o regresso à app saber
+  /// se há alguma coisa para largar — sem isto, um regresso normal (o gestor
+  /// só alternou de app) largaria uma sobreposição que nunca pediu.
+  bool _aSegurarRetrato = false;
   _ObservadorDeRegressoDoInstalador? _observador;
 
   @override
@@ -44,14 +50,16 @@ class InstalacaoController extends Notifier<EstadoDoUpdate> {
       unawaited(descarregar(actual));
     });
     _observador = _ObservadorDeRegressoDoInstalador(() {
-      if (!_vivo) return;
-      // Voltar à app ainda à espera do Android só acontece quando o gestor
-      // recusou ou saiu do instalador sem decidir — a instalação real mata o
-      // processo. Devolve a orientação que o ecrã de baixo pedia e deixa
-      // tentar outra vez.
+      if (!_vivo || !_aSegurarRetrato) return;
+      // Voltar à app enquanto se segurava o retrato só acontece quando o
+      // gestor recusou a permissão, saiu do instalador sem decidir, ou o
+      // Play Protect terminou o scan sem instalar nada — uma instalação que
+      // corre até ao fim mata o processo. Devolve a orientação que o ecrã de
+      // baixo pedia; se tinha ficado a meio da instalação, deixa tentar
+      // outra vez.
+      unawaited(_libertarRetrato());
       if (state.fase == FaseDoUpdate.aInstalar ||
           state.fase == FaseDoUpdate.aguardaConfirmacao) {
-        unawaited(OrientacaoDoContexto.largarSobreposicao());
         state = EstadoDoUpdate(
           fase: FaseDoUpdate.pronta,
           caminho: state.caminho,
@@ -111,24 +119,30 @@ class InstalacaoController extends Notifier<EstadoDoUpdate> {
     if (caminho == null) return;
     final instalador = ref.read(instaladorProvider);
 
+    // Nenhum ecrã do Android nesta sequência está preparado para landscape:
+    // nem o pedido de autorização de fontes desconhecidas, nem o scan do
+    // Play Protect, nem o instalador em si — os botões de confirmação ficam
+    // fora do ecrã e o gestor não tem como lhes tocar. O shell dele pode
+    // estar em landscape (Decisão 13), por isso força-se retrato já aqui,
+    // antes do primeiro pedido ao sistema, e não só antes do último passo —
+    // como o cadeado já faz por cima de tudo. Só se larga quando a sequência
+    // termina, com sucesso ou sem ele (ver `_libertarRetrato` e o observador
+    // de regresso à app, em `build`).
+    await OrientacaoDoContexto.sobrepor(Orientacao.portrait);
+    _aSegurarRetrato = true;
+
     if (!await instalador.podeInstalar()) {
       // O Android exige autorização explícita para esta app instalar pacotes.
-      // Abre-se as definições; ele volta e carrega outra vez.
+      // Abre-se as definições; ele volta (o observador trata do retrato) e
+      // carrega outra vez.
       await instalador.pedirPermissao();
       return;
     }
 
-    // O ecrã do Android para instalar — e o scan do Play Protect que o
-    // precede na primeira vez — não está preparado para landscape: os botões
-    // de confirmação ficam fora do ecrã e o gestor não tem como tocar-lhes.
-    // O shell dele pode estar em landscape (Decisão 13), por isso força-se
-    // retrato só para esta janela, como o cadeado já faz por cima de tudo.
-    await OrientacaoDoContexto.sobrepor(Orientacao.portrait);
-
     state = state.com(fase: FaseDoUpdate.aInstalar);
     final desfecho = await instalador.instalar(caminho);
     if (desfecho == null) {
-      await OrientacaoDoContexto.largarSobreposicao();
+      await _libertarRetrato();
       state = state.com(
         fase: FaseDoUpdate.falhou,
         erro: 'A instalação não arrancou.',
@@ -138,6 +152,12 @@ class InstalacaoController extends Notifier<EstadoDoUpdate> {
     if (desfecho == 'pediu_confirmacao') {
       state = state.com(fase: FaseDoUpdate.aguardaConfirmacao);
     }
+  }
+
+  Future<void> _libertarRetrato() async {
+    if (!_aSegurarRetrato) return;
+    _aSegurarRetrato = false;
+    await OrientacaoDoContexto.largarSobreposicao();
   }
 
   /// Wi-Fi é a única ligação que se assume gratuita. Sem forma de saber

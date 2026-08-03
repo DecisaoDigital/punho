@@ -6,22 +6,28 @@ import 'package:punho/core/orientacao/orientacao_do_contexto.dart';
 import 'package:punho/core/updates/instalador_de_update.dart';
 import 'package:punho/features/updates/instalacao_providers.dart';
 
-/// O ecrã do Android para instalar — e o scan do Play Protect que o precede
-/// na primeira vez — não está preparado para landscape: os botões de
-/// confirmação ficam fora do ecrã e o gestor fica sem forma de os tocar.
-/// Aconteceu a sério (v0.1.6, telemóvel do Cesar), no shell do gestor que a
-/// Decisão 13 manda ficar em landscape.
+/// Nenhum ecrã do Android nesta sequência está preparado para landscape: nem
+/// o pedido de autorização de fontes desconhecidas, nem o scan do Play
+/// Protect, nem o instalador em si — os botões de confirmação ficam fora do
+/// ecrã e o gestor fica sem forma de os tocar. Aconteceu a sério (v0.1.6,
+/// telemóvel do Cesar), no shell do gestor que a Decisão 13 manda ficar em
+/// landscape.
 class _InstaladorFalso extends InstaladorDeUpdate {
-  _InstaladorFalso({this.resultado = 'pediu_confirmacao'});
+  _InstaladorFalso({
+    this.podeInstalarResultado = true,
+    this.resultado = 'pediu_confirmacao',
+  });
 
+  final bool podeInstalarResultado;
   final String? resultado;
   final chamadas = <String>[];
+  var pedidosDePermissao = 0;
 
   @override
-  Future<bool> podeInstalar() async => true;
+  Future<bool> podeInstalar() async => podeInstalarResultado;
 
   @override
-  Future<void> pedirPermissao() async {}
+  Future<void> pedirPermissao() async => pedidosDePermissao++;
 
   @override
   Future<String?> instalar(String caminho) async {
@@ -132,4 +138,38 @@ void main() {
     expect(container.read(estadoDoUpdateProvider).fase, FaseDoUpdate.falhou);
     expect(rotacoes.last, isNot(['DeviceOrientation.portraitUp']));
   });
+
+  testWidgets(
+    'sem autorização de fontes desconhecidas já força retrato antes de abrir as definições',
+    (tester) async {
+      final instalador = _InstaladorFalso(podeInstalarResultado: false);
+      final container = montar(tester, instalador);
+      final notifier = container.read(estadoDoUpdateProvider.notifier);
+      notifier.state = const EstadoDoUpdate(
+        fase: FaseDoUpdate.pronta,
+        caminho: '/tmp/punho.apk',
+      );
+
+      await notifier.instalar();
+
+      // Pediu as definições, não chegou a entregar o ficheiro.
+      expect(instalador.pedidosDePermissao, 1);
+      expect(instalador.chamadas, isEmpty);
+      expect(rotacoes.last, ['DeviceOrientation.portraitUp']);
+      // A fase não muda enquanto se espera pelo regresso das definições.
+      expect(
+        container.read(estadoDoUpdateProvider).fase,
+        FaseDoUpdate.pronta,
+      );
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pumpAndSettle();
+      tester.binding.handleAppLifecycleStateChanged(
+        AppLifecycleState.resumed,
+      );
+      await tester.pumpAndSettle();
+
+      expect(rotacoes.last, isNot(['DeviceOrientation.portraitUp']));
+    },
+  );
 }
