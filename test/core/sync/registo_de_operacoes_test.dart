@@ -14,14 +14,18 @@ void main() {
     registo = RegistoDeOperacoes(await SharedPreferences.getInstance());
   });
 
-  OperacaoPendente op(String id, {String entidade = 'machine'}) =>
-      OperacaoPendente(
-        id: id,
-        entidade: entidade,
-        entidadeId: 'm1',
-        payload: const {'id': 'm1', 'name': 'Mini escavadora'},
-        feitoEm: DateTime(2026, 7, 15, 10),
-      );
+  OperacaoPendente op(
+    String id, {
+    String entidade = 'machine',
+    String entidadeId = 'm1',
+    String nome = 'Mini escavadora',
+  }) => OperacaoPendente(
+    id: id,
+    entidade: entidade,
+    entidadeId: entidadeId,
+    payload: {'id': entidadeId, 'name': nome},
+    feitoEm: DateTime(2026, 7, 15, 10),
+  );
 
   test('o que entra na fila sai igual', () async {
     await registo.acrescentar(op('a'));
@@ -82,17 +86,81 @@ void main() {
     expect(outro.dispositivo, primeiro);
   });
 
-  test('a fila tem tecto e descarta as mais antigas', () async {
-    // Meses sem rede não podem encher o armazenamento do telemóvel. As antigas
-    // são as que já foram substituídas por edições posteriores.
-    for (var i = 0; i < RegistoDeOperacoes.maximoNaFila + 5; i++) {
-      await registo.acrescentar(op('op$i'));
-    }
+  test('ao encher, comprime em vez de deitar fora', () async {
+    // O caso real: um mês na obra sem rede a corrigir as mesmas poucas
+    // máquinas. Antes, isto descartava as 5 primeiras em silêncio; agora
+    // percebe que são todas a mesma entidade e fica com a última — sem perder
+    // uma única alteração do empresário.
+    // Num lote só, para a compressão cair sempre no mesmo sítio: a seguir a um
+    // `acrescentar` à peça, o que sobra depende de onde o tecto foi passado.
+    await registo.acrescentarVarias([
+      for (var i = 0; i < RegistoDeOperacoes.maximoNaFila + 5; i++)
+        op('op$i', nome: 'Escavadora v$i'),
+    ]);
+
+    final fila = registo.pendentes;
+
+    expect(fila, hasLength(1), reason: 'é tudo a mesma máquina');
+    expect(
+      fila.single.payload['name'],
+      'Escavadora v${RegistoDeOperacoes.maximoNaFila + 4}',
+      reason: 'fica a última versão, que contém tudo o que as anteriores diziam',
+    );
+    expect(registo.operacoesPerdidas, 0, reason: 'comprimir não perde nada');
+  });
+
+  test('a compressão respeita a ordem de criação', () async {
+    // Se o cliente foi criado antes da reserva que o refere, tem de continuar
+    // a sair primeiro — senão o servidor recebe uma reserva órfã.
+    await registo.acrescentar(
+      op('c1', entidade: 'customer', entidadeId: 'cli1'),
+    );
+    await registo.acrescentar(
+      op('b1', entidade: 'booking', entidadeId: 'res1'),
+    );
+    await registo.acrescentarVarias([
+      for (var i = 0; i < RegistoDeOperacoes.maximoNaFila; i++)
+        op('c$i-edit', entidade: 'customer', entidadeId: 'cli1'),
+    ]);
+
+    final fila = registo.pendentes;
+
+    expect(fila, hasLength(2));
+    expect(fila.first.entidade, 'customer');
+    expect(fila.last.entidade, 'booking');
+  });
+
+  test('só descarta quando nem comprimida a fila cabe — e regista a perda',
+      () async {
+    // Entidades todas diferentes: não há nada para comprimir. Aqui há mesmo
+    // perda, e o que não pode acontecer é ela passar despercebida.
+    await registo.acrescentarVarias([
+      for (var i = 0; i < RegistoDeOperacoes.maximoNaFila + 5; i++)
+        op('op$i', entidadeId: 'm$i'),
+    ]);
 
     final fila = registo.pendentes;
 
     expect(fila, hasLength(RegistoDeOperacoes.maximoNaFila));
     expect(fila.first.id, 'op5', reason: 'as cinco primeiras caíram');
     expect(fila.last.id, 'op${RegistoDeOperacoes.maximoNaFila + 4}');
+    expect(
+      registo.operacoesPerdidas,
+      5,
+      reason: 'trabalho perdido tem de ficar contado',
+    );
+  });
+
+  test('a perda persiste entre arranques até ser reconhecida', () async {
+    await registo.acrescentarVarias([
+      for (var i = 0; i < RegistoDeOperacoes.maximoNaFila + 3; i++)
+        op('op$i', entidadeId: 'm$i'),
+    ]);
+
+    final outro = RegistoDeOperacoes(await SharedPreferences.getInstance());
+    expect(outro.operacoesPerdidas, 3);
+
+    await outro.esquecerPerdas();
+    expect(outro.operacoesPerdidas, 0);
   });
 }

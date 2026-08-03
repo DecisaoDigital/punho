@@ -45,6 +45,42 @@ class OperacaoPendente {
       );
 }
 
+/// Uma operação que o servidor recusou por ser inválida, e o motivo.
+///
+/// Não volta à fila: já se sabe que nunca vai ser aceite. Fica aqui para
+/// alguém poder ver o que se perdeu e porquê — em vez de desaparecer, ou de
+/// ficar a bater à porta do servidor para sempre.
+class OperacaoRecusada {
+  const OperacaoRecusada({
+    required this.operacao,
+    required this.motivo,
+    required this.recusadaEm,
+  });
+
+  final OperacaoPendente operacao;
+  final String motivo;
+  final DateTime recusadaEm;
+
+  Map<String, Object?> paraFila() => {
+    'operacao': operacao.paraFila(),
+    'motivo': motivo,
+    'recusada_em': recusadaEm.toUtc().toIso8601String(),
+  };
+
+  factory OperacaoRecusada.daFila(Map<String, dynamic> json) =>
+      OperacaoRecusada(
+        operacao: OperacaoPendente.daFila(
+          Map<String, dynamic>.from(json['operacao'] as Map),
+        ),
+        motivo: json['motivo'] as String? ?? 'sem motivo registado',
+        recusadaEm:
+            DateTime.tryParse(
+              json['recusada_em'] as String? ?? '',
+            )?.toLocal() ??
+            DateTime.now(),
+      );
+}
+
 /// A fila de saída e o cursor de leitura, guardados no telemóvel.
 ///
 /// **A fila é o que torna a app utilizável sem rede.** Numa obra ou num
@@ -63,13 +99,71 @@ class RegistoDeOperacoes {
   static const _kFila = 'punho_sync.fila_v1';
   static const _kCursor = 'punho_sync.cursor_v1';
   static const _kDispositivo = 'punho_sync.dispositivo_v1';
+  static const _kPerdidas = 'punho_sync.operacoes_perdidas_v1';
+  static const _kQuarentena = 'punho_sync.quarentena_v1';
 
   /// Limite de segurança da fila.
   ///
   /// Sem ele, meses sem rede encheriam o armazenamento do telemóvel. Ao chegar
-  /// aqui descartam-se as **mais antigas**: são as que já foram
-  /// provavelmente substituídas por edições posteriores da mesma entidade.
+  /// aqui **comprime-se primeiro** ([_comprimida]), que não perde nada; só se
+  /// ainda assim não couber é que se descarta — e aí fica registado em
+  /// [operacoesPerdidas], porque trabalho de um empresário a desaparecer sem
+  /// ninguém saber é a pior coisa que esta fila pode fazer.
   static const maximoNaFila = 2000;
+
+  /// Quantas operações esta app já deitou fora por não caberem na fila.
+  ///
+  /// Persiste entre arranques de propósito: é uma dívida, não um aviso de
+  /// momento. Enquanto for > 0, houve trabalho registado no telemóvel que
+  /// nunca chegou ao servidor.
+  int get operacoesPerdidas => _prefs.getInt(_kPerdidas) ?? 0;
+
+  /// Chamar quando a perda já tiver sido mostrada e reconhecida.
+  Future<void> esquecerPerdas() => _prefs.remove(_kPerdidas);
+
+  /// Operações que o servidor recusou por serem inválidas.
+  ///
+  /// Uma recusa destas é definitiva: insistir só prende a fila. Foi o que
+  /// aconteceu à ficha de empresa com NIF inválido — reenviada de 20 em 20
+  /// minutos, indefinidamente, sem ninguém ver o erro.
+  List<OperacaoRecusada> get quarentena {
+    final cru = _prefs.getStringList(_kQuarentena) ?? const [];
+    final resultado = <OperacaoRecusada>[];
+    for (final linha in cru) {
+      try {
+        resultado.add(
+          OperacaoRecusada.daFila(
+            Map<String, dynamic>.from(jsonDecode(linha) as Map),
+          ),
+        );
+      } catch (erro) {
+        debugPrint('[Sync] linha da quarentena ilegível, ignorada: $erro');
+      }
+    }
+    return resultado;
+  }
+
+  Future<void> porEmQuarentena(OperacaoPendente operacao, String motivo) {
+    _emFila = _emFila.then((_) async {
+      final actual = _prefs.getStringList(_kQuarentena) ?? <String>[];
+      actual.add(
+        jsonEncode(
+          OperacaoRecusada(
+            operacao: operacao,
+            motivo: motivo,
+            recusadaEm: DateTime.now(),
+          ).paraFila(),
+        ),
+      );
+      // Tecto próprio: a quarentena é para ser vista, não para crescer sem
+      // fim. Se houver muitas, as primeiras chegam para perceber o padrão.
+      if (actual.length > 100) actual.removeRange(0, actual.length - 100);
+      await _prefs.setStringList(_kQuarentena, actual);
+    });
+    return _emFila;
+  }
+
+  Future<void> limparQuarentena() => _prefs.remove(_kQuarentena);
 
   int get cursor => _prefs.getInt(_kCursor) ?? 0;
   Future<void> guardarCursor(int seq) => _prefs.setInt(_kCursor, seq);
@@ -132,17 +226,55 @@ class RegistoDeOperacoes {
   Future<void> acrescentarVarias(List<OperacaoPendente> operacoes) {
     if (operacoes.isEmpty) return Future.value();
     _emFila = _emFila.then((_) async {
-      final fila = _prefs.getStringList(_kFila) ?? <String>[];
+      var fila = _prefs.getStringList(_kFila) ?? <String>[];
       for (final operacao in operacoes) {
         fila.add(jsonEncode(operacao.paraFila()));
       }
+      // Comprimir antes de descartar. Quem esteve um mês na obra sem rede tem
+      // a fila cheia de versões sucessivas das mesmas poucas entidades, não de
+      // milhares de entidades diferentes — e dessas só a última interessa.
+      if (fila.length > maximoNaFila) fila = _comprimida(fila);
       if (fila.length > maximoNaFila) {
-        fila.removeRange(0, fila.length - maximoNaFila);
-        debugPrint('[Sync] fila cheia — descartadas as mais antigas');
+        final perdidas = fila.length - maximoNaFila;
+        fila.removeRange(0, perdidas);
+        await _prefs.setInt(_kPerdidas, operacoesPerdidas + perdidas);
+        debugPrint(
+          '[Sync] fila cheia mesmo depois de comprimir — '
+          '$perdidas operações descartadas',
+        );
       }
       await _prefs.setStringList(_kFila, fila);
     });
     return _emFila;
+  }
+
+  /// Reduz a fila ao que ainda diz alguma coisa: por entidade, só a última.
+  ///
+  /// Cada `payload` é o **estado completo** da entidade e não um delta — a
+  /// última gravação de uma máquina contém tudo o que as anteriores diziam.
+  /// Corrigir o preço da mesma máquina trinta vezes offline põe trinta linhas
+  /// na fila, e vinte e nove são história que o servidor nunca precisa de ver.
+  ///
+  /// A ordem é a da **primeira** aparição de cada entidade, não a da última:
+  /// se o cliente foi criado antes da reserva que o refere, tem de continuar a
+  /// sair primeiro, senão o servidor recebe uma reserva órfã.
+  static List<String> _comprimida(List<String> fila) {
+    final ultima = <String, String>{};
+    final ordem = <String>[];
+    for (final linha in fila) {
+      final String chave;
+      try {
+        final json = Map<String, dynamic>.from(jsonDecode(linha) as Map);
+        chave = '${json['entidade']}:${json['entidade_id']}';
+      } catch (_) {
+        // Ilegível: nunca seria enviada nem lida (ver `pendentes`). Sai aqui,
+        // que é o único sítio onde a podemos varrer sem custo.
+        continue;
+      }
+      if (!ultima.containsKey(chave)) ordem.add(chave);
+      ultima[chave] = linha;
+    }
+    return [for (final chave in ordem) ultima[chave]!];
   }
 
   /// Remove as que já foram aceites pelo servidor.
