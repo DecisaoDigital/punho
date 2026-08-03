@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/format/campos.dart';
+import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/navigation/app_destination.dart';
 import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/navigation/navigation_controller.dart';
+import '../../../core/operations/operations_controller.dart';
 import '../../../core/theme/punho_theme.dart';
 import '../../company/presentation/company_settings_page.dart';
 import '../../gestao/presentation/convites_screen.dart';
@@ -175,6 +178,14 @@ void abrirDestinoDaTarefa(
       Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const CompanySettingsPage()),
       );
+    case DestinoTarefa.facturacaoDoAno:
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _DialogoDeFacturacaoDoAno(
+          notifier: ref.read(operationsProvider.notifier),
+        ),
+      );
     case DestinoTarefa.convites:
       Navigator.of(context).push(
         MaterialPageRoute<void>(
@@ -198,6 +209,58 @@ void abrirDestinoDaTarefa(
     case DestinoTarefa.painel:
       irPara(AppDestination.management);
   }
+}
+
+/// Pergunta directa da faturação deste ano, sem passar pelo formulário
+/// inteiro de Dados da Empresa — era só isto que a tarefa precisava.
+class _DialogoDeFacturacaoDoAno extends StatefulWidget {
+  const _DialogoDeFacturacaoDoAno({required this.notifier});
+  final OperationsController notifier;
+
+  @override
+  State<_DialogoDeFacturacaoDoAno> createState() =>
+      _DialogoDeFacturacaoDoAnoState();
+}
+
+class _DialogoDeFacturacaoDoAnoState extends State<_DialogoDeFacturacaoDoAno> {
+  final _valor = TextEditingController();
+  String? erro;
+
+  @override
+  void dispose() {
+    _valor.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => DialogoDeFormulario(
+    titulo: 'Faturação deste ano até hoje',
+    corpo: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text('Quanto é que a empresa já faturou este ano, até hoje?'),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _valor,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Faturação deste ano até hoje (€)',
+          ),
+        ),
+      ],
+    ),
+    aviso: erro,
+    aoGuardar: () {
+      final cents = centsDeTexto(_valor.text);
+      if (cents == null) {
+        setState(() => erro = 'Indica um valor em euros.');
+        return;
+      }
+      widget.notifier.updateCompanySettings(revenueThisYearCents: Campo(cents));
+      Navigator.pop(context);
+    },
+  );
 }
 
 class _SemTarefas extends StatelessWidget {

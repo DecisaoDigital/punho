@@ -72,6 +72,11 @@ List<Tarefa> tarefasPendentes(
   // 2. Dados por completar. O NIF é fiscal, portanto urgente; o resto não.
   for (final pendente in state.initialDataTasks) {
     final fiscal = pendente.contains('NIF');
+    // A faturação do ano é a única destas tarefas com um destino próprio: uma
+    // pergunta directa em vez do formulário inteiro de Dados da Empresa (o
+    // Cesar reportou-a a navegar para lá sem perguntar nada).
+    final ehFacturacaoDoAno =
+        pendente == 'Indicar a faturação deste ano até hoje';
     tarefas.add(
       Tarefa(
         id: 'dados-${pendente.hashCode}',
@@ -83,7 +88,9 @@ List<Tarefa> tarefasPendentes(
             ? 'Sem NIF não há factura em condições'
             : 'O Punho decide melhor com este dado preenchido',
         cta: 'Preencher',
-        destino: DestinoTarefa.definicoesEmpresa,
+        destino: ehFacturacaoDoAno
+            ? DestinoTarefa.facturacaoDoAno
+            : DestinoTarefa.definicoesEmpresa,
       ),
     );
   }
@@ -129,6 +136,35 @@ List<Tarefa> tarefasPendentes(
         subtitulo:
             'Declarou ${state.totalMachinesDeclared} e estão registadas '
             '${state.registeredMachinesCount}',
+        cta: 'Abrir Máquinas',
+        destino: DestinoTarefa.maquinas,
+      ),
+    );
+  }
+
+  // 3-b. Máquinas sem preço/dia ou valor de compra — sem os dois, a célula
+  // "Utilização vs Rentabilidade" do painel nunca sai de "Por apurar".
+  final semDadosDeRentabilidade = state.machines
+      .where(
+        (m) =>
+            !m.archived &&
+            (m.dailyRateCents == null || m.purchasePriceCents == null),
+      )
+      .toList();
+  if (semDadosDeRentabilidade.isNotEmpty) {
+    final semPreco = semDadosDeRentabilidade
+        .where((m) => m.dailyRateCents == null)
+        .length;
+    tarefas.add(
+      Tarefa(
+        id: 'maquinas-sem-dados-de-retorno',
+        severidade: SeveridadeTarefa.aCompletar,
+        titulo: semDadosDeRentabilidade.length == 1
+            ? 'Completar dados de ${semDadosDeRentabilidade.single.name}'
+            : 'Completar dados de ${semDadosDeRentabilidade.length} máquinas',
+        subtitulo: semPreco > 0
+            ? 'Falta o preço/dia e/ou o valor de compra — sem eles não há retorno a calcular'
+            : 'Falta o valor de compra — sem ele não há retorno a calcular',
         cta: 'Abrir Máquinas',
         destino: DestinoTarefa.maquinas,
       ),

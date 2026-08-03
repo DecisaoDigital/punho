@@ -23,6 +23,10 @@ enum SeveridadeTarefa {
 /// serviço não conhece widgets.
 enum DestinoTarefa {
   definicoesEmpresa,
+
+  /// Pergunta directa da faturação deste ano — não vale a pena abrir o
+  /// formulário inteiro de Dados da Empresa para um valor só.
+  facturacaoDoAno,
   clientes,
   maquinas,
   colaboradores,
