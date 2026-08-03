@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../domain/models/conflito_pendente.dart';
 import '../../domain/models/operations.dart';
 import '../../domain/models/finance.dart';
 import '../../domain/models/workforce.dart';
@@ -407,12 +408,72 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     return enfileiradas;
   }
 
+  /// Avisado quando uma reserva vinda de outro aparelho colide com uma local.
+  ///
+  /// Callback e não uma dependência directa do registo de conflitos: o
+  /// repositório trata de guardar coisas, e não tem de saber o que se faz com
+  /// uma disputa — quem decide isso é a camada de cima.
+  void Function(ConflitoPendente)? aoDetectarConflito;
+
+  /// Duas reservas activas na mesma máquina, ao mesmo tempo, não podem estar
+  /// as duas certas.
+  ///
+  /// O caso real: dois colaboradores sem rede, cada um a prometer a mesma
+  /// giratória a um cliente diferente. Quando as duas chegam ao servidor, a
+  /// regra de "quem chega depois fica por cima" resolvia isto em silêncio — e
+  /// alguém ia ao estaleiro buscar uma máquina que já lá não estava.
+  ///
+  /// Aqui não se escolhe vencedor: regista-se a disputa para uma pessoa
+  /// decidir. Uma máquina prometida a dois clientes é um problema de negócio,
+  /// não de dados, e nenhuma regra automática o resolve bem.
+  void _detectarConflitoDeReserva(Booking recebida) {
+    final avisar = aoDetectarConflito;
+    if (avisar == null || !_ocupaMaquina(recebida.status)) return;
+    for (final local in bookings) {
+      // Mesma reserva editada noutro aparelho não é conflito, é a mesma coisa
+      // mais recente.
+      if (local.id == recebida.id) continue;
+      if (!_ocupaMaquina(local.status)) continue;
+      final partilhadas = local.machineIds.toSet().intersection(
+        recebida.machineIds.toSet(),
+      );
+      if (partilhadas.isEmpty || !_sobrepoemNoTempo(local, recebida)) continue;
+      avisar(
+        ConflitoPendente.reservaMaquina(
+          reservaId1: local.id,
+          reservaId2: recebida.id,
+          machineIdsPartilhados: partilhadas.toList()..sort(),
+          envolvidos: [
+            for (final reserva in [local, recebida])
+              if (reserva.collaboratorResponsibleId != null)
+                reserva.collaboratorResponsibleId!,
+          ],
+          criadoEm: DateTime.now(),
+        ),
+      );
+    }
+  }
+
+  /// Só estados que prendem mesmo a máquina. Um pedido ou uma proposta ainda
+  /// não a tiram de circulação, e marcar isso como conflito seria ensinar o
+  /// gestor a ignorar avisos.
+  static bool _ocupaMaquina(BookingStatus estado) =>
+      estado == BookingStatus.confirmed || estado == BookingStatus.rented;
+
+  /// Fim exclusivo dos dois lados: quem entrega no dia em que o outro recolhe
+  /// não está em conflito.
+  static bool _sobrepoemNoTempo(Booking a, Booking b) =>
+      a.startsAt.isBefore(b.endsAt) && b.startsAt.isBefore(a.endsAt);
+
   /// Aplica uma alteração feita noutro dispositivo.
   ///
   /// A ordem é a do servidor (`seq`), portanto quem chega depois fica por cima:
   /// última escrita ganha, por entidade. Duas pessoas a mexer em coisas
   /// diferentes não se pisam — que era o que o instantâneo completo não sabia
   /// fazer.
+  ///
+  /// **Excepção: reservas.** Aí "quem chega depois ganha" não serve, e o
+  /// conflito é assinalado antes de a gravação acontecer.
   void aplicarOperacaoRemota(String entidade, Map<String, dynamic> payload) {
     _aAplicarRemoto = true;
     try {
@@ -424,7 +485,12 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
         case 'lead':
           super.saveLead(_leadFromJson(payload));
         case 'booking':
-          super.saveBooking(_bookingFromJson(payload));
+          final recebida = _bookingFromJson(payload);
+          // Antes de gravar por cima: a reserva que chega pode colidir com uma
+          // que já cá está. Depois de `saveBooking` já não dá para saber —
+          // ficam as duas no estado, cada uma a dizer que tem a máquina.
+          _detectarConflitoDeReserva(recebida);
+          super.saveBooking(recebida);
         case 'expense':
           super.saveExpense(_expenseFromJson(payload));
         case 'receipt':

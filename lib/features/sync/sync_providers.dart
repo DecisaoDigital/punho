@@ -164,6 +164,17 @@ class SyncController extends Notifier<InfoSync> {
       _agendar();
     };
 
+    // Duas reservas activas na mesma máquina, vindas de aparelhos diferentes,
+    // deixam de se resolver em silêncio: fica registada a disputa para alguém
+    // decidir. Sem esta linha, a infra de conflitos existia mas nunca era
+    // chamada — estava construída e desligada desde a Fase 0.
+    if (motorConflitos != null) {
+      repo.aoDetectarConflito = (conflito) {
+        unawaited(motorConflitos.registo.guardarLocal(conflito));
+        _agendar();
+      };
+    }
+
     _observador = _ObservadorDeRegresso(() => unawaited(sincronizar()));
     WidgetsBinding.instance.addObserver(_observador!);
     _timer = Timer.periodic(_intervalo, (_) => unawaited(sincronizar()));
