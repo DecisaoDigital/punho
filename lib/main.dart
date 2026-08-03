@@ -1,11 +1,17 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:ui';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/cadeado/cadeado_gate.dart';
+import 'core/diagnostico/relator_de_erros.dart';
 import 'shared/widgets/splash_punho.dart';
 
 import 'core/empresa_sync/empresa_sync_service.dart';
@@ -23,7 +29,25 @@ import 'features/sync/sync_providers.dart';
 import 'features/updates/presentation/update_banner_wrapper.dart';
 
 Future<void> main() async {
+  // Tudo dentro da zona guardada: uma excepção assíncrona fora dela não é
+  // apanhada por ninguém, e era assim que a app perdia exactamente os erros
+  // que mais interessa ver — os que acontecem no arranque, em casa do cliente.
+  await runZonedGuarded(_arrancar, (erro, pilha) {
+    unawaited(
+      relatorDeErros?.registar(tipo: 'zona', erro: erro, pilha: pilha) ??
+          Future.value(),
+    );
+  });
+}
+
+/// O relator vive aqui em cima porque os handlers globais do Flutter não
+/// recebem contexto — são funções soltas, e têm de lhe chegar de alguma forma.
+RelatorDeErros? relatorDeErros;
+
+Future<void> _arrancar() async {
   WidgetsFlutterBinding.ensureInitialized();
+  relatorDeErros = await _prepararRelator();
+  _instalarCapturaDeErros();
   // A área das notificações pertence visualmente à moldura da app. Sem esta
   // definição, alguns Android desenham ícones claros sobre o fundo claro do
   // conteúdo, sobretudo quando o telemóvel está em landscape.
@@ -44,6 +68,13 @@ Future<void> main() async {
     // Auto-onboarding: não bloqueia o arranque e falha em silêncio. As Edge
     // Functions aceitam a chave pública, por isso corre antes do login.
     unawaited(_registarTerminal());
+    // Os erros da sessão passada sobem agora. É aqui e não no momento do erro
+    // porque um erro que mata a app não tem tempo de fazer um pedido HTTP —
+    // fica gravado no disco e apanha-se boleia no arranque seguinte.
+    final relator = relatorDeErros;
+    if (relator != null) {
+      unawaited(relator.enviarPendentes(Supabase.instance.client));
+    }
   }
   // Sem bloqueio de orientação no arranque: a app não sabe ainda quem a vai
   // usar. Cada ecrã decide (Decisão 13) — landscape só no shell do gestor
@@ -58,6 +89,61 @@ Future<void> main() async {
       child: const PunhoApp(),
     ),
   );
+}
+
+/// Contexto do aparelho, colhido uma vez. Cada campo em `try` seu: um modelo
+/// de telemóvel que não responda não pode impedir a app de ter relator.
+Future<RelatorDeErros> _prepararRelator() async {
+  final prefs = await SharedPreferences.getInstance();
+  var versao = 'desconhecida';
+  var machineId = 'por-resolver';
+  final contexto = <String, Object?>{};
+  try {
+    final info = await PackageInfo.fromPlatform();
+    versao = '${info.version}+${info.buildNumber}';
+  } catch (_) {}
+  try {
+    machineId = await resolverMachineId();
+  } catch (_) {}
+  try {
+    if (Platform.isAndroid) {
+      final android = await DeviceInfoPlugin().androidInfo;
+      contexto['modelo'] = android.model;
+      contexto['fabricante'] = android.manufacturer;
+      contexto['android'] = android.version.release;
+    }
+  } catch (_) {}
+  return RelatorDeErros(
+    prefs,
+    machineId: machineId,
+    versao: versao,
+    contextoBase: contexto,
+  );
+}
+
+void _instalarCapturaDeErros() {
+  final anterior = FlutterError.onError;
+  FlutterError.onError = (detalhes) {
+    // Continua a apresentar como antes — em debug, o ecrã vermelho é
+    // informação, não estorvo. O que muda é que agora também fica registado.
+    anterior?.call(detalhes);
+    unawaited(
+      relatorDeErros?.registar(
+            tipo: 'flutter',
+            erro: detalhes.exception,
+            pilha: detalhes.stack,
+            contexto: {'biblioteca': detalhes.library},
+          ) ??
+          Future.value(),
+    );
+  };
+  PlatformDispatcher.instance.onError = (erro, pilha) {
+    unawaited(
+      relatorDeErros?.registar(tipo: 'plataforma', erro: erro, pilha: pilha) ??
+          Future.value(),
+    );
+    return true;
+  };
 }
 
 Future<void> _registarTerminal() async {
