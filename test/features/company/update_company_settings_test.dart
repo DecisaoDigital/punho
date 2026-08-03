@@ -4,6 +4,7 @@ import 'package:punho/core/navigation/app_destination.dart';
 import 'package:punho/core/navigation/navigation_controller.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/data/repositories/operation_repository.dart';
+import 'package:punho/domain/models/finance.dart';
 import 'package:punho/domain/models/operations.dart';
 
 const _empresa = OnboardingData(
@@ -129,6 +130,27 @@ void main() {
       expect(c.container.read(operationsProvider).onboarded, isFalse);
       expect(c.container.read(operationsProvider).companyName, '');
       expect(c.container.read(operationRepositoryProvider).onboarding, isNull);
+    });
+
+    test('rubricas de custos fixos sobrevivem no state, não só no repositório', () {
+      // Achado no teste manual de utilizador: guardava no repositório mas o
+      // `state` em memória (o que o ecrã lê) voltava a `[]`, e a rubrica
+      // desaparecia ao sair e voltar ao ecrã sem reiniciar a app.
+      final c = _cenario();
+
+      c.notifier.updateCompanySettings(
+        custosFixos: [
+          const CustoFixo(
+            id: 'a',
+            categoria: ExpenseCategory.rent,
+            valorCents: 35000,
+          ),
+        ],
+      );
+
+      final estado = c.container.read(operationsProvider);
+      expect(estado.custosFixos, hasLength(1));
+      expect(estado.custoFixoMensalCents, 35000);
     });
 
     test('editar não desmarca a app como configurada', () {

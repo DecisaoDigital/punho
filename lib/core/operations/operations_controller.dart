@@ -503,6 +503,7 @@ class OperationsController extends Notifier<OperationsState> {
     revenueThisYearCents: dados.revenueThisYearCents,
     maintenanceLastYearCents: dados.maintenanceLastYearCents,
     fixedMonthlyCostsCents: dados.fixedMonthlyCostsCents,
+    custosFixos: dados.custosFixos,
     historicalMonths: state.historicalMonths,
     machines: state.machines,
     customers: state.customers,
