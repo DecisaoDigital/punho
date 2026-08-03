@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/finance/regime_fiscal.dart';
 import '../../../core/navigation/app_destination.dart';
 import '../../../core/operations/operations_controller.dart';
+import '../../../domain/models/finance.dart';
 import '../../company/presentation/company_settings_page.dart';
 import '../../finance/presentation/financas_page.dart';
 import '../../workforce/presentation/workforce_pages.dart';
@@ -69,7 +70,7 @@ class _EmpresaPageState extends ConsumerState<EmpresaPage>
       children: [
         const CompanySettingsPage(embutida: true),
         _AbaRegimeFiscal(aoIrParaDados: () => _abas.animateTo(0)),
-        const _AbaCustosFixos(),
+        _AbaCustosFixos(aoIrParaDados: () => _abas.animateTo(0)),
         const VehiclesPage(),
         const FinancasPage(),
         const _AbaEstado(),
@@ -146,20 +147,24 @@ class _AbaRegimeFiscal extends ConsumerWidget {
   }
 }
 
-/// Custos fixos mensais.
+/// Custos fixos mensais — leitura, com o caminho para os editar por rubrica.
 ///
-/// **Nesta versão é o valor agregado**, o mesmo que já existia. A repartição por
-/// rubrica (renda, água e luz, comunicações, seguros) precisa de campos novos no
-/// modelo e na persistência, e entrou como trabalho por fazer em vez de sair
-/// aqui meio feito — um editor de rubricas que não grava as rubricas seria pior
-/// do que não o ter.
+/// Só leitura de propósito, mesma ideia da [_AbaRegimeFiscal]: o editor por
+/// rubrica (renda, água e luz, comunicações, seguros — ver
+/// `_EditorDeCustosFixos` em `company_settings_page.dart`) já existe e grava a
+/// sério, mas vive dentro do formulário de Dados, que é quem controla o save.
+/// Duplicar aqui um segundo editor com o seu próprio estado arriscava as duas
+/// cópias divergirem; um botão a saltar para lá é mais seguro do que isso.
 class _AbaCustosFixos extends ConsumerWidget {
-  const _AbaCustosFixos();
+  const _AbaCustosFixos({required this.aoIrParaDados});
+
+  final VoidCallback aoIrParaDados;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final estado = ref.watch(operationsProvider);
-    final valor = estado.fixedMonthlyCostsCents;
+    final valor = estado.custoFixoMensalCents;
+    final rubricas = estado.custosFixos;
     final textos = Theme.of(context).textTheme;
 
     return ListView(
@@ -181,14 +186,45 @@ class _AbaCustosFixos extends ConsumerWidget {
           style: textos.bodyMedium,
         ),
         const SizedBox(height: 20),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'A separação por rubrica — quanto é renda, quanto é energia — '
-              'está por fazer. Hoje guarda-se só o total.',
-              style: textos.bodySmall,
+        if (rubricas.isNotEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Por rubrica', style: textos.labelLarge),
+                  const SizedBox(height: 8),
+                  for (final rubrica in rubricas)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              rubrica.descricao.trim().isEmpty
+                                  ? expenseCategoryLabel(rubrica.categoria)
+                                  : '${expenseCategoryLabel(rubrica.categoria)} — ${rubrica.descricao}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            '${(rubrica.valorCents / 100).toStringAsFixed(2)} €',
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
             ),
+          ),
+        const SizedBox(height: 20),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: FilledButton.icon(
+            onPressed: aoIrParaDados,
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Editar por rubrica em Dados →'),
           ),
         ),
       ],
