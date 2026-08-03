@@ -32,8 +32,7 @@ for command in gh curl jq supabase; do
 done
 
 tag="v${version}"
-android_asset="Punho_v${version}_universal.apk"
-windows_asset="Punho_Setup_v${version}.exe"
+android_asset="punho-android-v${version}.apk"
 release_json="$(
   gh release view "$tag" \
     --repo "$REPOSITORY" \
@@ -41,13 +40,11 @@ release_json="$(
 )"
 jq -e \
   --arg android "$android_asset" \
-  --arg windows "$windows_asset" \
   '(.isDraft == false) and
    (.isPrerelease == false) and
-   ([.assets[].name] | index($android) != null) and
-   ([.assets[].name] | index($windows) != null)' \
+   ([.assets[].name] | index($android) != null)' \
   <<< "$release_json" >/dev/null ||
-  die "release sem os assets universal Android e Windows"
+  die "release sem o asset Android ($android_asset)"
 
 keys_json="$(
   supabase projects api-keys \
@@ -66,7 +63,6 @@ anon_key="$(
 
 api="${SUPABASE_URL}/rest/v1/versoes_apps"
 android_url="https://github.com/${REPOSITORY}/releases/download/${tag}/${android_asset}"
-windows_url="https://github.com/${REPOSITORY}/releases/download/${tag}/${windows_asset}"
 
 upsert_version() {
   local platform="$1"
@@ -116,10 +112,6 @@ upsert_version \
   "android" \
   "$android_url" \
   "Nova versão Android do Punho."
-upsert_version \
-  "windows" \
-  "$windows_url" \
-  "Nova versão Windows do Punho."
 
 check_update() {
   local platform="$1"
@@ -169,8 +161,6 @@ for abi_prefix in 1 2 4; do
     false \
     "$android_url"
 done
-check_update "windows" "$previous_build" true "$windows_url"
-check_update "windows" "$build" false "$windows_url"
 
 unset admin_key anon_key keys_json
 printf 'Catálogo Supabase atualizado e verificado para %s+%s.\n' \
