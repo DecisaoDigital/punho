@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/config/supabase_config.dart';
-import '../../../core/operations/operations_controller.dart';
 import '../../operations/presentation/operational_pages.dart';
 import 'finance_pages.dart';
 
@@ -66,7 +64,6 @@ class FinancasPage extends ConsumerWidget {
               texto: 'Histórico mensal',
               onTap: () => _abrir(context, const HistoricalDataPage()),
             ),
-            if (SupabaseConfig.enabled) const _BotaoSincronizar(),
           ],
         ),
       ],
@@ -108,35 +105,3 @@ class _Accao extends StatelessWidget {
           ),
   );
 }
-
-class _BotaoSincronizar extends ConsumerWidget {
-  const _BotaoSincronizar();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) => SizedBox(
-    width: 230,
-    height: 52,
-    child: OutlinedButton.icon(
-      onPressed: () async {
-        final status = await ref
-            .read(operationsProvider.notifier)
-            .synchronizeRemote();
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(mensagemDeSincronizacao(status.name))),
-        );
-      },
-      icon: const Icon(Icons.sync),
-      label: const Text('Sincronizar'),
-    ),
-  );
-}
-
-String mensagemDeSincronizacao(String status) => switch (status) {
-  'synchronized' => 'Dados sincronizados com segurança.',
-  'pendingChanges' =>
-    'Sem ligação. As alterações ficam guardadas neste dispositivo.',
-  'requiresReview' =>
-    'Existe uma alteração remota por rever antes de sincronizar.',
-  _ => 'A sincronização está em curso.',
-};

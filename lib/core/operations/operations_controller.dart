@@ -587,6 +587,7 @@ class OperationsController extends Notifier<OperationsState> {
   void saveHistoricalMonth(HistoricalMonth item) {
     _repo.saveHistoricalMonth(item);
     state = _fromRepo();
+    unawaited(synchronizeRemote());
   }
 
   void saveMachine(Machine item) {

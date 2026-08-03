@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../operations/operations_controller.dart';
 import 'empresa_sync_service.dart';
 import 'ficha_pendente.dart';
 
@@ -124,6 +125,15 @@ class EmpresaSyncController extends Notifier<bool> {
   Future<void> _tentar() async {
     final pronto = _pronto;
     if (pronto == null || !_vivo) return;
+    // Mesmo temporizador de 20 em 20 minutos e o mesmo regresso do fundo
+    // servem também o outro canal — o estado operacional completo (onboarding,
+    // custos fixos, histórico mensal), que só sobe/desce pelo
+    // `synchronizeRemote()` do `OperationsController`, nunca pela fila de
+    // operações por entidade. Sem isto dependia de um botão manual em
+    // Finanças, que ninguém carregava depois de gravar dados da empresa. Um
+    // segundo temporizador só para isto seria redundante com este que já
+    // existe.
+    unawaited(ref.read(operationsProvider.notifier).synchronizeRemote());
     await _tentarComMotor(await pronto.future);
   }
 
