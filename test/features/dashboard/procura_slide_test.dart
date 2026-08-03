@@ -103,7 +103,10 @@ void main() {
 
     await montarLandscape(tester, container, ProcuraSlide(agora: agora));
 
-    expect(find.text('Por apurar'), findsNWidgets(3));
+    expect(find.text('Ainda sem clientes'), findsOneWidget);
+    expect(find.text('Sem reservas com valor'), findsOneWidget);
+    expect(find.text('Sem leads em 30 dias'), findsOneWidget);
+    expect(find.text('Por apurar'), findsNothing);
     expect(find.textContaining('17'), findsNothing);
     expect(find.textContaining('28'), findsNothing);
   });

@@ -65,10 +65,10 @@ class SinteseSlide extends ConsumerWidget {
   Widget _entradas(TesourariaMes mes, int recebidoHoje) {
     if (mes.recebidoCents == 0 && mes.comparacao == null) {
       return const CelulaSemaforo(
-        nivel: NivelSemaforo.laranja,
+        nivel: NivelSemaforo.aguarda,
         rotulo: 'Dinheiros que entraram',
-        texto: 'Por apurar',
-        subtexto: 'Regista o primeiro recebimento para começar a medir',
+        texto: 'Regista um recebimento',
+        subtexto: 'Toca para abrir Finanças',
       );
     }
     // Homólogo quando há histórico, mês passado só como recurso — e o texto diz
@@ -95,7 +95,7 @@ class SinteseSlide extends ConsumerWidget {
 
   /// Ocupação e retorno das máquinas.
   ///
-  /// Fica em "Por apurar" enquanto as máquinas não tiverem preço/dia e valor de
+  /// Diz o que falta enquanto as máquinas não tiverem preço/dia e valor de
   /// compra: sem eles dá para contar dias alugados, mas não para dizer se isso
   /// é bom ou mau — e um número de ocupação sem retorno ao lado é o tipo de
   /// meia-verdade que leva a decisões erradas.
@@ -103,10 +103,10 @@ class SinteseSlide extends ConsumerWidget {
     final total = estado.machines.where((m) => !m.archived).length;
     if (total == 0) {
       return const CelulaSemaforo(
-        nivel: NivelSemaforo.laranja,
+        nivel: NivelSemaforo.aguarda,
         rotulo: 'Utilização vs Rentabilidade',
-        texto: 'Por apurar',
-        subtexto: 'Ainda não há máquinas identificadas',
+        texto: 'Identifica as máquinas',
+        subtexto: 'Sem elas não há ocupação',
       );
     }
     final comPreco = estado.machines
@@ -114,22 +114,21 @@ class SinteseSlide extends ConsumerWidget {
         .length;
     if (comPreco < total) {
       return CelulaSemaforo(
-        nivel: NivelSemaforo.laranja,
+        nivel: NivelSemaforo.aguarda,
         rotulo: 'Utilização vs Rentabilidade',
-        texto: 'Por apurar',
-        subtexto: comPreco == 0
+        texto: comPreco == 0
             ? 'Falta o preço por dia das $total máquinas'
             : 'Falta o preço de ${total - comPreco} de $total máquinas',
+        subtexto: 'Com ele, os dias dão euros',
       );
     }
     final dados = utilizacaoERentabilidade(estado, now);
     if (dados.maquinasComValorDeCompra == 0) {
       return const CelulaSemaforo(
-        nivel: NivelSemaforo.laranja,
+        nivel: NivelSemaforo.aguarda,
         rotulo: 'Utilização vs Rentabilidade',
-        texto: 'Por apurar',
-        subtexto:
-            'Falta o valor de compra das máquinas para calcular o retorno',
+        texto: 'Falta o valor de compra',
+        subtexto: 'É o que mede o retorno',
       );
     }
     final ocupacao = dados.ocupacaoPercent;
@@ -155,10 +154,10 @@ class SinteseSlide extends ConsumerWidget {
   Widget _encontroDeContas(TesourariaMes mes) {
     if (mes.semMovimentos) {
       return const CelulaSemaforo(
-        nivel: NivelSemaforo.laranja,
+        nivel: NivelSemaforo.aguarda,
         rotulo: 'Encontro de contas',
-        texto: 'Por apurar',
-        subtexto: 'Sem entradas nem saídas registadas este mês',
+        texto: 'Sem movimentos este mês',
+        subtexto: 'Regista entradas e saídas',
       );
     }
     final saldo = mes.recebidoCents - mes.pagoCents;

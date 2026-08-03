@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/operations.dart';
 import 'package:punho/features/dashboard/presentation/slides/operacional_slide.dart';
+import 'package:punho/features/dashboard/presentation/widgets/celula_semaforo.dart';
 
 import 'fixtura.dart';
 
@@ -11,7 +12,7 @@ void main() {
   final agora = DateTime(2026, 7, 15, 10, 30);
   DateTime dia(int d) => DateTime(2026, 7, d);
 
-  testWidgets('empresa sem reservas diz "Por apurar", não zeros', (
+  testWidgets('empresa sem reservas diz o que falta fazer, não zeros', (
     tester,
   ) async {
     final container = containerCom(
@@ -20,9 +21,27 @@ void main() {
 
     await montarLandscape(tester, container, OperacionalSlide(agora: agora));
 
-    // Quatro células, todas honestas sobre a falta de dados.
-    expect(find.text('Por apurar'), findsNWidgets(4));
-    expect(find.text('Ainda não há reservas registadas'), findsNWidgets(4));
+    // Quatro células, todas honestas sobre a falta de dados — e o que ocupa o
+    // lugar do número é a acção que o destranca, não o rótulo "Por apurar"
+    // repetido quatro vezes, que se lia como app avariada.
+    expect(find.text('Marca a primeira reserva'), findsOneWidget);
+    expect(find.text('Nada para entregar'), findsOneWidget);
+    expect(find.text('Nada para recolher'), findsOneWidget);
+    expect(find.text('Nada por cobrar'), findsOneWidget);
+    expect(find.text('Por apurar'), findsNothing);
+
+    // E nenhuma pintada de laranja: falta de dados não é aviso. Um painel de
+    // empresa nova todo cor de alarme diz "está tudo mal" a quem só ainda não
+    // começou.
+    final celulas = tester.widgetList<CelulaSemaforo>(
+      find.byType(CelulaSemaforo),
+    );
+    expect(celulas.length, 4);
+    expect(
+      celulas.every((c) => c.nivel == NivelSemaforo.aguarda),
+      isTrue,
+      reason: 'sem dados é espera, não urgência',
+    );
   });
 
   testWidgets('os números vêm do estado, não de constantes', (tester) async {

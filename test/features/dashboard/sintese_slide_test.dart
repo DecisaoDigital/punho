@@ -29,9 +29,12 @@ void main() {
 
     await montarLandscape(tester, container, SinteseSlide(agora: agora));
 
-    // Entradas, utilização e encontro de contas em "Por apurar". A quarta
-    // célula é a recomendação, que se cala em vez de inventar conselho.
-    expect(find.text('Por apurar'), findsNWidgets(3));
+    // Entradas, utilização e encontro de contas dizem o que falta fazer. A
+    // quarta célula é a recomendação, que se cala em vez de inventar conselho.
+    expect(find.text('Regista um recebimento'), findsOneWidget);
+    expect(find.text('Identifica as máquinas'), findsOneWidget);
+    expect(find.text('Sem movimentos este mês'), findsOneWidget);
+    expect(find.text('Por apurar'), findsNothing);
     expect(find.text('Nada a assinalar'), findsOneWidget);
     expect(find.textContaining('1 240'), findsNothing);
     expect(find.textContaining('Silva & Filhos'), findsNothing);

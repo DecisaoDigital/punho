@@ -18,7 +18,7 @@ import '../widgets/slide_header.dart';
 /// cabeçalho + 3-4 KPIs + recomendação canónica + CTA para destino operacional.
 ///
 /// Ligado a dados: não há aqui número escrito à mão. O que não se consegue
-/// apurar diz "Por apurar" com a razão.
+/// apurar diz o que falta para o poder apurar.
 class ProcuraSlide extends ConsumerWidget {
   const ProcuraSlide({super.key, this.agora});
 
@@ -82,10 +82,10 @@ class ProcuraSlide extends ConsumerWidget {
     final novos = clientesNovos(estado, now, dias: _janelaDias);
     if (novos == null) {
       return const CelulaSemaforo(
-        nivel: NivelSemaforo.laranja,
+        nivel: NivelSemaforo.aguarda,
         rotulo: 'Clientes novos (30d)',
-        texto: 'Por apurar',
-        subtexto: 'Sem reservas registadas ainda',
+        texto: 'Ainda sem clientes',
+        subtexto: 'Contam pela primeira reserva',
       );
     }
     return CelulaSemaforo(
@@ -121,10 +121,10 @@ class ProcuraSlide extends ConsumerWidget {
     );
     if (ticket == null) {
       return const CelulaSemaforo(
-        nivel: NivelSemaforo.laranja,
+        nivel: NivelSemaforo.aguarda,
         rotulo: 'Ticket médio (30d)',
-        texto: 'Por apurar',
-        subtexto: 'Sem reservas com valor nos últimos 30 dias',
+        texto: 'Sem reservas com valor',
+        subtexto: 'Põe valor nas reservas',
       );
     }
     // Referência: o histórico todo. Sem ela o número não diz se está a subir ou
@@ -150,10 +150,10 @@ class ProcuraSlide extends ConsumerWidget {
     final taxa = funil.taxa;
     if (taxa == null) {
       return const CelulaSemaforo(
-        nivel: NivelSemaforo.laranja,
+        nivel: NivelSemaforo.aguarda,
         rotulo: 'Conversão lead → cliente',
-        texto: 'Por apurar',
-        subtexto: 'Não houve leads nos últimos 30 dias',
+        texto: 'Sem leads em 30 dias',
+        subtexto: 'Regista quem te procura',
       );
     }
     final anterior = funil.taxaPeriodoAnterior;

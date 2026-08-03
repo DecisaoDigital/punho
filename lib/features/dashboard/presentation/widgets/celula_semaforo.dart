@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 
-enum NivelSemaforo { verde, laranja, vermelho }
+/// [aguarda] não é um nível de urgência — é a ausência dela.
+///
+/// Um painel de empresa nova tinha onze células laranja a dizer "Por apurar".
+/// Laranja é cor de aviso: quem abre a app pela primeira vez não lê "ainda não
+/// me deste dados", lê "está tudo mal". A falta de dados não é um problema do
+/// negócio, é o princípio dele — e tem de se ver que é diferente.
+enum NivelSemaforo { verde, laranja, vermelho, aguarda }
 
 /// Célula reutilizável do dashboard, com bordo lateral colorido por urgência.
 ///
@@ -36,6 +42,9 @@ class CelulaSemaforo extends StatelessWidget {
       NivelSemaforo.verde => const Color(0xFF3DC97A),
       NivelSemaforo.laranja => const Color(0xFFFFB246),
       NivelSemaforo.vermelho => const Color(0xFFFF5C6E),
+      // Do tema, e não uma constante: tem de se ler nos dois fundos, e o que
+      // se quer aqui é presença discreta — a faixa existe, mas não chama.
+      NivelSemaforo.aguarda => cs.outline,
     };
     // O bordo lateral é uma faixa dentro de um `ClipRRect`, e não um
     // `Border(left: ...)` mais largo que os outros lados. Um bordo não-uniforme
@@ -114,7 +123,12 @@ class CelulaSemaforo extends StatelessWidget {
               // célula em ecrãs estreitos — a recomendação, que é o único
               // texto realmente longo, ganha reticências mais cedo em vez de
               // rebentar a caixa (achado no teste de margens, 2026-08-03).
-              maxLines: 2,
+              //
+              // Uma linha só quando a célula está à espera de dados: aqui o
+              // texto substituiu o "Por apurar", que tinha uma linha garantida
+              // por ser curto. Com duas, o orçamento de altura estourava e o
+              // painel transbordava 17 px — medido, não estimado.
+              maxLines: nivel == NivelSemaforo.aguarda ? 1 : 2,
               overflow: TextOverflow.ellipsis,
             ),
           if (subtexto != null)

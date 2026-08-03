@@ -13,8 +13,8 @@ import '../widgets/slide_header.dart';
 ///
 /// É o primeiro slide ligado a dados a sério. Os números vêm todos de
 /// [pulsoOperacional]; não há aqui constante nenhuma. Quando não há reservas
-/// registadas, as células dizem **"Por apurar"** com a razão, em vez de
-/// mostrarem zeros que parecem informação.
+/// registadas, as células dizem **o que falta fazer** para o número existir, em
+/// vez de mostrarem zeros que parecem informação.
 class OperacionalSlide extends ConsumerWidget {
   const OperacionalSlide({super.key, this.agora});
 
@@ -52,18 +52,28 @@ class OperacionalSlide extends ConsumerWidget {
     );
   }
 
-  /// A célula que se mostra enquanto não há reservas nenhumas. Diz o que falta
-  /// para o número existir — um "0" aqui seria uma informação que não temos.
-  CelulaSemaforo _porApurar(String rotulo, String razao) => CelulaSemaforo(
-    nivel: NivelSemaforo.laranja,
-    rotulo: rotulo,
-    texto: 'Por apurar',
-    subtexto: razao,
-  );
+  /// A célula que se mostra enquanto não há reservas nenhumas.
+  ///
+  /// O que ocupa o lugar do número é **o que falta fazer**, não o rótulo
+  /// "Por apurar" que aqui estava: quatro células a repeti-lo liam-se como app
+  /// avariada, e a razão — que já cá estava — ficava na sub-linha apagada, que
+  /// é o último sítio para onde se olha. Um "0" continuaria fora de questão:
+  /// seria uma informação que não temos.
+  CelulaSemaforo _aguarda(String rotulo, String falta, String contexto) =>
+      CelulaSemaforo(
+        nivel: NivelSemaforo.aguarda,
+        rotulo: rotulo,
+        texto: falta,
+        subtexto: contexto,
+      );
 
   Widget _reservas(PulsoOperacional p) {
     if (p.semDados) {
-      return _porApurar('Reservas activas', 'Ainda não há reservas registadas');
+      return _aguarda(
+        'Reservas activas',
+        'Marca a primeira reserva',
+        'Põe o pulso do dia a bater',
+      );
     }
     return CelulaSemaforo(
       nivel: p.reservasActivas == 0
@@ -80,7 +90,11 @@ class OperacionalSlide extends ConsumerWidget {
 
   Widget _entregas(PulsoOperacional p) {
     if (p.semDados) {
-      return _porApurar('Entregas hoje', 'Ainda não há reservas registadas');
+      return _aguarda(
+        'Entregas hoje',
+        'Nada para entregar',
+        'Vem das reservas marcadas',
+      );
     }
     return CelulaSemaforo(
       nivel: p.entregasPorFazer > 0
@@ -99,7 +113,11 @@ class OperacionalSlide extends ConsumerWidget {
 
   Widget _recolhas(PulsoOperacional p) {
     if (p.semDados) {
-      return _porApurar('Recolhas a fazer', 'Ainda não há reservas registadas');
+      return _aguarda(
+        'Recolhas a fazer',
+        'Nada para recolher',
+        'Vem das reservas a terminar',
+      );
     }
     final atrasada = p.recolhasEmAtraso > 0;
     final dias = p.diasDaRecolhaMaisAtrasada;
@@ -123,9 +141,10 @@ class OperacionalSlide extends ConsumerWidget {
 
   Widget _cobrancas(PulsoOperacional p) {
     if (p.semDados) {
-      return _porApurar(
+      return _aguarda(
         'Cobranças a vencer',
-        'Ainda não há reservas registadas',
+        'Nada por cobrar',
+        'Vem das reservas por liquidar',
       );
     }
     return CelulaSemaforo(
