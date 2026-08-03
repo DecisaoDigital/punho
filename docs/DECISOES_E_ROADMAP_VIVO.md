@@ -214,6 +214,48 @@ nenhuma navegação no código a alcança (a tarefa navega para
 `CompanySettingsPage`, ver `tarefas_page.dart`) — por isso ficou fora desta
 correcção.
 
+## 3.65 Decisões e progressos — 3 de agosto de 2026 (fecho técnico da campanha: releases v0.1.5 a v0.1.11)
+
+Sete releases em sequência rápida que fecham os achados da campanha de 2 de
+agosto (secção 3.6) e acrescentam duas decisões de produto novas. Detalhe dos
+37 commits do intervalo em `docs/HANDSHAKE.md` (sessões de 2–3 de agosto) e
+`docs/release_notes/v0.1.5.md`/`v0.1.11.md` (`v0.1.6` a `v0.1.10` não têm
+notas individuais).
+
+**Decisão fechada — custos fixos deixam de ser um total único, passam a
+rubrica.** Antes só se gravava a soma redonda. O separador "Custos fixos" da
+Empresa lista agora as rubricas (renda, água e luz, comunicações, seguros...)
+e liga ao editor real em Dados, sem duplicar o estado de gravação (`5a1d63b`).
+Corrigido pouco depois (`407434d`): guardar uma rubrica gravava-a no
+repositório, mas `_comDadosDaEmpresa` reconstruía o `state` em memória sem
+`custosFixos` — o ecrã voltava a "Por indicar" até reiniciar a app.
+
+**Decisão fechada — cadeado local ganha a opção de 2 minutos, passa a
+default.** 5 minutos era demasiado tempo desbloqueado para quem larga o
+telemóvel num balcão. 2 minutos fica recomendado por omissão; 5 continua
+disponível (`444ad68`).
+
+**Fecha-se o lado servidor da obrigatoriedade do NIF (secção 3.6):**
+`registar-terminal` (Edge Function, deploy v7, já em produção) passa a aceitar
+`nif` opcional e a actualizar `licencas.nif` — que nascia sempre com o
+placeholder `'000000000'` — quando recebe um NIF real de 9 dígitos (`1e0c04d`).
+Antes disto, nenhuma instalação Punho tinha alguma vez ligado o seu NIF real
+à linha de `licencas`, mesmo depois de a empresa o preencher em Definições.
+
+**Actualização à decisão do limite de colaboradores (secção 3.6): a RPC
+`punho_definir_limite` deixou de estar "por aplicar".** Verificado agora
+(3 de agosto, por consulta directa a `pg_proc` no projecto Supabase
+`oefqbkhioncakojipqyx`): a função existe em produção, assinatura
+`(p_empresa_id uuid, p_novo_limite integer)`, `security definer` — compatível
+com `supabase/migrations/20260802_punho_definir_limite.sql` (`4bbc60e`). Nem
+o git log nem os docs anteriores (`HANDSHAKE.md`, `HANDOVER_SESSAO_SEGUINTE.md`)
+registam quem a aplicou nem quando — ambos ainda afirmam "não aplicada em
+produção" por uma verificação anterior a esta, agora desactualizada. Por
+confirmar com o Cesar: se foi ele a aplicar directamente por fora deste
+histórico, e se o Control já tem alguma interface a chamá-la — a proposta em
+`docs/HANDOVER_SESSAO_SEGUINTE.md` ("Control — menus do Punho") continua a
+descrever isto como peça por construir do lado da interface.
+
 ## 3.7 Decisão e progresso — 3 de agosto de 2026 (conflitos de reserva entre dispositivos offline)
 
 **Decisão fechada — a resolução de conflitos entra por fases, e a Fase 0 é só

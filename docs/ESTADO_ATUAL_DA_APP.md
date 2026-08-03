@@ -28,6 +28,44 @@
 > cliente, que passa a identificar-se por `machine_id`. Ícone adaptativo e
 > splash regenerados nesta sessão (`beb6cd1`), sem mudança de lógica.
 
+> **Releases v0.1.5 a v0.1.11 — 2 e 3 de agosto de 2026** (fecho técnico da
+> campanha de testes, abaixo)
+>
+> Sete releases em sequência rápida — só `v0.1.5` e `v0.1.11` têm notas
+> individuais em `docs/release_notes/`; `v0.1.6` a `v0.1.10` não têm. Fecham
+> os achados da campanha de 2 de agosto: o "zero calado" do dinheiro corrigido
+> em oito sítios (reservas, despesas, recebimentos, custo de colaborador,
+> prestação e seguro de veículo passam todos por `centsDeTexto`, que recusa
+> gravar em vez de inventar zero), aviso de valor inválido a sair do
+> `SnackBar` para junto do campo, máquina alugada a bloquear só a data
+> ocupada em vez de todas as semanas seguintes, selector de reservas a voltar
+> a mostrar o nome da máquina mesmo com referência, despesas/recebimentos por
+> data e clientes por ordem alfabética, cálculo da "última quarta-feira"
+> corrigido para segunda e terça-feira, e o NIF a passar a obrigatório tanto
+> no onboarding como em Definições da Empresa — resolve os 400 da Edge
+> Function `sincronizar-empresa-punho` para quem terminava sem NIF. Do lado
+> do servidor, `registar-terminal` passa a actualizar `licencas.nif` com o
+> NIF real assim que a app o tem (`1e0c04d`) — nenhuma instalação Punho
+> alguma vez tinha ligado o NIF real à sua licença antes disto.
+>
+> Três hotfixes no mesmo dia (`v0.1.7`, `v0.1.8`, `v0.1.9`, tags directas sem
+> `chore(release)` próprio) forçam retrato em toda a sequência do instalador
+> de update — o Play Protect e o instalador do sistema não sabem lidar com
+> landscape — e dão um X para dispensar o aviso opcional até à próxima
+> entrada na app. `v0.1.10` traz a limpeza dos 8 avisos que bloqueavam
+> `flutter analyze --fatal-infos` e dois fixes ao script de catálogo de
+> releases: nome do asset Android alinhado com o workflow (deixou de esperar
+> `Punho_v..._universal.apk`/`.exe`, que já não existem) e publicação do
+> sha256, sem o qual o botão "Atualizar" caía sempre para o browser externo
+> em vez de instalar in-app. `v0.1.11` acrescenta custos fixos editáveis por
+> rubrica, veículos a mostrar o custo total (prestação + seguro + manutenção,
+> com campo novo para a manutenção anual prevista), o motor de recomendações
+> fundido num só (dashboard e Tarefas deixam de poder contradizer-se),
+> cadeado com opção de 2 minutos como novo default e botão de Sugestões no
+> Perfil, a escrever na mesma tabela do Control que já recebe as do
+> WashInvoice. Ver `docs/release_notes/v0.1.5.md` e
+> `docs/release_notes/v0.1.11.md`.
+
 > **Campanha de testes no telemóvel — 2 de agosto de 2026** (v0.1.4+25, Redmi
 > Note 10 Pro)
 >
@@ -117,13 +155,15 @@
 ## Proxima prioridade tecnica
 
 A ligacao ao Supabase e a outbox local ja existem e ja foram verificadas a
-funcionar de ponta a ponta num aparelho real (2 de agosto de 2026). A
-prioridade tecnica imediata passou a ser o lote de correccoes ja feitas mas
-por commitar (ver campanha de testes, acima) e os achados ainda por corrigir
-mais urgentes: detalhe de cliente que nao abre, painel que fica em "Por
-apurar" mesmo com onboarding completo, maquina alugada a bloquear reservas
-em todas as semanas seguintes (decisao ja tomada: bloquear so a data) e o
-aviso de limite de colaboradores invisivel no teclado.
+funcionar de ponta a ponta num aparelho real (2 de agosto de 2026). O lote de
+correccoes encontradas nessa campanha (selector de maquina, ordenacao de
+listas, "ultima quarta-feira", NIF obrigatorio, PIN 1234, aviso de limite de
+colaboradores) ja foi commitado e publicado entre 2 e 3 de agosto, releases
+v0.1.5 a v0.1.11 (ver acima) — confirmado no aparelho real, sem regressoes
+(`docs/PLANO_DE_TESTES_2026-08-02.md`). Fica por resolver: a origem/campanha
+da lead nunca e perguntada (achado da auditoria, eixo 2) e um overflow
+cosmetico em dois dialogos (Mudar palavra-passe, Definir PIN) so visto em
+build debug, sem decisao tomada sobre corrigir.
 
 A Fase 0 da infra de conflitos entre dispositivos offline (v0.2.0, `786d845`)
 já está commitada, mas é inerte por construção — não muda nada visível. A

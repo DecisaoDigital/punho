@@ -81,12 +81,13 @@ beb6cd1 chore(assets): regenera icones e splash (launcher_icons + native_splash)
   (`flutter_launcher_icons`/`flutter_native_splash`); puramente visual, sem
   lógica.
 
-Nota importante: entre `d46065c` (fecho do handover anterior) e `786d845`
-houve **muitos outros commits** nesta mesma sessão de 3 de Agosto — incluindo
-duas releases inteiras (`v0.1.5` até `v0.1.11`) — que este handover ainda não
-resume. Não tenho factos verificados o suficiente para os descrever aqui;
-sinalizar ao Cesar que o histórico abaixo (secções seguintes) pode estar mais
-desactualizado do que parece à primeira vista.
+Nota: o hiato entre `d46065c` (fecho do handover anterior) e `786d845` — 37
+commits, releases `v0.1.5` até `v0.1.11` — ficou preenchido numa revisão
+posterior (3 de Agosto) em `docs/ESTADO_ATUAL_DA_APP.md` e
+`docs/DECISOES_E_ROADMAP_VIVO.md` (secção 3.65). Essa revisão também
+reverificou as secções "Por confirmar no aparelho" e "Achados por corrigir"
+abaixo à luz desses commits — o que ficou resolvido está marcado inline.
+Ainda não foi reverificada a secção "Em voo" nem "Por autorizar pelo Cesar".
 
 ---
 
@@ -191,6 +192,11 @@ Proposta apresentada, por ordem de valor:
    que o desbloqueia. Como autorizar o sétimo *é* subir o contrato, esta peça
    serve as duas coisas: o botão de aprovar, quando o pedido excede o plano,
    avisa que o contrato sobe e só grava com confirmação.
+   **Actualização (3 Ago):** a função já existe em produção — confirmado por
+   consulta directa a `pg_proc`, assinatura compatível com a migration
+   `4bbc60e`. Não se sabe quem a aplicou nem quando; por confirmar se o
+   Control já tem alguma interface a chamá-la, ou se continua só a peça 1
+   (ecrã) por construir.
 3. **Aviso da discrepância** — o `n_colaboradores` que a app já sobe para
    `punho_empresas` entra no RPC de listagem; badge no separador. Sem migração.
 
@@ -235,12 +241,25 @@ Lembrete de custo: capturas de ecrã nunca com `Read` no thread principal.
 
 ## Por confirmar no aparelho (nada disto foi visto a correr)
 
-Arrastado da sessão anterior, e ainda por fechar:
+Arrastado da sessão anterior — **os quatro itens abaixo ficaram confirmados
+no aparelho real na sessão de 2 de Agosto à noite** (Redmi desbloqueado pelo
+César), ver `docs/PLANO_DE_TESTES_2026-08-02.md` linhas ~499-548 e commit
+`55e66d7`:
 
-- Cabeçalho do login/registo com `SafeArea` — era achado P0.
-- Aviso de recusa visível com teclado aberto em landscape.
-- Gravar cliente duplicado sem ecrã vermelho.
-- Ficha da empresa a chegar ao Control depois de fechar a app.
+- ~~Cabeçalho do login/registo com `SafeArea` — era achado P0.~~ **Confirmado:**
+  bloco "Punho / Agarra o comando." completo, sem corte, em login e ecrã de PIN.
+- ~~Aviso de recusa visível com teclado aberto em landscape.~~ **Confirmado**
+  (achado 17b): aviso vermelho visível com o teclado numérico aberto.
+- ~~Gravar cliente duplicado sem ecrã vermelho.~~ **Confirmado** (achado 17):
+  cliente com telemóvel repetido foi recusado, sem crash, sem gravar.
+- ~~Ficha da empresa a chegar ao Control depois de fechar a app.~~
+  **Confirmado agora (3 Ago), por SQL directo em produção:** `punho_empresas`
+  da Lavandaria Mare Alta já não está `{}` — tem `dados` completos (NIF
+  509442129, 15 máquinas, etc.), `updated_at` 2026-08-03T12:49:21Z. O achado
+  novo que tinha sido levantado em paralelo (ficha presa por NIF inválido,
+  400 da `sincronizar-empresa-punho`) fica coberto pela obrigatoriedade do
+  NIF fechada nesta sessão (`7269953`/`21b269a`) — mas não retroactivamente
+  para quem já estava preso; esta empresa de teste em concreto já ressincronizou.
 
 Desta sessão, tudo o que está commitado só tem testes automáticos por trás.
 Prioridade ao retomar: onboarding a começar vazio (a mudança de maior alcance),
@@ -261,16 +280,28 @@ manutenção, que continua a bloquear sempre. Lógica em `3c7fe1c`, testes que a
 fixam em `3db013b` (comentário "Decisão de 02/08/2026" em
 `test/operations_test.dart`).
 
-**Por fazer:**
-- Rotação de ecrã indevida — a do splash foi corrigida em `5dcc5c5`; falta
-  reproduzir em que outro ecrã ainda acontece.
-- Máquinas com referência perdem o nome no selector de reservas.
-- Ordem das listas de despesas e clientes não segue data nem alfabeto.
-- «Recomendação do dia: Quarta-feira fraca» num domingo — confirmar a regra do
-  dia da semana.
-- PIN 1234 por pôr (arrastado do relatório de 1 de Agosto).
+**Resolvido no hiato de 2–3 de Agosto (v0.1.5–v0.1.11), todos confirmados no
+aparelho real ou por teste automático — ver `docs/PLANO_DE_TESTES_2026-08-02.md`:**
+- ~~Rotação de ecrã indevida noutro ecrã~~ — auditados os 9 ficheiros que usam
+  `OrientacaoDoContexto`; só o splash tinha o problema (`5dcc5c5`), e o achado
+  7 (splash) foi confirmado em retrato em 10 capturas seguidas no aparelho.
+- ~~Máquinas com referência perdem o nome no selector de reservas~~ — achado
+  13, resolvido em `cf2b3ab`: mostra sempre `Nome · Referência`.
+- ~~Ordem das listas de despesas e clientes não segue data nem alfabeto~~ —
+  achado 20, resolvido: despesas/recebimentos por data desc (`9c058fe`),
+  clientes por ordem alfabética (`cf2b3ab`).
+- ~~«Recomendação do dia: Quarta-feira fraca» num domingo~~ — achado 14, bug
+  real confirmado (`weekday - 3` sem `% 7`, errado às segundas/terças) e
+  corrigido em `0df267d`; confirmado no aparelho em 02/08 à noite.
+- ~~PIN 1234 por pôr~~ — posto em Perfil > Cadeado > Definir PIN, confirmado
+  a pedir PIN no arranque e a desbloquear no aparelho em 02/08 à noite.
+
+**Por fazer, continua aberto — nenhum commit do hiato o resolve:**
 - Origem/campanha do lead e a ligação lead → cliente → recebimento nunca são
   perguntadas (auditoria, eixo 2).
+- Overflow cosmético nos diálogos "Mudar palavra-passe" e "Definir PIN" com o
+  teclado aberto — achado novo de `55e66d7`, só visto em build debug, não
+  corrigido, "aponta-se para decisão".
 
 **Testes por executar:** Faixa C ponto 5 (documentos, só em Windows) e Faixa D
 (uma verificação no Control por **cada** empresa nova — só houve uma).
