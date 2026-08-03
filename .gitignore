@@ -120,3 +120,7 @@ installer_output/
 # afins). São dezenas de MB e o repositório já é a fonte — se entrassem, ficavam
 # no histórico para sempre.
 *.tar.gz
+
+# APKs compilados localmente (ex.: dist/punho-android-*.apk). O artefacto
+# publicado vive no GitHub Release, nunca no histórico do git.
+dist/
