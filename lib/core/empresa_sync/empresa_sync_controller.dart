@@ -44,10 +44,19 @@ class EmpresaSyncEngine {
     if (_aEnviar) return;
     final ficha = pendente.ficha;
     if (ficha == null) return;
+    // Já foi recusada e continua exactamente igual: insistir dá o mesmo. Basta
+    // o gestor corrigir o que falta (o NIF, na campanha de testes) para a
+    // assinatura mudar e isto voltar a tentar sozinho.
+    if (pendente.jaFoiRecusadaAssim) return;
     _aEnviar = true;
     try {
-      final ok = await _sync.sincronizar(ficha);
-      if (ok) await pendente.limpar();
+      final resultado = await _sync.sincronizar(ficha);
+      if (resultado.entregou) {
+        await pendente.limpar();
+      } else if (resultado.foiRecusada) {
+        await pendente.marcarRecusada(resultado.recusa!);
+      }
+      // Adiada: fica tudo como está, tenta-se na próxima ronda.
     } finally {
       _aEnviar = false;
     }

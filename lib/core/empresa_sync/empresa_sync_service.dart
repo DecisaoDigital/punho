@@ -63,31 +63,78 @@ class EmpresaSyncService {
     }
   }
 
-  Future<bool> sincronizar(Map<String, dynamic> dados) async {
+  /// Envia a ficha e diz **porquê** correu mal, quando corre mal.
+  ///
+  /// Um `bool` não chegava: "falhou" tanto podia ser sem rede (tentar outra
+  /// vez) como dados inválidos (nunca vai passar). Sem a distinção, a app
+  /// tratava tudo como temporário e insistia para sempre.
+  Future<ResultadoDaFicha> sincronizar(Map<String, dynamic> dados) async {
     if (_invocarMock != null) {
       try {
         final r = await _invocarMock!({'dados': dados}).timeout(_timeout);
-        return r['ok'] == true;
+        if (r['ok'] == true) return const ResultadoDaFicha.entregue();
+        final erro = r['error'] ?? r['erro'];
+        return erro == null
+            ? const ResultadoDaFicha.adiada()
+            : ResultadoDaFicha.recusada('$erro');
       } catch (e) {
         debugPrint('EmpresaSyncService.mock falhou: $e');
-        return false;
+        return const ResultadoDaFicha.adiada();
       }
     }
-    if (!SupabaseConfig.enabled) return false;
-    if (_client == null) return false;
+    if (!SupabaseConfig.enabled) return const ResultadoDaFicha.adiada();
+    if (_client == null) return const ResultadoDaFicha.adiada();
     try {
       final resposta = await _client.functions
           .invoke('sincronizar-empresa-punho', body: {'dados': dados})
           .timeout(_timeout);
       final body = resposta.data;
-      if (body is Map && body['ok'] == true) return true;
+      if (body is Map && body['ok'] == true) {
+        return const ResultadoDaFicha.entregue();
+      }
       debugPrint('sincronizar-empresa-punho resposta inesperada: $body');
-      return false;
+      // Resposta com erro nomeado = a função percebeu o pedido e recusou-o.
+      // Insistir com o mesmo conteúdo dá sempre o mesmo — foi assim que o
+      // `nif_invalido` ficou preso a reenviar de 20 em 20 minutos.
+      if (body is Map && (body['error'] ?? body['erro']) != null) {
+        return ResultadoDaFicha.recusada('${body['error'] ?? body['erro']}');
+      }
+      return const ResultadoDaFicha.adiada();
+    } on FunctionException catch (erro) {
+      // 4xx é "os dados estão mal"; 5xx é "o servidor está mal". Só o primeiro
+      // é definitivo — o segundo passa.
+      final detalhe = erro.details;
+      final motivo = detalhe is Map
+          ? '${detalhe['error'] ?? detalhe['erro'] ?? erro.status}'
+          : '${erro.status}';
+      debugPrint('sincronizar-empresa-punho recusou (${erro.status}): $motivo');
+      return erro.status >= 400 && erro.status < 500
+          ? ResultadoDaFicha.recusada(motivo)
+          : const ResultadoDaFicha.adiada();
     } catch (erro) {
       debugPrint('sincronizar-empresa-punho falhou: $erro');
-      return false;
+      return const ResultadoDaFicha.adiada();
     }
   }
+}
+
+/// Como correu a entrega da ficha da empresa ao Control.
+///
+/// A distinção que faltava: **adiada** volta a ser tentada, **recusada** não.
+class ResultadoDaFicha {
+  const ResultadoDaFicha.entregue() : recusa = null, entregou = true;
+
+  /// Sem rede, servidor em baixo, timeout. Vale a pena insistir.
+  const ResultadoDaFicha.adiada() : recusa = null, entregou = false;
+
+  /// O servidor percebeu o pedido e disse que não. Insistir com o mesmo
+  /// conteúdo dá sempre o mesmo resultado.
+  const ResultadoDaFicha.recusada(String this.recusa) : entregou = false;
+
+  final bool entregou;
+  final String? recusa;
+
+  bool get foiRecusada => recusa != null;
 }
 
 /// Provider global. Retorna `null` em modo demo (sem Supabase) — o chamador

@@ -84,7 +84,8 @@ class _Servico implements EmpresaSyncService {
   }
 
   @override
-  Future<bool> sincronizar(Map<String, dynamic> dados) async => true;
+  Future<ResultadoDaFicha> sincronizar(Map<String, dynamic> dados) async =>
+      const ResultadoDaFicha.entregue();
 
   @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
