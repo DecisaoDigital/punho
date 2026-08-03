@@ -30,6 +30,14 @@ final punhoUpdateProvider =
       PunhoUpdateController.new,
     );
 
+/// O build que o gestor dispensou no X do banner — só esse, e só nesta
+/// sessão. Vive à parte do [punhoUpdateProvider] porque dispensar não é
+/// esquecer: se aparecer uma versão mais recente ainda nesta sessão, o aviso
+/// volta. O que o X promete é "não agora, para esta"; para o resto ele fica a
+/// zero outra vez a cada arranque, tal como o [punhoUpdateProvider] — não há
+/// nada a persistir.
+final updateDispensadoProvider = StateProvider<int?>((_) => null);
+
 class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
   StreamSubscription<AuthState>? _subscricaoAuth;
   Timer? _timer;

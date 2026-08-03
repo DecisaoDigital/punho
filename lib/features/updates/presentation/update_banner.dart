@@ -70,6 +70,19 @@ class PunhoUpdateBanner extends ConsumerWidget {
             ),
             const SizedBox(width: 12),
             _Accao(update: update, instalacao: instalacao),
+            if (!update.mandatory) ...[
+              // Só o opcional pode ser calado: o obrigatório não tem para
+              // onde o gestor "continuar a trabalhar" sem ele.
+              IconButton(
+                icon: const Icon(Icons.close, size: 20),
+                tooltip: 'Agora não',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => ref
+                    .read(updateDispensadoProvider.notifier)
+                    .state = update.buildNumber,
+              ),
+            ],
           ],
         ),
       ),

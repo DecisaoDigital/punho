@@ -29,6 +29,13 @@ const _obrigatorio = PunhoUpdateInfo(
   mandatory: true,
 );
 
+const _opcionalNovo = PunhoUpdateInfo(
+  version: '0.0.6',
+  buildNumber: 11,
+  downloadUrl: 'https://exemplo/punho-0.0.6.apk',
+  mandatory: false,
+);
+
 /// Estado de update fixo, sem rede e sem `Supabase.instance`.
 class _UpdateFixo extends PunhoUpdateController {
   _UpdateFixo(this.info);
@@ -215,5 +222,79 @@ void main() {
       expect(_avisoOpcional, findsOneWidget);
       expect(find.byKey(barreiraUpdateObrigatorio), findsNothing);
     });
+  });
+
+  group('Update opcional pode ser dispensado', () {
+    testWidgets('o X esconde o aviso sem tocar no ecrã de baixo', (
+      tester,
+    ) async {
+      var toques = 0;
+      final container = ProviderContainer(
+        overrides: [
+          punhoUpdateProvider.overrideWith(() => _UpdateFixo(_opcional)),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: PunhoUpdateBannerWrapper(
+              child: _AlvoDeToque(aoToque: () => toques++),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(_avisoOpcional, findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+
+      expect(_avisoOpcional, findsNothing);
+      expect(find.byType(PunhoUpdateBanner), findsNothing);
+      // O ecrã de baixo continua lá e continua a receber toques.
+      await tester.tap(find.text('Continuar'));
+      await tester.pump();
+      expect(toques, 1);
+    });
+
+    testWidgets('o obrigatório não tem X — não há forma de o calar', (
+      tester,
+    ) async {
+      await _montar(tester, child: const AppShell(), update: _obrigatorio);
+
+      expect(find.byIcon(Icons.close), findsNothing);
+    });
+
+    testWidgets(
+      'dispensar uma versão não esconde uma versão mais recente que apareça a seguir',
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            punhoUpdateProvider.overrideWith(() => _UpdateFixo(_opcional)),
+          ],
+        );
+        addTearDown(container.dispose);
+        container.read(updateDispensadoProvider.notifier).state =
+            _opcional.buildNumber;
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const MaterialApp(
+              home: PunhoUpdateBannerWrapper(child: SizedBox()),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(_avisoOpcional, findsNothing);
+
+        container.read(punhoUpdateProvider.notifier).state = _opcionalNovo;
+        await tester.pumpAndSettle();
+
+        expect(find.text('Nova versão 0.0.6 disponível'), findsOneWidget);
+      },
+    );
   });
 }

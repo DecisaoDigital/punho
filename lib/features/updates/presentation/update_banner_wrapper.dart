@@ -59,6 +59,13 @@ class PunhoUpdateBannerWrapper extends ConsumerWidget {
       );
     }
 
+    if (ref.watch(updateDispensadoProvider) == update.buildNumber) {
+      // O gestor já disse "não agora" a esta versão — a descarga em segundo
+      // plano continua (não depende deste banner), só o aviso é que se cala
+      // até à próxima vez que entrar na app.
+      return child;
+    }
+
     // Opcional: uma Column e não uma Stack. O aviso empurra o conteúdo em vez
     // de o tapar, portanto nada fica escondido nem se perde um toque num botão
     // que o banner cobrisse — e o ecrã por baixo não precisa de saber que ele
