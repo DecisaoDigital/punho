@@ -192,9 +192,66 @@ class SincronizacaoEntreDispositivos {
     ];
     // `upsert` e não `insert`: um reenvio depois de a rede cair a meio não pode
     // duplicar a operação. O `unique (id)` faz o resto.
-    await _cliente.from(_tabela).upsert(linhas, onConflict: 'id');
-    await registo.remover(pendentes.map((o) => o.id).toSet());
-    return pendentes.length;
+    try {
+      await _cliente.from(_tabela).upsert(linhas, onConflict: 'id');
+      await registo.remover(pendentes.map((o) => o.id).toSet());
+      return pendentes.length;
+    } on PostgrestException catch (erro) {
+      if (!ehRecusaDefinitiva(erro.code)) rethrow;
+      // Uma operação inválida no meio do lote fazia falhar o lote inteiro, e
+      // como nada saía da fila, a app reenviava tudo outra vez a cada ciclo —
+      // para sempre, sem ninguém ver o erro. Aqui separa-se o trigo do joio:
+      // vai-se uma a uma, as boas passam, e a má fica de lado identificada.
+      debugPrint('[Sync] lote recusado (${erro.code}) — a isolar a operação má');
+      return _enviarUmaAUma(pendentes, linhas);
+    }
+  }
+
+  /// O servidor recusou por causa do **conteúdo**, e não por causa da ligação.
+  ///
+  /// É a distinção que faltava: sem ela, qualquer falha era tratada como "logo
+  /// se tenta outra vez", e um payload que nunca ia ser aceite ficava a bater à
+  /// porta do servidor indefinidamente.
+  ///
+  /// `23514` é o que o trigger `punho_operacoes_payload_coerente` levanta para
+  /// payload incoerente; `23502`/`23503` são campo obrigatório em falta e
+  /// referência inexistente; `22007`/`22P02` são data e número ilegíveis.
+  /// Nenhum destes melhora por se insistir. Tudo o resto — timeout, 5xx, sem
+  /// rede — fica na fila, que é o que a torna útil numa obra sem sinal.
+  static bool ehRecusaDefinitiva(String? codigo) =>
+      const {'23514', '23502', '23503', '22007', '22P02'}.contains(codigo);
+
+  /// Envia uma a uma para descobrir qual é a inválida.
+  ///
+  /// Só corre depois de o lote falhar — o caminho normal continua a ser uma
+  /// escrita só.
+  Future<int> _enviarUmaAUma(
+    List<OperacaoPendente> pendentes,
+    List<Map<String, Object?>> linhas,
+  ) async {
+    var enviadas = 0;
+    for (var i = 0; i < pendentes.length; i++) {
+      final operacao = pendentes[i];
+      try {
+        await _cliente.from(_tabela).upsert([linhas[i]], onConflict: 'id');
+        await registo.remover({operacao.id});
+        enviadas++;
+      } on PostgrestException catch (erro) {
+        if (!ehRecusaDefinitiva(erro.code)) rethrow;
+        // Sai da fila e vai para a quarentena: se ficasse, voltava a prender
+        // tudo no ciclo seguinte.
+        await registo.porEmQuarentena(
+          operacao,
+          '${erro.code}: ${erro.message}',
+        );
+        await registo.remover({operacao.id});
+        debugPrint(
+          '[Sync] operação ${operacao.entidade}/${operacao.entidadeId} '
+          'recusada em definitivo: ${erro.message}',
+        );
+      }
+    }
+    return enviadas;
   }
 
   /// UUID v4 suficiente para chave — não precisa de ser criptográfico, só de
