@@ -34,7 +34,7 @@ List<AppDestination> visibleDestinations(CompanySettings settings) => [
   if (settings.hasFleet) AppDestination.vehicles,
 ];
 
-/// Os sete destinos da barra lateral, **sempre os mesmos** (Decisão 2).
+/// Os destinos da barra lateral, **sempre os mesmos** (Decisão 2).
 ///
 /// Deixou de haver destinos condicionais. Antes, "Funcionários" só aparecia com
 /// colaboradores declarados e "Frota" só com frota — o que fazia a barra mudar
@@ -42,9 +42,17 @@ List<AppDestination> visibleDestinations(CompanySettings settings) => [
 /// depois se mexia. Uma barra que muda não se decora.
 ///
 /// Finanças e Veículos saíram da barra e são agora abas de **Empresa**.
+///
+/// Eram sete e passaram a oito a 4 de Agosto de 2026, com **A minha semana**
+/// (Fase 0 do `docs/PLANO_DO_CICLO.md`). A Decisão 2 proibia destinos
+/// *condicionais* — o mal era a barra mudar sozinha, não ter mais um item.
+/// Entra a seguir ao Painel e não à frente dele: enquanto a carteira for curta
+/// a lista aparece vazia, e uma lista vazia é uma péssima primeira coisa a ver
+/// ao abrir a app. Passa a primeiro quando a Fase 1 estiver no terreno.
 List<AppDestination> visibleOperationalDestinations(OperationsState state) =>
     const [
       AppDestination.management,
+      AppDestination.semana,
       AppDestination.bookings,
       AppDestination.clients,
       AppDestination.machines,

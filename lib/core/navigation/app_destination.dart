@@ -12,6 +12,13 @@ import 'package:flutter/material.dart';
 /// palavra usada em todo o resto da app e no modelo.
 enum AppDestination {
   management('Painel', Icons.space_dashboard_outlined),
+
+  /// O que precisa do gestor hoje, com um botão por linha (Fase 0 do
+  /// `docs/PLANO_DO_CICLO.md`). Vive ao lado das Reservas e não dentro delas:
+  /// as Reservas são o calendário — onde as coisas estão —, esta é a lista do
+  /// que falta fazer. São perguntas diferentes e respondem-se em ecrãs
+  /// diferentes.
+  semana('A minha semana', Icons.playlist_add_check_outlined),
   machines('Máquinas', Icons.build_outlined),
   bookings('Reservas', Icons.calendar_month_outlined),
   clients('Clientes', Icons.people_outline),
@@ -50,6 +57,12 @@ enum AppDestination {
 enum AbaDaEmpresa {
   dados('Dados', Icons.badge_outlined),
   regime('Regime', Icons.account_balance_outlined),
+
+  /// O que a empresa fez antes de instalar o Punho — e que só o contabilista
+  /// tem escrito. Fica ao lado do Regime porque é a mesma conversa: as duas
+  /// perguntas que a app não consegue responder sozinha e que ele responde em
+  /// cinco minutos.
+  historico('Histórico', Icons.history_outlined),
   custosFixos('Custos fixos', Icons.receipt_long_outlined),
   veiculos('Veículos', Icons.local_shipping_outlined),
   financas('Finanças', Icons.credit_card_outlined),

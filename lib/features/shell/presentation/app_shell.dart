@@ -12,6 +12,7 @@ import '../../../core/session/demo_session.dart';
 import '../../../core/theme/punho_theme.dart';
 import '../../../shared/widgets/brand_lockup.dart';
 import '../../../shared/widgets/versao_app.dart';
+import '../../ciclo/presentation/minha_semana_page.dart';
 import '../../collaborator/presentation/collaborator_shell.dart';
 import '../../conta/presentation/perfil_popup.dart';
 import '../../dashboard/presentation/dashboard_page.dart';
@@ -593,6 +594,7 @@ class _DestinationContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (destination == AppDestination.management) return const DashboardPage();
+    if (destination == AppDestination.semana) return const MinhaSemanaPage();
     if (destination == AppDestination.machines) return const MachinesPage();
     if (destination == AppDestination.clients) return const ClientsPage();
     if (destination == AppDestination.bookings) return const BookingsPage();
