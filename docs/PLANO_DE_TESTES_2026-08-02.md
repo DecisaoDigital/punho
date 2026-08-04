@@ -379,9 +379,26 @@ Risca-se aqui à medida que acontece. `[x]` feito · `[~]` a decorrer ·
       912445780 · geral@marealta.pt · 3 colaboradores · 1 veículo ·
       15 máquinas · 148 000 € ano passado · 92 000 € este ano ·
       9 400 € manutenção · 3 800 €/mês custos fixos
-- [!] **Dashboard sem "por apurar": falhado** — 11 de 12 cartões em "Por apurar"
-      logo a seguir ao onboarding (achado 10). Com dados semeados melhora, mas
-      "Utilização vs rentabilidade" continua por apurar (achado 9 e 10)
+- [x] ~~**Dashboard sem "por apurar": falhado**~~ — 11 de 12 cartões em "Por
+      apurar" logo a seguir ao onboarding (achado 10). **Corrigido e
+      reverificado a 04 Ago**: instalação limpa, sessão iniciada contra o
+      servidor, os três slides mostram números reais e a palavra "Por apurar"
+      não aparece em lado nenhum. A única célula à espera diz o que falta —
+      "Falta o preço de 16 de 21 máquinas" — em cinzento e não em laranja
+- [x] Escrita a subir ao servidor: cliente criado no telemóvel chegou a
+      `punho_operacoes` (seq 224) dentro do debounce de 3 s
+- [x] Ficha de cliente mostra tudo o que o servidor traz — NIF, telefone,
+      email, morada, código-postal, localidade e notas (achado 11 fechado)
+
+**Achados novos de 04 Ago, todos corrigidos antes da tag:**
+
+- Aviso de custos comparava 31 dias de custo com 4 dias de receita e dizia
+  "2149% do que entrou já saiu" ao lado de "Saídas 0"
+- Listas de clientes e máquinas não respondiam ao toque na linha
+- Sub-linha da máquina com um "·" pendurado quando falta a referência
+- **A build sem `--dart-define` disfarça-se de app normal**: durante parte
+  desta sessão testei contra dados locais a pensar que falava com o servidor.
+  Ver `scripts/construir_apk.sh` e a fita "SEM SERVIDOR"
 
 ### Faixa A · Dados semeados no servidor → telemóvel
 
