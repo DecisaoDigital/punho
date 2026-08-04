@@ -11,7 +11,6 @@ import '../../../core/config/supabase_config.dart';
 import '../../../core/empresa_sync/empresa_sync_controller.dart';
 import '../../../core/empresa_sync/ficha_da_empresa.dart';
 import '../../../core/format/campos.dart';
-import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/layout/ecra_de_formulario.dart';
 import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/theme/punho_theme.dart';
@@ -1470,7 +1469,6 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final identificacao = <Widget>[
@@ -1523,11 +1521,7 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
       ),
     ];
     final notasEFotos = <Widget>[
-      CampoDeTexto(
-        controlador: notes,
-        rotulo: 'Notas / manutenção',
-        linhas: 3,
-      ),
+      CampoDeTexto(controlador: notes, rotulo: 'Notas / manutenção', linhas: 3),
       CampoLargo(_FotografiasDaMaquina(photoPaths: photoPaths)),
     ];
 
@@ -1744,8 +1738,7 @@ class ClientsPage extends ConsumerWidget {
           // isto saía pela ordem de chegada da sincronização (achado 20).
           for (final c
               in state.customers.where((c) => !c.archived).toList()..sort(
-                (a, b) =>
-                    a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+                (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
               ))
             Card(
               // Mesmo padrão do cartão de máquina: margem de 3 dp e ListTile
@@ -3095,9 +3088,9 @@ Future<bool> _showCalendarBookingConfirmation(
   required String rotuloDoPeriodo,
   String? responsibleId,
 }) async {
-  final saved = await showDialog<bool>(
-    context: context,
-    builder: (_) => _FormularioDeConfirmacaoDeReserva(
+  final saved = await abrirFormulario<bool>(
+    context,
+    (_) => _FormularioDeConfirmacaoDeReserva(
       machine: machine,
       startsAt: startsAt,
       endsAt: endsAt,
@@ -3163,7 +3156,7 @@ class _FormularioDeConfirmacaoDeReservaState
   final notes = TextEditingController();
 
   /// Recusa a mostrar-se dentro do diálogo, como no formulário de cliente —
-  /// ver [DialogoDeFormulario.aviso]. Nada de gravar um valor inventado
+  /// ver [EcraDeFormulario.aviso]. Nada de gravar um valor inventado
   /// (nem `null` disfarçado de "sem valor") quando o texto escrito não dá
   /// para ler: quem escreveu lixo tem de o ver.
   String? erro;
@@ -3185,14 +3178,12 @@ class _FormularioDeConfirmacaoDeReservaState
 
   @override
   Widget build(BuildContext context) {
-    return DialogoDeFormulario(
+    return EcraDeFormulario(
       titulo: 'Confirmar reserva',
       rotuloGuardar: 'Gravar reserva',
       aviso: erro,
-      corpo: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      campos: [
+        CampoLargo(
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.precision_manufacturing_outlined),
@@ -3203,9 +3194,10 @@ class _FormularioDeConfirmacaoDeReservaState
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          // Lido do provider a cada reconstrução, e não da fotografia
-          // inicial: um cliente criado agora mesmo tem de aparecer já aqui.
+        ),
+        // Lido do provider a cada reconstrução, e não da fotografia
+        // inicial: um cliente criado agora mesmo tem de aparecer já aqui.
+        CampoLargo(
           Builder(
             builder: (context) {
               final estado = ref.watch(operationsProvider);
@@ -3304,37 +3296,33 @@ class _FormularioDeConfirmacaoDeReservaState
               );
             },
           ),
-          DropdownButtonFormField<BookingStatus>(
-            initialValue: status,
-            decoration: const InputDecoration(labelText: 'Estado inicial'),
-            items: const [
-              DropdownMenuItem(
-                value: BookingStatus.request,
-                child: Text('Pedido'),
-              ),
-              DropdownMenuItem(
-                value: BookingStatus.proposalSent,
-                child: Text('Proposta enviada'),
-              ),
-              DropdownMenuItem(
-                value: BookingStatus.confirmed,
-                child: Text('Confirmada'),
-              ),
-            ],
-            onChanged: (value) => setState(() => status = value!),
-          ),
-          TextField(
-            controller: expectedValue,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Valor previsto (€)'),
-          ),
-          TextField(
-            controller: notes,
-            maxLines: 2,
-            decoration: const InputDecoration(labelText: 'Notas'),
-          ),
-        ],
-      ),
+        ),
+        DropdownButtonFormField<BookingStatus>(
+          initialValue: status,
+          decoration: const InputDecoration(labelText: 'Estado inicial'),
+          items: const [
+            DropdownMenuItem(
+              value: BookingStatus.request,
+              child: Text('Pedido'),
+            ),
+            DropdownMenuItem(
+              value: BookingStatus.proposalSent,
+              child: Text('Proposta enviada'),
+            ),
+            DropdownMenuItem(
+              value: BookingStatus.confirmed,
+              child: Text('Confirmada'),
+            ),
+          ],
+          onChanged: (value) => setState(() => status = value!),
+        ),
+        CampoDeTexto(
+          controlador: expectedValue,
+          rotulo: 'Valor previsto (€)',
+          teclado: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        CampoDeTexto(controlador: notes, rotulo: 'Notas', linhas: 2),
+      ],
       aoGuardar: () {
         // Sem cliente não há reserva.
         if (customerId == null) {
@@ -3409,9 +3397,9 @@ Future<void> _showBookingForm(
     );
     return;
   }
-  await showDialog<void>(
-    context: context,
-    builder: (_) => _FormularioDeMarcacao(
+  await abrirFormulario<void>(
+    context,
+    (_) => _FormularioDeMarcacao(
       responsibleId: responsibleId,
       initialDate: initialDate,
       initialDuration: initialDuration,
@@ -3472,7 +3460,7 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
   final expectedValue = TextEditingController();
   final notes = TextEditingController();
 
-  /// Recusa a mostrar-se dentro do diálogo — ver [DialogoDeFormulario.aviso].
+  /// Recusa a mostrar-se dentro do formulário — ver [EcraDeFormulario.aviso].
   String? erro;
 
   @override
@@ -3500,203 +3488,184 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
           ? availableMachines.first.id
           : state.machines.firstWhere((machine) => !machine.archived).id;
     }
-    return DialogoDeFormulario(
+    return EcraDeFormulario(
       titulo: 'Nova marcação / reserva',
       rotuloGuardar: 'Guardar marcação',
       aviso: erro,
-      corpo: SizedBox(
-        width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<String>(
-              initialValue: customerId,
-              decoration: const InputDecoration(labelText: 'Cliente'),
-              items: activeCustomers
+      campos: [
+        DropdownButtonFormField<String>(
+          initialValue: customerId,
+          decoration: const InputDecoration(labelText: 'Cliente'),
+          items: activeCustomers
+              .map(
+                (customer) => DropdownMenuItem(
+                  value: customer.id,
+                  child: Text(customer.name),
+                ),
+              )
+              .toList(),
+          onChanged: (value) => setState(() => customerId = value!),
+        ),
+        DropdownButtonFormField<String>(
+          initialValue: machineId,
+          decoration: const InputDecoration(labelText: 'Máquina'),
+          items:
+              (availableMachines.isEmpty
+                      ? state.machines
+                            .where((machine) => !machine.archived)
+                            .toList()
+                      : availableMachines)
                   .map(
-                    (customer) => DropdownMenuItem(
-                      value: customer.id,
-                      child: Text(customer.name),
+                    (machine) => DropdownMenuItem(
+                      value: machine.id,
+                      child: Text('${machine.name} · ${machine.reference}'),
                     ),
                   )
                   .toList(),
-              onChanged: (value) => setState(() => customerId = value!),
+          onChanged: availableMachines.isEmpty
+              ? null
+              : (value) => setState(() => machineId = value!),
+        ),
+        DropdownButtonFormField<_BookingDuration>(
+          initialValue: duration,
+          decoration: const InputDecoration(labelText: 'Duração'),
+          items: const [
+            DropdownMenuItem(
+              value: _BookingDuration.halfDay,
+              child: Text('Meio dia'),
             ),
-            DropdownButtonFormField<String>(
-              initialValue: machineId,
-              decoration: const InputDecoration(labelText: 'Máquina'),
-              items:
-                  (availableMachines.isEmpty
-                          ? state.machines
-                                .where((machine) => !machine.archived)
-                                .toList()
-                          : availableMachines)
-                      .map(
-                        (machine) => DropdownMenuItem(
-                          value: machine.id,
-                          child: Text('${machine.name} · ${machine.reference}'),
-                        ),
-                      )
-                      .toList(),
-              onChanged: availableMachines.isEmpty
-                  ? null
-                  : (value) => setState(() => machineId = value!),
+            DropdownMenuItem(
+              value: _BookingDuration.fullDay,
+              child: Text('Dia inteiro'),
             ),
-            DropdownButtonFormField<_BookingDuration>(
-              initialValue: duration,
-              decoration: const InputDecoration(labelText: 'Duração'),
-              items: const [
-                DropdownMenuItem(
-                  value: _BookingDuration.halfDay,
-                  child: Text('Meio dia'),
-                ),
-                DropdownMenuItem(
-                  value: _BookingDuration.fullDay,
-                  child: Text('Dia inteiro'),
-                ),
-                DropdownMenuItem(
-                  value: _BookingDuration.multipleDays,
-                  child: Text('Vários dias seguidos'),
-                ),
-              ],
-              onChanged: (value) => setState(() {
-                duration = value!;
-                if (duration != _BookingDuration.multipleDays) {
-                  endDate = startDate;
-                }
-              }),
+            DropdownMenuItem(
+              value: _BookingDuration.multipleDays,
+              child: Text('Vários dias seguidos'),
             ),
-            if (duration == _BookingDuration.halfDay)
-              DropdownButtonFormField<_HalfDay>(
-                initialValue: halfDay,
-                decoration: const InputDecoration(labelText: 'Período'),
-                items: const [
-                  DropdownMenuItem(
-                    value: _HalfDay.morning,
-                    child: Text('Manhã'),
-                  ),
-                  DropdownMenuItem(
-                    value: _HalfDay.afternoon,
-                    child: Text('Tarde'),
-                  ),
-                ],
-                onChanged: (value) => setState(() => halfDay = value!),
-              ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Período'),
-              subtitle: Text(
-                _bookingDatesLabel(startDate, endDate, duration, halfDay),
-              ),
-              trailing: const Icon(Icons.date_range_outlined),
-              onTap: () async {
-                if (duration == _BookingDuration.multipleDays) {
-                  final range = await showDateRangePicker(
-                    context: context,
-                    firstDate: DateTime.now().subtract(const Duration(days: 1)),
-                    lastDate: DateTime.now().add(const Duration(days: 730)),
-                    initialDateRange: DateTimeRange(
-                      start: startDate,
-                      end: endDate,
-                    ),
-                  );
-                  if (range == null) return;
-                  setState(() {
-                    startDate = DateUtils.dateOnly(range.start);
-                    endDate = DateUtils.dateOnly(range.end);
-                  });
-                  return;
-                }
-                final date = await showDatePicker(
+          ],
+          onChanged: (value) => setState(() {
+            duration = value!;
+            if (duration != _BookingDuration.multipleDays) {
+              endDate = startDate;
+            }
+          }),
+        ),
+        if (duration == _BookingDuration.halfDay)
+          DropdownButtonFormField<_HalfDay>(
+            initialValue: halfDay,
+            decoration: const InputDecoration(labelText: 'Período'),
+            items: const [
+              DropdownMenuItem(value: _HalfDay.morning, child: Text('Manhã')),
+              DropdownMenuItem(value: _HalfDay.afternoon, child: Text('Tarde')),
+            ],
+            onChanged: (value) => setState(() => halfDay = value!),
+          ),
+        CampoLargo(
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Período'),
+            subtitle: Text(
+              _bookingDatesLabel(startDate, endDate, duration, halfDay),
+            ),
+            trailing: const Icon(Icons.date_range_outlined),
+            onTap: () async {
+              if (duration == _BookingDuration.multipleDays) {
+                final range = await showDateRangePicker(
                   context: context,
                   firstDate: DateTime.now().subtract(const Duration(days: 1)),
                   lastDate: DateTime.now().add(const Duration(days: 730)),
-                  initialDate: startDate,
-                );
-                if (date == null) return;
-                setState(() {
-                  startDate = DateUtils.dateOnly(date);
-                  endDate = startDate;
-                });
-              },
-            ),
-            DropdownButtonFormField<BookingStatus>(
-              initialValue: status,
-              decoration: const InputDecoration(labelText: 'Estado inicial'),
-              items: const [
-                DropdownMenuItem(
-                  value: BookingStatus.request,
-                  child: Text('Pedido'),
-                ),
-                DropdownMenuItem(
-                  value: BookingStatus.proposalSent,
-                  child: Text('Proposta enviada'),
-                ),
-                DropdownMenuItem(
-                  value: BookingStatus.confirmed,
-                  child: Text('Confirmada'),
-                ),
-              ],
-              onChanged: (value) => setState(() => status = value!),
-            ),
-            if (widget.responsibleId == null)
-              DropdownButtonFormField<String?>(
-                initialValue: collaboratorId,
-                decoration: const InputDecoration(labelText: 'Responsável'),
-                items: [
-                  const DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text('Gestor'),
+                  initialDateRange: DateTimeRange(
+                    start: startDate,
+                    end: endDate,
                   ),
-                  ...state.collaborators
-                      .where((collaborator) => !collaborator.archived)
-                      .map(
-                        (collaborator) => DropdownMenuItem<String?>(
-                          value: collaborator.id,
-                          child: Text(collaborator.name),
-                        ),
-                      ),
-                ],
-                onChanged: (value) => setState(() => collaboratorId = value),
-              )
-            else
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.person_outline),
-                title: const Text('Registada por'),
-                subtitle: Text(
-                  state.collaborators
-                          .where(
-                            (collaborator) =>
-                                collaborator.id == widget.responsibleId,
-                          )
-                          .map((collaborator) => collaborator.name)
-                          .firstOrNull ??
-                      'Colaborador',
-                ),
-              ),
-            TextField(
-              controller: expectedValue,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'Valor previsto (€)',
-              ),
-            ),
-            TextField(
-              controller: notes,
-              maxLines: 2,
-              decoration: const InputDecoration(labelText: 'Notas'),
-            ),
-            if (availableMachines.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 12),
-                child: Text('Não há máquinas disponíveis neste período.'),
-              ),
-          ],
+                );
+                if (range == null) return;
+                setState(() {
+                  startDate = DateUtils.dateOnly(range.start);
+                  endDate = DateUtils.dateOnly(range.end);
+                });
+                return;
+              }
+              final date = await showDatePicker(
+                context: context,
+                firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                lastDate: DateTime.now().add(const Duration(days: 730)),
+                initialDate: startDate,
+              );
+              if (date == null) return;
+              setState(() {
+                startDate = DateUtils.dateOnly(date);
+                endDate = startDate;
+              });
+            },
+          ),
         ),
-      ),
+        DropdownButtonFormField<BookingStatus>(
+          initialValue: status,
+          decoration: const InputDecoration(labelText: 'Estado inicial'),
+          items: const [
+            DropdownMenuItem(
+              value: BookingStatus.request,
+              child: Text('Pedido'),
+            ),
+            DropdownMenuItem(
+              value: BookingStatus.proposalSent,
+              child: Text('Proposta enviada'),
+            ),
+            DropdownMenuItem(
+              value: BookingStatus.confirmed,
+              child: Text('Confirmada'),
+            ),
+          ],
+          onChanged: (value) => setState(() => status = value!),
+        ),
+        if (widget.responsibleId == null)
+          DropdownButtonFormField<String?>(
+            initialValue: collaboratorId,
+            decoration: const InputDecoration(labelText: 'Responsável'),
+            items: [
+              const DropdownMenuItem<String?>(
+                value: null,
+                child: Text('Gestor'),
+              ),
+              ...state.collaborators
+                  .where((collaborator) => !collaborator.archived)
+                  .map(
+                    (collaborator) => DropdownMenuItem<String?>(
+                      value: collaborator.id,
+                      child: Text(collaborator.name),
+                    ),
+                  ),
+            ],
+            onChanged: (value) => setState(() => collaboratorId = value),
+          )
+        else
+          CampoLargo(
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.person_outline),
+              title: const Text('Registada por'),
+              subtitle: Text(
+                state.collaborators
+                        .where(
+                          (collaborator) =>
+                              collaborator.id == widget.responsibleId,
+                        )
+                        .map((collaborator) => collaborator.name)
+                        .firstOrNull ??
+                    'Colaborador',
+              ),
+            ),
+          ),
+        CampoDeTexto(
+          controlador: expectedValue,
+          rotulo: 'Valor previsto (€)',
+          teclado: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        CampoDeTexto(controlador: notes, rotulo: 'Notas', linhas: 2),
+        if (availableMachines.isEmpty)
+          const CampoLargo(Text('Não há máquinas disponíveis neste período.')),
+      ],
       aoGuardar: () {
         if (availableMachines.isEmpty) {
           setState(() => erro = 'Não há máquinas disponíveis neste período.');
