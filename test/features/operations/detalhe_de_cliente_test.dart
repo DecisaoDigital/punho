@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/layout/dialogo_de_formulario.dart';
+import 'package:punho/core/layout/ecra_de_formulario.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/operations.dart';
 import 'package:punho/features/operations/presentation/operational_pages.dart';
@@ -111,7 +111,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.byType(DialogoDeFormulario), findsNothing);
+    expect(find.byType(EcraDeFormulario), findsNothing);
 
     final guardado = container
         .read(operationsProvider)
@@ -148,7 +148,7 @@ void main() {
         find.text('Já existe um cliente com o mesmo telemóvel ou NIF na empresa.'),
         findsNothing,
       );
-      expect(find.byType(DialogoDeFormulario), findsNothing);
+      expect(find.byType(EcraDeFormulario), findsNothing);
     },
   );
 
@@ -187,7 +187,7 @@ void main() {
         findsOneWidget,
       );
       // Continua aberto: a recusa não fecha o diálogo.
-      expect(find.byType(DialogoDeFormulario), findsOneWidget);
+      expect(find.byType(EcraDeFormulario), findsOneWidget);
       final aindaGuardado = container
           .read(operationsProvider)
           .customers

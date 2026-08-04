@@ -12,6 +12,7 @@ import '../../../core/empresa_sync/empresa_sync_controller.dart';
 import '../../../core/empresa_sync/ficha_da_empresa.dart';
 import '../../../core/format/campos.dart';
 import '../../../core/layout/dialogo_de_formulario.dart';
+import '../../../core/layout/ecra_de_formulario.dart';
 import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/theme/punho_theme.dart';
 import '../../../core/media/machine_image_store.dart';
@@ -1053,7 +1054,7 @@ class MachinesPage extends ConsumerWidget {
     return _PageFrame(
       title: 'Máquinas',
       action: FilledButton.icon(
-        onPressed: () => _machineDialog(context, ref),
+        onPressed: () => _formularioDeMaquina(context, ref),
         icon: const Icon(Icons.add),
         label: const Text('Adicionar máquina'),
       ),
@@ -1097,7 +1098,7 @@ class MachinesPage extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 // A linha inteira abre a ficha, como na lista de clientes.
-                onTap: () => _machineDialog(context, ref, m),
+                onTap: () => _formularioDeMaquina(context, ref, m),
                 // Um só controlo de estado: o chip. Havia três (o chip, um
                 // PopupMenuButton com `swap_horiz` que o Cesar leu como "duas
                 // setas", e um botão "Disponível" quando estava parada) — todos
@@ -1109,7 +1110,7 @@ class MachinesPage extends ConsumerWidget {
                     IconButton(
                       icon: const Icon(Icons.edit_outlined),
                       tooltip: 'Editar máquina',
-                      onPressed: () => _machineDialog(context, ref, m),
+                      onPressed: () => _formularioDeMaquina(context, ref, m),
                     ),
                     if (podeEliminarMaquinas(ref))
                       IconButton(
@@ -1388,15 +1389,17 @@ class _MachinePhoto extends StatelessWidget {
   }
 }
 
-Future<void> _machineDialog(
+/// Abre o formulário da máquina em ecrã completo.
+///
+/// Num toque ao lado deitava-se fora o formulário todo; agora não há lado
+/// nenhum onde tocar, e sair com texto escrito pergunta primeiro.
+Future<void> _formularioDeMaquina(
   BuildContext context,
   WidgetRef ref, [
   Machine? current,
-]) => showDialog<void>(
-  context: context,
-  // Não fecha ao tocar fora: um toque ao lado deitava fora o formulário todo.
-  barrierDismissible: false,
-  builder: (_) => _FormularioDeMaquina(
+]) => abrirFormulario<void>(
+  context,
+  (_) => _FormularioDeMaquina(
     notifier: ref.read(operationsProvider.notifier),
     current: current,
   ),
@@ -1452,6 +1455,9 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
       ? MachineStatus.available
       : current?.status ?? MachineStatus.available;
 
+  /// Recusa mostrada dentro do formulário, logo por cima do rodapé.
+  String? erro;
+
   @override
   void dispose() {
     name.dispose();
@@ -1464,37 +1470,21 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
     super.dispose();
   }
 
-  Widget _campo(
-    TextEditingController controlador,
-    String rotulo, {
-    bool autofocus = false,
-    TextInputType? teclado,
-    int maxLines = 1,
-  }) => Padding(
-    padding: const EdgeInsets.only(bottom: 4),
-    child: TextField(
-      controller: controlador,
-      autofocus: autofocus,
-      keyboardType: teclado,
-      maxLines: maxLines,
-      decoration: InputDecoration(labelText: rotulo),
-    ),
-  );
 
   @override
   Widget build(BuildContext context) {
     final identificacao = <Widget>[
-      _campo(name, 'Nome', autofocus: true),
-      _campo(reference, 'Número interno ou série'),
-      _campo(category, 'Categoria'),
-      _campo(
-        dailyRate,
-        'Preço diário de aluguer (€)',
+      CampoDeTexto(controlador: name, rotulo: 'Nome', autofocus: true),
+      CampoDeTexto(controlador: reference, rotulo: 'Número interno ou série'),
+      CampoDeTexto(controlador: category, rotulo: 'Categoria'),
+      CampoDeTexto(
+        controlador: dailyRate,
+        rotulo: 'Preço diário de aluguer (€)',
         teclado: const TextInputType.numberWithOptions(decimal: true),
       ),
-      _campo(
-        purchasePrice,
-        'Valor de compra (€) — opcional',
+      CampoDeTexto(
+        controlador: purchasePrice,
+        rotulo: 'Valor de compra (€) — opcional',
         teclado: const TextInputType.numberWithOptions(decimal: true),
       ),
       Padding(
@@ -1533,53 +1523,24 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
       ),
     ];
     final notasEFotos = <Widget>[
-      _campo(notes, 'Notas / manutenção', maxLines: 3),
-      const SizedBox(height: 12),
-      _FotografiasDaMaquina(photoPaths: photoPaths),
+      CampoDeTexto(
+        controlador: notes,
+        rotulo: 'Notas / manutenção',
+        linhas: 3,
+      ),
+      CampoLargo(_FotografiasDaMaquina(photoPaths: photoPaths)),
     ];
 
-    return DialogoDeFormulario(
+    return EcraDeFormulario(
       titulo: current == null ? 'Nova máquina' : 'Editar máquina',
-      // Em paisagem cabem duas colunas: os campos à esquerda, as notas e as
-      // fotografias à direita. Em retrato é tudo uma coluna.
-      larguraMaxima: 920,
-      rotuloGuardar: 'Guardar',
-      corpo: LayoutBuilder(
-        builder: (context, constraints) {
-          final duasColunas = constraints.maxWidth >= 640;
-          if (!duasColunas) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [...identificacao, ...notasEFotos],
-            );
-          }
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: identificacao,
-                ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: notasEFotos,
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+      campos: [...identificacao, ...notasEFotos],
+      aviso: erro,
       aoGuardar: () {
         if (name.text.trim().isEmpty) {
           // Antes fechava o diálogo em silêncio e deitava fora o que tinha
-          // sido escrito.
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Indica o nome da máquina.')),
-          );
+          // sido escrito. Depois passou a `SnackBar`, que num telemóvel deitado
+          // nasce por baixo do teclado: era o botão a não fazer nada.
+          setState(() => erro = 'Indica o nome da máquina.');
           return;
         }
         final anterior = current;
@@ -1764,12 +1725,12 @@ class ClientsPage extends ConsumerWidget {
         spacing: 8,
         children: [
           OutlinedButton.icon(
-            onPressed: () => _customerDialog(context, ref),
+            onPressed: () => _formularioDeCliente(context, ref),
             icon: const Icon(Icons.person_add_alt_1),
             label: const Text('Novo cliente'),
           ),
           FilledButton.icon(
-            onPressed: () => _leadDialog(context, ref),
+            onPressed: () => _formularioDeLead(context, ref),
             icon: const Icon(Icons.add_call),
             label: const Text('Novo lead'),
           ),
@@ -1811,14 +1772,14 @@ class ClientsPage extends ConsumerWidget {
                 // um alvo de 48 dp num canto: quem toca numa lista toca no
                 // nome, e ficava com a sensação de que a app não responde
                 // (visto no Redmi, 04-08-2026).
-                onTap: () => _customerDialog(context, ref, c),
+                onTap: () => _formularioDeCliente(context, ref, c),
                 trailing: Wrap(
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     IconButton(
                       icon: const Icon(Icons.edit_outlined),
                       tooltip: 'Editar cliente',
-                      onPressed: () => _customerDialog(context, ref, c),
+                      onPressed: () => _formularioDeCliente(context, ref, c),
                     ),
                     IconButton(
                       icon: const Icon(Icons.delete_outline),
@@ -1874,14 +1835,15 @@ class ClientsPage extends ConsumerWidget {
 /// NIF, o email, a morada e as notas que o servidor já traz não tinham onde
 /// aparecer, tal como acontecia com as máquinas antes do
 /// [_FormularioDeMaquina] ganhar o parâmetro `current`.
-Future<String?> _customerDialog(
+/// Abre o formulário do cliente em ecrã completo e devolve o id do que for
+/// criado — é por aí que o formulário da marcação recebe o cliente novo.
+Future<String?> _formularioDeCliente(
   BuildContext context,
   WidgetRef ref, [
   Customer? current,
-]) => showDialog<String>(
-  context: context,
-  barrierDismissible: false,
-  builder: (_) => _FormularioDeCliente(
+]) => abrirFormulario<String>(
+  context,
+  (_) => _FormularioDeCliente(
     notifier: ref.read(operationsProvider.notifier),
     repository: ref.read(operationRepositoryProvider),
     current: current,
@@ -1953,52 +1915,43 @@ class _FormularioDeClienteState extends State<_FormularioDeCliente> {
 
   @override
   Widget build(BuildContext context) {
-    return DialogoDeFormulario(
+    return EcraDeFormulario(
       titulo: current == null ? 'Novo cliente' : 'Editar cliente',
-      corpo: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: name,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(labelText: 'Nome *'),
-          ),
-          TextField(
-            controller: phone,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Telemóvel'),
-          ),
-          TextField(
-            controller: taxId,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'NIF'),
-          ),
-          TextField(
-            controller: email,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(labelText: 'Email'),
-          ),
-          TextField(
-            controller: address,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(labelText: 'Morada'),
-          ),
-          TextField(
-            controller: postalCode,
-            decoration: const InputDecoration(labelText: 'Código-postal'),
-          ),
-          TextField(
-            controller: locality,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(labelText: 'Localidade'),
-          ),
-          TextField(
-            controller: notes,
-            maxLines: 2,
-            decoration: const InputDecoration(labelText: 'Notas'),
-          ),
-        ],
-      ),
+      campos: [
+        CampoDeTexto(
+          controlador: name,
+          rotulo: 'Nome *',
+          autofocus: true,
+          capitalizacao: TextCapitalization.words,
+        ),
+        CampoDeTexto(
+          controlador: phone,
+          rotulo: 'Telemóvel',
+          teclado: TextInputType.phone,
+        ),
+        CampoDeTexto(
+          controlador: taxId,
+          rotulo: 'NIF',
+          teclado: TextInputType.number,
+        ),
+        CampoDeTexto(
+          controlador: email,
+          rotulo: 'Email',
+          teclado: TextInputType.emailAddress,
+        ),
+        CampoDeTexto(
+          controlador: address,
+          rotulo: 'Morada',
+          capitalizacao: TextCapitalization.words,
+        ),
+        CampoDeTexto(controlador: postalCode, rotulo: 'Código-postal'),
+        CampoDeTexto(
+          controlador: locality,
+          rotulo: 'Localidade',
+          capitalizacao: TextCapitalization.words,
+        ),
+        CampoDeTexto(controlador: notes, rotulo: 'Notas', linhas: 2),
+      ],
       aviso: erro,
       aoGuardar: () {
         if (name.text.trim().isEmpty) {
@@ -2078,12 +2031,10 @@ class _FormularioDeClienteState extends State<_FormularioDeCliente> {
   }
 }
 
-Future<void> _leadDialog(BuildContext context, WidgetRef ref) =>
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) =>
-          _FormularioDeLead(notifier: ref.read(operationsProvider.notifier)),
+Future<void> _formularioDeLead(BuildContext context, WidgetRef ref) =>
+    abrirFormulario<void>(
+      context,
+      (_) => _FormularioDeLead(notifier: ref.read(operationsProvider.notifier)),
     );
 
 /// Tal como o [_FormularioDeMaquina] e o [_FormularioDeCliente], é um widget
@@ -2116,54 +2067,27 @@ class _FormularioDeLeadState extends State<_FormularioDeLead> {
 
   @override
   Widget build(BuildContext context) {
-    return DialogoDeFormulario(
+    return EcraDeFormulario(
       titulo: 'Novo lead',
-      corpo: LayoutBuilder(
-        builder: (context, constraints) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Regista o contacto agora. Podes completar a oportunidade depois.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            if (constraints.maxWidth >= 480)
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: name,
-                      autofocus: true,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(labelText: 'Nome'),
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: TextField(
-                      controller: phone,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(labelText: 'Telemóvel'),
-                    ),
-                  ),
-                ],
-              )
-            else ...[
-              TextField(
-                controller: name,
-                autofocus: true,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: 'Nome'),
-              ),
-              TextField(
-                controller: phone,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(labelText: 'Telemóvel'),
-              ),
-            ],
-          ],
+      campos: [
+        CampoLargo(
+          Text(
+            'Regista o contacto agora. Podes completar a oportunidade depois.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ),
-      ),
+        CampoDeTexto(
+          controlador: name,
+          rotulo: 'Nome',
+          autofocus: true,
+          capitalizacao: TextCapitalization.words,
+        ),
+        CampoDeTexto(
+          controlador: phone,
+          rotulo: 'Telemóvel',
+          teclado: TextInputType.phone,
+        ),
+      ],
       aoGuardar: () {
         if (name.text.isNotEmpty && phone.text.isNotEmpty) {
           widget.notifier.addLead(
@@ -3366,7 +3290,7 @@ class _FormularioDeConfirmacaoDeReservaState
                         setState(() => customerId = value);
                         return;
                       }
-                      final novo = await _customerDialog(context, ref);
+                      final novo = await _formularioDeCliente(context, ref);
                       if (novo != null) {
                         setState(() => customerId = novo);
                       } else {

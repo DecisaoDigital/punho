@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/layout/dialogo_de_formulario.dart';
+import 'package:punho/core/layout/ecra_de_formulario.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/operations.dart';
 import 'package:punho/features/operations/presentation/operational_pages.dart';
@@ -40,22 +41,37 @@ void main() {
       );
 
   group('Diálogo da máquina', () {
-    testWidgets('em paisagem parte os campos em duas colunas', (tester) async {
+    testWidgets('em paisagem reparte os campos por colunas', (tester) async {
       await abrirMaquinas(tester, const Size(1280, 800));
       await tester.tap(find.text('Adicionar máquina'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(DialogoDeFormulario), findsOneWidget);
-      // Duas colunas: as notas ficam ao lado do nome, não abaixo.
+      expect(find.byType(EcraDeFormulario), findsOneWidget);
       final nome = tester.getTopLeft(find.widgetWithText(TextField, 'Nome'));
-      final notas = tester.getTopLeft(
-        find.widgetWithText(TextField, 'Notas / manutenção'),
+      final referencia = tester.getTopLeft(
+        find.widgetWithText(TextField, 'Número interno ou série'),
       );
-      expect(notas.dx, greaterThan(nome.dx));
+      // As colunas enchem-se de cima para baixo, não da esquerda para a
+      // direita: é a ordem em que se lê e a ordem em que o *Seguinte* anda. O
+      // campo a seguir ao nome fica por baixo dele, na mesma coluna.
+      expect(referencia.dx, nome.dx);
+      expect(referencia.dy, greaterThan(nome.dy));
+      // A segunda coluna arranca à altura do nome, com o quarto campo.
+      final preco = tester.getTopLeft(
+        find.widgetWithText(TextField, 'Preço diário de aluguer (€)'),
+      );
+      expect(preco.dx, greaterThan(nome.dx));
       expect(
-        (notas.dy - nome.dy).abs(),
+        (preco.dy - nome.dy).abs(),
         lessThan(8),
-        reason: 'as duas colunas arrancam à mesma altura',
+        reason: 'as colunas arrancam à mesma altura',
+      );
+      // As notas são de três linhas: atravessam a largura toda, por baixo.
+      final notas = find.widgetWithText(TextField, 'Notas / manutenção');
+      expect(tester.getTopLeft(notas).dy, greaterThan(nome.dy));
+      expect(
+        tester.getSize(notas).width,
+        greaterThan(tester.getSize(find.widgetWithText(TextField, 'Nome')).width),
       );
     });
 
@@ -85,16 +101,20 @@ void main() {
       expect(notas.dy, greaterThan(nome.dy));
     });
 
-    testWidgets('não fecha ao tocar fora', (tester) async {
+    testWidgets('sair com o formulário começado pergunta primeiro', (
+      tester,
+    ) async {
       await abrirMaquinas(tester, const Size(1280, 800));
       await tester.tap(find.text('Adicionar máquina'));
       await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextField, 'Nome'), 'Grua');
+      await tester.pumpAndSettle();
 
-      await tester.tapAt(const Offset(8, 8));
+      await tester.tap(find.byType(CloseButton));
       await tester.pumpAndSettle();
 
       expect(
-        find.byType(DialogoDeFormulario),
+        find.text('Sair sem guardar?'),
         findsOneWidget,
         reason: 'um toque ao lado deitava fora o formulário todo',
       );
@@ -122,7 +142,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Indica o nome da máquina.'), findsOneWidget);
-      expect(find.byType(DialogoDeFormulario), findsOneWidget);
+      expect(find.byType(EcraDeFormulario), findsOneWidget);
     });
 
     testWidgets('editar uma máquina existente guarda o nome novo', (
@@ -253,7 +273,7 @@ void main() {
       final telefone = find.widgetWithText(TextField, 'Telemóvel');
       final guardar = find.widgetWithText(FilledButton, 'Guardar');
 
-      expect(find.byType(DialogoDeFormulario), findsOneWidget);
+      expect(find.byType(EcraDeFormulario), findsOneWidget);
       expect(
         tester.getTopLeft(telefone).dx,
         greaterThan(tester.getTopLeft(nome).dx),
@@ -292,7 +312,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.byType(DialogoDeFormulario), findsNothing);
+      expect(find.byType(EcraDeFormulario), findsNothing);
       expect(find.text('Obra Nova'), findsOneWidget);
     });
   });
