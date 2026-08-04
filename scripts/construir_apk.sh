@@ -12,7 +12,8 @@
 #
 # Uso:
 #   scripts/construir_apk.sh                 # arm64, para instalar por adb
-#   scripts/construir_apk.sh --split-per-abi # os três ABIs, para a Release
+#   scripts/construir_apk.sh --universal     # o APK da release (todos os ABIs)
+#   scripts/construir_apk.sh --split-per-abi # um APK por arquitectura
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -30,15 +31,19 @@ set +a
 : "${SUPABASE_URL:?SUPABASE_URL vazio no .env}"
 : "${SUPABASE_ANON_KEY:?SUPABASE_ANON_KEY vazio no .env}"
 
-destino=("--target-platform" "android-arm64")
-if [[ "${1:-}" == "--split-per-abi" ]]; then
-  destino=("--split-per-abi")
-fi
+case "${1:-}" in
+  "")               destino=("--target-platform" "android-arm64") ;;
+  --universal)      destino=() ;;
+  --split-per-abi)  destino=("--split-per-abi") ;;
+  *) echo "ERRO: opção desconhecida: $1" >&2; exit 2 ;;
+esac
 
 # Apagar o que lá estava antes de construir: senão a verificação lá em baixo
 # aprova APKs de builds antigas que ninguém pediu, e um ficheiro velho a passar
 # no teste é exactamente a falha que este script existe para apanhar.
-rm -f build/app/outputs/flutter-apk/app*-release.apk
+rm -f build/app/outputs/flutter-apk/app*-release.apk \
+      build/app/outputs/flutter-apk/Punho_v*.apk \
+      build/app/outputs/apk/release/Punho_v*.apk
 
 flutter build apk --release "${destino[@]}" \
   --dart-define=SUPABASE_URL="$SUPABASE_URL" \

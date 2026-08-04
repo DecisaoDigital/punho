@@ -70,12 +70,23 @@ android {
     // segue o mesmo padrão do instalador Windows (Punho_Setup_v0.0.2.exe).
     // `applicationVariants` está depreciado no AGP 8 mas continua a funcionar;
     // quando sair (AGP 9) o substituto é a Variant API nova.
+    //
+    // O sufixo da arquitectura não é enfeite: com `--split-per-abi` saem três
+    // APKs, e sem ele os três queriam escrever o mesmo ficheiro. O Gradle
+    // rebentava com "Failed to create .../Punho_v0.2.1.apk", que não diz
+    // nada sobre a causa (apanhado a publicar a v0.2.1).
     @Suppress("DEPRECATION")
     applicationVariants.all {
         val versao = versionName
         outputs.all {
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl)
-                .outputFileName = "Punho_v$versao.apk"
+            val saida =
+                this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            val arquitectura = saida.getFilter(com.android.build.OutputFile.ABI)
+            saida.outputFileName = if (arquitectura == null) {
+                "Punho_v$versao.apk"
+            } else {
+                "Punho_v${versao}_$arquitectura.apk"
+            }
         }
     }
 }
