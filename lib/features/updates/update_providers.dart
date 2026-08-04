@@ -174,15 +174,20 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
   /// é o momento em que o utilizador acabou de mexer na app). O `signedIn`
   /// também dispara em refresh de token, por isso só se reage a utilizador novo.
   void _ouvirGanhoDeSessao() {
-    _subscricaoAuth = Supabase.instance.client.auth.onAuthStateChange.listen((
-      estado,
-    ) {
-      if (estado.event != AuthChangeEvent.signedIn) return;
-      final utilizador = estado.session?.user.id;
-      if (utilizador == null || utilizador == _ultimoUtilizador) return;
-      _ultimoUtilizador = utilizador;
-      unawaited(verificar());
-    });
+    _subscricaoAuth = Supabase.instance.client.auth.onAuthStateChange.listen(
+      (estado) {
+        if (estado.event != AuthChangeEvent.signedIn) return;
+        final utilizador = estado.session?.user.id;
+        if (utilizador == null || utilizador == _ultimoUtilizador) return;
+        _ultimoUtilizador = utilizador;
+        unawaited(verificar());
+      },
+      // Este canal também traz erros — um link de email caducado, por exemplo,
+      // desde que a app passou a receber `punho://auth/callback`. Sem `onError`
+      // rebentavam para fora da zona, e uma falha de autenticação não é
+      // assunto de quem procura actualizações.
+      onError: (_) {},
+    );
   }
 }
 

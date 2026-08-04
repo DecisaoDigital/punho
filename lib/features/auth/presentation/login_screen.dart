@@ -206,22 +206,29 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = await showDialog<String?>(
       context: context,
       builder: (ctx) => AlertDialog(
+        // **Em landscape, com o teclado aberto, isto tem 160 dp para viver.**
+        // Medido no Redmi: o teclado ocupa 57% do ecrã e sobram 440 px físicos.
+        // Título (32) + campo com dica (76) + botões (52) = 160 dp, e cabe. Com
+        // o parágrafo à parte que aqui estava eram 192, e a caixa resolvia a
+        // conta esmagando o conteúdo a **zero** de altura: o campo desaparecia
+        // e escrevia-se às cegas, sem nada a indicar que faltava alguma coisa.
+        // Por isso a frase mudou-se para o `helperText` — a mesma explicação,
+        // sem uma linha só para ela.
+        //
+        // `scrollable` é o cinto: num ecrã ainda mais baixo, ou com um teclado
+        // maior, o conteúdo passa a poder alcançar-se em vez de encolher.
+        scrollable: true,
         title: const Text('Recuperar palavra-passe'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Envio-te um email com o link para definir uma nova '
-              'palavra-passe.',
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _emailDeRecuperacao,
-              autofocus: true,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-          ],
+        content: TextField(
+          controller: _emailDeRecuperacao,
+          autofocus: true,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: 'Email',
+            helperText: 'Envio-te um link para definires uma nova '
+                'palavra-passe.',
+            helperMaxLines: 2,
+          ),
         ),
         actions: [
           TextButton(
