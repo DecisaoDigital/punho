@@ -124,8 +124,10 @@ void main() {
     await tester.tap(find.text('Enviar'));
     // `pump` e não `pumpAndSettle`: o segundo avança o tempo até tudo assentar,
     // e a mensagem já se tinha ido embora sozinha quando se olhava para ela.
+    // A espera fixa é para a rota do formulário acabar de sair — enquanto ela
+    // está a fechar há dois `Scaffold` montados e a mensagem aparece nos dois.
     await tester.pump();
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(pedidos, ['ana@exemplo.pt']);
 

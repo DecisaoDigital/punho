@@ -148,78 +148,87 @@ class _EcraDeFormularioState extends State<EcraDeFormulario> {
         },
         child: filho!,
       ),
-      child: Scaffold(
-        // O ponto todo: é isto que faz o corpo encolher com o teclado em vez de
-        // ficar por baixo dele.
-        resizeToAvoidBottomInset: true,
-        appBar: AppBar(
-          // Apertado, a barra encolhe: são 12 dp que passam a ser campo.
-          toolbarHeight: apertado ? 44 : null,
-          title: Text(widget.titulo),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilledButton(
-                onPressed: widget.guardarAtivo ? _guardar : null,
-                child: Text(widget.rotuloGuardar),
+      // Mensageiro próprio, e não o da app.
+      //
+      // Um `SnackBar` mostra-se em **todos** os `Scaffold` registados no mesmo
+      // mensageiro. Enquanto isto foi diálogo não havia `Scaffold` nenhum aqui;
+      // agora há, e a mensagem que o ecrã de baixo mandava mostrar ao fechar o
+      // formulário aparecia duas vezes — uma em cada — durante a animação de
+      // saída. Cada formulário fica com o seu.
+      child: ScaffoldMessenger(
+        child: Scaffold(
+          // O ponto todo: é isto que faz o corpo encolher com o teclado em vez de
+          // ficar por baixo dele.
+          resizeToAvoidBottomInset: true,
+          appBar: AppBar(
+            // Apertado, a barra encolhe: são 12 dp que passam a ser campo.
+            toolbarHeight: apertado ? 44 : null,
+            title: Text(widget.titulo),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilledButton(
+                  onPressed: widget.guardarAtivo ? _guardar : null,
+                  child: Text(widget.rotuloGuardar),
+                ),
               ),
-            ),
-          ],
-        ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: RegistoDeCamposHerdado(
-                  registo: _registo,
-                  apertado: apertado,
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(
-                      MargensDoCanvas.lateral,
-                      apertado ? 6 : MargensDoCanvas.vertical,
-                      MargensDoCanvas.lateral,
-                      // O teclado mais 16: sem esta soma, o último campo fica
-                      // colado à aresta de cima do teclado e não se lê o que se
-                      // está a escrever.
-                      insets + 16,
-                    ),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) =>
-                          _corpo(constraints.maxWidth, apertado),
+            ],
+          ),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: RegistoDeCamposHerdado(
+                    registo: _registo,
+                    apertado: apertado,
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(
+                        MargensDoCanvas.lateral,
+                        apertado ? 6 : MargensDoCanvas.vertical,
+                        MargensDoCanvas.lateral,
+                        // O teclado mais 16: sem esta soma, o último campo fica
+                        // colado à aresta de cima do teclado e não se lê o que se
+                        // está a escrever.
+                        insets + 16,
+                      ),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) =>
+                            _corpo(constraints.maxWidth, apertado),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              if (widget.aviso != null)
-                Container(
-                  width: double.infinity,
-                  color: tema.colorScheme.errorContainer,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: MargensDoCanvas.lateral,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 18,
-                        color: tema.colorScheme.onErrorContainer,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          widget.aviso!,
-                          style: tema.textTheme.bodySmall?.copyWith(
-                            color: tema.colorScheme.onErrorContainer,
-                            fontWeight: FontWeight.w600,
+                if (widget.aviso != null)
+                  Container(
+                    width: double.infinity,
+                    color: tema.colorScheme.errorContainer,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: MargensDoCanvas.lateral,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 18,
+                          color: tema.colorScheme.onErrorContainer,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            widget.aviso!,
+                            style: tema.textTheme.bodySmall?.copyWith(
+                              color: tema.colorScheme.onErrorContainer,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

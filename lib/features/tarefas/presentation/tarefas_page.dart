@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/format/campos.dart';
-import '../../../core/layout/dialogo_de_formulario.dart';
+import '../../../core/layout/ecra_de_formulario.dart';
 import '../../../core/navigation/app_destination.dart';
 import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/navigation/navigation_controller.dart';
@@ -180,10 +180,9 @@ void abrirDestinoDaTarefa(
         MaterialPageRoute<void>(builder: (_) => const CompanySettingsPage()),
       );
     case DestinoTarefa.facturacaoDoAno:
-      showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => _DialogoDeFacturacaoDoAno(
+      abrirFormulario<void>(
+        context,
+        (_) => _FormularioDeFacturacaoDoAno(
           notifier: ref.read(operationsProvider.notifier),
         ),
       );
@@ -226,16 +225,16 @@ void abrirDestinoDaTarefa(
 
 /// Pergunta directa da faturação deste ano, sem passar pelo formulário
 /// inteiro de Dados da Empresa — era só isto que a tarefa precisava.
-class _DialogoDeFacturacaoDoAno extends StatefulWidget {
-  const _DialogoDeFacturacaoDoAno({required this.notifier});
+class _FormularioDeFacturacaoDoAno extends StatefulWidget {
+  const _FormularioDeFacturacaoDoAno({required this.notifier});
   final OperationsController notifier;
 
   @override
-  State<_DialogoDeFacturacaoDoAno> createState() =>
-      _DialogoDeFacturacaoDoAnoState();
+  State<_FormularioDeFacturacaoDoAno> createState() =>
+      _FormularioDeFacturacaoDoAnoState();
 }
 
-class _DialogoDeFacturacaoDoAnoState extends State<_DialogoDeFacturacaoDoAno> {
+class _FormularioDeFacturacaoDoAnoState extends State<_FormularioDeFacturacaoDoAno> {
   final _valor = TextEditingController();
   String? erro;
 
@@ -246,23 +245,19 @@ class _DialogoDeFacturacaoDoAnoState extends State<_DialogoDeFacturacaoDoAno> {
   }
 
   @override
-  Widget build(BuildContext context) => DialogoDeFormulario(
+  Widget build(BuildContext context) => EcraDeFormulario(
     titulo: 'Faturação deste ano até hoje',
-    corpo: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text('Quanto é que a empresa já faturou este ano, até hoje?'),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _valor,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Faturação deste ano até hoje (€)',
-          ),
-        ),
-      ],
-    ),
+    campos: [
+      const CampoLargo(
+        Text('Quanto é que a empresa já faturou este ano, até hoje?'),
+      ),
+      CampoDeTexto(
+        controlador: _valor,
+        rotulo: 'Faturação deste ano até hoje (€)',
+        autofocus: true,
+        teclado: const TextInputType.numberWithOptions(decimal: true),
+      ),
+    ],
     aviso: erro,
     aoGuardar: () {
       final cents = centsDeTexto(_valor.text);

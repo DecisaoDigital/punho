@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/layout/ecra_de_formulario.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -161,9 +163,9 @@ class _CartaoDoContabilistaState extends ConsumerState<_CartaoDoContabilista> {
   bool _ocupado = false;
 
   Future<void> _convidar() async {
-    final dados = await showDialog<_DadosDoConvite>(
-      context: context,
-      builder: (_) => _DialogoDeConvite(substitui: widget.convite),
+    final dados = await abrirFormulario<_DadosDoConvite>(
+      context,
+      (_) => _FormularioDeConvite(substitui: widget.convite),
     );
     if (dados == null || !mounted) return;
 
@@ -334,18 +336,18 @@ class _DadosDoConvite {
   final int anos;
 }
 
-class _DialogoDeConvite extends StatefulWidget {
-  const _DialogoDeConvite({this.substitui});
+class _FormularioDeConvite extends StatefulWidget {
+  const _FormularioDeConvite({this.substitui});
 
   /// Convite que este vai substituir, se houver — para o dizer antes e não
   /// depois.
   final ConviteContabilista? substitui;
 
   @override
-  State<_DialogoDeConvite> createState() => _DialogoDeConviteState();
+  State<_FormularioDeConvite> createState() => _FormularioDeConviteState();
 }
 
-class _DialogoDeConviteState extends State<_DialogoDeConvite> {
+class _FormularioDeConviteState extends State<_FormularioDeConvite> {
   final _nome = TextEditingController();
   final _email = TextEditingController();
   int _anos = 5;
@@ -361,78 +363,65 @@ class _DialogoDeConviteState extends State<_DialogoDeConvite> {
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
     final substitui = widget.substitui;
-    return AlertDialog(
-      title: const Text('Convidar o contabilista'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (substitui != null) ...[
-              Text(
-                'O link de ${substitui.designacao} deixa de abrir quando este '
-                'for criado.',
-                style: textos.bodySmall,
-              ),
-              const SizedBox(height: 12),
-            ],
-            TextField(
-              controller: _nome,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Nome',
-                helperText: 'Só para o reconhecer nesta lista',
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                helperText: 'Opcional — o Punho não envia nada, é o senhor que '
-                    'entrega o link',
-                helperMaxLines: 3,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text('Quantos anos pedir', style: textos.labelLarge),
-            const SizedBox(height: 4),
+    return EcraDeFormulario(
+      titulo: 'Convidar o contabilista',
+      rotuloGuardar: 'Criar link',
+      campos: [
+        if (substitui != null)
+          CampoLargo(
             Text(
-              'Termina sempre no mês passado: o mês corrente ainda está a '
-              'acontecer e ele não o tem fechado.',
+              'O link de ${substitui.designacao} deixa de abrir quando este '
+              'for criado.',
               style: textos.bodySmall,
             ),
-            const SizedBox(height: 8),
-            SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(value: 1, label: Text('1')),
-                ButtonSegment(value: 3, label: Text('3')),
-                ButtonSegment(value: 5, label: Text('5')),
-              ],
-              selected: {_anos},
-              onSelectionChanged: (s) => setState(() => _anos = s.first),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(
-            context,
-            _DadosDoConvite(
-              nome: _nome.text.trim().isEmpty ? null : _nome.text.trim(),
-              email: _email.text.trim().isEmpty ? null : _email.text.trim(),
-              anos: _anos,
-            ),
           ),
-          child: const Text('Criar link'),
+        CampoDeTexto(
+          controlador: _nome,
+          rotulo: 'Nome',
+          ajuda: 'Só para o reconhecer nesta lista',
+          autofocus: true,
+          capitalizacao: TextCapitalization.words,
+        ),
+        CampoDeTexto(
+          controlador: _email,
+          rotulo: 'Email',
+          ajuda: 'Opcional — o Punho não envia nada, é o senhor que entrega '
+              'o link',
+          teclado: TextInputType.emailAddress,
+        ),
+        CampoLargo(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Quantos anos pedir', style: textos.labelLarge),
+              const SizedBox(height: 4),
+              Text(
+                'Termina sempre no mês passado: o mês corrente ainda está a '
+                'acontecer e ele não o tem fechado.',
+                style: textos.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<int>(
+                segments: const [
+                  ButtonSegment(value: 1, label: Text('1')),
+                  ButtonSegment(value: 3, label: Text('3')),
+                  ButtonSegment(value: 5, label: Text('5')),
+                ],
+                selected: {_anos},
+                onSelectionChanged: (s) => setState(() => _anos = s.first),
+              ),
+            ],
+          ),
         ),
       ],
+      aoGuardar: () => Navigator.pop(
+        context,
+        _DadosDoConvite(
+          nome: _nome.text.trim().isEmpty ? null : _nome.text.trim(),
+          email: _email.text.trim().isEmpty ? null : _email.text.trim(),
+          anos: _anos,
+        ),
+      ),
     );
   }
 }

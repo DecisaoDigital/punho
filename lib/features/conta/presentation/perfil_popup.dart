@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/auth/auth_rules.dart';
 import '../../../core/config/supabase_config.dart';
-import '../../../core/layout/dialogo_de_formulario.dart';
+import '../../../core/layout/ecra_de_formulario.dart';
 import '../../../core/licenca/machine_id.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../shared/widgets/versao_app.dart';
@@ -211,18 +211,21 @@ class PerfilPopup extends ConsumerWidget {
     );
   }
 
-  Future<void> _mudarPalavraPasse(BuildContext context) => showDialog<void>(
-    context: context,
-    builder: (_) => const _MudarPalavraPasseDialog(),
-  );
+  Future<void> _mudarPalavraPasse(BuildContext context) =>
+      abrirFormulario<void>(context, (_) => const _MudarPalavraPasse());
 
   Future<void> _enviarSugestao(BuildContext context) async {
     final machineId = await resolverMachineId();
     if (!context.mounted) return;
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _SugestaoDialog(machineId: machineId),
+    final enviada = await abrirFormulario<bool>(
+      context,
+      (_) => _Sugestao(machineId: machineId),
+    );
+    if (enviada != true || !context.mounted) return;
+    // Quem confirma é quem fica: o formulário já saiu, e com ele o mensageiro
+    // que lhe pertencia.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sugestão enviada. Obrigado!')),
     );
   }
 
@@ -380,15 +383,15 @@ class _EditarDadosDialogState extends State<_EditarDadosDialog> {
   );
 }
 
-class _MudarPalavraPasseDialog extends StatefulWidget {
-  const _MudarPalavraPasseDialog();
+class _MudarPalavraPasse extends StatefulWidget {
+  const _MudarPalavraPasse();
 
   @override
-  State<_MudarPalavraPasseDialog> createState() =>
-      _MudarPalavraPasseDialogState();
+  State<_MudarPalavraPasse> createState() =>
+      _MudarPalavraPasseState();
 }
 
-class _MudarPalavraPasseDialogState extends State<_MudarPalavraPasseDialog> {
+class _MudarPalavraPasseState extends State<_MudarPalavraPasse> {
   final _nova = TextEditingController();
   final _confirmacao = TextEditingController();
   bool _aGuardar = false;
@@ -428,46 +431,25 @@ class _MudarPalavraPasseDialogState extends State<_MudarPalavraPasseDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Mudar palavra-passe'),
-    content: SizedBox(
-      width: 360,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _nova,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Nova palavra-passe'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _confirmacao,
-            obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Confirmar palavra-passe',
-            ),
-          ),
-          if (_erro != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              _erro!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ],
-        ],
+  Widget build(BuildContext context) => EcraDeFormulario(
+    titulo: 'Mudar palavra-passe',
+    rotuloGuardar: _aGuardar ? 'A guardar…' : 'Atualizar',
+    guardarAtivo: !_aGuardar,
+    aviso: _erro,
+    campos: [
+      CampoDeTexto(
+        controlador: _nova,
+        rotulo: 'Nova palavra-passe',
+        oculto: true,
+        autofocus: true,
       ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: _aGuardar ? null : () => Navigator.pop(context),
-        child: const Text('Cancelar'),
-      ),
-      FilledButton(
-        onPressed: _aGuardar ? null : _guardar,
-        child: Text(_aGuardar ? 'A guardar…' : 'Atualizar'),
+      CampoDeTexto(
+        controlador: _confirmacao,
+        rotulo: 'Confirmar palavra-passe',
+        oculto: true,
       ),
     ],
+    aoGuardar: _guardar,
   );
 }
 
@@ -565,15 +547,15 @@ class _Versao extends StatelessWidget {
 /// Sugestão livre, a chegar ao Control — o mesmo caminho que já existe na
 /// WashInvoice. Um campo de texto só, sem categorias nem obrigatoriedade de
 /// contexto: quem escreve já sabe o que quer dizer.
-class _SugestaoDialog extends StatefulWidget {
-  const _SugestaoDialog({required this.machineId});
+class _Sugestao extends StatefulWidget {
+  const _Sugestao({required this.machineId});
   final String machineId;
 
   @override
-  State<_SugestaoDialog> createState() => _SugestaoDialogState();
+  State<_Sugestao> createState() => _SugestaoState();
 }
 
-class _SugestaoDialogState extends State<_SugestaoDialog> {
+class _SugestaoState extends State<_Sugestao> {
   final _texto = TextEditingController();
   String? erro;
   bool aEnviar = false;
@@ -585,22 +567,21 @@ class _SugestaoDialogState extends State<_SugestaoDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => DialogoDeFormulario(
+  Widget build(BuildContext context) => EcraDeFormulario(
     titulo: 'Enviar sugestão',
     rotuloGuardar: aEnviar ? 'A enviar…' : 'Enviar',
-    corpo: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text('Escreve o que quiseres — chega directamente ao César.'),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _texto,
-          autofocus: true,
-          maxLines: 4,
-          decoration: const InputDecoration(labelText: 'Sugestão'),
-        ),
-      ],
-    ),
+    guardarAtivo: !aEnviar,
+    campos: [
+      const CampoLargo(
+        Text('Escreve o que quiseres — chega directamente ao César.'),
+      ),
+      CampoDeTexto(
+        controlador: _texto,
+        rotulo: 'Sugestão',
+        autofocus: true,
+        linhas: 4,
+      ),
+    ],
     aviso: erro,
     aoGuardar: aEnviar
         ? () {}
@@ -619,10 +600,7 @@ class _SugestaoDialogState extends State<_SugestaoDialog> {
                 Supabase.instance.client,
               ).enviar(texto, machineId: widget.machineId);
               if (!context.mounted) return;
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Sugestão enviada. Obrigado!')),
-              );
+              Navigator.pop(context, true);
             } catch (e) {
               if (!context.mounted) return;
               setState(() {

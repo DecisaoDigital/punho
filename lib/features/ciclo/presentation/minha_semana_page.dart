@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/ciclo/proximo_passo.dart';
 import '../../../core/format/campos.dart';
-import '../../../core/layout/dialogo_de_formulario.dart';
+import '../../../core/layout/ecra_de_formulario.dart';
 import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/operations.dart';
@@ -234,10 +234,9 @@ class _CartaoDoTrabalho extends ConsumerWidget {
           );
         }
       case AccaoDoPasso.declararValor:
-        showDialog<void>(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => _DialogoDeValor(trabalho: item.trabalho),
+        abrirFormulario<void>(
+          context,
+          (_) => _FormularioDeValor(trabalho: item.trabalho),
         );
       case AccaoDoPasso.registarRecebimento:
         Navigator.of(context).push(
@@ -258,15 +257,15 @@ class _CartaoDoTrabalho extends ConsumerWidget {
 /// Um campo só. É a pergunta mais rentável da app inteira — sem ela o trabalho
 /// não conta para a receita nem para a margem — e por isso não pode custar mais
 /// do que um número e um toque.
-class _DialogoDeValor extends ConsumerStatefulWidget {
-  const _DialogoDeValor({required this.trabalho});
+class _FormularioDeValor extends ConsumerStatefulWidget {
+  const _FormularioDeValor({required this.trabalho});
   final Booking trabalho;
 
   @override
-  ConsumerState<_DialogoDeValor> createState() => _DialogoDeValorState();
+  ConsumerState<_FormularioDeValor> createState() => _FormularioDeValorState();
 }
 
-class _DialogoDeValorState extends ConsumerState<_DialogoDeValor> {
+class _FormularioDeValorState extends ConsumerState<_FormularioDeValor> {
   final valor = TextEditingController();
   String? erro;
 
@@ -277,18 +276,18 @@ class _DialogoDeValorState extends ConsumerState<_DialogoDeValor> {
   }
 
   @override
-  Widget build(BuildContext context) => DialogoDeFormulario(
+  Widget build(BuildContext context) => EcraDeFormulario(
     titulo: 'Quanto valeu este trabalho?',
     aviso: erro,
-    corpo: TextField(
-      controller: valor,
-      autofocus: true,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: const InputDecoration(
-        labelText: 'Valor (€)',
-        helperText: 'O que foi facturado ao cliente, com IVA incluído.',
+    campos: [
+      CampoDeTexto(
+        controlador: valor,
+        rotulo: 'Valor (€)',
+        ajuda: 'O que foi facturado ao cliente, com IVA incluído.',
+        autofocus: true,
+        teclado: const TextInputType.numberWithOptions(decimal: true),
       ),
-    ),
+    ],
     aoGuardar: () {
       final cents = centsDeTexto(valor.text);
       if (cents == null || cents <= 0) {

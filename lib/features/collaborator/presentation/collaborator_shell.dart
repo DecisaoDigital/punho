@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/layout/ecra_de_formulario.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../core/orientacao/orientacao_do_contexto.dart';
@@ -163,53 +165,83 @@ void _expense(BuildContext c, String id) {
 Future<void> _newLead(BuildContext c, WidgetRef ref, String id) async {
   final name = TextEditingController();
   final phone = TextEditingController();
-  await showDialog<void>(
-    context: c,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('Nova lead'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: name,
-            decoration: const InputDecoration(labelText: 'Nome'),
-          ),
-          TextField(
-            controller: phone,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Telemóvel'),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(dialogContext),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () {
-            if (name.text.trim().isEmpty || phone.text.trim().isEmpty) return;
-            ref
-                .read(operationsProvider.notifier)
-                .addLead(
-                  Lead(
-                    id: 'l${DateTime.now().microsecondsSinceEpoch}',
-                    name: name.text.trim(),
-                    phone: phone.text.trim(),
-                    status: LeadStatus.newLead,
-                    createdAt: DateTime.now(),
-                    collaboratorResponsibleId: id,
-                  ),
-                );
-            Navigator.pop(dialogContext);
-          },
-          child: const Text('Guardar'),
-        ),
-      ],
+  await abrirFormulario<void>(
+    c,
+    (rota) => _FormularioDeLeadDoColaborador(
+      nome: name,
+      telemovel: phone,
+      colaboradorId: id,
+      ref: ref,
     ),
   );
   name.dispose();
   phone.dispose();
+}
+
+/// A mesma lead da app do gestor, com o colaborador já preenchido como
+/// responsável.
+class _FormularioDeLeadDoColaborador extends StatefulWidget {
+  const _FormularioDeLeadDoColaborador({
+    required this.nome,
+    required this.telemovel,
+    required this.colaboradorId,
+    required this.ref,
+  });
+
+  final TextEditingController nome;
+  final TextEditingController telemovel;
+  final String colaboradorId;
+  final WidgetRef ref;
+
+  @override
+  State<_FormularioDeLeadDoColaborador> createState() =>
+      _FormularioDeLeadDoColaboradorState();
+}
+
+class _FormularioDeLeadDoColaboradorState
+    extends State<_FormularioDeLeadDoColaborador> {
+  String? erro;
+
+  @override
+  Widget build(BuildContext context) => EcraDeFormulario(
+    titulo: 'Nova lead',
+    aviso: erro,
+    campos: [
+      CampoDeTexto(
+        controlador: widget.nome,
+        rotulo: 'Nome',
+        autofocus: true,
+        capitalizacao: TextCapitalization.words,
+      ),
+      CampoDeTexto(
+        controlador: widget.telemovel,
+        rotulo: 'Telemóvel',
+        teclado: TextInputType.phone,
+      ),
+    ],
+    aoGuardar: () {
+      // Antes o botão não fazia nada quando faltava um dos dois, e não dizia
+      // porquê — ficava-se a carregar sem perceber.
+      if (widget.nome.text.trim().isEmpty ||
+          widget.telemovel.text.trim().isEmpty) {
+        setState(() => erro = 'A lead precisa do nome e do telemóvel.');
+        return;
+      }
+      widget.ref
+          .read(operationsProvider.notifier)
+          .addLead(
+            Lead(
+              id: 'l${DateTime.now().microsecondsSinceEpoch}',
+              name: widget.nome.text.trim(),
+              phone: widget.telemovel.text.trim(),
+              status: LeadStatus.newLead,
+              createdAt: DateTime.now(),
+              collaboratorResponsibleId: widget.colaboradorId,
+            ),
+          );
+      Navigator.pop(context);
+    },
+  );
 }
 
 void _mine(BuildContext c, WidgetRef ref, String id) {

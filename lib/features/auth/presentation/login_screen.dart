@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/layout/ecra_de_formulario.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/auth/auth_rules.dart';
@@ -203,44 +205,27 @@ class _LoginScreenState extends State<LoginScreen> {
     // O email não é obrigatório antes de abrir: pede-se aqui, já preenchido com
     // o que estiver no campo, para não obrigar a voltar atrás.
     _emailDeRecuperacao.text = _email.text.trim();
-    final email = await showDialog<String?>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        // **Em landscape, com o teclado aberto, isto tem 160 dp para viver.**
-        // Medido no Redmi: o teclado ocupa 57% do ecrã e sobram 440 px físicos.
-        // Título (32) + campo com dica (76) + botões (52) = 160 dp, e cabe. Com
-        // o parágrafo à parte que aqui estava eram 192, e a caixa resolvia a
-        // conta esmagando o conteúdo a **zero** de altura: o campo desaparecia
-        // e escrevia-se às cegas, sem nada a indicar que faltava alguma coisa.
-        // Por isso a frase mudou-se para o `helperText` — a mesma explicação,
-        // sem uma linha só para ela.
-        //
-        // `scrollable` é o cinto: num ecrã ainda mais baixo, ou com um teclado
-        // maior, o conteúdo passa a poder alcançar-se em vez de encolher.
-        scrollable: true,
-        title: const Text('Recuperar palavra-passe'),
-        content: TextField(
-          controller: _emailDeRecuperacao,
-          autofocus: true,
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            labelText: 'Email',
-            helperText: 'Envio-te um link para definires uma nova '
-                'palavra-passe.',
-            helperMaxLines: 2,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, null),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(ctx, _emailDeRecuperacao.text.trim()),
-            child: const Text('Enviar'),
+    // Isto era uma caixa com 160 dp para viver: em paisagem com o teclado
+    // aberto sobravam 440 px físicos, e a conta só fechava porque a explicação
+    // tinha sido espremida para dentro do `helperText`. Uma vez esmagou o
+    // conteúdo a zero de altura e escrevia-se às cegas. Num ecrã completo a
+    // conta deixa de existir.
+    final email = await abrirFormulario<String>(
+      context,
+      (rota) => EcraDeFormulario(
+        titulo: 'Recuperar palavra-passe',
+        rotuloGuardar: 'Enviar',
+        campos: [
+          CampoDeTexto(
+            controlador: _emailDeRecuperacao,
+            rotulo: 'Email',
+            ajuda: 'Envio-te um link para definires uma nova palavra-passe.',
+            autofocus: true,
+            teclado: TextInputType.emailAddress,
           ),
         ],
+        aoGuardar: () =>
+            Navigator.pop(rota, _emailDeRecuperacao.text.trim()),
       ),
     );
     if (email == null || email.isEmpty) return;
