@@ -61,6 +61,14 @@ String leadSourceLabel(LeadSource origem) => switch (origem) {
   LeadSource.other => 'Outro',
 };
 
+String leadStatusLabel(LeadStatus estado) => switch (estado) {
+  LeadStatus.newLead => 'Nova',
+  LeadStatus.contacted => 'Contactada',
+  LeadStatus.proposal => 'Com proposta',
+  LeadStatus.lost => 'Perdida',
+  LeadStatus.converted => 'Convertida',
+};
+
 enum BookingStatus {
   request,
   proposalSent,
@@ -69,6 +77,22 @@ enum BookingStatus {
   completed,
   cancelled,
 }
+
+/// O nome que o utilizador lê para cada estado do trabalho.
+///
+/// Vivia privado dentro de `operational_pages.dart`, e por isso qualquer ecrã
+/// novo tinha de reinventar as mesmas seis palavras — dois sítios a chamar
+/// "Confirmada" o mesmo estado é como se começa a ter três. Passa a viver ao
+/// lado de [machineStatusLabel] e [leadSourceLabel], onde já estava o resto do
+/// vocabulário.
+String bookingStatusLabel(BookingStatus status) => switch (status) {
+  BookingStatus.request => 'Pedido',
+  BookingStatus.proposalSent => 'Proposta enviada',
+  BookingStatus.confirmed => 'Confirmada',
+  BookingStatus.rented => 'Em aluguer',
+  BookingStatus.completed => 'Concluída',
+  BookingStatus.cancelled => 'Cancelada',
+};
 
 class Machine {
   const Machine({
@@ -184,24 +208,50 @@ class Lead {
     this.source,
     this.summary = '',
     this.collaboratorResponsibleId,
+    this.convertedCustomerId,
+    this.bookingId,
   });
   final String id, name, phone, summary;
   final LeadStatus status;
   final LeadSource? source;
   final DateTime createdAt;
   final String? collaboratorResponsibleId;
-  Lead copyWith({LeadStatus? status, String? collaboratorResponsibleId}) =>
-      Lead(
-        id: id,
-        name: name,
-        phone: phone,
-        status: status ?? this.status,
-        createdAt: createdAt,
-        source: source,
-        summary: summary,
-        collaboratorResponsibleId:
-            collaboratorResponsibleId ?? this.collaboratorResponsibleId,
-      );
+
+  /// O cliente em que esta lead se tornou.
+  ///
+  /// `LeadStatus.converted` dizia que a conversão aconteceu, mas não dizia em
+  /// quem — a cadeia partia-se logo no primeiro elo e não havia como saber o
+  /// que a origem tinha rendido. Com este campo e o [bookingId], a pergunta
+  /// "quanto é que o Facebook trouxe" deixa de ser uma contagem de leads e
+  /// passa a ser uma soma de euros: `Lead → Customer → Booking → Receipt`.
+  final String? convertedCustomerId;
+
+  /// O primeiro trabalho que este cliente deu depois de convertido.
+  ///
+  /// Só o primeiro, de propósito: é o que fecha o ciclo da origem — a lead
+  /// chegou e resultou em trabalho. Os trabalhos seguintes já não pertencem à
+  /// campanha, pertencem à relação, e misturá-los inflacionaria o retorno de
+  /// quem trouxe o cliente uma vez.
+  final String? bookingId;
+
+  Lead copyWith({
+    LeadStatus? status,
+    String? collaboratorResponsibleId,
+    String? convertedCustomerId,
+    String? bookingId,
+  }) => Lead(
+    id: id,
+    name: name,
+    phone: phone,
+    status: status ?? this.status,
+    createdAt: createdAt,
+    source: source,
+    summary: summary,
+    collaboratorResponsibleId:
+        collaboratorResponsibleId ?? this.collaboratorResponsibleId,
+    convertedCustomerId: convertedCustomerId ?? this.convertedCustomerId,
+    bookingId: bookingId ?? this.bookingId,
+  );
 }
 
 class Booking {

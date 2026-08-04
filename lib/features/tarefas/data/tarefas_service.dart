@@ -6,6 +6,8 @@ import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/workforce.dart';
 import '../../auth/acesso_providers.dart';
 import '../../auth/data/acesso_service.dart';
+import '../../contabilista/contabilista_providers.dart';
+import '../../contabilista/domain/contabilista.dart';
 import '../../dashboard/recomendacao_providers.dart';
 import '../../leads/leads_entrada_providers.dart';
 import '../domain/tarefa.dart';
@@ -27,6 +29,7 @@ List<Tarefa> tarefasPendentes(
   Map<String, DateTime> recomendacoesAdiadas = const {},
   List<Convite> convites = const [],
   int leadsRetidas = 0,
+  List<LacunaContabilista> lacunas = const [],
 }) {
   final tarefas = <Tarefa>[];
 
@@ -261,6 +264,61 @@ List<Tarefa> tarefasPendentes(
     );
   }
 
+  // 7b. O que o contabilista deixou em branco.
+  //
+  // A lista chega já agregada por rubrica — uma linha, não uma por célula. São
+  // cinco rubricas mensais em sessenta meses: trezentas tarefas não eram uma
+  // lista, eram um muro, e um muro fecha-se sem se ler.
+  //
+  // O servidor só as devolve depois de o contabilista ter entregue ou o convite
+  // ter expirado. Antes disso o silêncio não é uma lacuna, é alguém a meio do
+  // trabalho — e mandar o gestor preencher por cima disso é a via curta para
+  // dois números diferentes do mesmo mês.
+  for (final lacuna in lacunas) {
+    if (lacuna.emFalta > 0) {
+      final mensal = lacuna.periodicidade == PeriodicidadeRubrica.mensal;
+      tarefas.add(
+        Tarefa(
+          id: 'historico-${lacuna.rubrica}',
+          severidade: SeveridadeTarefa.aCompletar,
+          titulo: mensal
+              ? (lacuna.emFalta == 1
+                    ? 'Falta 1 mês de ${_minuscula(lacuna.rotulo)}'
+                    : 'Faltam ${lacuna.emFalta} meses de ${_minuscula(lacuna.rotulo)}')
+              : '${lacuna.rotulo} — por responder',
+          subtitulo: mensal
+              ? '${_intervalo(lacuna.primeiroMes, lacuna.ultimoMes)} · '
+                    'sem estes meses não há comparação com o ano passado'
+              : 'O contabilista não respondeu a esta',
+          cta: 'Preencher',
+          destino: DestinoTarefa.historicoContabilista,
+          referencia: lacuna.rubrica,
+        ),
+      );
+    }
+
+    // Meses que só o total do ano cobre. Não é um buraco — é um número de pior
+    // qualidade, e o painel já o usa repartido. Por isso sugestão, não
+    // pendência: não há nada partido à espera desta.
+    if (lacuna.soAnual > 0) {
+      tarefas.add(
+        Tarefa(
+          id: 'historico-anual-${lacuna.rubrica}',
+          severidade: SeveridadeTarefa.sugestao,
+          titulo:
+              '${lacuna.rotulo}: ${lacuna.soAnual} '
+              '${lacuna.soAnual == 1 ? 'mês' : 'meses'} só com o total do ano',
+          subtitulo:
+              'O painel reparte o total pelos meses. Discriminar dá '
+              'comparação homóloga a sério',
+          cta: 'Discriminar',
+          destino: DestinoTarefa.historicoContabilista,
+          referencia: lacuna.rubrica,
+        ),
+      );
+    }
+  }
+
   // 8. Recomendações adiadas que já voltaram a estar dentro do prazo ficam no
   // painel; as que ainda estão adiadas aparecem aqui, para não se perderem.
   final todas = GuidanceEngine().evaluate(
@@ -299,6 +357,18 @@ String _euros(int cents) =>
 String _data(DateTime data) =>
     '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}';
 
+/// "Faturação do mês" no meio de uma frase é "faturação do mês".
+String _minuscula(String rotulo) =>
+    rotulo.isEmpty ? rotulo : rotulo[0].toLowerCase() + rotulo.substring(1);
+
+/// "entre 2021 e 2023", ou "em 2022" quando o buraco cabe todo num ano.
+String _intervalo(DateTime? primeiro, DateTime? ultimo) {
+  if (primeiro == null || ultimo == null) return 'no período pedido';
+  return primeiro.year == ultimo.year
+      ? 'em ${primeiro.year}'
+      : 'entre ${primeiro.year} e ${ultimo.year}';
+}
+
 /// Tarefas pendentes vistas pela UI. Reavalia sempre que o estado muda.
 final tarefasProvider = Provider<List<Tarefa>>((ref) {
   final state = ref.watch(operationsProvider);
@@ -311,12 +381,18 @@ final tarefasProvider = Provider<List<Tarefa>>((ref) {
   // vai buscar as leads novas ao construir-se, e as aceites entram sozinhas no
   // pipeline. As Tarefas são o primeiro sítio da app que precisa de as saber.
   final retidas = ref.watch(leadsRetidasProvider).length;
+  // `valueOrNull` pela mesma razão que os convites: sem Supabase o provider fica
+  // em erro e a lista de tarefas não pode rebentar por causa disso.
+  final lacunas =
+      ref.watch(lacunasContabilistaProvider).valueOrNull ??
+      const <LacunaContabilista>[];
   return tarefasPendentes(
     state,
     DateTime.now(),
     recomendacoesAdiadas: adiadas,
     convites: convites,
     leadsRetidas: retidas,
+    lacunas: lacunas,
   );
 });
 

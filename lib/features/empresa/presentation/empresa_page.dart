@@ -6,6 +6,7 @@ import '../../../core/navigation/app_destination.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/finance.dart';
 import '../../company/presentation/company_settings_page.dart';
+import '../../contabilista/presentation/historico_contabilista_page.dart';
 import '../../finance/presentation/financas_page.dart';
 import '../../workforce/presentation/workforce_pages.dart';
 
@@ -70,6 +71,7 @@ class _EmpresaPageState extends ConsumerState<EmpresaPage>
       children: [
         const CompanySettingsPage(embutida: true),
         _AbaRegimeFiscal(aoIrParaDados: () => _abas.animateTo(0)),
+        const HistoricoContabilistaPage(),
         _AbaCustosFixos(aoIrParaDados: () => _abas.animateTo(0)),
         const VehiclesPage(),
         const FinancasPage(),

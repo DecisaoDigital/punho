@@ -6,6 +6,7 @@ import '../../../core/documents/at_invoice_qr.dart';
 import '../../../core/documents/expense_document_capture.dart';
 import '../../../core/documents/expense_document_storage.dart';
 import '../../../domain/models/finance.dart';
+import '../../../domain/models/operations.dart';
 
 /// Mensagem do valor recusado: distingue campo vazio (falta preencher) de
 /// texto que não se consegue ler (escreveu-se algo, mas não é um euro válido —
@@ -344,8 +345,26 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
 }
 
 class RegisterReceiptPage extends ConsumerStatefulWidget {
-  const RegisterReceiptPage({super.key, this.recordedByCollaboratorId});
+  const RegisterReceiptPage({
+    super.key,
+    this.recordedByCollaboratorId,
+    this.clienteInicial,
+    this.trabalhoInicial,
+    this.valorInicialCents,
+  });
   final String? recordedByCollaboratorId;
+
+  /// Cliente, trabalho e valor já preenchidos por quem abriu o formulário.
+  ///
+  /// Existem por causa de **A minha semana**: quando a app já sabe que faltam
+  /// 425,50 € do trabalho de terça-feira, obrigar o gestor a escolher o cliente
+  /// numa lista, a reserva noutra e a escrever o valor à mão é pedir-lhe que
+  /// volte a informar o que ela lhe acabou de dizer. E cada um desses três
+  /// passos é uma hipótese de enganar-se — o recebimento ir parar ao trabalho
+  /// errado estraga a margem de dois de uma vez.
+  final String? clienteInicial, trabalhoInicial;
+  final int? valorInicialCents;
+
   @override
   ConsumerState<RegisterReceiptPage> createState() =>
       _RegisterReceiptPageState();
@@ -357,6 +376,16 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
   PaymentMethod method = PaymentMethod.transfer;
   String? customerId;
   String? bookingId;
+
+  @override
+  void initState() {
+    super.initState();
+    customerId = widget.clienteInicial;
+    bookingId = widget.trabalhoInicial;
+    if (widget.valorInicialCents != null) {
+      amount.text = textoDeCents(widget.valorInicialCents);
+    }
+  }
 
   /// Ver o comentário simétrico em [_RegisterExpensePageState.erro].
   String? erro;
@@ -418,7 +447,12 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
                     (booking) => DropdownMenuItem<String?>(
                       value: booking.id,
                       child: Text(
-                        '${booking.startsAt.day}/${booking.startsAt.month} · ${booking.status.name}',
+                        '${booking.startsAt.day}/${booking.startsAt.month} · '
+                        // `status.name` punha "rented" e "proposalSent" à
+                        // frente do gestor. Visto no Redmi a 4 de Agosto de
+                        // 2026, no recebimento aberto a partir de A minha
+                        // semana.
+                        '${bookingStatusLabel(booking.status)}',
                       ),
                     ),
                   ),

@@ -38,13 +38,25 @@ class TesourariaMes {
     required this.mes,
     required this.recebidoCents,
     required this.pagoCents,
+    required this.encargosFixosVencidosCents,
     required this.recebidoMesAnteriorCents,
     required this.recebidoMesHomologoCents,
     required this.serieDiariaCents,
   });
 
   final DateTime mes;
+
+  /// Só o que foi lançado como despesa paga. **Não é o que sai da conta**: a
+  /// prestação da carrinha e a renda não se lançam à mão, declaram-se uma vez.
+  /// Quem mostra saídas ao gestor mostra [saidasCents].
   final int recebidoCents, pagoCents, recebidoMesAnteriorCents;
+
+  /// Encargos declarados com dia marcado cuja data já passou este mês.
+  ///
+  /// Isto era o buraco de canalização do painel: duas viaturas com prestação a
+  /// 2 e a 3 saíam mesmo da conta antes do dia 4, e o card dizia "Saídas 0"
+  /// porque ninguém as tinha lançado como despesa — nem tinha de as lançar.
+  final int encargosFixosVencidosCents;
 
   /// O mesmo mês do ano passado. Zero quando não há histórico que lá chegue.
   final int recebidoMesHomologoCents;
@@ -80,19 +92,99 @@ class TesourariaMes {
   double? _variacao(int base) =>
       base == 0 ? null : (recebidoCents - base) / base * 100;
 
-  bool get semMovimentos => recebidoCents == 0 && pagoCents == 0;
+  /// Tudo o que saiu: o lançado à mão mais os encargos declarados já vencidos.
+  int get saidasCents => pagoCents + encargosFixosVencidosCents;
+
+  bool get semMovimentos => recebidoCents == 0 && saidasCents == 0;
 }
 
-TesourariaMes tesourariaDoMes(OperationsState state, DateTime mes) {
+/// Um encargo declarado para o dia [dia] de [mes] já venceu à data [hoje]?
+///
+/// Três casos, e o do meio é o que interessa: mês por vir — nada venceu; mês a
+/// decorrer — venceu o que tem dia até hoje, com o dia de hoje a contar (uma
+/// prestação debitada hoje de manhã já saiu da conta); mês fechado — venceu
+/// tudo, não interessa em que dia.
+bool encargoJaVenceu(int? dia, DateTime mes, DateTime hoje) {
+  if (dia == null) return false;
+  if (hoje.isBefore(_inicioDoMes(mes))) return false;
+  final mesmoMes = hoje.year == mes.year && hoje.month == mes.month;
+  return mesmoMes ? dia <= hoje.day : true;
+}
+
+/// Encargos declarados com dia marcado que já saíram da conta em [mes].
+///
+/// Prestações de viaturas e rubricas de custo fixo. Nenhuma delas se lança
+/// como despesa — declaram-se uma vez e saem sozinhas todos os meses —, e era
+/// por isso que o painel não as via.
+///
+/// O que **não** tem dia declarado fica de fora de propósito: sem data não há
+/// como saber se já saiu, e inventar um dia 1 punha o mês inteiro a pesar logo
+/// no primeiro dia. Esse custo continua a entrar repartido pelos dias, em
+/// [CustosMes.custoAteAgoraCents].
+int encargosFixosVencidosCents(
+  OperationsState state,
+  DateTime mes,
+  DateTime hoje,
+) {
+  final prestacoes = state.vehicles
+      .where(
+        (v) =>
+            !v.archived &&
+            v.status != VehicleStatus.inactive &&
+            v.monthlyPaymentCents != null &&
+            encargoJaVenceu(v.paymentDayOfMonth, mes, hoje),
+      )
+      .fold<int>(0, (soma, v) => soma + v.monthlyPaymentCents!);
+  final rubricas = state.custosFixos
+      .where((c) => encargoJaVenceu(c.diaDoMes, mes, hoje))
+      .fold<int>(0, (soma, c) => soma + c.valorCents);
+  return prestacoes + rubricas;
+}
+
+/// Categorias cobertas por uma rubrica fixa com data. Uma despesa paga desta
+/// categoria não volta a contar: já entrou pelo valor declarado.
+Set<ExpenseCategory> categoriasComRubricaDatada(OperationsState state) => state
+    .custosFixos
+    .where((c) => c.diaDoMes != null)
+    .map((c) => c.categoria)
+    .toSet();
+
+/// Recebido e pago de [mes], com [hoje] a decidir que encargos já venceram.
+///
+/// [hoje] existe porque um mês fechado e o mês a decorrer não se lêem da mesma
+/// maneira: em Julho todas as prestações de Julho já saíram, a 4 de Agosto só
+/// saíram as dos dias 1 a 4. Por omissão vale [mes], que é o que serve para
+/// pedir um mês inteiro — quem quer o mês a decorrer passa a data de hoje.
+TesourariaMes tesourariaDoMes(
+  OperationsState state,
+  DateTime mes, {
+  DateTime? hoje,
+}) {
   final inicio = _inicioDoMes(mes);
   final fim = _fimDoMes(mes);
+  final referencia = hoje ?? mes;
   final anterior = DateTime(mes.year, mes.month - 1);
   final homologo = DateTime(mes.year - 1, mes.month);
   final diasNoMes = fim.day;
   return TesourariaMes(
     mes: inicio,
     recebidoCents: receiptTotal(state.receipts, inicio, fim),
-    pagoCents: paidExpenseTotal(state.expenses, inicio, fim),
+    // As categorias que já têm rubrica fixa declarada com data ficam de fora:
+    // entram pelo valor declarado, e contá-las dos dois lados duplicava a
+    // saída. É a mesma regra que já valia para os salários em
+    // `custosMesAgregados` — a fonte declarada manda.
+    pagoCents: paidExpenseTotal(
+      state.expenses.where(
+        (e) => !categoriasComRubricaDatada(state).contains(e.category),
+      ),
+      inicio,
+      fim,
+    ),
+    encargosFixosVencidosCents: encargosFixosVencidosCents(
+      state,
+      mes,
+      referencia,
+    ),
     recebidoMesAnteriorCents: receiptTotal(
       state.receipts,
       _inicioDoMes(anterior),
@@ -144,7 +236,7 @@ int _recebidoDoMesComHistorico(OperationsState state, DateTime mes) {
 int? resultadoMesConservador(OperationsState state, DateTime now) {
   final mes = tesourariaDoMes(state, now);
   if (mes.semMovimentos) return null;
-  return simpleOperatingResult(mes.recebidoCents, mes.pagoCents);
+  return simpleOperatingResult(mes.recebidoCents, mes.saidasCents);
 }
 
 /// Previsão de como vai fechar o mês — diferente do "Encontro de contas".
@@ -865,6 +957,8 @@ class CustosMes {
     required this.custosFixosDeclaradosCents,
     required this.receitaMesCents,
     required this.fracaoDoMesDecorrida,
+    required this.prestacoesComDataCents,
+    required this.prestacoesVencidasCents,
   });
 
   /// Bruto **mais** a carga social da entidade patronal — o que sai mesmo da
@@ -897,6 +991,11 @@ class CustosMes {
   /// card do lado a dizer "Saídas 0" (achado no teste de campo, 04-08-2026).
   final double fracaoDoMesDecorrida;
 
+  /// A parte de [frotaCents] que tem dia de débito declarado, e a parte dessa
+  /// que já venceu. Servem para tirar as prestações datadas da conta repartida
+  /// e pô-las onde elas de facto caem: inteiras, no dia em que saem.
+  final int prestacoesComDataCents, prestacoesVencidasCents;
+
   /// Média sobre o custo real: é o que a pessoa custa à empresa, não o que
   /// recebe.
   int? get custoMedioPorColaborador => colaboradoresActivos == 0
@@ -910,11 +1009,21 @@ class CustosMes {
       manutencaoPagaCents +
       outrosCustosCents;
 
-  /// O custo já incorrido à data. A parte fixa entra repartida pelos dias que
-  /// já passaram; manutenção e restantes despesas já são valores pagos, e
-  /// portanto entram inteiras.
+  /// O custo já incorrido à data.
+  ///
+  /// Três ritmos diferentes, e é por isso que a conta não é uma só:
+  /// - o que tem **data declarada** (prestações) conta inteiro a partir do dia
+  ///   em que sai, e não conta nada antes disso;
+  /// - o que **não tem data** (salários, seguros e manutenção diluídos ao mês)
+  ///   entra repartido pelos dias decorridos — é o mais honesto que se diz sem
+  ///   saber o dia;
+  /// - manutenção paga e restantes despesas já são dinheiro saído, entram
+  ///   inteiras.
   int get custoAteAgoraCents =>
-      ((custoRealPessoalCents + frotaCents) * fracaoDoMesDecorrida).round() +
+      ((custoRealPessoalCents + frotaCents - prestacoesComDataCents) *
+              fracaoDoMesDecorrida)
+          .round() +
+      prestacoesVencidasCents +
       manutencaoPagaCents +
       outrosCustosCents;
 
@@ -979,9 +1088,13 @@ CustosMes custosMesAgregados(
         0,
         (soma, c) => soma + (monthlyCollaboratorCost(c) ?? 0),
       );
-  final frota = state.vehicles
+  final naEstrada = state.vehicles
       .where((v) => !v.archived && v.status != VehicleStatus.inactive)
-      .fold(0, (soma, v) => soma + monthlyFleetCost(v));
+      .toList();
+  final frota = naEstrada.fold(0, (soma, v) => soma + monthlyFleetCost(v));
+  final comData = naEstrada.where(
+    (v) => v.monthlyPaymentCents != null && v.paymentDayOfMonth != null,
+  );
   final manutencao = pagoNoPeriodo(
     (e) => _categoriasManutencao.contains(e.category),
     inicio,
@@ -1015,6 +1128,13 @@ CustosMes custosMesAgregados(
     tsuPatronalCents: pessoal.tsuPatronal,
     colaboradoresActivos: activos.length,
     frotaCents: frota,
+    prestacoesComDataCents: comData.fold(
+      0,
+      (soma, v) => soma + v.monthlyPaymentCents!,
+    ),
+    prestacoesVencidasCents: comData
+        .where((v) => encargoJaVenceu(v.paymentDayOfMonth, now, now))
+        .fold(0, (soma, v) => soma + v.monthlyPaymentCents!),
     manutencaoPagaCents: manutencao,
     manutencaoMedia6MesesCents: media6Meses(),
     // Tudo o que foi pago no mês e não é manutenção nem salários: os salários

@@ -614,9 +614,34 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
 
   String exportOperationalPayload() => jsonEncode(_operationalPayload());
 
+  /// Traz do servidor o instantâneo do que é **da empresa** — e só isso.
+  ///
+  /// **Porque é que isto não traz tudo.** Há dois canais a sincronizar esta
+  /// app, e durante um tempo os dois julgaram-se donos das mesmas coisas:
+  ///
+  /// * o das **operações** (`punho_operacoes`), uma linha por alteração, com a
+  ///   ordem do servidor a decidir quem ganha. É ele que carrega máquinas,
+  ///   clientes, leads, reservas, despesas, recebimentos, colaboradores e
+  ///   veículos — as coisas que duas pessoas mexem ao mesmo tempo;
+  /// * este, o do **instantâneo** (`punho_estado_operacional`), que sobe e
+  ///   desce o estado inteiro com uma revisão. Serve o que só o gestor edita e
+  ///   não cabe em operações: o onboarding, os custos fixos, o histórico mensal.
+  ///
+  /// Enquanto este importou o payload completo, era ele quem mandava — e mandava
+  /// com dados velhos. A 4 de Agosto de 2026, num Redmi: fechar um trabalho
+  /// gravava, subia à fila de operações, chegava ao servidor — e segundos depois
+  /// o trabalho estava outra vez "em curso", porque este canal tinha voltado a
+  /// escrever por cima com um instantâneo da revisão 1, onde ele ainda estava
+  /// alugado. Não havia erro nenhum: a app dizia uma coisa, o servidor dizia
+  /// outra, e quem trabalhava perdia o trabalho em silêncio.
+  ///
+  /// Cada coisa tem um dono. Este canal deixou de opinar sobre o que não é dele.
   bool importOperationalPayload(String raw, {required int revision}) {
     try {
-      _applyData(Map<String, dynamic>.from(jsonDecode(raw) as Map));
+      _applyData(
+        Map<String, dynamic>.from(jsonDecode(raw) as Map),
+        apenasDadosDaEmpresa: true,
+      );
       _remoteRevision = revision;
       _hasPendingRemoteChanges = false;
       _persist();
@@ -713,7 +738,14 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     }
   }
 
-  void _applyData(Map<String, dynamic> data) {
+  /// [apenasDadosDaEmpresa] deixa de fora as entidades que pertencem ao canal
+  /// das operações. Ver [importOperationalPayload], que é quem o usa — a
+  /// leitura do que está gravado no telemóvel ([_restore]) tem de aplicar tudo,
+  /// senão a app arrancava sem metade do que lá está.
+  void _applyData(
+    Map<String, dynamic> data, {
+    bool apenasDadosDaEmpresa = false,
+  }) {
     final onboardingJson = _mapOrNull(data['onboarding']);
     if (onboardingJson != null) {
       _onboarding = OnboardingData(
@@ -751,6 +783,14 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
         ],
       );
     }
+    // O histórico mensal fica **dentro** do que é da empresa: é declarado pelo
+    // gestor uma vez, como os custos fixos, e não anda de mão em mão.
+    _replace(
+      _historicalMonths,
+      data['historicalMonths'],
+      _historicalMonthFromJson,
+    );
+    if (apenasDadosDaEmpresa) return;
     _replace(_machines, data['machines'], _machineFromJson);
     _replace(_customers, data['customers'], _customerFromJson);
     _replace(_leads, data['leads'], _leadFromJson);
@@ -759,11 +799,6 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     _replace(_receipts, data['receipts'], _receiptFromJson);
     _replace(_collaborators, data['collaborators'], _collaboratorFromJson);
     _replace(_vehicles, data['vehicles'], _vehicleFromJson);
-    _replace(
-      _historicalMonths,
-      data['historicalMonths'],
-      _historicalMonthFromJson,
-    );
   }
 
   void _replace<T>(
@@ -873,6 +908,8 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'createdAt': item.createdAt.toIso8601String(),
     'summary': item.summary,
     'collaboratorResponsibleId': item.collaboratorResponsibleId,
+    'convertedCustomerId': item.convertedCustomerId,
+    'bookingId': item.bookingId,
   };
 
   static Lead _leadFromJson(Map<String, dynamic> data) => Lead(
@@ -888,6 +925,12 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     collaboratorResponsibleId: _nullableString(
       data['collaboratorResponsibleId'],
     ),
+    // Ausentes em tudo o que foi gravado antes destes campos existirem: ficam
+    // nulos, e o `convertLead` volta a preenchê-los na próxima conversão. Uma
+    // lead antiga já convertida fica sem cadeia — não se inventa aqui um
+    // cliente a partir do telemóvel, que era como se criavam elos falsos.
+    convertedCustomerId: _nullableString(data['convertedCustomerId']),
+    bookingId: _nullableString(data['bookingId']),
   );
 
   static Map<String, Object?> _bookingToJson(Booking item) => {
@@ -1063,6 +1106,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'status': item.status.name,
     'alias': item.alias,
     'monthlyPaymentCents': item.monthlyPaymentCents,
+    'paymentDayOfMonth': item.paymentDayOfMonth,
     'insuranceCents': item.insuranceCents,
     'insuranceFrequency': item.insuranceFrequency?.name,
     'maintenanceCents': item.maintenanceCents,
@@ -1077,6 +1121,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     status: VehicleStatus.values.byName(_string(data, 'status', 'active')),
     alias: _nullableString(data['alias']),
     monthlyPaymentCents: _nullableInt(data['monthlyPaymentCents']),
+    paymentDayOfMonth: diaDoMesValido(_nullableInt(data['paymentDayOfMonth'])),
     insuranceCents: _nullableInt(data['insuranceCents']),
     insuranceFrequency: _nullableString(data['insuranceFrequency']) == null
         ? null

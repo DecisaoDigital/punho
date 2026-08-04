@@ -150,6 +150,7 @@ class Vehicle {
     required this.status,
     this.alias,
     this.monthlyPaymentCents,
+    this.paymentDayOfMonth,
     this.insuranceCents,
     this.insuranceFrequency,
     this.maintenanceCents,
@@ -160,6 +161,14 @@ class Vehicle {
   final String? alias;
   final VehicleStatus status;
   final int? monthlyPaymentCents, insuranceCents;
+
+  /// Dia do mês em que a prestação é debitada — 1 a 31, ou `null` se não tiver
+  /// sido declarado.
+  ///
+  /// A data importa tanto como o valor: uma prestação de 350 € que sai a 2 já
+  /// saiu no dia 4, e uma que sai a 28 ainda não. Sem isto o painel só sabia
+  /// quanto custa a frota por mês, nunca quanto já tinha saído da conta.
+  final int? paymentDayOfMonth;
   final InsuranceFrequency? insuranceFrequency;
 
   /// Manutenção prevista, valor **anual** — mesma unidade em que o Cesar pensa
@@ -179,6 +188,7 @@ class Vehicle {
     VehicleStatus? status,
     Object? alias = _naoMexer,
     Object? monthlyPaymentCents = _naoMexer,
+    Object? paymentDayOfMonth = _naoMexer,
     Object? insuranceCents = _naoMexer,
     Object? insuranceFrequency = _naoMexer,
     Object? maintenanceCents = _naoMexer,
@@ -193,6 +203,9 @@ class Vehicle {
     monthlyPaymentCents: monthlyPaymentCents == _naoMexer
         ? this.monthlyPaymentCents
         : monthlyPaymentCents as int?,
+    paymentDayOfMonth: paymentDayOfMonth == _naoMexer
+        ? this.paymentDayOfMonth
+        : paymentDayOfMonth as int?,
     insuranceCents: insuranceCents == _naoMexer
         ? this.insuranceCents
         : insuranceCents as int?,

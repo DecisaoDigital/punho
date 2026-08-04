@@ -34,6 +34,11 @@ enum DestinoTarefa {
   reservas,
   financas,
   convites,
+
+  /// O histórico que o contabilista respondeu — e o que ele deixou em branco.
+  /// A [Tarefa.referencia] leva a chave da rubrica, para o ecrã abrir já nos
+  /// meses certos em vez de na lista de todas.
+  historicoContabilista,
   painel,
 }
 

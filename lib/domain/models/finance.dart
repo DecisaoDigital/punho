@@ -46,11 +46,22 @@ class CustoFixo {
     required this.categoria,
     required this.valorCents,
     this.descricao = '',
+    this.diaDoMes,
   });
 
   final String id;
   final ExpenseCategory categoria;
   final int valorCents;
+
+  /// Dia do mês em que a rubrica sai da conta — 1 a 31, ou `null` enquanto não
+  /// for declarado.
+  ///
+  /// Um custo fixo sem data é um número que paira: sabe-se que vai sair, não se
+  /// sabe se já saiu. Com o dia, uma renda vencida a 2 conta como saída no dia
+  /// 4 e o painel deixa de dizer "Saídas 0" a uma empresa que já pagou a renda.
+  /// Sem ele, a rubrica distribui-se pelos dias do mês, que é o mais honesto
+  /// que se consegue dizer sem saber a data.
+  final int? diaDoMes;
 
   /// Livre, para distinguir duas rubricas da mesma categoria ("Renda do
   /// armazém" e "Renda do escritório").
@@ -60,15 +71,19 @@ class CustoFixo {
       ? expenseCategoryLabel(categoria)
       : descricao.trim();
 
+  /// `diaDoMes` usa o sentinela [_naoMexerNoDia] para distinguir **não mexer**
+  /// de **apagar a data**, tal como o `Vehicle.copyWith`.
   CustoFixo copyWith({
     ExpenseCategory? categoria,
     int? valorCents,
     String? descricao,
+    Object? diaDoMes = _naoMexerNoDia,
   }) => CustoFixo(
     id: id,
     categoria: categoria ?? this.categoria,
     valorCents: valorCents ?? this.valorCents,
     descricao: descricao ?? this.descricao,
+    diaDoMes: diaDoMes == _naoMexerNoDia ? this.diaDoMes : diaDoMes as int?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -76,6 +91,7 @@ class CustoFixo {
     'categoria': categoria.name,
     'valorCents': valorCents,
     'descricao': descricao,
+    'diaDoMes': diaDoMes,
   };
 
   factory CustoFixo.fromJson(Map<String, dynamic> json) => CustoFixo(
@@ -89,8 +105,19 @@ class CustoFixo {
         ExpenseCategory.other,
     valorCents: (json['valorCents'] as num?)?.toInt() ?? 0,
     descricao: json['descricao'] as String? ?? '',
+    diaDoMes: diaDoMesValido((json['diaDoMes'] as num?)?.toInt()),
   );
 }
+
+/// Sentinela de "este parâmetro não foi passado", para o [CustoFixo.copyWith].
+const Object _naoMexerNoDia = Object();
+
+/// Um dia do mês só serve se couber num mês. Fora de 1..31 vale o mesmo que não
+/// ter data: o encargo passa a distribuir-se pelos dias, em vez de vencer num
+/// dia que não existe. Vale para o que vem do servidor tanto como para o que
+/// vem de um campo de texto.
+int? diaDoMesValido(int? dia) =>
+    dia == null || dia < 1 || dia > 31 ? null : dia;
 
 /// Soma das rubricas. `null` quando não há nenhuma — zero diria "não tens
 /// custos fixos", que é diferente de "ainda não os declaraste".

@@ -771,7 +771,15 @@ class OperationsController extends Notifier<OperationsState> {
         .firstOrNull;
     if (jaConvertida && existente != null) return existente;
     if (existente != null) {
-      _repo.saveLead(lead.copyWith(status: LeadStatus.converted));
+      // Marca-se na mesma o cliente a que ela corresponde: a conversão não se
+      // conclui, mas a origem daquele cliente ficou a saber-se aqui, e é
+      // exactamente esse o elo que interessa guardar.
+      _repo.saveLead(
+        lead.copyWith(
+          status: LeadStatus.converted,
+          convertedCustomerId: existente.id,
+        ),
+      );
       state = _fromRepo();
       throw StateError(
         'Já existe um cliente com o telemóvel desta lead: ${existente.name}.',
@@ -784,9 +792,33 @@ class OperationsController extends Notifier<OperationsState> {
       notes: lead.summary,
     );
     _repo.saveCustomer(customer);
-    _repo.saveLead(lead.copyWith(status: LeadStatus.converted));
+    _repo.saveLead(
+      lead.copyWith(
+        status: LeadStatus.converted,
+        convertedCustomerId: customer.id,
+      ),
+    );
     state = _fromRepo();
     return customer;
+  }
+
+  /// Fecha a cadeia da origem: a lead que trouxe este cliente fica a apontar
+  /// para o primeiro trabalho que ele deu.
+  ///
+  /// Corre sozinho a cada reserva criada, e não num botão — pedir ao gestor
+  /// que ligue a reserva à campanha que a originou é pedir-lhe trabalho de
+  /// escritório para produzir um dado que a app já tem em mãos. Só marca a
+  /// **primeira**: as seguintes pertencem à relação, não a quem a trouxe.
+  void _ligarLeadAoPrimeiroTrabalho(Booking booking) {
+    final lead = _repo.leads
+        .where(
+          (item) =>
+              item.convertedCustomerId == booking.customerId &&
+              item.bookingId == null,
+        )
+        .firstOrNull;
+    if (lead == null) return;
+    _repo.saveLead(lead.copyWith(bookingId: booking.id));
   }
 
   BookingConflict? conflictFor({
@@ -895,6 +927,7 @@ class OperationsController extends Notifier<OperationsState> {
             : booking.collaboratorNameSnapshot,
       ),
     );
+    _ligarLeadAoPrimeiroTrabalho(booking);
     _syncMachineCycle(booking.machineIds);
     state = _fromRepo();
     return null;
@@ -920,6 +953,23 @@ class OperationsController extends Notifier<OperationsState> {
     _syncMachineCycle(current.machineIds);
     state = _fromRepo();
     return null;
+  }
+
+  /// Diz quanto valeu um trabalho já criado.
+  ///
+  /// Não havia caminho nenhum para isto: o valor previsto só se escrevia no
+  /// formulário de marcação, e um trabalho fechado sem ele ficava sem ele para
+  /// sempre — invisível na receita e na margem, com o agravante de *parecer*
+  /// arrumado. O [addBooking] não servia para o corrigir: volta a correr a
+  /// verificação de conflitos e o trabalho entra em conflito consigo próprio.
+  void definirValorPrevisto(String bookingId, int cents) {
+    if (cents <= 0) {
+      throw ArgumentError('O valor deve ser superior a zero.');
+    }
+    final atual = state.bookings.where((x) => x.id == bookingId).firstOrNull;
+    if (atual == null) return;
+    _repo.saveBooking(atual.copyWith(expectedValueCents: cents));
+    state = _fromRepo();
   }
 
   void _syncMachineCycle(Iterable<String> machineIds) {

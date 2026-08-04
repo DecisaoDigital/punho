@@ -8,6 +8,7 @@ import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/operations/kpis.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../data/repositories/operation_repository.dart';
+import '../../../domain/models/finance.dart';
 import '../../../domain/models/workforce.dart';
 import '../../auth/subscricao_providers.dart';
 import 'ficha_fiscal_form.dart';
@@ -833,6 +834,9 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
   late final monthlyPayment = TextEditingController(
     text: textoDeCents(current?.monthlyPaymentCents),
   );
+  late final paymentDay = TextEditingController(
+    text: current?.paymentDayOfMonth?.toString() ?? '',
+  );
   late final insurance = TextEditingController(
     text: textoDeCents(current?.insuranceCents),
   );
@@ -852,6 +856,7 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
     type.dispose();
     alias.dispose();
     monthlyPayment.dispose();
+    paymentDay.dispose();
     insurance.dispose();
     maintenance.dispose();
     super.dispose();
@@ -886,6 +891,17 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
               labelText: 'Prestação mensal (€)',
+            ),
+          ),
+          // O dia importa tanto como o valor: é o que separa "já saiu da conta"
+          // de "ainda vai sair", e sem ele o painel não sabe dizer nenhuma das
+          // duas coisas. Em branco, a prestação conta repartida pelo mês.
+          TextField(
+            controller: paymentDay,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Dia do débito',
+              helperText: 'Dia do mês em que a prestação sai da conta',
             ),
           ),
           TextField(
@@ -950,6 +966,19 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
           setState(() => erro = erroDeValor);
           return;
         }
+        // Um dia fora de 1..31 não se aceita calado: guardá-lo como `null`
+        // fazia a prestação desaparecer da conta das saídas sem ninguém saber
+        // porquê.
+        final diaEscrito = paymentDay.text.trim();
+        final dia = diaEscrito.isEmpty
+            ? null
+            : diaDoMesValido(int.tryParse(diaEscrito));
+        if (diaEscrito.isNotEmpty && dia == null) {
+          setState(
+            () => erro = 'O dia do débito tem de ser um número entre 1 e 31.',
+          );
+          return;
+        }
         final anterior = current;
         final prestacaoCents = centsDeTexto(monthlyPayment.text);
         final seguroCents = centsDeTexto(insurance.text);
@@ -963,6 +992,7 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
                   type: type.text,
                   alias: alias.text.trim().isEmpty ? null : alias.text.trim(),
                   monthlyPaymentCents: prestacaoCents,
+                  paymentDayOfMonth: dia,
                   insuranceCents: seguroCents,
                   insuranceFrequency: insurance.text.trim().isEmpty
                       ? null
@@ -976,6 +1006,7 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
                   status: VehicleStatus.active,
                   alias: alias.text.trim().isEmpty ? null : alias.text.trim(),
                   monthlyPaymentCents: prestacaoCents,
+                  paymentDayOfMonth: dia,
                   insuranceCents: seguroCents,
                   insuranceFrequency: insurance.text.trim().isEmpty
                       ? null

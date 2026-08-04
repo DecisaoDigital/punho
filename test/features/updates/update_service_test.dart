@@ -11,7 +11,7 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
     PackageInfo.setMockInitialValues(
       appName: 'Punho',
-      packageName: 'pt.punho.app',
+      packageName: 'pt.decisaodigital.punho',
       version: '0.0.2',
       buildNumber: '2',
       buildSignature: '',

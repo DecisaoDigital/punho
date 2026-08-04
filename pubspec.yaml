@@ -64,6 +64,11 @@ dev_dependencies:
   # Só para os testes do cadeado: o `AuthMessages` do `authenticate` vive aqui,
   # e é preciso para o duplo de `LocalAuthentication` respeitar a assinatura.
   local_auth_platform_interface: ^1.1.0
+  # Só para o teste do cursor na consulta: para se poder pôr um cliente HTTP de
+  # mentira debaixo do `SupabaseClient` e ver o pedido que ele constrói mesmo.
+  # Sem isto, o filtro por `seq` só se verificava por leitura do código — e foi
+  # assim que a sua ausência viveu meses sem ninguém dar por ela.
+  http: ^1.2.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

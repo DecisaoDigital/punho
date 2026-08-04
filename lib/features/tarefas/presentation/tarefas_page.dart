@@ -9,6 +9,7 @@ import '../../../core/navigation/navigation_controller.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../core/theme/punho_theme.dart';
 import '../../company/presentation/company_settings_page.dart';
+import '../../contabilista/presentation/historico_contabilista_page.dart';
 import '../../gestao/presentation/convites_screen.dart';
 import '../data/tarefas_service.dart';
 import '../domain/tarefa.dart';
@@ -192,6 +193,18 @@ void abrirDestinoDaTarefa(
           // O código vai à frente para o ecrã destacar a linha: numa lista de
           // dez convites, abrir sem dizer qual não resolve a tarefa.
           builder: (_) => ConvitesScreen(destacarCodigo: referencia),
+        ),
+      );
+    case DestinoTarefa.historicoContabilista:
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => Scaffold(
+            appBar: AppBar(title: const Text('Histórico da empresa')),
+            // A rubrica vai à frente para o ecrã abrir logo nos meses certos:
+            // chegar aqui a partir de "faltam 42 meses de faturação" e cair
+            // numa lista obrigava a procurar outra vez o que se acabou de ler.
+            body: HistoricoContabilistaPage(abrirRubrica: referencia),
+          ),
         ),
       );
     case DestinoTarefa.clientes:

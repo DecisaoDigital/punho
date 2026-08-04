@@ -1838,7 +1838,9 @@ class ClientsPage extends ConsumerWidget {
             Card(
               child: ListTile(
                 title: Text(l.name),
-                subtitle: Text('${l.phone} · ${l.status.name}'),
+                // `l.status.name` punha "newLead" e "proposal" à frente do
+                // utilizador — nomes de programador num ecrã de gestão.
+                subtitle: Text('${l.phone} · ${leadStatusLabel(l.status)}'),
                 trailing: l.status == LeadStatus.converted
                     ? null
                     : TextButton(
@@ -3045,14 +3047,10 @@ Future<void> _bookingStatusDialog(
   );
 }
 
-String _bookingStatusLabel(BookingStatus status) => switch (status) {
-  BookingStatus.request => 'Pedido',
-  BookingStatus.proposalSent => 'Proposta enviada',
-  BookingStatus.confirmed => 'Confirmada',
-  BookingStatus.rented => 'Em aluguer',
-  BookingStatus.completed => 'Concluída',
-  BookingStatus.cancelled => 'Cancelada',
-};
+/// Mudou-se para o modelo, ao lado de `machineStatusLabel` e `leadSourceLabel`,
+/// quando **A minha semana** precisou das mesmas seis palavras: duas cópias do
+/// vocabulário é como se começa a ter três.
+const _bookingStatusLabel = bookingStatusLabel;
 
 /// Valor sentinela do dropdown de cliente: abre o formulário de novo cliente
 /// em vez de escolher um existente.

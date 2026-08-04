@@ -164,7 +164,7 @@ void main() {
   });
 
   group('Consequências na navegação', () {
-    test('a barra tem sempre os mesmos sete destinos', () {
+    test('a barra tem sempre os mesmos destinos, sejam quais forem os dados', () {
       // Mudou na v0.0.8 (Decisão 2). Antes, guardar zero colaboradores tirava
       // "Funcionários" do menu e zero veículos tirava "Frota": a barra mudava
       // de forma conforme os dados, e uma barra que muda não se decora.
@@ -172,6 +172,11 @@ void main() {
       // Este teste era o inverso — exigia que as áreas desaparecessem. Foi
       // reescrito e não ajustado, porque o comportamento certo passou a ser o
       // oposto do que ele fixava.
+      //
+      // Passaram a oito a 4 de Agosto de 2026, com "A minha semana" (Fase 0 do
+      // `docs/PLANO_DO_CICLO.md`). O que este teste guarda não é o número —
+      // é que **os dados não mexem na barra**. O número está aqui só para que
+      // um destino acrescentado por engano não passe despercebido.
       final c = _cenario();
       final antes = visibleOperationalDestinations(
         c.container.read(operationsProvider),
@@ -183,9 +188,10 @@ void main() {
         c.container.read(operationsProvider),
       );
       expect(depois, antes);
-      expect(depois, hasLength(7));
+      expect(depois, hasLength(8));
       expect(depois, contains(AppDestination.employees));
       expect(depois, contains(AppDestination.empresa));
+      expect(depois, contains(AppDestination.semana));
     });
 
     test('Veículos e Finanças saíram da barra para dentro de Empresa', () {

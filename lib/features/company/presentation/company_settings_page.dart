@@ -550,7 +550,7 @@ class _EditorDeCustosFixos extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  flex: 5,
+                  flex: 4,
                   child: TextFormField(
                     initialValue: rubricas[i].descricao,
                     decoration: const InputDecoration(
@@ -574,6 +574,28 @@ class _EditorDeCustosFixos extends StatelessWidget {
                       i,
                       rubricas[i].copyWith(
                         valorCents: centsDeTexto(valor) ?? 0,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Sem dia, a rubrica só se sabe mensal e o painel reparte-a
+                // pelos dias. Com dia, conta inteira assim que a data passa —
+                // é o que faz a renda aparecer nas saídas do dia 4 sem ninguém
+                // a lançar como despesa.
+                Expanded(
+                  flex: 2,
+                  child: TextFormField(
+                    initialValue: rubricas[i].diaDoMes?.toString() ?? '',
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Dia',
+                      hintText: 'sai a',
+                    ),
+                    onChanged: (valor) => _substituir(
+                      i,
+                      rubricas[i].copyWith(
+                        diaDoMes: diaDoMesValido(int.tryParse(valor.trim())),
                       ),
                     ),
                   ),

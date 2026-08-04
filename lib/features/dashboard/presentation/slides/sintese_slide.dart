@@ -160,7 +160,7 @@ class SinteseSlide extends ConsumerWidget {
         subtexto: 'Regista entradas e saídas',
       );
     }
-    final saldo = mes.recebidoCents - mes.pagoCents;
+    final saldo = mes.recebidoCents - mes.saidasCents;
     return CelulaSemaforo(
       nivel: saldo >= 0 ? NivelSemaforo.verde : NivelSemaforo.vermelho,
       rotulo: 'Encontro de contas',
@@ -168,7 +168,7 @@ class SinteseSlide extends ConsumerWidget {
       unidade: '€ saldo',
       subtexto:
           'Entradas ${_euros(mes.recebidoCents)} · '
-          'Saídas ${_euros(mes.pagoCents)}',
+          'Saídas ${_euros(mes.saidasCents)}',
       valorEmDestaque: true,
     );
   }
