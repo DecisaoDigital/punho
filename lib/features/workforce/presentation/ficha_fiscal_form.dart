@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/layout/ecra_de_formulario.dart';
+
 import '../../../core/finance/regime_fiscal.dart';
 import '../../../core/finance/retencao_irs.dart';
 import '../../../domain/models/workforce.dart';
@@ -130,24 +132,16 @@ class FichaFiscalColaboradorForm extends StatelessWidget {
             onChanged: (v) => aoMudarEstadoCivil(v ?? MaritalStatus.unmarried),
           ),
         if (mostrar.contains(CampoDaFichaFiscal.dependentes))
-          TextField(
-            controller: controladores.dependentes,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Nº de dependentes',
-              helperText: 'Contam para a estimativa de IRS do trabalhador.',
-            ),
+          CampoDeTexto(
+            controlador: controladores.dependentes,
+            rotulo: 'Nº de dependentes',
+            ajuda: 'Contam para a estimativa de IRS do trabalhador.',
+            teclado: TextInputType.number,
           ),
         if (mostrar.contains(CampoDaFichaFiscal.iban))
-          TextField(
-            controller: controladores.iban,
-            decoration: const InputDecoration(labelText: 'IBAN'),
-          ),
+          CampoDeTexto(controlador: controladores.iban, rotulo: 'IBAN'),
         if (mostrar.contains(CampoDaFichaFiscal.moradaPessoal))
-          TextField(
-            controller: controladores.morada,
-            decoration: const InputDecoration(labelText: 'Morada'),
-          ),
+          CampoDeTexto(controlador: controladores.morada, rotulo: 'Morada'),
       ],
     );
   }
@@ -175,24 +169,15 @@ class _CampoComAviso extends StatefulWidget {
 
 class _CampoComAvisoState extends State<_CampoComAviso> {
   @override
-  Widget build(BuildContext context) {
-    final aviso = widget.aviso(widget.controlador.text.trim());
-    return TextField(
-      controller: widget.controlador,
-      keyboardType: widget.teclado,
-      onChanged: (_) => setState(() {}),
-      decoration: InputDecoration(
-        labelText: widget.rotulo,
-        // `errorText` seria mentira: não há erro, há um número por acabar. O
-        // âmbar diz "confere isto" sem dizer "isto está mal".
-        helperText: aviso,
-        helperStyle: aviso == null
-            ? null
-            : const TextStyle(color: Color(0xFF8A5A00)),
-        helperMaxLines: 2,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => CampoDeTexto(
+    controlador: widget.controlador,
+    rotulo: widget.rotulo,
+    teclado: widget.teclado,
+    aoMudar: (_) => setState(() {}),
+    // `errorText` seria mentira: não há erro, há um número por acabar. O
+    // âmbar diz "confere isto" sem dizer "isto está mal".
+    aviso: widget.aviso(widget.controlador.text.trim()),
+  );
 }
 
 /// Bloco read-only com o que a empresa paga e o trabalhador recebe.

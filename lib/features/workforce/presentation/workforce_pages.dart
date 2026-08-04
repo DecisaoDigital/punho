@@ -4,7 +4,6 @@ import '../../../core/finance/regime_fiscal.dart';
 import '../../../core/format/campos.dart';
 import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/finance/retencao_irs.dart';
-import '../../../core/layout/dialogo_de_formulario.dart';
 import '../../../core/layout/ecra_de_formulario.dart';
 import '../../../core/operations/kpis.dart';
 import '../../../core/operations/operations_controller.dart';
@@ -49,7 +48,7 @@ String mensagemVagasDeColaboradores(int ativos, int limite) {
   return '$ativos colaboradores ativos de ${_vagasContratadas(limite)}';
 }
 
-/// Aviso mostrado no diálogo depois de gravar um colaborador que deixou a
+/// Aviso mostrado no formulário depois de gravar um colaborador que deixou a
 /// empresa acima das vagas autorizadas pelo plano.
 ///
 /// Não bloqueia nada — decisão de 2026-08-02: a ficha já está gravada quando
@@ -98,7 +97,7 @@ class CollaboratorsPage extends ConsumerWidget {
             Text(
               mensagemVagasDeColaboradores(s.activeCollaborators, limite),
               // Cor de aviso só quando não há vagas livres — tal como o
-              // `aviso` de `DialogoDeFormulario`. Sem isto, o caso raro (mas
+              // `aviso` de `EcraDeFormulario`. Sem isto, o caso raro (mas
               // real) de a subscrição ter descido abaixo de quem já está
               // activo lê-se como texto normal, e passa despercebido.
               style: semVagasLivres
@@ -107,7 +106,7 @@ class CollaboratorsPage extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
-              onPressed: () => _collaboratorDialog(context, ref),
+              onPressed: () => _formularioDeColaborador(context, ref),
               icon: const Icon(Icons.add),
               label: const Text('Adicionar colaborador'),
             ),
@@ -119,7 +118,7 @@ class CollaboratorsPage extends ConsumerWidget {
                       child: ListTile(
                         // Tocar na linha edita: era o gesto que o Cesar tentou
                         // primeiro e não fazia nada.
-                        onTap: () => _collaboratorDialog(context, ref, c),
+                        onTap: () => _formularioDeColaborador(context, ref, c),
                         title: Row(
                           children: [
                             Flexible(
@@ -147,7 +146,7 @@ class CollaboratorsPage extends ConsumerWidget {
                               icon: const Icon(Icons.edit_outlined),
                               tooltip: 'Editar colaborador',
                               onPressed: () =>
-                                  _collaboratorDialog(context, ref, c),
+                                  _formularioDeColaborador(context, ref, c),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete_outline),
@@ -244,17 +243,18 @@ Future<void> _confirmarEliminarColaborador(
   );
 }
 
-Future<void> _collaboratorDialog(
+/// Abre o formulário do colaborador em ecrã completo.
+///
+/// Não se sai por engano — quem tem texto escrito tem de confirmar. Era o que
+/// o `barrierDismissible: false` fazia no diálogo, agora sem o preço de um
+/// formulário que não cabia no ecrã deitado.
+Future<void> _formularioDeColaborador(
   BuildContext context,
   WidgetRef ref, [
   Collaborator? current,
-]) => showDialog(
-  context: context,
-  // Não fecha ao tocar fora — evita perder texto por engano. Só é honesto
-  // porque agora há um Cancelar: até aqui o diálogo não tinha saída nenhuma a
-  // não ser gravar.
-  barrierDismissible: false,
-  builder: (_) => _FormularioDeColaborador(
+]) => abrirFormulario<void>(
+  context,
+  (_) => _FormularioDeColaborador(
     notifier: ref.read(operationsProvider.notifier),
     // Só é preciso para reler os activos depois de gravar e montar o aviso de
     // limite excedido: `notifier.state` não é acessível fora do próprio
@@ -344,119 +344,83 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
 
   @override
   Widget build(BuildContext context) {
-    return DialogoDeFormulario(
+    return EcraDeFormulario(
       // "Adicionar" em vez de "Novo": deixa claro que é acção pendente, não
       // confirmação de que já foi criado.
       titulo: current == null ? 'Adicionar colaborador' : 'Editar colaborador',
-      larguraMaxima: 920,
-      corpo: LayoutBuilder(
-        builder: (context, constraints) {
-          final identificacao = <Widget>[
-            TextField(
-              controller: name,
-              autofocus: true,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Nome'),
+      campos: [
+        // O vínculo primeiro e a ocupar a linha toda: é ele que decide que
+        // campos a ficha fiscal mostra a seguir.
+        CampoLargo(
+          _EscolhaDeVinculo(
+            valor: vinculo,
+            aoEscolher: (v) => setState(() => vinculo = v),
+          ),
+        ),
+        CampoDeTexto(
+          controlador: name,
+          rotulo: 'Nome',
+          autofocus: true,
+          capitalizacao: TextCapitalization.words,
+        ),
+        CampoDeTexto(
+          controlador: cost,
+          rotulo: 'Custo estimado para a empresa (€)',
+          teclado: TextInputType.number,
+          // Recalcula a estimativa a cada tecla: o gestor vê o custo real
+          // subir enquanto escreve o vencimento, que é o ponto todo.
+          aoMudar: (_) => setState(() {}),
+        ),
+        CampoDeTexto(
+          controlador: phone,
+          rotulo: 'Telemóvel',
+          teclado: TextInputType.phone,
+        ),
+        CampoDeTexto(controlador: role, rotulo: 'Função'),
+        DropdownButtonFormField<CostFrequency>(
+          initialValue: frequency,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'Periodicidade do custo',
+          ),
+          items: const [
+            DropdownMenuItem(
+              value: CostFrequency.monthly,
+              child: Text('Custo mensal'),
             ),
-            TextField(
-              controller: cost,
-              keyboardType: TextInputType.number,
-              // Recalcula a estimativa a cada tecla: o gestor vê o custo real
-              // subir enquanto escreve o vencimento, que é o ponto todo.
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                labelText: 'Custo estimado para a empresa (€)',
-              ),
+            DropdownMenuItem(
+              value: CostFrequency.weekly,
+              child: Text('Custo semanal'),
             ),
-            TextField(
-              controller: phone,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Telemóvel'),
-            ),
-            TextField(
-              controller: role,
-              decoration: const InputDecoration(labelText: 'Função'),
-            ),
-            DropdownButtonFormField<CostFrequency>(
-              initialValue: frequency,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Periodicidade do custo',
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: CostFrequency.monthly,
-                  child: Text('Custo mensal'),
-                ),
-                DropdownMenuItem(
-                  value: CostFrequency.weekly,
-                  child: Text('Custo semanal'),
-                ),
-              ],
-              onChanged: (value) => setState(() => frequency = value!),
-            ),
-            TextField(
-              controller: hours,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Horas semanais previstas',
-                helperText: 'Usadas para calcular o custo/hora estimado.',
-              ),
-            ),
-          ];
-          final fiscal = <Widget>[
-            FichaFiscalColaboradorForm(
-              tipo: vinculo,
-              controladores: ficha,
-              estadoCivil: estadoCivil,
-              aoMudarEstadoCivil: (v) => setState(() => estadoCivil = v),
-            ),
-            const SizedBox(height: 16),
-            BlocoDeEstimativa(
-              regime: widget.regime,
-              tipo: vinculo,
-              estadoCivil: estadoCivil,
-              dependentes: int.tryParse(ficha.dependentes.text.trim()) ?? 0,
-              brutoMensalCents: _brutoCents,
-            ),
-          ];
-
-          final duasColunas = constraints.maxWidth >= 640;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _EscolhaDeVinculo(
-                valor: vinculo,
-                aoEscolher: (v) => setState(() => vinculo = v),
-              ),
-              const SizedBox(height: 12),
-              if (!duasColunas) ...[
-                ...identificacao,
-                const SizedBox(height: 16),
-                ...fiscal,
-              ] else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: identificacao,
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: fiscal,
-                      ),
-                    ),
-                  ],
-                ),
-            ],
-          );
-        },
-      ),
+          ],
+          onChanged: (value) => setState(() => frequency = value!),
+        ),
+        CampoDeTexto(
+          controlador: hours,
+          rotulo: 'Horas semanais previstas',
+          ajuda: 'Usadas para calcular o custo/hora estimado.',
+          teclado: TextInputType.number,
+        ),
+        // A ficha fiscal traz os seus próprios campos e eles entram na mesma
+        // cadeia de foco: quem se inscreve é o campo, não quem o arruma.
+        CampoLargo(
+          FichaFiscalColaboradorForm(
+            tipo: vinculo,
+            controladores: ficha,
+            estadoCivil: estadoCivil,
+            aoMudarEstadoCivil: (v) => setState(() => estadoCivil = v),
+          ),
+        ),
+        CampoLargo(
+          BlocoDeEstimativa(
+            regime: widget.regime,
+            tipo: vinculo,
+            estadoCivil: estadoCivil,
+            dependentes: int.tryParse(ficha.dependentes.text.trim()) ?? 0,
+            brutoMensalCents: _brutoCents,
+          ),
+        ),
+      ],
       aviso: erro,
       aoGuardar: () {
         // Validação: nome é obrigatório. Sem isto, um tap por engano criava um

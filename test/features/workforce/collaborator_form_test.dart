@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/layout/dialogo_de_formulario.dart';
+import 'package:punho/core/layout/ecra_de_formulario.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:punho/features/workforce/presentation/workforce_pages.dart';
@@ -28,14 +28,20 @@ void main() {
     return container;
   }
 
-  testWidgets('há sempre saída: Cancelar fecha sem gravar', (tester) async {
+  testWidgets('há sempre saída, e ela pergunta antes de deitar fora', (
+    tester,
+  ) async {
     final h = await abrir(tester);
 
     await tester.enterText(find.byType(TextField).first, 'Manuel Silva');
-    await tester.tap(find.widgetWithText(TextButton, 'Cancelar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(CloseButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Sair sem guardar?'), findsOneWidget);
+    await tester.tap(find.text('Sair sem guardar'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(DialogoDeFormulario), findsNothing);
+    expect(find.byType(EcraDeFormulario), findsNothing);
     expect(
       h.read(operationsProvider).collaborators.map((c) => c.name),
       isNot(contains('Manuel Silva')),
@@ -52,7 +58,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Indica o nome do colaborador.'), findsOneWidget);
-    expect(find.byType(DialogoDeFormulario), findsOneWidget);
+    expect(find.byType(EcraDeFormulario), findsOneWidget);
     expect(
       h.read(operationsProvider).collaborators.length,
       antes,
@@ -70,7 +76,7 @@ void main() {
       h.read(operationsProvider).collaborators.map((c) => c.name),
       contains('Manuel Silva'),
     );
-    expect(find.byType(DialogoDeFormulario), findsNothing);
+    expect(find.byType(EcraDeFormulario), findsNothing);
   });
 
   testWidgets('em retrato com o teclado aberto o Guardar continua visível', (
@@ -114,7 +120,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(DialogoDeFormulario), findsOneWidget);
+      expect(find.byType(EcraDeFormulario), findsOneWidget);
       expect(
         container.read(operationsProvider).collaborators.map((c) => c.name),
         contains('Manuel Silva'),
@@ -147,7 +153,7 @@ void main() {
     testWidgets('"1.500,00" grava 1500 € de custo, não zero', (tester) async {
       final h = await preencherNomeECusto(tester, '1.500,00');
 
-      expect(find.byType(DialogoDeFormulario), findsNothing);
+      expect(find.byType(EcraDeFormulario), findsNothing);
       final colaborador = h
           .read(operationsProvider)
           .collaborators
@@ -160,7 +166,7 @@ void main() {
     ) async {
       final h = await preencherNomeECusto(tester, '');
 
-      expect(find.byType(DialogoDeFormulario), findsNothing);
+      expect(find.byType(EcraDeFormulario), findsNothing);
       final colaborador = h
           .read(operationsProvider)
           .collaborators
@@ -173,7 +179,7 @@ void main() {
       (tester) async {
         final h = await preencherNomeECusto(tester, '1.500.00');
 
-        expect(find.byType(DialogoDeFormulario), findsOneWidget);
+        expect(find.byType(EcraDeFormulario), findsOneWidget);
         expect(
           find.textContaining('Não consigo ler o custo estimado'),
           findsOneWidget,

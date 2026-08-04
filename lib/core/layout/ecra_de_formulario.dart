@@ -355,6 +355,7 @@ class CampoDeTexto extends StatefulWidget {
     this.oculto = false,
     this.autofocus = false,
     this.aoMudar,
+    this.aviso,
   });
 
   final TextEditingController controlador;
@@ -373,6 +374,13 @@ class CampoDeTexto extends StatefulWidget {
   final bool oculto;
   final bool autofocus;
   final ValueChanged<String>? aoMudar;
+
+  /// Aviso âmbar por baixo do campo: "confere isto", não "isto está mal".
+  ///
+  /// `errorText` seria mentira num NIF a meio de ser escrito — não há erro, há
+  /// um número por acabar. Ao contrário da [ajuda], não desaparece quando o
+  /// espaço aperta: quem está a ser avisado precisa de ver o aviso.
+  final String? aviso;
 
   @override
   State<CampoDeTexto> createState() => _CampoDeTextoState();
@@ -467,9 +475,13 @@ class _CampoDeTextoState extends State<CampoDeTexto> {
             // Com o teclado aberto em paisagem, a linha de ajuda custa 20 dp —
             // um terço do campo a que pertence. Passa a `hint`: aparece
             // enquanto o campo estiver vazio, que é quando se precisa dela, e
-            // não ocupa altura nenhuma.
-            helperText: apertado ? null : widget.ajuda,
-            hintText: apertado ? widget.ajuda : null,
+            // não ocupa altura nenhuma. O aviso não cede o lugar a nada.
+            helperText: widget.aviso ?? (apertado ? null : widget.ajuda),
+            helperStyle: widget.aviso == null
+                ? null
+                : const TextStyle(color: Color(0xFF8A5A00)),
+            helperMaxLines: 2,
+            hintText: apertado && widget.aviso == null ? widget.ajuda : null,
             isDense: apertado,
           ),
         );
