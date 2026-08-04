@@ -5,6 +5,7 @@ import '../../../core/format/campos.dart';
 import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/finance/retencao_irs.dart';
 import '../../../core/layout/dialogo_de_formulario.dart';
+import '../../../core/layout/ecra_de_formulario.dart';
 import '../../../core/operations/kpis.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../data/repositories/operation_repository.dart';
@@ -713,7 +714,7 @@ class VehiclesPage extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
-              onPressed: () => _vehicleDialog(context, ref),
+              onPressed: () => _formularioDeVeiculo(context, ref),
               icon: const Icon(Icons.add),
               label: const Text('Adicionar veículo'),
             ),
@@ -725,7 +726,7 @@ class VehiclesPage extends ConsumerWidget {
                       child: ListTile(
                         // Tocar na linha edita, como nos colaboradores: era o
                         // gesto que não fazia nada antes desta correcção.
-                        onTap: () => _vehicleDialog(context, ref, v),
+                        onTap: () => _formularioDeVeiculo(context, ref, v),
                         title: Text(v.plate),
                         subtitle: Text(
                           '${v.type} · Custo: ${(monthlyFleetCost(v) / 100).toStringAsFixed(2)} €/mês',
@@ -736,7 +737,7 @@ class VehiclesPage extends ConsumerWidget {
                             IconButton(
                               icon: const Icon(Icons.edit_outlined),
                               tooltip: 'Editar veículo',
-                              onPressed: () => _vehicleDialog(context, ref, v),
+                              onPressed: () => _formularioDeVeiculo(context, ref, v),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete_outline),
@@ -799,18 +800,20 @@ Future<void> _confirmarEliminarVeiculo(
   );
 }
 
-Future<void> _vehicleDialog(
+/// Abre o formulário do veículo em ecrã completo.
+///
+/// Era um `showDialog`, e em paisagem com o teclado aberto não se via um único
+/// campo — só o título e o botão *Guardar*. Os quatro defeitos que o Cesar
+/// apanhou no smoke da v0.0.4 continuam resolvidos por outra via: não se sai
+/// por engano (é preciso confirmar), o título diz "Adicionar" e não "Novo",
+/// valida antes de gravar e o cursor nasce na matrícula.
+Future<void> _formularioDeVeiculo(
   BuildContext context,
   WidgetRef ref, [
   Vehicle? current,
-]) => showDialog(
-  context: context,
-  // Os mesmos quatro defeitos que o diálogo dos colaboradores tinha e que o
-  // Cesar apanhou no smoke da v0.0.4: fechava ao tocar fora, o título dizia
-  // "Novo" (leu-se como "já foi criado"), não validava nada e não punha o
-  // cursor no primeiro campo.
-  barrierDismissible: false,
-  builder: (_) => _FormularioDeVeiculo(
+]) => abrirFormulario<void>(
+  context,
+  (_) => _FormularioDeVeiculo(
     notifier: ref.read(operationsProvider.notifier),
     current: current,
   ),
@@ -864,82 +867,65 @@ class _FormularioDeVeiculoState extends State<_FormularioDeVeiculo> {
 
   @override
   Widget build(BuildContext context) {
-    return DialogoDeFormulario(
+    return EcraDeFormulario(
       titulo: current == null ? 'Adicionar veículo' : 'Editar veículo',
-      corpo: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            controller: plate,
-            autofocus: true,
-            // Matrículas escrevem-se em maiúsculas.
-            textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(labelText: 'Matrícula'),
+      campos: [
+        CampoDeTexto(
+          controlador: plate,
+          rotulo: 'Matrícula',
+          autofocus: true,
+          // Matrículas escrevem-se em maiúsculas.
+          capitalizacao: TextCapitalization.characters,
+        ),
+        CampoDeTexto(controlador: type, rotulo: 'Tipo'),
+        CampoDeTexto(controlador: alias, rotulo: 'Nome / identificação'),
+        CampoDeTexto(
+          controlador: monthlyPayment,
+          rotulo: 'Prestação mensal (€)',
+          teclado: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        // O dia importa tanto como o valor: é o que separa "já saiu da conta"
+        // de "ainda vai sair", e sem ele o painel não sabe dizer nenhuma das
+        // duas coisas. Em branco, a prestação conta repartida pelo mês.
+        CampoDeTexto(
+          controlador: paymentDay,
+          rotulo: 'Dia do débito',
+          ajuda: 'Dia do mês em que a prestação sai da conta',
+          teclado: TextInputType.number,
+        ),
+        CampoDeTexto(
+          controlador: insurance,
+          rotulo: 'Seguro (€)',
+          teclado: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        DropdownButtonFormField<InsuranceFrequency>(
+          initialValue: insuranceFrequency,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'Periodicidade do seguro',
           ),
-          TextField(
-            controller: type,
-            decoration: const InputDecoration(labelText: 'Tipo'),
-          ),
-          TextField(
-            controller: alias,
-            decoration: const InputDecoration(
-              labelText: 'Nome / identificação',
+          items: const [
+            DropdownMenuItem(
+              value: InsuranceFrequency.monthly,
+              child: Text('Mensal'),
             ),
-          ),
-          TextField(
-            controller: monthlyPayment,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Prestação mensal (€)',
+            DropdownMenuItem(
+              value: InsuranceFrequency.semiannual,
+              child: Text('Semestral'),
             ),
-          ),
-          // O dia importa tanto como o valor: é o que separa "já saiu da conta"
-          // de "ainda vai sair", e sem ele o painel não sabe dizer nenhuma das
-          // duas coisas. Em branco, a prestação conta repartida pelo mês.
-          TextField(
-            controller: paymentDay,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Dia do débito',
-              helperText: 'Dia do mês em que a prestação sai da conta',
+            DropdownMenuItem(
+              value: InsuranceFrequency.annual,
+              child: Text('Anual'),
             ),
-          ),
-          TextField(
-            controller: insurance,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Seguro (€)'),
-          ),
-          DropdownButtonFormField<InsuranceFrequency>(
-            initialValue: insuranceFrequency,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Periodicidade do seguro',
-            ),
-            items: const [
-              DropdownMenuItem(
-                value: InsuranceFrequency.monthly,
-                child: Text('Mensal'),
-              ),
-              DropdownMenuItem(
-                value: InsuranceFrequency.semiannual,
-                child: Text('Semestral'),
-              ),
-              DropdownMenuItem(
-                value: InsuranceFrequency.annual,
-                child: Text('Anual'),
-              ),
-            ],
-            onChanged: (value) => setState(() => insuranceFrequency = value!),
-          ),
-          TextField(
-            controller: maintenance,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Manutenção prevista — valor anual (€)',
-            ),
-          ),
-        ],
-      ),
+          ],
+          onChanged: (value) => setState(() => insuranceFrequency = value!),
+        ),
+        CampoDeTexto(
+          controlador: maintenance,
+          rotulo: 'Manutenção prevista — valor anual (€)',
+          teclado: const TextInputType.numberWithOptions(decimal: true),
+        ),
+      ],
       aviso: erro,
       aoGuardar: () {
         // Sem matrícula o veículo não se identifica. Não se valida o formato

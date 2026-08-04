@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/layout/dialogo_de_formulario.dart';
+import 'package:punho/core/layout/ecra_de_formulario.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/workforce.dart';
 import 'package:punho/features/workforce/presentation/workforce_pages.dart';
@@ -56,7 +56,7 @@ void main() {
       container.read(operationsProvider).vehicles.map((v) => v.plate),
       contains('ZZ-99-XX'),
     );
-    expect(find.byType(DialogoDeFormulario), findsNothing);
+    expect(find.byType(EcraDeFormulario), findsNothing);
   });
 
   testWidgets('a matrícula ganha foco e escreve-se em maiúsculas', (
@@ -69,13 +69,32 @@ void main() {
     expect(campo.textCapitalization, TextCapitalization.characters);
   });
 
-  testWidgets('não fecha ao tocar fora', (tester) async {
+  testWidgets('sair com texto escrito pede confirmação', (tester) async {
+    // Era "não fecha ao tocar fora": o diálogo tinha `barrierDismissible:
+    // false` porque um toque ao lado deitava fora o formulário todo. Num ecrã
+    // completo não há lado nenhum onde tocar — o que há é a seta de retorno e o
+    // gesto do sistema, e é aí que a mesma perda passou a ser travada.
     await abrirVeiculos(tester, containerCom(estadoComMovimento()));
 
-    await tester.tapAt(const Offset(20, 20));
+    await tester.enterText(find.byType(TextField).first, 'AA-11-BB');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(CloseButton));
     await tester.pumpAndSettle();
 
-    expect(find.byType(DialogoDeFormulario), findsOneWidget);
+    expect(find.text('Sair sem guardar?'), findsOneWidget);
+    await tester.tap(find.text('Continuar a preencher'));
+    await tester.pumpAndSettle();
+    expect(find.byType(EcraDeFormulario), findsOneWidget);
+  });
+
+  testWidgets('sair sem nada escrito não incomoda ninguém', (tester) async {
+    await abrirVeiculos(tester, containerCom(estadoComMovimento()));
+
+    await tester.tap(find.byType(CloseButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sair sem guardar?'), findsNothing);
+    expect(find.byType(EcraDeFormulario), findsNothing);
   });
 
   testWidgets('em retrato com o teclado aberto o Guardar continua visível', (
@@ -108,15 +127,18 @@ void main() {
     expect(find.text('Periodicidade do seguro'), findsOneWidget);
   });
 
-  testWidgets('cancelar fecha sem gravar', (tester) async {
+  testWidgets('sair sem guardar não grava', (tester) async {
     final container = containerCom(estadoComMovimento());
     await abrirVeiculos(tester, container);
 
     await tester.enterText(find.byType(TextField).first, 'AA-11-BB');
-    await tester.tap(find.widgetWithText(TextButton, 'Cancelar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(CloseButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sair sem guardar'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(DialogoDeFormulario), findsNothing);
+    expect(find.byType(EcraDeFormulario), findsNothing);
     expect(
       container.read(operationsProvider).vehicles.map((v) => v.plate),
       isNot(contains('AA-11-BB')),
@@ -234,7 +256,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.textContaining('Não consigo ler o seguro'), findsOneWidget);
-        expect(find.byType(DialogoDeFormulario), findsOneWidget);
+        expect(find.byType(EcraDeFormulario), findsOneWidget);
         expect(
           container.read(operationsProvider).vehicles.map((v) => v.plate),
           isNot(contains('AA-11-BB')),
