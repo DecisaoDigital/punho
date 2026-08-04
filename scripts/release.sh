@@ -6,7 +6,6 @@ set -Eeuo pipefail
 
 readonly REPOSITORY="DecisaoDigital/punho"
 readonly PROJECT_REF="oefqbkhioncakojipqyx"
-readonly WORKFLOW="release.yml"
 
 usage() {
   cat <<'EOF'
@@ -20,8 +19,8 @@ O build number é incrementado automaticamente. O comando:
   1. valida main, GitHub, Supabase e a nova versão;
   2. atualiza pubspec.yaml;
   3. executa flutter analyze e os testes;
-  4. cria commit e tag, e envia-os para GitHub;
-  5. aguarda o GitHub Actions publicar Android e Windows;
+  4. constrói e verifica o APK, e só então faz commit, tag e push;
+  5. cria a GitHub Release e carrega o APK construído no i9;
   6. atualiza e verifica o catálogo Supabase.
 EOF
 }
@@ -134,6 +133,32 @@ unexpected="$(
 [[ -z "$unexpected" ]] ||
   die "os testes alteraram ficheiros inesperados: $unexpected"
 
+# Construir ANTES de empurrar seja o que for. O runbook é explícito: "uma
+# execução verde no i9 é condição obrigatória para o código subir ao GitHub".
+# Na v0.2.1 este script empurrou o commit e a tag e só depois foi construir —
+# o build falhou e ficou uma tag publicada sem release nenhuma por trás.
+printf 'A construir o APK universal com os defines...\n'
+"$repo_root/scripts/construir_apk.sh" --universal
+
+apk_construido="build/app/outputs/flutter-apk/app-release.apk"
+[[ -f "$apk_construido" ]] || die "o build não produziu $apk_construido"
+
+# As verificações que o docs/PUBLICAR_RELEASE.md exige antes de publicar. O
+# certificado é o definitivo do Punho: uma keystore diferente instala-se como
+# outra app e parte o self-update de toda a gente.
+readonly CERTIFICADO_SHA256="33386ff0dd95bb57818aaabc32b37e378da9febb1fb905b2388c4b5aa0f70205"
+build_tools="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+
+"$build_tools/aapt2" dump badging "$apk_construido" |
+  grep -Fq "versionCode='${new_build}' versionName='${version}'" ||
+  die "o APK não declara ${version}+${new_build}"
+"$build_tools/aapt2" dump badging "$apk_construido" |
+  grep -Fq "package: name='com.example.punho'" ||
+  die "o APK não é com.example.punho"
+"$build_tools/apksigner" verify --print-certs "$apk_construido" |
+  grep -Fq "$CERTIFICADO_SHA256" ||
+  die "o APK não está assinado com a keystore definitiva do Punho"
+
 git add -- pubspec.yaml
 if ! git diff --quiet -- pubspec.lock; then
   git add -- pubspec.lock
@@ -145,27 +170,17 @@ git push origin main
 git tag -a "$tag" -m "Punho ${version}"
 git push origin "$tag"
 
-printf 'Tag %s enviada. A aguardar o GitHub Actions...\n' "$tag"
-run_id=""
-for _ in $(seq 1 30); do
-  run_id="$(
-    gh run list \
-      --repo "$REPOSITORY" \
-      --workflow "$WORKFLOW" \
-      --branch "$tag" \
-      --event push \
-      --limit 5 \
-      --json databaseId,headSha |
-      jq -r --arg sha "$(git rev-parse HEAD)" \
-        '.[] | select(.headSha == $sha) | .databaseId' |
-      head -n 1
-  )"
-  [[ -n "$run_id" ]] && break
-  sleep 2
-done
-[[ -n "$run_id" ]] || die "workflow da tag $tag não apareceu"
-
-gh run watch "$run_id" --repo "$REPOSITORY" --exit-status
+# O GitHub guarda e distribui os ficheiros; não os constrói. O workflow que o
+# fazia foi removido a 3 de Agosto de 2026 (commit 65fae4e), e este script
+# ficou a esperar por um CI que já não existe.
+asset="punho-android-v${version}.apk"
+mkdir -p dist
+cp "$apk_construido" "dist/${asset}"
+gh release create "$tag" \
+  --repo "$REPOSITORY" \
+  --title "Punho ${version}" \
+  --notes "Ver o histórico de commits desde a etiqueta anterior." \
+  "dist/${asset}#${asset}"
 
 "$repo_root/scripts/update-release-catalog.sh" "$version" "$new_build"
 
@@ -177,4 +192,5 @@ trap - EXIT
 printf '\nPUBLICAÇÃO CONCLUÍDA\n'
 printf 'Versão: %s+%s\n' "$version" "$new_build"
 printf 'Release: %s\n' "$release_url"
-printf 'Supabase: Android e Windows ativos e verificados.\n'
+printf 'Supabase: Android activo e verificado.\n'
+printf 'Windows: continua por publicar — falta o worker Windows no i9.\n'
