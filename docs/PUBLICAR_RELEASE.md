@@ -79,7 +79,7 @@ Para Android, gerar no i9:
 
 Confirmar antes do commit:
 
-- package `com.example.punho`;
+- package `pt.decisaodigital.punho`;
 - `versionName` e `versionCode` esperados;
 - certificado SHA-256 definitivo:
   `33386ff0dd95bb57818aaabc32b37e378da9febb1fb905b2388c4b5aa0f70205`;
@@ -87,6 +87,15 @@ Confirmar antes do commit:
 - instalação e arranque num dispositivo de teste quando a alteração justificar.
 
 Nunca criar outra keystore para uma atualização do Punho.
+
+**A versão a seguir à 0.2.1 não se instala por cima da anterior.** A 4 de
+Agosto de 2026 o `applicationId` passou de `com.example.punho` (o placeholder
+do template, que a Google Play recusa) para `pt.decisaodigital.punho`. Para o
+Android são duas apps diferentes: quem tiver a 0.2.1 instalada fica com as
+duas lado a lado até desinstalar a antiga, e o atualizador embutido da 0.2.1
+não consegue saltar esta ponte — a passagem é manual, uma vez. Os dados locais
+do aparelho antigo perdem-se; os do servidor não. Depois disto o
+`applicationId` não volta a mudar.
 
 ### 3. Windows também pertence ao i9
 

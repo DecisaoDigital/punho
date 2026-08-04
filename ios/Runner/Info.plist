@@ -51,5 +51,21 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<!-- O mesmo esquema declarado no AndroidManifest: é por aqui que o link
+		     do email de recuperação volta à app. Ver o comentário lá, que conta
+		     o que acontecia sem ele. -->
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLName</key>
+				<string>pt.decisaodigital.punho</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>punho</string>
+				</array>
+			</dict>
+		</array>
 	</dict>
 </plist>

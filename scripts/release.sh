@@ -153,8 +153,8 @@ build_tools="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
   grep -Fq "versionCode='${new_build}' versionName='${version}'" ||
   die "o APK não declara ${version}+${new_build}"
 "$build_tools/aapt2" dump badging "$apk_construido" |
-  grep -Fq "package: name='com.example.punho'" ||
-  die "o APK não é com.example.punho"
+  grep -Fq "package: name='pt.decisaodigital.punho'" ||
+  die "o APK não é pt.decisaodigital.punho"
 "$build_tools/apksigner" verify --print-certs "$apk_construido" |
   grep -Fq "$CERTIFICADO_SHA256" ||
   die "o APK não está assinado com a keystore definitiva do Punho"

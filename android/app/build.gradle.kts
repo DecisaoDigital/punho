@@ -15,7 +15,14 @@ plugins {
 }
 
 android {
-    namespace = "com.example.punho"
+    // Identidade permanente da app. `com.example.*` é o placeholder do
+    // template do Flutter e a Google Play recusa-o à entrada — ficou cá dentro
+    // até 4 de Agosto de 2026, com o TODO original por cima. Mudar o
+    // applicationId faz do Punho outra app aos olhos do Android: quem tiver a
+    // anterior instalada tem de desinstalar (os dados locais vão com ela; o
+    // servidor mantém tudo). Por isso se mudou com uma instalação no mundo, e
+    // não com trinta. Não voltar a mexer.
+    namespace = "pt.decisaodigital.punho"
     compileSdk = flutter.compileSdkVersion
     // Fixo e não `flutter.ndkVersion`: cinco plugins (image_picker,
     // package_info_plus, path_provider, shared_preferences, url_launcher) pedem
@@ -36,10 +43,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.punho"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = "pt.decisaodigital.punho"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

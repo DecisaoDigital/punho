@@ -1,4 +1,4 @@
-package com.example.punho
+package pt.decisaodigital.punho
 
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -30,7 +30,7 @@ import java.io.File
  */
 object InstaladorDeApk {
 
-    private const val ACCAO_RESULTADO = "com.example.punho.INSTALL_RESULT"
+    private const val ACCAO_RESULTADO = "pt.decisaodigital.punho.INSTALL_RESULT"
 
     /**
      * @param caminho ficheiro APK já descarregado e verificado pelo lado Dart.

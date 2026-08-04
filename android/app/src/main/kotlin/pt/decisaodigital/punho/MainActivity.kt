@@ -1,4 +1,4 @@
-package com.example.punho
+package pt.decisaodigital.punho
 
 import android.content.Intent
 import android.net.Uri

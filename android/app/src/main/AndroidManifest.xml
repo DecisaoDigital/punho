@@ -31,9 +31,45 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- Quem trata o link de recuperação é o `app_links` (por dentro do
+                 supabase_flutter), não o Navigator.
+
+                 Sem isto o motor do Flutter entrega o link *também* como rota e
+                 tenta `pushNamed('/auth/callback')`. Este MaterialApp só tem
+                 `home:` — sem `routes`, sem `onGenerateRoute` — por isso a rota
+                 não existe e o `_onUnknownRoute` rebenta com "Null check
+                 operator used on a null value" a cada link. Não mata a app: a
+                 recuperação corre na mesma até ao fim. Mas atira um erro por
+                 cada link, e um erro que se ignora ensina a ignorar os outros.
+                 Apanhado no Redmi a 4 de Agosto de 2026 — não aparece em teste
+                 nenhum, só no aparelho. -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false"
+              />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- O link do email de recuperação de palavra-passe.
+
+                 Sem isto, o `redirectTo: 'punho://auth/callback'` que a app
+                 manda ao Supabase não valia nada: o Android não sabia a quem
+                 entregar `punho://`, e quem carregasse em "Esqueci a
+                 palavra-passe" no telemóvel recebia o email e ficava sem
+                 caminho de volta à app. Apanhado a 4 de Agosto de 2026, na
+                 pele — e o esquema por omissão do projecto é o do POS
+                 (`washinvoice://`), que aqui abriria a app errada.
+
+                 Filtro à parte do LAUNCHER de propósito: juntá-los faria da
+                 app um alvo do `VIEW` genérico. Quem trata do link é o próprio
+                 `supabase_flutter`, que escuta `app_links` e chama
+                 `getSessionFromUrl`. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="punho" android:host="auth"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
