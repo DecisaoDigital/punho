@@ -1,0 +1,30 @@
+-- ---------------------------------------------------------------------------
+-- pgcrypto vive em `extensions`, e o `search_path` das funções não o incluía
+-- ---------------------------------------------------------------------------
+--
+-- `punho_criar_convite` chama `gen_random_bytes(5)` para gerar o código, e está
+-- declarada com `set search_path = public`. O `pgcrypto` deste projecto não
+-- está em `public` — está em `extensions`, que é onde o Supabase passou a
+-- instalar extensões. Resultado: a função resolve tudo menos essa chamada e
+-- rebenta com
+--
+--     function gen_random_bytes(integer) does not exist
+--
+-- Ou seja: **criar um convite de colaborador ou de gestor não funciona.** Não é
+-- um risco teórico nem um aviso de linter; é a funcionalidade parada.
+--
+-- Provado com uma sonda: uma função `security definer` com
+-- `set search_path = public` a chamar `gen_random_bytes` devolve exactamente
+-- esse erro neste projecto.
+--
+-- Porque é que passou despercebido: `set search_path` é uma protecção contra
+-- sequestro de search_path, e foi acrescentada — correctamente — a todas as
+-- funções `security definer`. Só que fixá-lo em `public` corta também o acesso
+-- às extensões, e a única função que precisava delas foi a única que se partiu.
+-- Uma protecção certa aplicada sem olhar ao que a função chamava.
+--
+-- A correcção é acrescentar `extensions` ao `search_path`, não tirar a
+-- protecção. `extensions` é um schema do sistema onde só o superuser escreve —
+-- não é um caminho por onde alguém injecte funções.
+alter function public.punho_criar_convite(text, text)
+  set search_path = public, extensions;
