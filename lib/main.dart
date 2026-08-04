@@ -183,17 +183,30 @@ class _PunhoAppState extends ConsumerState<PunhoApp> {
     // E os pings: sem eles o Control sabe que o terminal existe, mas não sabe
     // quando foi usado nem que versão lá está agora.
     ref.watch(pingsProvider);
-    final destino = CadeadoGate(
+    final Widget destino = CadeadoGate(
       child: PunhoUpdateBannerWrapper(
         child: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),
       ),
     );
+    // Sem os `--dart-define` a app não fica avariada: fica **local**, com o
+    // mesmo aspecto e sem servidor nenhum por trás. Já custou duas versões a
+    // descobrir uma vez, e a 4 de Agosto de 2026 voltou a enganar-me a meio de
+    // um teste no telemóvel — dei por criar um cliente que nunca chegou ao
+    // Supabase. Uma fita no canto não deixa isso repetir-se.
+    final comAviso = SupabaseConfig.enabled
+        ? destino
+        : Banner(
+            message: 'SEM SERVIDOR',
+            location: BannerLocation.topEnd,
+            color: const Color(0xFFFF5C6E),
+            child: destino,
+          );
     return MaterialApp(
       title: 'Punho',
       debugShowCheckedModeBanner: false,
       theme: PunhoTheme.light,
       home: _splashTerminou
-          ? destino
+          ? comAviso
           : SplashPunho(
               aoTerminar: () => setState(() => _splashTerminou = true),
             ),
