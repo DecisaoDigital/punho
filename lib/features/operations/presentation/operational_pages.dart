@@ -1085,10 +1085,19 @@ class MachinesPage extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 subtitle: Text(
-                  '${m.category} · ${m.reference}',
+                  // Só o que existe. Interpolar os dois às cegas deixava um
+                  // "Lavadora 8 kg · " com o ponto pendurado no ar sempre que
+                  // faltava a referência — e falta em quase todas as máquinas
+                  // criadas em lote (visto no Redmi, 04-08-2026).
+                  [
+                    m.category,
+                    m.reference,
+                  ].where((valor) => valor.trim().isNotEmpty).join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                // A linha inteira abre a ficha, como na lista de clientes.
+                onTap: () => _machineDialog(context, ref, m),
                 // Um só controlo de estado: o chip. Havia três (o chip, um
                 // PopupMenuButton com `swap_horiz` que o Cesar leu como "duas
                 // setas", e um botão "Disponível" quando estava parada) — todos
@@ -1797,6 +1806,12 @@ class ClientsPage extends ConsumerWidget {
                 // Ecrã de detalhe do cliente: mesmo caminho do de máquina — o
                 // NIF, email, morada e notas que o servidor já traz não tinham
                 // onde aparecer.
+                //
+                // A linha inteira abre a ficha. Só o lápis abria, e o lápis é
+                // um alvo de 48 dp num canto: quem toca numa lista toca no
+                // nome, e ficava com a sensação de que a app não responde
+                // (visto no Redmi, 04-08-2026).
+                onTap: () => _customerDialog(context, ref, c),
                 trailing: Wrap(
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [

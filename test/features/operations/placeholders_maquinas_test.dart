@@ -268,6 +268,50 @@ void main() {
 
       expect(find.text('Mini escavadora 1.8T'), findsOneWidget);
       expect(find.text('Por identificar'), findsNothing);
+      expect(find.text('Escavação · ME-018'), findsOneWidget);
+    });
+
+    testWidgets('máquina sem referência não fica com um ponto pendurado', (
+      tester,
+    ) async {
+      // Uma máquina criada em lote traz nome e pouco mais. A sub-linha
+      // interpolava categoria e referência às cegas e escrevia "Lavadora 8 kg
+      // · " com o separador a apontar para o nada (visto no Redmi).
+      final c = containerVazio();
+      c.read(operationsProvider.notifier).saveMachine(
+        const Machine(
+          id: 'so-nome',
+          name: 'Lavadora 8 kg',
+          reference: '',
+          category: '',
+          status: MachineStatus.available,
+        ),
+      );
+
+      await montarLandscape(tester, c, const MachinesPage());
+
+      expect(find.text('Lavadora 8 kg'), findsOneWidget);
+      expect(find.textContaining('·'), findsNothing);
+    });
+
+    testWidgets('com categoria e sem referência mostra só a categoria', (
+      tester,
+    ) async {
+      final c = containerVazio();
+      c.read(operationsProvider.notifier).saveMachine(
+        const Machine(
+          id: 'so-categoria',
+          name: 'Secador 20 kg',
+          reference: '',
+          category: 'Secagem',
+          status: MachineStatus.available,
+        ),
+      );
+
+      await montarLandscape(tester, c, const MachinesPage());
+
+      expect(find.text('Secagem'), findsOneWidget);
+      expect(find.textContaining('Secagem ·'), findsNothing);
     });
   });
 }
