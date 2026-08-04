@@ -408,15 +408,32 @@ void main() {
       );
     });
 
-    test('peso na receita compara custos com o que entrou', () {
+    test('peso na receita compara pedaços iguais de calendário', () {
+      // O custo do mês inteiro sobre a receita recebida até hoje media o dia
+      // do mês, não o negócio: a 4 de Agosto, num telemóvel real, deu 2149%
+      // com o card do lado a dizer "Saídas 0". Salários e frota são encargos
+      // mensais e entram repartidos pelos dias já corridos.
       final custos = custosMesAgregados(
         estado,
         agoraFixa,
         regime: RegimeFiscal.ldaIrc,
       );
+
+      expect(custos.fracaoDoMesDecorrida, closeTo(15 / 31, 0.0001));
+      expect(
+        custos.custoAteAgoraCents,
+        ((custos.custoRealPessoalCents + custos.frotaCents) * 15 / 31).round() +
+            custos.manutencaoPagaCents +
+            custos.outrosCustosCents,
+      );
       expect(
         custos.percentDaReceita,
-        closeTo(custos.totalCents / 132000 * 100, 0.01),
+        closeTo(custos.custoAteAgoraCents / 132000 * 100, 0.01),
+      );
+      expect(
+        custos.custoAteAgoraCents,
+        lessThan(custos.totalCents),
+        reason: 'a meio do mês ainda não se incorreu o mês todo',
       );
     });
 

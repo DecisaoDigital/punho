@@ -132,6 +132,12 @@ void main() {
   });
 
   group('Regra 2 · custos a comer a receita', () {
+    // Os dois testes que fixam as percentagens da Decisão 12 correm ao último
+    // dia do mês de propósito: aí o mês já correu todo, o custo incorrido é o
+    // custo mensal inteiro, e as contas dão os números redondos que a decisão
+    // documenta. A meio do mês dariam metade — e é isso que se quer.
+    final ultimoDiaDoMes = DateTime(2026, 7, 31, 10, 30);
+
     test('80% ou mais dispara urgente', () {
       final estado = _limpo(
         receipts: [
@@ -153,14 +159,17 @@ void main() {
         ],
       );
 
-      final r = recomendacaoDaSemana(estado, agoraFixa);
+      final r = recomendacaoDaSemana(estado, ultimoDiaDoMes);
 
       expect(r!.id, 'custos-criticos');
       expect(r.gravidade, GravidadeRecomendacao.urgente);
       // 850 € de bruto sobre 1.000 € de receita liam-se como 85%. Com a TSU
       // patronal — que é dinheiro que sai da empresa — são 1.051 €, ou seja
       // 105%: a empresa está a gastar mais do que recebe. Decisão 12.
-      expect(r.title, 'Custos a comer a receita — 105% do que entrou já saiu');
+      expect(
+        r.title,
+        'Custos a comer a receita — já vão em 105% do que entrou',
+      );
     });
 
     test('um custo que parecia seguro passa a disparar', () {
@@ -187,10 +196,13 @@ void main() {
         ],
       );
 
-      final r = recomendacaoDaSemana(estado, agoraFixa);
+      final r = recomendacaoDaSemana(estado, ultimoDiaDoMes);
 
       expect(r!.id, 'custos-criticos');
-      expect(r.title, 'Custos a comer a receita — 87% do que entrou já saiu');
+      expect(
+        r.title,
+        'Custos a comer a receita — já vão em 87% do que entrou',
+      );
     });
 
     test('quem está a recibos verdes não leva carga social', () {
@@ -239,6 +251,68 @@ void main() {
         recomendacaoDaSemana(estado, agoraFixa)?.id,
         isNot('custos-criticos'),
       );
+    });
+
+    test('no princípio do mês não grita só porque o mês ainda mal começou', () {
+      // Apanhado num telemóvel a 4 de Agosto: o painel dizia "Entradas 128 ·
+      // Saídas 0" e, no card ao lado, "2149% do que entrou já saiu". Os dois
+      // números vinham do mesmo mês, mas não do mesmo pedaço dele — o custo
+      // era de 31 dias e a receita de 4.
+      final empresa = _limpo(
+        receipts: [
+          Receipt(
+            id: 'r1',
+            date: DateTime(2026, 8, 2),
+            amountCents: 100000,
+            customerId: 'c1',
+            method: PaymentMethod.cash,
+          ),
+        ],
+        collaborators: const [
+          Collaborator(
+            id: 'col-1',
+            name: 'Ana',
+            status: CollaboratorStatus.active,
+            costCents: 85000,
+          ),
+        ],
+      );
+
+      // Dia 4 de 31: 1.051 € de custo mensal valem 135 € de custo incorrido
+      // sobre 1.000 € recebidos. 14% — nada a assinalar.
+      expect(
+        recomendacaoDaSemana(empresa, DateTime(2026, 8, 4, 10, 30))?.id,
+        isNot('custos-criticos'),
+      );
+    });
+
+    test('a mesma empresa dispara quando o mês inteiro justifica', () {
+      // Contraprova do teste anterior: o que muda não é a empresa, é quanto do
+      // mês já correu. Sem isto, a correcção podia ter matado a regra.
+      final empresa = _limpo(
+        receipts: [
+          Receipt(
+            id: 'r1',
+            date: DateTime(2026, 8, 2),
+            amountCents: 100000,
+            customerId: 'c1',
+            method: PaymentMethod.cash,
+          ),
+        ],
+        collaborators: const [
+          Collaborator(
+            id: 'col-1',
+            name: 'Ana',
+            status: CollaboratorStatus.active,
+            costCents: 85000,
+          ),
+        ],
+      );
+
+      final r = recomendacaoDaSemana(empresa, DateTime(2026, 8, 31, 10, 30));
+
+      expect(r!.id, 'custos-criticos');
+      expect(r.title, 'Custos a comer a receita — já vão em 105% do que entrou');
     });
   });
 

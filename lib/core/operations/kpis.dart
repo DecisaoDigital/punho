@@ -864,6 +864,7 @@ class CustosMes {
     required this.outrosCustosCents,
     required this.custosFixosDeclaradosCents,
     required this.receitaMesCents,
+    required this.fracaoDoMesDecorrida,
   });
 
   /// Bruto **mais** a carga social da entidade patronal — o que sai mesmo da
@@ -887,22 +888,45 @@ class CustosMes {
   final int? custosFixosDeclaradosCents;
   final int receitaMesCents;
 
+  /// Quanto do mês já passou, de 0 a 1 — dia 4 de Agosto dá 4/31.
+  ///
+  /// Existe porque as duas metades da conta não andam ao mesmo ritmo: salários
+  /// e frota são encargos do **mês inteiro** desde o dia 1, e a receita vai
+  /// entrando. Dividir um pelo outro no dia 4 compara 31 dias de custo com 4
+  /// dias de receita, e dá números absurdos — 2149% num telemóvel real, com o
+  /// card do lado a dizer "Saídas 0" (achado no teste de campo, 04-08-2026).
+  final double fracaoDoMesDecorrida;
+
   /// Média sobre o custo real: é o que a pessoa custa à empresa, não o que
   /// recebe.
   int? get custoMedioPorColaborador => colaboradoresActivos == 0
       ? null
       : custoRealPessoalCents ~/ colaboradoresActivos;
 
+  /// O custo do mês fechado: tudo o que este mês vai custar.
   int get totalCents =>
       custoRealPessoalCents +
       frotaCents +
       manutencaoPagaCents +
       outrosCustosCents;
 
+  /// O custo já incorrido à data. A parte fixa entra repartida pelos dias que
+  /// já passaram; manutenção e restantes despesas já são valores pagos, e
+  /// portanto entram inteiras.
+  int get custoAteAgoraCents =>
+      ((custoRealPessoalCents + frotaCents) * fracaoDoMesDecorrida).round() +
+      manutencaoPagaCents +
+      outrosCustosCents;
+
   /// Peso dos custos na receita do mês. `null` sem receita — sem denominador a
   /// percentagem não existe (e 0% seria uma boa notícia falsa).
-  double? get percentDaReceita =>
-      receitaMesCents == 0 ? null : totalCents / receitaMesCents * 100;
+  ///
+  /// Compara [custoAteAgoraCents] e não [totalCents]: os dois lados têm de
+  /// cobrir o mesmo pedaço de calendário, senão a percentagem mede o dia do
+  /// mês em vez de medir o negócio.
+  double? get percentDaReceita => receitaMesCents == 0
+      ? null
+      : custoAteAgoraCents / receitaMesCents * 100;
 }
 
 const _categoriasManutencao = {
@@ -1007,6 +1031,13 @@ CustosMes custosMesAgregados(
     // ainda não as preencheu.
     custosFixosDeclaradosCents: state.custoFixoMensalCents,
     receitaMesCents: receiptTotal(state.receipts, inicio, fim),
+    // O dia de hoje conta por inteiro: quem trabalhou hoje já custou hoje.
+    // Arredondar para baixo faria a app subestimar custos, e um aviso de
+    // custos que peca por defeito não serve para nada.
+    //
+    // O dia 0 do mês seguinte é o último dia deste — sem aritmética de
+    // durações, que numa mudança de hora legal daria 30 onde devia dar 31.
+    fracaoDoMesDecorrida: now.day / DateTime(now.year, now.month + 1, 0).day,
   );
 }
 
@@ -1182,12 +1213,16 @@ List<Recommendation> _recomendacoesEspecificas(
     resultado.add(
       Recommendation(
         id: 'custos-criticos',
-        title: 'Custos a comer a receita — ${peso.round()}% do que entrou já saiu',
+        // "já saiu" era mentira e via-se no mesmo ecrã: o card do encontro de
+        // contas dizia "Saídas 0" ao lado deste. Salários e frota são custo
+        // incorrido, não dinheiro movimentado — e a diferença nota-se.
+        title:
+            'Custos a comer a receita — já vão em ${peso.round()}% do que entrou',
         explanation:
-            'Os custos reais (com a carga social incluída) estão a levar '
-            'quase tudo o que entrou este mês.',
+            'Os custos reais (com a carga social incluída) contados até hoje '
+            'estão a levar quase tudo o que entrou este mês.',
         impact: 'Rever custos agora evita fechar o mês no vermelho.',
-        quality: 'Custo real do pessoal com TSU patronal incluída',
+        quality: 'Custo do pessoal com TSU patronal, repartido pelos dias',
         action: 'Rever custos →',
         measure: 'Compara a percentagem de custos no fim do mês.',
         lever: GuidanceLever.margin,
