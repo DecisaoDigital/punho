@@ -97,7 +97,26 @@ class RegistoDeOperacoes {
   final SharedPreferences _prefs;
 
   static const _kFila = 'punho_sync.fila_v1';
-  static const _kCursor = 'punho_sync.cursor_v1';
+
+  /// Subir este número faz **cada** aparelho reler o histórico do princípio,
+  /// uma vez. Não é higiene, é reparação — e por isso só se sobe com um estrago
+  /// concreto para desfazer.
+  ///
+  /// Corrigir o código nunca chega, e a razão é sempre a mesma: o cursor
+  /// guardado continua a apontar para onde apontava, e o estado errado continua
+  /// gravado no telemóvel. Só a releitura os desfaz aos dois.
+  ///
+  /// * **v2**, 4 de Agosto de 2026 — a leitura vinha do servidor por ordem
+  ///   descendente (ver [prepararLote]): cursor parado quase no princípio, e
+  ///   entidades com o estado mais **antigo** por cima do mais recente.
+  /// * **v3**, no mesmo dia — a consulta nunca usava o cursor (ver `_receber`).
+  ///   Cada volta reaplicava o histórico inteiro por cima do presente, e os
+  ///   aparelhos que já tinham corrido a v2 ficaram com o cursor no fim e o
+  ///   estado desfeito na mesma: uma reserva entregue voltava a "confirmada" e
+  ///   lá ficava, com o servidor a dizer o contrário.
+  ///
+  /// Custa uma leitura do histórico da empresa, uma só vez, em lotes de 500.
+  static const _kCursor = 'punho_sync.cursor_v3';
   static const _kDispositivo = 'punho_sync.dispositivo_v1';
   static const _kPerdidas = 'punho_sync.operacoes_perdidas_v1';
   static const _kQuarentena = 'punho_sync.quarentena_v1';

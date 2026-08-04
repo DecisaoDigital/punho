@@ -4,6 +4,96 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/repositories/operation_repository.dart';
 import 'registo_de_operacoes.dart';
 
+/// Um lote de operações pronto a aplicar, e o cursor que fica depois dele.
+class LoteDeOperacoes {
+  const LoteDeOperacoes({required this.linhas, required this.cursor});
+
+  /// Por `seq` **crescente**: é essa ordem que faz a última escrita ganhar.
+  final List<Map<String, dynamic>> linhas;
+
+  /// O maior `seq` visto — não o da última linha da lista.
+  final int cursor;
+}
+
+/// Põe um lote em ordem e diz onde fica o cursor. Puro, para poder ser testado
+/// sem servidor nenhum.
+///
+/// **Porque existe.** A 4 de Agosto de 2026, num Redmi, um trabalho fechado na
+/// app voltava sozinho a "em curso" um segundo depois, e assim ficava mesmo
+/// depois de reiniciar — o servidor dizia `completed`, o telemóvel dizia
+/// `rented`. A causa era uma palavra que não estava escrita: `.order('seq')`,
+/// que no postgrest-dart é **descendente** por omissão. Daí saíam dois estragos
+/// de uma vez:
+///
+/// 1. **A precedência invertia-se.** Aplicando do mais novo para o mais velho,
+///    quem ficava por cima era o mais velho — o contrário da regra da casa, que
+///    é ganhar a última escrita a chegar ao servidor.
+/// 2. **O cursor recuava para o mínimo do lote.** `cursor = seq` a cada volta
+///    acabava na linha mais baixa, e não na mais alta: cada sincronização
+///    avançava uma linha e voltava a puxar todo o resto. O histórico inteiro era
+///    reaplicado de dez em dez segundos, e o que o gestor acabara de fazer
+///    desaparecia por baixo dele.
+///
+/// Ordenar aqui dentro, em vez de confiar na ordem que vier do fio, é de
+/// propósito: a regra de precedência é da app, não do cliente HTTP. Se um dia
+/// alguém voltar a mexer no `order`, isto continua correcto.
+LoteDeOperacoes prepararLote(
+  Iterable<Map<String, dynamic>> cruas, {
+  required int cursor,
+}) {
+  int seqDe(Map<String, dynamic> linha) => (linha['seq'] as num).toInt();
+  final linhas = cruas.toList()
+    ..sort((a, b) => seqDe(a).compareTo(seqDe(b)));
+  return LoteDeOperacoes(
+    linhas: linhas,
+    // `fold` e não `linhas.last`: o cursor é o ponto até onde se leu, e nunca
+    // pode recuar — nem por um lote fora de ordem, nem por um lote vazio.
+    cursor: linhas.fold(cursor, (maior, linha) {
+      final seq = seqDe(linha);
+      return seq > maior ? seq : maior;
+    }),
+  );
+}
+
+/// Aplica um lote já ordenado, **sem deixar uma linha má levar o resto atrás**.
+///
+/// Era o que acontecia: qualquer excepção a meio — um payload escrito por uma
+/// versão mais nova da app, um campo que este parser não reconhece, uma
+/// referência que já não existe — saltava para fora da leitura, e o
+/// `guardarCursor` que vem a seguir **nunca chegava a correr**. O cursor ficava
+/// parado, a sincronização seguinte voltava a puxar o mesmo lote, a rebentar na
+/// mesma linha e a reaplicar tudo o que vinha antes dela. O aparelho ficava
+/// preso no passado, e o que o gestor fizesse era enterrado a cada cinco
+/// minutos — que foi exactamente o que se viu no Redmi a 4 de Agosto de 2026.
+///
+/// A fila de **saída** já tinha aprendido isto: uma operação que o servidor
+/// nunca vai aceitar sai da fila em vez de a prender (ver `porEmQuarentena`).
+/// Faltava a mesma regra do lado da entrada.
+({int aplicadas, int recusadas}) aplicarLinhas(
+  PersistentOperationRepository repositorio,
+  Iterable<Map<String, dynamic>> linhas,
+) {
+  var aplicadas = 0;
+  var recusadas = 0;
+  for (final json in linhas) {
+    try {
+      repositorio.aplicarOperacaoRemota(
+        json['entidade'] as String,
+        Map<String, dynamic>.from(json['payload'] as Map),
+      );
+      aplicadas++;
+    } catch (erro) {
+      recusadas++;
+      debugPrint(
+        '[Sync] linha ${json['seq']} '
+        '(${json['entidade']}/${json['entidade_id']}) não se aplicou: $erro '
+        '— segue-se em frente',
+      );
+    }
+  }
+  return (aplicadas: aplicadas, recusadas: recusadas);
+}
+
 /// Como correu uma sincronização.
 class ResultadoDaSincronizacao {
   const ResultadoDaSincronizacao({
@@ -128,7 +218,10 @@ class SincronizacaoEntreDispositivos {
       );
       final recebidas = await _receber();
       final enviadas = await _enviar();
-      debugPrint('[Sync] fim: enviadas=$enviadas recebidas=$recebidas');
+      debugPrint(
+        '[Sync] fim: enviadas=$enviadas recebidas=$recebidas '
+        'recusadas=$recusadas cursor=${registo.cursor}',
+      );
       return ResultadoDaSincronizacao(enviadas: enviadas, recebidas: recebidas);
     } catch (erro) {
       debugPrint('[Sync] falhou: $erro');
@@ -138,33 +231,109 @@ class SincronizacaoEntreDispositivos {
     }
   }
 
+  /// Quantas linhas o último [_receber] não conseguiu aplicar. Zero é o normal;
+  /// diferente de zero é sinal de que há dados que este aparelho não entende.
+  int recusadas = 0;
+
+  /// Vai buscar ao servidor as operações **posteriores** a [depoisDe].
+  ///
+  /// Isolado num campo para os testes poderem pôr um servidor de mentira no
+  /// lugar e verificar o que se lhe pede — que foi precisamente onde o defeito
+  /// morava, sem nenhum teste lá chegar.
+  Future<List<Map<String, dynamic>>> Function(int depoisDe)? buscarOperacoes;
+
+  Future<List<Map<String, dynamic>>> _buscar(int depoisDe) async {
+    if (buscarOperacoes != null) return buscarOperacoes!(depoisDe);
+    final linhas =
+        await _cliente
+                .from(_tabela)
+                .select()
+                .eq('empresa_id', empresaId)
+                // **O cursor tem de entrar aqui.** Ele existia, era calculado e
+                // era gravado — e não filtrava nada: a consulta trazia sempre o
+                // histórico desde o princípio. Ver [_receber].
+                .gt('seq', depoisDe)
+                // `ascending: true` **explícito**. O postgrest-dart tem o
+                // contrário por omissão (`ascending = false`) — ao contrário
+                // do PostgREST e do cliente de JavaScript, onde `order` sem
+                // mais nada é crescente. Sem esta palavra, isto trazia o
+                // histórico do fim para o princípio, e daí saíam os dois
+                // estragos que o [prepararLote] agora também trava por
+                // dentro. Ver o comentário lá.
+                .order('seq', ascending: true)
+                .limit(_lote)
+            as List;
+    return [for (final linha in linhas) Map<String, dynamic>.from(linha as Map)];
+  }
+
+  /// Traz o que os outros fizeram **desde a última vez** — e só isso.
+  ///
+  /// O que aconteceu a 4 de Agosto de 2026, com as três correcções anteriores
+  /// já no telemóvel: tocar em *Entregar* gravava `rented`, a operação subia ao
+  /// servidor (lá ficou, `seq 234`), e o ecrã continuava a dizer "Confirmado" —
+  /// para sempre, mesmo depois de reiniciar a app.
+  ///
+  /// A causa estava na consulta, não na aplicação das linhas: **o cursor nunca
+  /// era usado para filtrar**. Era lido, era passado ao [prepararLote], era
+  /// gravado — e a consulta pedia à mesma o histórico todo desde o princípio.
+  /// De cinco em cinco minutos, o passado inteiro voltava a ser aplicado por
+  /// cima do presente. E como [sincronizar] recebe antes de enviar, a sequência
+  /// era esta:
+  ///
+  /// 1. o gestor toca em *Entregar* → local fica `rented`, e a operação entra
+  ///    na fila de saída com esse valor;
+  /// 2. chega a sincronização: `_receber` reaplica a linha de origem do
+  ///    trabalho (`seq 204`, `confirmed`) e o telemóvel volta atrás;
+  /// 3. `_enviar` manda a operação da fila, que continua a dizer `rented`.
+  ///
+  /// Fim: servidor `rented`, telemóvel `confirmed`, nenhum erro. A app a
+  /// desfazer o trabalho de quem a usa e a jurar ao servidor que o fez.
+  ///
+  /// Havia ainda uma bomba a prazo: com mais de [_lote] operações, `linhas
+  /// .length` nunca ficava abaixo do lote, a consulta seguinte era idêntica à
+  /// anterior, e o ciclo não acabava nunca.
+  @visibleForTesting
+  Future<int> receber() => _receber();
+
   Future<int> _receber() async {
     var aplicadas = 0;
+    recusadas = 0;
     var cursor = registo.cursor;
     while (true) {
-      final linhas =
-          await _cliente
-                  .from(_tabela)
-                  .select()
-                  .eq('empresa_id', empresaId)
-                  .gt('seq', cursor)
-                  .order('seq')
-                  .limit(_lote)
-              as List;
+      final linhas = await _buscar(cursor);
       if (linhas.isEmpty) break;
 
-      for (final linha in linhas) {
-        final json = Map<String, dynamic>.from(linha as Map);
-        cursor = (json['seq'] as num).toInt();
-        // O que fomos nós a escrever já está aplicado localmente. Reaplicar
-        // seria inofensivo, mas desperdício — e num lote grande, visível.
-        if (json['por_dispositivo'] == registo.dispositivo) continue;
-        repositorio.aplicarOperacaoRemota(
-          json['entidade'] as String,
-          Map<String, dynamic>.from(json['payload'] as Map),
-        );
-        aplicadas++;
-      }
+      final lote = prepararLote(linhas, cursor: cursor);
+      // Aplica-se **tudo**, incluindo o que fomos nós a escrever.
+      //
+      // Antes saltavam-se as linhas do próprio aparelho, com o argumento de que
+      // já estavam aplicadas localmente. É verdade enquanto o estado local
+      // estiver certo — e deixa de ser no minuto em que não estiver. Foi o que
+      // trancou o Redmi: o estado local tinha sido pisado, as únicas linhas que
+      // o podiam corrigir eram as nossas, e eram justamente essas que se
+      // deitavam fora. A app ficava a divergir do servidor **para sempre**, sem
+      // erro nenhum a dizê-lo.
+      //
+      // Reaplicar é idempotente: a gravação é a mesma, o conflito de reservas
+      // tem id determinado pelos dois ids envolvidos (não duplica), e
+      // `aplicarOperacaoRemota` não volta a pôr nada na fila.
+      //
+      // O que isto dá é a **reposição a partir do zero**: pôr o cursor a 0 e
+      // deixar correr reconstrói o estado inteiro a partir do servidor, e é
+      // assim que um aparelho divergido se endireita (foi o que a subida da
+      // chave para `cursor_v2` fez a este). Repare-se no que *não* dá: em marcha
+      // normal só entra o que é novo, portanto isto não anda a corrigir
+      // sozinho, a cada volta, um estado local que se tenha estragado. Curar
+      // exige a releitura; a releitura é decisão de quem sobe a chave.
+      final resultado = aplicarLinhas(repositorio, lote.linhas);
+      aplicadas += resultado.aplicadas;
+      recusadas += resultado.recusadas;
+      // Se o lote não fez o cursor andar, a consulta seguinte seria igual a
+      // esta e o ciclo não acabava. Não devia acontecer com o `.gt` no sítio —
+      // mas um ciclo infinito à volta de uma chamada de rede é caro de mais
+      // para se deixar à confiança.
+      if (lote.cursor <= cursor) break;
+      cursor = lote.cursor;
       // Gravado a cada lote: se a app fechar a meio, retoma daqui em vez de
       // recomeçar do princípio.
       await registo.guardarCursor(cursor);
