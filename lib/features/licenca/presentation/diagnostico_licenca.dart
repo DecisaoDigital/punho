@@ -52,8 +52,12 @@ class DiagnosticoLicenca extends ConsumerWidget {
                 esbatido: true,
               ),
             if (mid.isNotEmpty)
-              _Linha(rotulo: 'Aparelho', valor: _curto(mid), copiavel: true,
-                  valorCompleto: mid),
+              _Linha(
+                rotulo: 'Aparelho',
+                valor: _curto(mid),
+                copiavel: true,
+                valorCompleto: mid,
+              ),
             if (info != null) ...[
               _Linha(rotulo: 'Empresa', valor: info.nome ?? '—'),
               _Linha(rotulo: 'NIF', valor: info.nif ?? '—'),
@@ -71,16 +75,17 @@ class DiagnosticoLicenca extends ConsumerWidget {
   /// O `machine_id` é um hash de 64 caracteres — inteiro não se lê nem se dita.
   /// Mostram-se as pontas, que chegam para o reconhecer numa lista, e copia-se
   /// o valor completo com o toque.
-  static String _curto(String mid) =>
-      mid.length <= 20 ? mid : '${mid.substring(0, 8)}…${mid.substring(mid.length - 6)}';
+  static String _curto(String mid) => mid.length <= 20
+      ? mid
+      : '${mid.substring(0, 8)}…${mid.substring(mid.length - 6)}';
 
   static String _estado(LicencaInfo info) => switch (info.estado) {
-        EstadoLicenca.activa =>
-          info.emTrial ? 'Avaliação (${info.diasRestantes} dias)' : 'Activa',
-        EstadoLicenca.expirada => 'Expirada',
-        EstadoLicenca.inactiva => 'Suspensa',
-        EstadoLicenca.inexistente => 'Por registar',
-      };
+    EstadoLicenca.activa =>
+      info.emTrial ? 'Avaliação (${info.diasRestantes} dias)' : 'Activa',
+    EstadoLicenca.expirada => 'Expirada',
+    EstadoLicenca.inactiva => 'Suspensa',
+    EstadoLicenca.inexistente => 'Por registar',
+  };
 
   static String _data(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/'
@@ -116,8 +121,10 @@ class _Linha extends StatelessWidget {
         children: [
           SizedBox(
             width: 118,
-            child: Text(rotulo,
-                style: textos.bodySmall?.copyWith(color: cores.outline)),
+            child: Text(
+              rotulo,
+              style: textos.bodySmall?.copyWith(color: cores.outline),
+            ),
           ),
           Expanded(
             child: Text(
@@ -128,8 +135,7 @@ class _Linha extends StatelessWidget {
               ),
             ),
           ),
-          if (copiavel)
-            Icon(Icons.copy, size: 14, color: cores.outline),
+          if (copiavel) Icon(Icons.copy, size: 14, color: cores.outline),
         ],
       ),
     );
@@ -140,9 +146,9 @@ class _Linha extends StatelessWidget {
       onTap: () async {
         await Clipboard.setData(ClipboardData(text: valorCompleto ?? valor));
         if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$rotulo copiada.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$rotulo copiada.')));
       },
       child: linha,
     );

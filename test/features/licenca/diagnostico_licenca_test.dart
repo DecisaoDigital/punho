@@ -10,7 +10,8 @@ import 'package:punho/features/licenca/presentation/diagnostico_licenca.dart';
 /// adivinhar, às perguntas que aparecem quando algo não bate certo: de que
 /// empresa é este aparelho, que aparelho é, e até quando vale a licença.
 void main() {
-  const mid = '339ed1626af8fc4729878db445dc79aa9cae53d6568c2c645e3aaf6315a62cac';
+  const mid =
+      '339ed1626af8fc4729878db445dc79aa9cae53d6568c2c645e3aaf6315a62cac';
 
   Future<void> montar(WidgetTester tester, LicencaInfo? info) async {
     await tester.pumpWidget(
@@ -20,7 +21,9 @@ void main() {
           machineIdProvider.overrideWith((_) async => mid),
         ],
         child: const MaterialApp(
-          home: Scaffold(body: SingleChildScrollView(child: DiagnosticoLicenca())),
+          home: Scaffold(
+            body: SingleChildScrollView(child: DiagnosticoLicenca()),
+          ),
         ),
       ),
     );
@@ -32,17 +35,16 @@ void main() {
     EstadoLicenca estado = EstadoLicenca.activa,
     String? plano = 'beta',
     int dias = 180,
-  }) =>
-      LicencaInfo(
-        estado: estado,
-        machineId: mid,
-        plano: plano,
-        nif: '514287934',
-        nome: 'Terraforte — Aluguer de Equipamentos',
-        validade: DateTime(2027, 1, 28),
-        diasRestantes: dias,
-        chaveMestre: chaveMestre,
-      );
+  }) => LicencaInfo(
+    estado: estado,
+    machineId: mid,
+    plano: plano,
+    nif: '514287934',
+    nome: 'Terraforte — Aluguer de Equipamentos',
+    validade: DateTime(2027, 1, 28),
+    diasRestantes: dias,
+    chaveMestre: chaveMestre,
+  );
 
   testWidgets('mostra a chave da empresa quando ela existe', (tester) async {
     await montar(tester, licenca(chaveMestre: 'TRF-Z4A9AM9QJV44'));
@@ -61,16 +63,18 @@ void main() {
     expect(find.text('— ainda não atribuída'), findsOneWidget);
   });
 
-  testWidgets('o machine_id aparece encurtado — 64 caracteres não se ditam',
-      (tester) async {
+  testWidgets('o machine_id aparece encurtado — 64 caracteres não se ditam', (
+    tester,
+  ) async {
     await montar(tester, licenca(chaveMestre: 'TRF-Z4A9AM9QJV44'));
 
     expect(find.text(mid), findsNothing);
     expect(find.text('339ed162…a62cac'), findsOneWidget);
   });
 
-  testWidgets('copiar a chave põe o valor completo na área de transferência',
-      (tester) async {
+  testWidgets('copiar a chave põe o valor completo na área de transferência', (
+    tester,
+  ) async {
     final copiado = <String>[];
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       SystemChannels.platform,
@@ -89,8 +93,9 @@ void main() {
     expect(copiado, ['TRF-Z4A9AM9QJV44']);
   });
 
-  testWidgets('copiar o aparelho copia o hash INTEIRO, não o encurtado',
-      (tester) async {
+  testWidgets('copiar o aparelho copia o hash INTEIRO, não o encurtado', (
+    tester,
+  ) async {
     // O encurtado serve para ler; o que se cola tem de ser o valor real, senão
     // o que chega ao Control não corresponde a terminal nenhum.
     final copiado = <String>[];
@@ -128,8 +133,9 @@ void main() {
     expect(find.text('Suspensa'), findsOneWidget);
   });
 
-  testWidgets('sem resposta do servidor não aparece nada de errado',
-      (tester) async {
+  testWidgets('sem resposta do servidor não aparece nada de errado', (
+    tester,
+  ) async {
     // Offline ou Supabase desligado. Isto é diagnóstico: não pode ser mais um
     // sítio a dar erro por não haver rede.
     await tester.pumpWidget(
