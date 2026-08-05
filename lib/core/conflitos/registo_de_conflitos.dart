@@ -92,7 +92,10 @@ class RegistoDeConflitos {
   List<ConflitoPendente> get porEnviar {
     final ids = (_prefs.getStringList(_kPorEnviar) ?? const []).toSet();
     final mapa = _todosPorId;
-    return [for (final id in ids) if (mapa[id] != null) mapa[id]!];
+    return [
+      for (final id in ids)
+        if (mapa[id] != null) mapa[id]!,
+    ];
   }
 
   Future<void> marcarEnviados(Set<String> ids) {

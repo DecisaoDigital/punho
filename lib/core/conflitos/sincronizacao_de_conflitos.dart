@@ -76,7 +76,9 @@ class SincronizacaoDeConflitos {
         await _cliente.from(_tabela).select().eq('empresa_id', empresaId)
             as List;
     for (final linha in linhas) {
-      await registo.aplicarRemoto(_daSupabase(Map<String, dynamic>.from(linha as Map)));
+      await registo.aplicarRemoto(
+        _daSupabase(Map<String, dynamic>.from(linha as Map)),
+      );
     }
     return linhas.length;
   }

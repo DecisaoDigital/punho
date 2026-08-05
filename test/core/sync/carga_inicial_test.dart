@@ -51,7 +51,10 @@ void main() {
     final quantas = repo.carregarTudoParaFila();
 
     expect(quantas, 3);
-    expect(registadas, containsAll(['machine:m1', 'machine:m2', 'customer:c1']));
+    expect(
+      registadas,
+      containsAll(['machine:m1', 'machine:m2', 'customer:c1']),
+    );
   });
 
   test('sem carga inicial, o que já existia não é registado', () async {

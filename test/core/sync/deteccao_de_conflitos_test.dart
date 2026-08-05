@@ -49,7 +49,9 @@ void main() {
   }
 
   test('a mesma máquina prometida duas vezes é assinalada', () {
-    guardarLocal(reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 10));
+    guardarLocal(
+      reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 10),
+    );
 
     repo.aplicarOperacaoRemota(
       'booking',
@@ -66,7 +68,9 @@ void main() {
   });
 
   test('a reserva que chega é gravada na mesma — assinalar não é bloquear', () {
-    guardarLocal(reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 10));
+    guardarLocal(
+      reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 10),
+    );
 
     repo.aplicarOperacaoRemota(
       'booking',
@@ -79,7 +83,9 @@ void main() {
   });
 
   test('máquinas diferentes ao mesmo tempo não são conflito', () {
-    guardarLocal(reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 10));
+    guardarLocal(
+      reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 10),
+    );
 
     repo.aplicarOperacaoRemota(
       'booking',
@@ -90,7 +96,9 @@ void main() {
   });
 
   test('a mesma máquina em datas que não se tocam não é conflito', () {
-    guardarLocal(reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 5));
+    guardarLocal(
+      reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 5),
+    );
 
     repo.aplicarOperacaoRemota(
       'booking',
@@ -104,7 +112,9 @@ void main() {
     // Fim exclusivo: a reserva que acaba dia 5 liberta a máquina para a que
     // começa dia 5. Marcar isto como disputa ensinava o gestor a ignorar
     // avisos.
-    guardarLocal(reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 5));
+    guardarLocal(
+      reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 5),
+    );
 
     repo.aplicarOperacaoRemota(
       'booking',
@@ -115,7 +125,9 @@ void main() {
   });
 
   test('um pedido por confirmar ainda não prende a máquina', () {
-    guardarLocal(reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 10));
+    guardarLocal(
+      reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 10),
+    );
 
     repo.aplicarOperacaoRemota(
       'booking',
@@ -150,23 +162,29 @@ void main() {
     expect(detectados, isEmpty);
   });
 
-  test('editar a mesma reserva noutro aparelho não é conflito consigo própria',
-      () {
-    guardarLocal(reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 10));
+  test(
+    'editar a mesma reserva noutro aparelho não é conflito consigo própria',
+    () {
+      guardarLocal(
+        reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 10),
+      );
 
-    repo.aplicarOperacaoRemota(
-      'booking',
-      reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 2, fimDia: 11),
-    );
+      repo.aplicarOperacaoRemota(
+        'booking',
+        reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 2, fimDia: 11),
+      );
 
-    expect(detectados, isEmpty);
-  });
+      expect(detectados, isEmpty);
+    },
+  );
 
   test('o id da disputa é o mesmo nos dois aparelhos', () {
     // Cada aparelho detecta a mesma disputa por sua conta, em ordens
     // diferentes. Se gerassem ids diferentes, resolver num não resolvia no
     // outro.
-    guardarLocal(reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 10));
+    guardarLocal(
+      reserva(id: 'r1', maquinas: ['giratoria'], inicioDia: 1, fimDia: 10),
+    );
     repo.aplicarOperacaoRemota(
       'booking',
       reserva(id: 'r2', maquinas: ['giratoria'], inicioDia: 5, fimDia: 15),

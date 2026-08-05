@@ -78,7 +78,9 @@ void main() {
       final c = _cenario();
 
       c.notifier.updateCompanySettings(companyTaxId: const Campo(null));
-      c.notifier.updateCompanySettings(companyPhone: const Campo('913 111 111'));
+      c.notifier.updateCompanySettings(
+        companyPhone: const Campo('913 111 111'),
+      );
 
       final estado = c.container.read(operationsProvider);
       expect(estado.companyTaxId, isNull, reason: 'não volta sozinho');
@@ -132,26 +134,29 @@ void main() {
       expect(c.container.read(operationRepositoryProvider).onboarding, isNull);
     });
 
-    test('rubricas de custos fixos sobrevivem no state, não só no repositório', () {
-      // Achado no teste manual de utilizador: guardava no repositório mas o
-      // `state` em memória (o que o ecrã lê) voltava a `[]`, e a rubrica
-      // desaparecia ao sair e voltar ao ecrã sem reiniciar a app.
-      final c = _cenario();
+    test(
+      'rubricas de custos fixos sobrevivem no state, não só no repositório',
+      () {
+        // Achado no teste manual de utilizador: guardava no repositório mas o
+        // `state` em memória (o que o ecrã lê) voltava a `[]`, e a rubrica
+        // desaparecia ao sair e voltar ao ecrã sem reiniciar a app.
+        final c = _cenario();
 
-      c.notifier.updateCompanySettings(
-        custosFixos: [
-          const CustoFixo(
-            id: 'a',
-            categoria: ExpenseCategory.rent,
-            valorCents: 35000,
-          ),
-        ],
-      );
+        c.notifier.updateCompanySettings(
+          custosFixos: [
+            const CustoFixo(
+              id: 'a',
+              categoria: ExpenseCategory.rent,
+              valorCents: 35000,
+            ),
+          ],
+        );
 
-      final estado = c.container.read(operationsProvider);
-      expect(estado.custosFixos, hasLength(1));
-      expect(estado.custoFixoMensalCents, 35000);
-    });
+        final estado = c.container.read(operationsProvider);
+        expect(estado.custosFixos, hasLength(1));
+        expect(estado.custoFixoMensalCents, 35000);
+      },
+    );
 
     test('editar não desmarca a app como configurada', () {
       final c = _cenario();
@@ -174,9 +179,11 @@ void main() {
       // oposto do que ele fixava.
       //
       // Passaram a oito a 4 de Agosto de 2026, com "A minha semana" (Fase 0 do
-      // `docs/PLANO_DO_CICLO.md`). O que este teste guarda não é o número —
-      // é que **os dados não mexem na barra**. O número está aqui só para que
-      // um destino acrescentado por engano não passe despercebido.
+      // `docs/PLANO_DO_CICLO.md`), e a nove a 5 de Agosto com "KPIs (todos)".
+      // O que este teste guarda não é o número — é que **os dados não mexem na
+      // barra**. O número está aqui só para que um destino acrescentado por
+      // engano não passe despercebido; das duas vezes que subiu foi este teste
+      // a obrigar a dizê-lo por escrito.
       final c = _cenario();
       final antes = visibleOperationalDestinations(
         c.container.read(operationsProvider),
@@ -188,7 +195,7 @@ void main() {
         c.container.read(operationsProvider),
       );
       expect(depois, antes);
-      expect(depois, hasLength(8));
+      expect(depois, hasLength(9));
       expect(depois, contains(AppDestination.employees));
       expect(depois, contains(AppDestination.empresa));
       expect(depois, contains(AppDestination.semana));
@@ -204,6 +211,24 @@ void main() {
       // Continuam a saber a que aba pertencem, para os saltos antigos.
       expect(AppDestination.vehicles.abaDeEmpresa, AbaDaEmpresa.veiculos);
       expect(AppDestination.finances.abaDeEmpresa, AbaDaEmpresa.financas);
+    });
+
+    test('"KPIs (todos)" entra logo abaixo de Tarefas e fecha a barra', () {
+      // A posição é a decisão, não um detalhe: não é um sítio onde se trabalha,
+      // é onde se vai ver o que os números dizem quando o painel não chega.
+      // Se algum dia subir na lista, que seja por escolha e não por descuido.
+      final destinos = visibleOperationalDestinations(
+        _cenario().container.read(operationsProvider),
+      );
+
+      expect(destinos.last, AppDestination.kpis);
+      expect(
+        destinos[destinos.indexOf(AppDestination.kpis) - 1],
+        AppDestination.tasks,
+      );
+      expect(AppDestination.kpis.label, 'KPIs (todos)');
+      // Não é um destino que migrou para dentro da Empresa — é da barra.
+      expect(AppDestination.kpis.abaDeEmpresa, isNull);
     });
   });
 

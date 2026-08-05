@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/auth/auth_rules.dart';
+import '../../../core/licenca/machine_id.dart';
 import '../acesso_providers.dart';
 import '../data/acesso_service.dart';
 
@@ -27,6 +28,26 @@ class _RegistoScreenState extends ConsumerState<RegistoScreen> {
   void initState() {
     super.initState();
     OrientacaoDoContexto.portraitJa();
+    _resolverMaquina();
+  }
+
+  /// O terminal de onde parte o pedido, resolvido enquanto o formulário se
+  /// preenche.
+  ///
+  /// Fica aqui e não no caminho de submissão de propósito: ler o identificador
+  /// toca em plugins nativos, e uma espera dessas no meio do envio atrasa o
+  /// único momento em que a pessoa está a olhar para o botão. Quando não se
+  /// resolve, o pedido segue sem máquina — um pedido sem terminal é melhor do
+  /// que um pedido com um terminal inventado.
+  String? _machineId;
+
+  Future<void> _resolverMaquina() async {
+    try {
+      final id = await resolverMachineId();
+      if (mounted) setState(() => _machineId = id);
+    } catch (_) {
+      // Sem plugins nativos não há máquina para dizer. Não é erro de registo.
+    }
   }
 
   final _nome = TextEditingController();
@@ -97,6 +118,7 @@ class _RegistoScreenState extends ConsumerState<RegistoScreen> {
         empresa: _empresa.text.trim(),
         perfil: _perfil,
         codigoConvite: codigo.isEmpty ? null : codigo,
+        machineId: _machineId,
       );
       if (!mounted) return;
       setState(
@@ -175,6 +197,7 @@ class _RegistoScreenState extends ConsumerState<RegistoScreen> {
                         ),
                         const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
+                          isExpanded: true,
                           initialValue: _perfil,
                           decoration: const InputDecoration(
                             labelText: 'Cargo pretendido',

@@ -93,6 +93,12 @@ abstract class ContabilistaService {
     int? valorCentavos,
     String? valorTexto,
   });
+
+  /// O que o contabilista deixou escrito, do mais recente para trás.
+  Future<List<MensagemContabilista>> mensagens();
+
+  /// Marca por lidas as que ainda não estão. Só tira o realce — o texto fica.
+  Future<void> marcarMensagensLidas(List<String> ids);
 }
 
 class SupabaseContabilistaService implements ContabilistaService {
@@ -201,6 +207,29 @@ class SupabaseContabilistaService implements ContabilistaService {
     },
   );
 
+  @override
+  Future<List<MensagemContabilista>> mensagens() async {
+    // Sem `empresa_id` no filtro: a RLS já limita à empresa da sessão, e
+    // mandá-lo daqui era deixar a app escolher de quem lê as mensagens.
+    final linhas = await _client
+        .from('punho_mensagens_contabilista')
+        .select('id, texto, criado_em, lido_em')
+        .order('criado_em', ascending: false);
+    return linhas
+        .map((l) => MensagemContabilista.fromJson(l))
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> marcarMensagensLidas(List<String> ids) async {
+    if (ids.isEmpty) return;
+    await _client
+        .from('punho_mensagens_contabilista')
+        .update({'lido_em': DateTime.now().toUtc().toIso8601String()})
+        .inFilter('id', ids)
+        // Só as que ainda não estão: reler não muda a data de quando se leu.
+        .isFilter('lido_em', null);
+  }
 }
 
 /// `2025-03-01` — o Postgres quer `date`, e um ISO completo com hora entrava

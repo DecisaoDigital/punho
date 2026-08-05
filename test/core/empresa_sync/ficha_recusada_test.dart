@@ -78,22 +78,28 @@ void main() {
     expect(pendente.motivoDaRecusa, isNull);
   });
 
-  test('sem rede continua a insistir — é para isso que a fila existe', () async {
-    final servico = _ServicoFalso((_) => const ResultadoDaFicha.adiada());
-    final motor = motorCom(servico);
+  test(
+    'sem rede continua a insistir — é para isso que a fila existe',
+    () async {
+      final servico = _ServicoFalso((_) => const ResultadoDaFicha.adiada());
+      final motor = motorCom(servico);
 
-    await motor.atualizarFicha({'nome': 'Alugueres Norte', 'nif': '501234567'});
-    await motor.tentarEnviar();
-    await motor.tentarEnviar();
+      await motor.atualizarFicha({
+        'nome': 'Alugueres Norte',
+        'nif': '501234567',
+      });
+      await motor.tentarEnviar();
+      await motor.tentarEnviar();
 
-    expect(
-      servico.tentativas,
-      3,
-      reason: 'uma falha de rede não é uma recusa',
-    );
-    expect(pendente.ficha, isNotNull);
-    expect(pendente.motivoDaRecusa, isNull);
-  });
+      expect(
+        servico.tentativas,
+        3,
+        reason: 'uma falha de rede não é uma recusa',
+      );
+      expect(pendente.ficha, isNotNull);
+      expect(pendente.motivoDaRecusa, isNull);
+    },
+  );
 
   test('entregue com sucesso limpa tudo', () async {
     final servico = _ServicoFalso((_) => const ResultadoDaFicha.entregue());

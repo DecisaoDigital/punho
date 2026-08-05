@@ -281,8 +281,16 @@ void main() {
             collaborators: [
               manuel.copyWith(
                 schedule: const {
-                  1: WorkDay(works: true, start: pw.TimeOfDay(9, 0), end: pw.TimeOfDay(18, 0)),
-                  2: WorkDay(works: true, start: pw.TimeOfDay(9, 0), end: pw.TimeOfDay(18, 0)),
+                  1: WorkDay(
+                    works: true,
+                    start: pw.TimeOfDay(9, 0),
+                    end: pw.TimeOfDay(18, 0),
+                  ),
+                  2: WorkDay(
+                    works: true,
+                    start: pw.TimeOfDay(9, 0),
+                    end: pw.TimeOfDay(18, 0),
+                  ),
                 },
               ),
             ],

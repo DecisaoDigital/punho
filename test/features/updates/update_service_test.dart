@@ -48,7 +48,10 @@ void main() {
       // envia. Mandar um `Bearer null` era como o antigo código se enganava.
       Map<String, String>? recebidos = {'ainda': 'nao chamado'};
       Map<String, dynamic>? corpoRecebido;
-      final servico = PunhoUpdateService.comInvocador((corpo, cabecalhos) async {
+      final servico = PunhoUpdateService.comInvocador((
+        corpo,
+        cabecalhos,
+      ) async {
         recebidos = cabecalhos;
         corpoRecebido = corpo;
         return const FunctionResponse(

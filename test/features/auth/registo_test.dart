@@ -22,7 +22,10 @@ void main() {
       expect(fake.registos.single['convite'], isNull);
       expect(fake.codigosValidados, isEmpty);
 
-      expect(find.textContaining('pendente de aprovação manual'), findsOneWidget);
+      expect(
+        find.textContaining('pendente de aprovação manual'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('o cargo pretendido vai no pedido', (tester) async {

@@ -96,18 +96,24 @@ void main() {
     expect(licenca.machineId, machineId); // o par completo
   });
 
-  test('servidor sem chave mestre (instalação antiga) → null, sem rebentar',
-      () async {
-    final invocador = _InvocadorFalso(
-      resposta: const FunctionResponse(
-        status: 200,
-        data: {'estado': 'activa', 'plano': 'anual', 'validade': '2027-09-03'},
-      ),
-    );
-    final servico = PunhoLicencaService.comInvocador(invocador.call);
+  test(
+    'servidor sem chave mestre (instalação antiga) → null, sem rebentar',
+    () async {
+      final invocador = _InvocadorFalso(
+        resposta: const FunctionResponse(
+          status: 200,
+          data: {
+            'estado': 'activa',
+            'plano': 'anual',
+            'validade': '2027-09-03',
+          },
+        ),
+      );
+      final servico = PunhoLicencaService.comInvocador(invocador.call);
 
-    expect((await servico.validar(machineId))!.chaveMestre, isNull);
-  });
+      expect((await servico.validar(machineId))!.chaveMestre, isNull);
+    },
+  );
 
   test('validar devolve null quando a rede falha, sem excepção', () async {
     final invocador = _InvocadorFalso(erro: Exception('sem rede'));

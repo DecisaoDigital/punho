@@ -104,7 +104,8 @@ void main() {
     expect(
       fila.single.payload['name'],
       'Escavadora v${RegistoDeOperacoes.maximoNaFila + 4}',
-      reason: 'fica a última versão, que contém tudo o que as anteriores diziam',
+      reason:
+          'fica a última versão, que contém tudo o que as anteriores diziam',
     );
     expect(registo.operacoesPerdidas, 0, reason: 'comprimir não perde nada');
   });
@@ -130,26 +131,28 @@ void main() {
     expect(fila.last.entidade, 'booking');
   });
 
-  test('só descarta quando nem comprimida a fila cabe — e regista a perda',
-      () async {
-    // Entidades todas diferentes: não há nada para comprimir. Aqui há mesmo
-    // perda, e o que não pode acontecer é ela passar despercebida.
-    await registo.acrescentarVarias([
-      for (var i = 0; i < RegistoDeOperacoes.maximoNaFila + 5; i++)
-        op('op$i', entidadeId: 'm$i'),
-    ]);
+  test(
+    'só descarta quando nem comprimida a fila cabe — e regista a perda',
+    () async {
+      // Entidades todas diferentes: não há nada para comprimir. Aqui há mesmo
+      // perda, e o que não pode acontecer é ela passar despercebida.
+      await registo.acrescentarVarias([
+        for (var i = 0; i < RegistoDeOperacoes.maximoNaFila + 5; i++)
+          op('op$i', entidadeId: 'm$i'),
+      ]);
 
-    final fila = registo.pendentes;
+      final fila = registo.pendentes;
 
-    expect(fila, hasLength(RegistoDeOperacoes.maximoNaFila));
-    expect(fila.first.id, 'op5', reason: 'as cinco primeiras caíram');
-    expect(fila.last.id, 'op${RegistoDeOperacoes.maximoNaFila + 4}');
-    expect(
-      registo.operacoesPerdidas,
-      5,
-      reason: 'trabalho perdido tem de ficar contado',
-    );
-  });
+      expect(fila, hasLength(RegistoDeOperacoes.maximoNaFila));
+      expect(fila.first.id, 'op5', reason: 'as cinco primeiras caíram');
+      expect(fila.last.id, 'op${RegistoDeOperacoes.maximoNaFila + 4}');
+      expect(
+        registo.operacoesPerdidas,
+        5,
+        reason: 'trabalho perdido tem de ficar contado',
+      );
+    },
+  );
 
   test('a perda persiste entre arranques até ser reconhecida', () async {
     await registo.acrescentarVarias([

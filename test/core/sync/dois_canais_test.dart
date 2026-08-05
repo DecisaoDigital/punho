@@ -113,7 +113,10 @@ void main() {
   test('mas continua a trazer o que é dele: a ficha da empresa', () async {
     final repo = await repositorio();
 
-    expect(repo.importOperationalPayload(instantaneoVelho(), revision: 1), isTrue);
+    expect(
+      repo.importOperationalPayload(instantaneoVelho(), revision: 1),
+      isTrue,
+    );
 
     // Este é o lado que não pode partir com a separação — é para isto que o
     // canal do instantâneo existe.
@@ -122,20 +125,23 @@ void main() {
     expect(repo.remoteRevision, 1);
   });
 
-  test('o que está gravado no telemóvel continua a ser lido por inteiro', () async {
-    // A mesma função aplica as duas coisas. Se a separação apanhasse também a
-    // leitura local, a app arrancava sem metade do que tem — muito pior do que
-    // o problema que se foi corrigir.
-    SharedPreferences.setMockInitialValues({});
-    final antes = await PersistentOperationRepository.create();
-    antes.saveBooking(reserva(BookingStatus.completed));
-    antes.saveCustomer(
-      const Customer(id: 'c1', name: 'Construções Silva', phone: '912000000'),
-    );
+  test(
+    'o que está gravado no telemóvel continua a ser lido por inteiro',
+    () async {
+      // A mesma função aplica as duas coisas. Se a separação apanhasse também a
+      // leitura local, a app arrancava sem metade do que tem — muito pior do que
+      // o problema que se foi corrigir.
+      SharedPreferences.setMockInitialValues({});
+      final antes = await PersistentOperationRepository.create();
+      antes.saveBooking(reserva(BookingStatus.completed));
+      antes.saveCustomer(
+        const Customer(id: 'c1', name: 'Construções Silva', phone: '912000000'),
+      );
 
-    final depois = await PersistentOperationRepository.create();
+      final depois = await PersistentOperationRepository.create();
 
-    expect(depois.bookings.single.status, BookingStatus.completed);
-    expect(depois.customers.single.name, 'Construções Silva');
-  });
+      expect(depois.bookings.single.status, BookingStatus.completed);
+      expect(depois.customers.single.name, 'Construções Silva');
+    },
+  );
 }

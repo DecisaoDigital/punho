@@ -15,7 +15,8 @@ class FakeAcessoService implements AcessoService {
     this.erroAoCriarConvite,
     this.erroAoLerAcesso,
     this.utilizadorId = 'user-1',
-  }) : acesso = acesso ?? const EstadoAcesso(membroAtivo: false, estado: 'pendente');
+  }) : acesso =
+           acesso ?? const EstadoAcesso(membroAtivo: false, estado: 'pendente');
 
   @override
   final String? utilizadorId;
@@ -26,8 +27,13 @@ class FakeAcessoService implements AcessoService {
   Object? erroAoRegistar;
   Object? erroAoCriarConvite;
   Object? erroAoLerAcesso;
+  Object? erroAoPedirAcesso;
+
+  /// O que o servidor devolve ao pedido — e o que a conta passa a ter.
+  String estadoAposPedir = 'pendente';
 
   final registos = <Map<String, dynamic>>[];
+  final pedidosDeAcesso = <Map<String, String>>[];
   final convitesCriados = <Map<String, String>>[];
   final codigosValidados = <String>[];
   int sessoesTerminadas = 0;
@@ -52,6 +58,7 @@ class FakeAcessoService implements AcessoService {
     required String empresa,
     required String perfil,
     String? codigoConvite,
+    String? machineId,
   }) async {
     if (erroAoRegistar != null) throw erroAoRegistar!;
     registos.add({
@@ -60,7 +67,33 @@ class FakeAcessoService implements AcessoService {
       'empresa': empresa,
       'perfil': perfil,
       'convite': codigoConvite,
+      'machine_id': machineId,
     });
+  }
+
+  @override
+  Future<String> pedirAcesso({
+    required String nome,
+    required String empresa,
+    required String perfil,
+    String? machineId,
+  }) async {
+    if (erroAoPedirAcesso != null) throw erroAoPedirAcesso!;
+    pedidosDeAcesso.add({
+      'nome': nome,
+      'empresa': empresa,
+      'perfil': perfil,
+      'machine_id': machineId ?? '',
+    });
+    // O servidor passa a ter pedido: a leitura seguinte tem de o reflectir,
+    // senão o teste não distingue "pediu" de "continua sem pedido".
+    acesso = EstadoAcesso(
+      membroAtivo: acesso.membroAtivo,
+      perfil: acesso.perfil,
+      estado: estadoAposPedir,
+      empresaId: acesso.empresaId,
+    );
+    return estadoAposPedir;
   }
 
   @override

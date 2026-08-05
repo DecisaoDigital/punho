@@ -134,7 +134,11 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
             children: [
               TextField(
                 controller: amount,
-                keyboardType: TextInputType.number,
+                // Com vírgula: `number` seco abre o teclado de inteiros do
+                // Android e não há como escrever os cêntimos de um valor.
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: const InputDecoration(labelText: 'Valor (€)'),
               ),
               if (erro != null) _AvisoDeValor(texto: erro!),
@@ -171,6 +175,7 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
                 style: TextStyle(fontSize: 12),
               ),
               DropdownButtonFormField(
+                isExpanded: true,
                 initialValue: category,
                 items: ExpenseCategory.values
                     .map((x) => DropdownMenuItem(value: x, child: Text(x.name)))
@@ -178,6 +183,7 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
                 onChanged: (v) => setState(() => category = v!),
               ),
               DropdownButtonFormField<String?>(
+                isExpanded: true,
                 initialValue: machineId,
                 decoration: const InputDecoration(
                   labelText: 'Máquina associada (opcional)',
@@ -199,6 +205,7 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
                 onChanged: (value) => setState(() => machineId = value),
               ),
               DropdownButtonFormField<String?>(
+                isExpanded: true,
                 initialValue: vehicleId,
                 decoration: const InputDecoration(
                   labelText: 'Veículo associado (opcional)',
@@ -227,6 +234,7 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
               ),
               if (widget.recordedByCollaboratorId == null)
                 DropdownButtonFormField(
+                  isExpanded: true,
                   initialValue: status,
                   items: ExpensePaymentStatus.values
                       .map(
@@ -411,11 +419,16 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
             children: [
               TextField(
                 controller: amount,
-                keyboardType: TextInputType.number,
+                // Com vírgula: `number` seco abre o teclado de inteiros do
+                // Android e não há como escrever os cêntimos de um valor.
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: const InputDecoration(labelText: 'Valor (€)'),
               ),
               if (erro != null) _AvisoDeValor(texto: erro!),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: selectedCustomerId,
                 decoration: const InputDecoration(labelText: 'Cliente'),
                 items: customers
@@ -434,6 +447,7 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
                       }),
               ),
               DropdownButtonFormField<String?>(
+                isExpanded: true,
                 initialValue: bookingId,
                 decoration: const InputDecoration(
                   labelText: 'Associar a reserva (opcional)',
@@ -460,6 +474,7 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
                 onChanged: (value) => setState(() => bookingId = value),
               ),
               DropdownButtonFormField(
+                isExpanded: true,
                 initialValue: method,
                 items: PaymentMethod.values
                     .map((x) => DropdownMenuItem(value: x, child: Text(x.name)))

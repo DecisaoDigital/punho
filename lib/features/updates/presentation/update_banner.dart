@@ -78,9 +78,9 @@ class PunhoUpdateBanner extends ConsumerWidget {
                 tooltip: 'Agora não',
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                onPressed: () => ref
-                    .read(updateDispensadoProvider.notifier)
-                    .state = update.buildNumber,
+                onPressed: () =>
+                    ref.read(updateDispensadoProvider.notifier).state =
+                        update.buildNumber,
               ),
             ],
           ],

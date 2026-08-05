@@ -366,7 +366,11 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
         CampoDeTexto(
           controlador: cost,
           rotulo: 'Custo estimado para a empresa (€)',
-          teclado: TextInputType.number,
+          // `number` seco abre o teclado de inteiros do Android — sem vírgula
+          // nenhuma. O campo lê cêntimos e o teclado não deixava escrevê-los,
+          // e quem estava a preencher não tinha como perceber que o problema
+          // era o teclado e não o que tinha escrito.
+          teclado: const TextInputType.numberWithOptions(decimal: true),
           // Recalcula a estimativa a cada tecla: o gestor vê o custo real
           // subir enquanto escreve o vencimento, que é o ponto todo.
           aoMudar: (_) => setState(() {}),
@@ -701,7 +705,8 @@ class VehiclesPage extends ConsumerWidget {
                             IconButton(
                               icon: const Icon(Icons.edit_outlined),
                               tooltip: 'Editar veículo',
-                              onPressed: () => _formularioDeVeiculo(context, ref, v),
+                              onPressed: () =>
+                                  _formularioDeVeiculo(context, ref, v),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete_outline),

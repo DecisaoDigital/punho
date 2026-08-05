@@ -83,14 +83,22 @@ class PunhoLicencaService {
     }
     try {
       final plugin = DeviceInfoPlugin();
+      // A chave é `hostname`, não `host`.
+      //
+      // O Control lê `info_host['hostname']` — é o que o WashInvoice grava, e é
+      // por esse nome que uma instalação aparece na lista enquanto a ficha da
+      // empresa não chega. O Punho gravava `host`, e as duas nunca se
+      // encontravam: o nome da máquina nunca apareceu do lado do Punho, que
+      // caía sempre para o NIF. Visto a 5 de Agosto de 2026 ao comparar as duas
+      // apps lado a lado.
       if (Platform.isAndroid) {
         final android = await plugin.androidInfo;
-        info['host'] = android.model;
+        info['hostname'] = android.model;
         info['fabricante'] = android.manufacturer;
         info['versao_so'] = android.version.release;
       } else if (Platform.isWindows) {
         final windows = await plugin.windowsInfo;
-        info['host'] = windows.computerName;
+        info['hostname'] = windows.computerName;
         info['versao_so'] = windows.productName;
       }
     } catch (_) {

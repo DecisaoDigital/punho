@@ -29,29 +29,26 @@ void main() {
     expect(ativos.length, 4);
   });
 
-  test(
-    'já há mais ativos do que vagas autorizadas: não rebenta, não apaga '
-    'ninguém, e o novo fica gravado',
-    () {
-      final c = ProviderContainer();
-      addTearDown(c.dispose);
-      final n = c.read(operationsProvider.notifier);
-      // Três colaboradores criados quando o limite local (3) ainda permitia
-      // — é o caso real: Lavandaria Mare Alta, limite 1 no servidor, três já
-      // ativos.
-      for (var i = 0; i < 3; i++) {
-        n.saveCollaborator(colaborador('$i'));
-      }
+  test('já há mais ativos do que vagas autorizadas: não rebenta, não apaga '
+      'ninguém, e o novo fica gravado', () {
+    final c = ProviderContainer();
+    addTearDown(c.dispose);
+    final n = c.read(operationsProvider.notifier);
+    // Três colaboradores criados quando o limite local (3) ainda permitia
+    // — é o caso real: Lavandaria Mare Alta, limite 1 no servidor, três já
+    // ativos.
+    for (var i = 0; i < 3; i++) {
+      n.saveCollaborator(colaborador('$i'));
+    }
 
-      n.saveCollaborator(colaborador('novo'));
+    n.saveCollaborator(colaborador('novo'));
 
-      final ativos = c
-          .read(operationsProvider)
-          .collaborators
-          .where((x) => !x.archived && x.status == CollaboratorStatus.active);
-      // Ninguém foi apagado, e o quarto entrou: ficar acima do autorizado só
-      // impede o acesso, aprovado à parte no Control — nunca a gravação.
-      expect(ativos.length, 4);
-    },
-  );
+    final ativos = c
+        .read(operationsProvider)
+        .collaborators
+        .where((x) => !x.archived && x.status == CollaboratorStatus.active);
+    // Ninguém foi apagado, e o quarto entrou: ficar acima do autorizado só
+    // impede o acesso, aprovado à parte no Control — nunca a gravação.
+    expect(ativos.length, 4);
+  });
 }

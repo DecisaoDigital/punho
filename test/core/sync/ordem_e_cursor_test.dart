@@ -144,23 +144,26 @@ void main() {
       expect(repo.bookings.single.status, BookingStatus.completed);
     });
 
-    test('uma entidade que esta versão não conhece é ignorada em silêncio', () async {
-      SharedPreferences.setMockInitialValues({});
-      final repo = await PersistentOperationRepository.create();
+    test(
+      'uma entidade que esta versão não conhece é ignorada em silêncio',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final repo = await PersistentOperationRepository.create();
 
-      final resultado = aplicarLinhas(repo, [
-        {
-          'seq': 300,
-          'entidade': 'orcamento',
-          'entidade_id': 'o1',
-          'payload': {'id': 'o1'},
-        },
-      ]);
+        final resultado = aplicarLinhas(repo, [
+          {
+            'seq': 300,
+            'entidade': 'orcamento',
+            'entidade_id': 'o1',
+            'payload': {'id': 'o1'},
+          },
+        ]);
 
-      // Uma app antiga não pode rebentar por o servidor ter aprendido algo novo
-      // — nem contar isso como recusa.
-      expect(resultado.recusadas, 0);
-    });
+        // Uma app antiga não pode rebentar por o servidor ter aprendido algo novo
+        // — nem contar isso como recusa.
+        expect(resultado.recusadas, 0);
+      },
+    );
   });
 
   group('as linhas do próprio aparelho', () {

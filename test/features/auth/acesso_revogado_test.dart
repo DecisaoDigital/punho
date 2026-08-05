@@ -66,7 +66,9 @@ void main() {
 
     test('decidirAcesso: revogado → indisponível', () {
       expect(
-        decidirAcesso(const EstadoAcesso(membroAtivo: false, estado: 'revogado')),
+        decidirAcesso(
+          const EstadoAcesso(membroAtivo: false, estado: 'revogado'),
+        ),
         DecisaoAcesso.indisponivel,
       );
     });

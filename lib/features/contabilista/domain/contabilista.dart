@@ -14,8 +14,9 @@ enum PeriodicidadeRubrica {
   /// Uma resposta e pronto — o regime de contabilidade, o CAE.
   unica;
 
-  static PeriodicidadeRubrica dePostgres(String? valor) =>
-      valor == 'unica' ? PeriodicidadeRubrica.unica : PeriodicidadeRubrica.mensal;
+  static PeriodicidadeRubrica dePostgres(String? valor) => valor == 'unica'
+      ? PeriodicidadeRubrica.unica
+      : PeriodicidadeRubrica.mensal;
 }
 
 /// De onde veio o número. Não é decoração: quando o contabilista e o gestor
@@ -80,7 +81,9 @@ class RubricaContabilista {
         tipo: (json['tipo'] as String?) ?? 'euros',
         ajuda: json['ajuda'] as String?,
         opcoes:
-            (json['opcoes'] as List<dynamic>?)?.map((o) => o as String).toList() ??
+            (json['opcoes'] as List<dynamic>?)
+                ?.map((o) => o as String)
+                .toList() ??
             const [],
         essencial: json['essencial'] == true,
         aceitaAnual: json['aceita_anual'] == true,
@@ -308,4 +311,39 @@ class ConviteCriado {
     mesFinal: DateTime.parse(json['mes_final'] as String),
     expiraEm: DateTime.parse(json['expira_em'] as String),
   );
+}
+
+/// O que o contabilista escreveu na caixa do fim do portal.
+///
+/// É o único sítio onde ele diz o que não cabe num campo — "o valor de Março
+/// inclui uma nota de crédito", "estes anos são do antigo contabilista, não
+/// respondo por eles". Sem isto ficaria uma caixa que grava e ninguém lê, que
+/// é pior do que não haver caixa: quem escreve fica a pensar que avisou.
+class MensagemContabilista {
+  const MensagemContabilista({
+    required this.id,
+    required this.texto,
+    required this.criadoEm,
+    this.lidoEm,
+  });
+
+  final String id;
+  final String texto;
+  final DateTime criadoEm;
+
+  /// Quando o gestor a viu. Nulo é por ler — e por ler tem direito a chamar a
+  /// atenção; lida deixa de a chamar, mas não desaparece.
+  final DateTime? lidoEm;
+
+  bool get porLer => lidoEm == null;
+
+  factory MensagemContabilista.fromJson(Map<String, dynamic> json) =>
+      MensagemContabilista(
+        id: json['id'] as String,
+        texto: json['texto'] as String,
+        criadoEm: DateTime.parse(json['criado_em'] as String),
+        lidoEm: json['lido_em'] == null
+            ? null
+            : DateTime.parse(json['lido_em'] as String),
+      );
 }

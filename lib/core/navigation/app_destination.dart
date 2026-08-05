@@ -26,6 +26,15 @@ enum AppDestination {
   empresa('Empresa', Icons.domain_outlined),
   tasks('Tarefas', Icons.checklist_outlined),
 
+  /// Todos os indicadores num sítio só, em lista.
+  ///
+  /// O Painel é um carrossel de quatro KPIs por slide, escolhidos para caberem
+  /// numa leitura de cinco segundos. Isso é uma virtude e é também um tecto: um
+  /// KPI que não caiba nos doze lugares não existe em lado nenhum. Esta é a
+  /// página onde cabem — a lista completa, com espaço para cada um dizer de onde
+  /// vem e o que lhe falta para ser apurável.
+  kpis('KPIs (todos)', Icons.insights_outlined),
+
   // ---------------------------------------------------------------------
   // Destinos que deixaram de estar na barra, mas continuam a existir.
   //

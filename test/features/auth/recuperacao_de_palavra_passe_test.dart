@@ -38,7 +38,11 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> escrever(WidgetTester tester, String nova, String repetida) async {
+  Future<void> escrever(
+    WidgetTester tester,
+    String nova,
+    String repetida,
+  ) async {
     await tester.enterText(find.byType(TextField).first, nova);
     await tester.enterText(find.byType(TextField).last, repetida);
     await tester.tap(find.text('Guardar'));
@@ -110,7 +114,10 @@ void main() {
   testWidgets('o erro do servidor aparece, e não se finge que correu bem', (
     tester,
   ) async {
-    await abrir(tester, aoGuardar: (_) async => 'Palavra-passe demasiado fraca.');
+    await abrir(
+      tester,
+      aoGuardar: (_) async => 'Palavra-passe demasiado fraca.',
+    );
 
     await escrever(tester, 'uma-boa-palavra-passe', 'uma-boa-palavra-passe');
 

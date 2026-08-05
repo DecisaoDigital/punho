@@ -200,6 +200,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
       if (d == null) return null;
       return (d * 100).round();
     }
+
     return FichaDaEmpresa(
       nif: _taxId.text.trim(),
       nomeComercial: _companyName.text.trim(),
@@ -318,20 +319,23 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
         icone: Icons.query_stats_outlined,
         titulo: 'Referências financeiras',
         children: [
+          // Dinheiro leva teclado com vírgula. `number` seco é o de contagens
+          // — no Android não traz separador decimal, e uma facturação sem
+          // cêntimos escreve-se por não haver tecla para eles.
           _campo(
             _revenueLastYear,
             'Facturação do ano passado (€)',
-            teclado: TextInputType.number,
+            teclado: const TextInputType.numberWithOptions(decimal: true),
           ),
           _campo(
             _revenueThisYear,
             'Facturação deste ano até hoje (€)',
-            teclado: TextInputType.number,
+            teclado: const TextInputType.numberWithOptions(decimal: true),
           ),
           _campo(
             _maintenanceLastYear,
             'Manutenção paga no ano passado (€)',
-            teclado: TextInputType.number,
+            teclado: const TextInputType.numberWithOptions(decimal: true),
           ),
         ],
       ),
@@ -374,7 +378,11 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
       keyboardType: teclado,
       inputFormatters:
           inputFormatters ??
-          (teclado == TextInputType.number
+          // Vale para os dois tecladados numéricos — o de contagens
+          // (`TextInputType.number`) e o de dinheiro, que traz `decimal:
+          // true` e é uma instância diferente. Comparar por igualdade deixava
+          // os campos de euros sem filtro nenhum.
+          (teclado?.index == TextInputType.number.index
               ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))]
               : null),
       onChanged: onChanged,

@@ -42,8 +42,7 @@ LoteDeOperacoes prepararLote(
   required int cursor,
 }) {
   int seqDe(Map<String, dynamic> linha) => (linha['seq'] as num).toInt();
-  final linhas = cruas.toList()
-    ..sort((a, b) => seqDe(a).compareTo(seqDe(b)));
+  final linhas = cruas.toList()..sort((a, b) => seqDe(a).compareTo(seqDe(b)));
   return LoteDeOperacoes(
     linhas: linhas,
     // `fold` e não `linhas.last`: o cursor é o ponto até onde se leu, e nunca
@@ -263,7 +262,9 @@ class SincronizacaoEntreDispositivos {
                 .order('seq', ascending: true)
                 .limit(_lote)
             as List;
-    return [for (final linha in linhas) Map<String, dynamic>.from(linha as Map)];
+    return [
+      for (final linha in linhas) Map<String, dynamic>.from(linha as Map),
+    ];
   }
 
   /// Traz o que os outros fizeram **desde a última vez** — e só isso.
@@ -371,7 +372,9 @@ class SincronizacaoEntreDispositivos {
       // como nada saía da fila, a app reenviava tudo outra vez a cada ciclo —
       // para sempre, sem ninguém ver o erro. Aqui separa-se o trigo do joio:
       // vai-se uma a uma, as boas passam, e a má fica de lado identificada.
-      debugPrint('[Sync] lote recusado (${erro.code}) — a isolar a operação má');
+      debugPrint(
+        '[Sync] lote recusado (${erro.code}) — a isolar a operação má',
+      );
       return _enviarUmaAUma(pendentes, linhas);
     }
   }

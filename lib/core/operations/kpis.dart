@@ -268,8 +268,9 @@ class PrevisaoDoMes {
   /// saídas seria só a média das variáveis, o que sub-representa o mês.
   final int? saidasPrevistasCents;
 
-  int? get saldoPrevistoCents =>
-      saidasPrevistasCents == null ? null : entradasPrevistasCents - saidasPrevistasCents!;
+  int? get saldoPrevistoCents => saidasPrevistasCents == null
+      ? null
+      : entradasPrevistasCents - saidasPrevistasCents!;
 }
 
 /// Despesas pagas de um mês que não correspondem a nenhuma rubrica de custo
@@ -309,11 +310,13 @@ int _porReceberDeReservasDoMes(OperationsState state, DateTime mes) {
       )
       .fold(
         0,
-        (sum, b) => sum + bookingPendingCents(
-          b.expectedValueCents ?? 0,
-          b.id,
-          state.receipts,
-        ),
+        (sum, b) =>
+            sum +
+            bookingPendingCents(
+              b.expectedValueCents ?? 0,
+              b.id,
+              state.receipts,
+            ),
       );
 }
 
@@ -323,7 +326,8 @@ PrevisaoDoMes previsaoDoMes(OperationsState state, DateTime now) {
   final anterior = DateTime(now.year, now.month - 1);
   final homologo = DateTime(now.year - 1, now.month);
 
-  final entradas = receiptTotal(state.receipts, inicio, fim) +
+  final entradas =
+      receiptTotal(state.receipts, inicio, fim) +
       _porReceberDeReservasDoMes(state, now);
 
   final custosFixos = state.custoFixoMensalCents;
@@ -1033,9 +1037,8 @@ class CustosMes {
   /// Compara [custoAteAgoraCents] e não [totalCents]: os dois lados têm de
   /// cobrir o mesmo pedaço de calendário, senão a percentagem mede o dia do
   /// mês em vez de medir o negócio.
-  double? get percentDaReceita => receitaMesCents == 0
-      ? null
-      : custoAteAgoraCents / receitaMesCents * 100;
+  double? get percentDaReceita =>
+      receitaMesCents == 0 ? null : custoAteAgoraCents / receitaMesCents * 100;
 }
 
 const _categoriasManutencao = {
@@ -1391,7 +1394,8 @@ List<Recommendation> _recomendacoesEspecificas(
               'disponíveis, preço — evita repetir o mês.',
           quality: 'Comparação com recebimentos ou histórico declarado',
           action: 'Ver homóloga →',
-          measure: 'Compara a faturação deste mês com o mesmo mês, no fim do mês.',
+          measure:
+              'Compara a faturação deste mês com o mesmo mês, no fim do mês.',
           lever: GuidanceLever.demand,
           gravidade: GravidadeRecomendacao.atencao,
         ),
@@ -1462,7 +1466,8 @@ Recommendation? recomendacaoDaSemana(
   for (final r in todas) {
     final ate = adiadasAte[r.id];
     if (ate != null && now.isBefore(ate)) continue;
-    if (melhor == null || r.gravidade.prioridade > melhor.gravidade.prioridade) {
+    if (melhor == null ||
+        r.gravidade.prioridade > melhor.gravidade.prioridade) {
       melhor = r;
     }
   }

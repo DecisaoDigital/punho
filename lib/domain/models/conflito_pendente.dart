@@ -101,25 +101,19 @@ class ConflitoPendente {
         machineIdsPartilhados: List<String>.from(
           json['machine_ids_partilhados'] as List? ?? const [],
         ),
-        envolvidos: List<String>.from(
-          json['envolvidos'] as List? ?? const [],
-        ),
+        envolvidos: List<String>.from(json['envolvidos'] as List? ?? const []),
         // `toLocal` de propósito, mesmo motivo do `OperacaoPendente`: guarda-se
         // em UTC (o que o servidor entende) mas lê-se cá dentro na hora do
         // telemóvel.
         criadoEm:
-            DateTime.tryParse(
-              json['criado_em'] as String? ?? '',
-            )?.toLocal() ??
+            DateTime.tryParse(json['criado_em'] as String? ?? '')?.toLocal() ??
             DateTime.now(),
         estado: EstadoConflito.values.byName(
           json['estado'] as String? ?? 'pendente',
         ),
         resolvidoEm: json['resolvido_em'] == null
             ? null
-            : DateTime.tryParse(
-                json['resolvido_em'] as String,
-              )?.toLocal(),
+            : DateTime.tryParse(json['resolvido_em'] as String)?.toLocal(),
         resolvidoPor: json['resolvido_por'] as String?,
         ficaComEntidadeId: json['fica_com_entidade_id'] as String?,
       );

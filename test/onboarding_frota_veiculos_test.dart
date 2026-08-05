@@ -75,9 +75,10 @@ void main() {
       final estado = c.read(operationsProvider);
 
       expect(estado.vehiclesStillToIdentify, 3);
-      final tarefa = tarefasPendentes(estado, DateTime(2026, 8, 2)).firstWhere(
-        (t) => t.id == 'frota-sem-veiculos',
-      );
+      final tarefa = tarefasPendentes(
+        estado,
+        DateTime(2026, 8, 2),
+      ).firstWhere((t) => t.id == 'frota-sem-veiculos');
       expect(tarefa.titulo, 'Identificar 3 veículos');
       expect(tarefa.cta, 'Abrir Frota');
     });

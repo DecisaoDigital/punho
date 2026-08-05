@@ -124,3 +124,6 @@ installer_output/
 # APKs compilados localmente (ex.: dist/punho-android-*.apk). O artefacto
 # publicado vive no GitHub Release, nunca no histórico do git.
 dist/
+
+# Dependências do teste de tabulação do portal (npm i jsdom)
+node_modules/

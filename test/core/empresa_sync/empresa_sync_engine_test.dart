@@ -34,23 +34,26 @@ void main() {
     expect(chamou, isFalse);
   });
 
-  test('quando o servidor confirma (ok == true), a pendência é limpa', () async {
-    final motor = EmpresaSyncEngine(
-      sync: EmpresaSyncService.mock((_) async => {'ok': true}),
-      pendente: pendente,
-    );
+  test(
+    'quando o servidor confirma (ok == true), a pendência é limpa',
+    () async {
+      final motor = EmpresaSyncEngine(
+        sync: EmpresaSyncService.mock((_) async => {'ok': true}),
+        pendente: pendente,
+      );
 
-    await motor.atualizarFicha({
-      'nif': '509442129',
-      'nome_comercial': 'Mare Alta',
-    });
+      await motor.atualizarFicha({
+        'nif': '509442129',
+        'nome_comercial': 'Mare Alta',
+      });
 
-    expect(
-      pendente.ficha,
-      isNull,
-      reason: 'o servidor confirmou, não há o que reter',
-    );
-  });
+      expect(
+        pendente.ficha,
+        isNull,
+        reason: 'o servidor confirmou, não há o que reter',
+      );
+    },
+  );
 
   test('quando o servidor não confirma, a pendência mantém-se', () async {
     final motor = EmpresaSyncEngine(
@@ -74,16 +77,19 @@ void main() {
     expect(pendente.ficha, isNotNull);
   });
 
-  test('uma excepção na chamada (sem rede) mantém a pendência, sem lançar', () async {
-    final motor = EmpresaSyncEngine(
-      sync: EmpresaSyncService.mock((_) async => throw Exception('sem rede')),
-      pendente: pendente,
-    );
+  test(
+    'uma excepção na chamada (sem rede) mantém a pendência, sem lançar',
+    () async {
+      final motor = EmpresaSyncEngine(
+        sync: EmpresaSyncService.mock((_) async => throw Exception('sem rede')),
+        pendente: pendente,
+      );
 
-    await motor.atualizarFicha({'nif': '509442129'});
+      await motor.atualizarFicha({'nif': '509442129'});
 
-    expect(pendente.ficha, {'nif': '509442129'});
-  });
+      expect(pendente.ficha, {'nif': '509442129'});
+    },
+  );
 
   test(
     'uma ficha mais recente substitui a anterior, mesmo com a antiga por enviar',
@@ -100,28 +106,31 @@ void main() {
     },
   );
 
-  test('retentar mais tarde entrega a ficha que tinha ficado pendente', () async {
-    var tentativas = 0;
-    final motor = EmpresaSyncEngine(
-      sync: EmpresaSyncService.mock((_) async {
-        tentativas++;
-        // Só confirma na segunda tentativa — simula a rede a voltar depois
-        // dos primeiros 20 minutos.
-        return {'ok': tentativas > 1};
-      }),
-      pendente: pendente,
-    );
+  test(
+    'retentar mais tarde entrega a ficha que tinha ficado pendente',
+    () async {
+      var tentativas = 0;
+      final motor = EmpresaSyncEngine(
+        sync: EmpresaSyncService.mock((_) async {
+          tentativas++;
+          // Só confirma na segunda tentativa — simula a rede a voltar depois
+          // dos primeiros 20 minutos.
+          return {'ok': tentativas > 1};
+        }),
+        pendente: pendente,
+      );
 
-    await motor.atualizarFicha({'nif': '509442129'});
-    expect(pendente.ficha, isNotNull, reason: 'a primeira tentativa falhou');
+      await motor.atualizarFicha({'nif': '509442129'});
+      expect(pendente.ficha, isNotNull, reason: 'a primeira tentativa falhou');
 
-    // O que o temporizador do EmpresaSyncController faria de 20 em 20
-    // minutos — aqui chamado directamente, sem esperar o tempo a sério.
-    await motor.tentarEnviar();
+      // O que o temporizador do EmpresaSyncController faria de 20 em 20
+      // minutos — aqui chamado directamente, sem esperar o tempo a sério.
+      await motor.tentarEnviar();
 
-    expect(pendente.ficha, isNull, reason: 'a segunda tentativa confirmou');
-    expect(tentativas, 2);
-  });
+      expect(pendente.ficha, isNull, reason: 'a segunda tentativa confirmou');
+      expect(tentativas, 2);
+    },
+  );
 
   test('a pendência sobrevive a uma instância nova do motor', () async {
     final motorAntigo = EmpresaSyncEngine(
@@ -138,8 +147,7 @@ void main() {
     var chegou = false;
     final motorNovo = EmpresaSyncEngine(
       sync: EmpresaSyncService.mock((args) async {
-        chegou =
-            (args['dados'] as Map)['nif'] == '509442129';
+        chegou = (args['dados'] as Map)['nif'] == '509442129';
         return {'ok': true};
       }),
       pendente: pendenteNova,

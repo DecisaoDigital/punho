@@ -159,20 +159,21 @@ void main() {
       return container;
     }
 
-    testWidgets('tocar na linha abre "Editar veículo" com os campos preenchidos', (
-      tester,
-    ) async {
-      await comUmVeiculo(tester);
+    testWidgets(
+      'tocar na linha abre "Editar veículo" com os campos preenchidos',
+      (tester) async {
+        await comUmVeiculo(tester);
 
-      await tester.tap(find.text('AA-11-BB'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('AA-11-BB'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Editar veículo'), findsOneWidget);
-      final campoMatricula = tester.widget<TextField>(
-        find.byType(TextField).first,
-      );
-      expect(campoMatricula.controller?.text, 'AA-11-BB');
-    });
+        expect(find.text('Editar veículo'), findsOneWidget);
+        final campoMatricula = tester.widget<TextField>(
+          find.byType(TextField).first,
+        );
+        expect(campoMatricula.controller?.text, 'AA-11-BB');
+      },
+    );
 
     testWidgets('editar grava sem duplicar a linha', (tester) async {
       final container = await comUmVeiculo(tester);
@@ -188,9 +189,7 @@ void main() {
       expect(veiculos.single.plate, 'ZZ-99-XX');
     });
 
-    testWidgets('eliminar arquiva com 6 segundos para anular', (
-      tester,
-    ) async {
+    testWidgets('eliminar arquiva com 6 segundos para anular', (tester) async {
       final container = await comUmVeiculo(tester);
 
       await tester.tap(find.byTooltip('Eliminar veículo'));

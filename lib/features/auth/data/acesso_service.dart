@@ -84,6 +84,13 @@ abstract class AcessoService {
 
   Future<EstadoAcesso> meuAcesso();
   Future<ValidacaoConvite> validarConvite(String codigo);
+
+  /// [machineId] é o terminal de onde parte o pedido.
+  ///
+  /// Com `app`, forma o mesmo par que identifica um terminal em `licencas` — a
+  /// chave que o WashInvoice já usava. É o que permite ao Control dizer de que
+  /// aparelho veio um pedido e cruzá-lo com a instalação correspondente. Vai
+  /// nulo quando ainda não se conseguiu resolver: nunca se inventa um.
   Future<void> registar({
     required String email,
     required String palavraPasse,
@@ -91,7 +98,21 @@ abstract class AcessoService {
     required String empresa,
     required String perfil,
     String? codigoConvite,
+    String? machineId,
   });
+
+  /// Pede acesso com a sessão já aberta, para quem não tem pedido nenhum.
+  ///
+  /// Devolve o estado em que a conta ficou: `pendente` quando o pedido foi
+  /// criado, `membro` se afinal já havia adesão, ou o estado do pedido que já
+  /// existia. Nunca cria um segundo.
+  Future<String> pedirAcesso({
+    required String nome,
+    required String empresa,
+    required String perfil,
+    String? machineId,
+  });
+
   Future<Convite> criarConvite({required String email, required String perfil});
   Future<List<Convite>> listarConvites();
   Future<void> terminarSessao();
@@ -108,9 +129,35 @@ class SupabaseAcessoService implements AcessoService {
   Future<EstadoAcesso> meuAcesso() async {
     final linhas = await _client.rpc('punho_meu_acesso') as List<dynamic>;
     if (linhas.isEmpty) {
-      return const EstadoAcesso(membroAtivo: false, estado: 'pendente');
+      // Não devia acontecer — a função é um `select` sem `from` e devolve
+      // sempre uma linha. Se acontecer, é ausência de informação e não um
+      // pedido à espera: sem `estado`, o porteiro manda pedir acesso.
+      return const EstadoAcesso(membroAtivo: false);
     }
     return EstadoAcesso.fromJson(linhas.first as Map<String, dynamic>);
+  }
+
+  @override
+  Future<String> pedirAcesso({
+    required String nome,
+    required String empresa,
+    required String perfil,
+    String? machineId,
+  }) async {
+    // Quem é o requerente não vai daqui: o servidor tira-o de `auth.uid()` e o
+    // email de `auth.users`. Deste lado só viaja o que a pessoa escreveu — e o
+    // terminal, que é uma propriedade do aparelho e não uma afirmação sobre
+    // quem ele é.
+    final estado = await _client.rpc(
+      'punho_pedir_acesso',
+      params: {
+        'p_nome': nome,
+        'p_empresa': empresa,
+        'p_perfil': perfil,
+        'p_machine_id': machineId,
+      },
+    );
+    return (estado as String?) ?? 'pendente';
   }
 
   @override
@@ -135,9 +182,11 @@ class SupabaseAcessoService implements AcessoService {
     required String empresa,
     required String perfil,
     String? codigoConvite,
+    String? machineId,
   }) async {
     // `app: 'punho'` é o que o trigger de auth.users usa para distinguir este
-    // registo dos do POS, que partilham o mesmo projecto Supabase.
+    // registo dos do POS, que partilham o mesmo projecto Supabase. Com o
+    // `machine_id` ao lado, é também o par que identifica o terminal.
     final resposta = await _client.auth.signUp(
       email: email,
       password: palavraPasse,
@@ -146,6 +195,7 @@ class SupabaseAcessoService implements AcessoService {
         'nome': nome,
         'empresa': empresa,
         'perfil': perfil,
+        if (machineId != null && machineId.isNotEmpty) 'machine_id': machineId,
         if (codigoConvite != null && codigoConvite.isNotEmpty)
           'convite': codigoConvite,
       },

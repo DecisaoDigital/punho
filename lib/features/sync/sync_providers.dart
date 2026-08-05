@@ -234,10 +234,7 @@ class SyncController extends Notifier<InfoSync> {
   void _ligarCampainha(String empresaId) {
     try {
       _canal = Supabase.instance.client.channel('punho:empresa:$empresaId')
-        ..onBroadcast(
-          event: 'nova_operacao',
-          callback: (_) => _agendar(),
-        )
+        ..onBroadcast(event: 'nova_operacao', callback: (_) => _agendar())
         ..subscribe((estado, erro) {
           if (estado == RealtimeSubscribeStatus.subscribed) {
             // Sincronizar SEMPRE ao (re)ligar, sem esperar por campainha: é

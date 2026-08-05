@@ -65,7 +65,10 @@ void main() {
       // Contrato é o valor por omissão.
       expect(find.widgetWithText(TextField, 'NISS'), findsOneWidget);
       expect(find.text('Estado civil'), findsOneWidget);
-      expect(find.widgetWithText(TextField, 'Nº de dependentes'), findsOneWidget);
+      expect(
+        find.widgetWithText(TextField, 'Nº de dependentes'),
+        findsOneWidget,
+      );
       expect(find.widgetWithText(TextField, 'NIF do prestador'), findsNothing);
     });
 
@@ -75,7 +78,10 @@ void main() {
       await abrirDialogo(tester, comRepoReal());
       await escolherVinculo(tester, 'Recibos verdes');
 
-      expect(find.widgetWithText(TextField, 'NIF do prestador'), findsOneWidget);
+      expect(
+        find.widgetWithText(TextField, 'NIF do prestador'),
+        findsOneWidget,
+      );
       expect(find.widgetWithText(TextField, 'NISS'), findsNothing);
       expect(find.text('Estado civil'), findsNothing);
       expect(find.widgetWithText(TextField, 'Nº de dependentes'), findsNothing);
@@ -135,7 +141,9 @@ void main() {
       );
     });
 
-    testWidgets('em recibos verdes diz a frase, não os números', (tester) async {
+    testWidgets('em recibos verdes diz a frase, não os números', (
+      tester,
+    ) async {
       await abrirDialogo(tester, comRepoReal());
       await tester.enterText(
         find.widgetWithText(TextField, 'Custo estimado para a empresa (€)'),
@@ -161,14 +169,16 @@ void main() {
       final container = comRepoReal();
       // Pelo caminho real: é o onboarding que fixa a forma jurídica, e é de lá
       // que o regime é lido.
-      container.read(operationsProvider.notifier).completeOnboarding(
-        companyName: 'Alugueres SA',
-        legalForm: 'S.A.',
-        hasFleet: false,
-        collaborators: 0,
-        totalMachinesDeclared: 0,
-        insertMachinesNow: false,
-      );
+      container
+          .read(operationsProvider.notifier)
+          .completeOnboarding(
+            companyName: 'Alugueres SA',
+            legalForm: 'S.A.',
+            hasFleet: false,
+            collaborators: 0,
+            totalMachinesDeclared: 0,
+            insertMachinesNow: false,
+          );
       await abrirDialogo(tester, container);
 
       expect(
@@ -263,7 +273,9 @@ void main() {
 
       // Contrato: custo real com a TSU somada.
       expect(
-        find.textContaining('Contrato de trabalho · Solteiro · custo real 1237.50 €/mês'),
+        find.textContaining(
+          'Contrato de trabalho · Solteiro · custo real 1237.50 €/mês',
+        ),
         findsOneWidget,
       );
       // Recibos verdes: o que se paga é o custo.
@@ -357,9 +369,10 @@ void main() {
       );
 
       expect(
-        tarefasPendentes(estado, agoraFixa).where(
-          (t) => t.id.startsWith('ficha-'),
-        ),
+        tarefasPendentes(
+          estado,
+          agoraFixa,
+        ).where((t) => t.id.startsWith('ficha-')),
         isEmpty,
       );
     });

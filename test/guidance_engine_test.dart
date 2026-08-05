@@ -42,71 +42,68 @@ void main() {
       isNotEmpty,
     ),
   );
-  test(
-    'à segunda-feira a última quarta-feira é a de ontem-anteontem, não a da '
-    'semana que vem (bug do "% 7" em falta, achado 14)',
-    () {
-      // 2026-08-03 é segunda-feira (weekday=1). Sem o `% 7`, `weekday - 3`
-      // dá -2 e o `subtract` empurra para uma quarta-feira futura.
-      final segunda = DateTime(2026, 8, 3);
-      expect(segunda.weekday, DateTime.monday);
-      final reserva = Booking(
-        id: 'b',
-        customerId: 'c',
-        machineIds: const ['m'],
-        // A quarta-feira anterior a esta segunda é 2026-07-29.
-        startsAt: DateTime(2026, 7, 29, 9),
-        endsAt: DateTime(2026, 7, 29, 11),
-        status: BookingStatus.confirmed,
-      );
-      final semReservaNaQuartaPassada = GuidanceEngine()
-          .evaluate(
-            GuidanceInput(
-              bookings: const [],
-              machines: [
-                const Machine(
-                  id: 'm',
-                  name: 'm',
-                  reference: 'r',
-                  category: 'c',
-                  status: MachineStatus.available,
-                ),
-              ],
-              receipts: const [],
-              expenses: const [],
-              now: segunda,
-            ),
-          )
-          .where((x) => x.id == 'wednesday');
-      final comReservaNaQuartaPassada = GuidanceEngine()
-          .evaluate(
-            GuidanceInput(
-              bookings: [reserva, reserva, reserva],
-              machines: [
-                const Machine(
-                  id: 'm',
-                  name: 'm',
-                  reference: 'r',
-                  category: 'c',
-                  status: MachineStatus.available,
-                ),
-              ],
-              receipts: const [],
-              expenses: const [],
-              now: segunda,
-            ),
-          )
-          .where((x) => x.id == 'wednesday');
-      // Sem dados: as 3 últimas quartas (de facto passadas) contam 0
-      // reservas cada uma, dispara a recomendação.
-      expect(semReservaNaQuartaPassada, isNotEmpty);
-      // Com 3 reservas na quarta-feira imediatamente anterior: se o código
-      // estivesse a olhar (por bug) para uma quarta-feira futura, não veria
-      // estas reservas e continuaria a disparar. Olhando para a quarta
-      // certa, a contagem sobe acima de 2 e a recomendação não dispara.
-      expect(comReservaNaQuartaPassada, isEmpty);
-    },
-  );
+  test('à segunda-feira a última quarta-feira é a de ontem-anteontem, não a da '
+      'semana que vem (bug do "% 7" em falta, achado 14)', () {
+    // 2026-08-03 é segunda-feira (weekday=1). Sem o `% 7`, `weekday - 3`
+    // dá -2 e o `subtract` empurra para uma quarta-feira futura.
+    final segunda = DateTime(2026, 8, 3);
+    expect(segunda.weekday, DateTime.monday);
+    final reserva = Booking(
+      id: 'b',
+      customerId: 'c',
+      machineIds: const ['m'],
+      // A quarta-feira anterior a esta segunda é 2026-07-29.
+      startsAt: DateTime(2026, 7, 29, 9),
+      endsAt: DateTime(2026, 7, 29, 11),
+      status: BookingStatus.confirmed,
+    );
+    final semReservaNaQuartaPassada = GuidanceEngine()
+        .evaluate(
+          GuidanceInput(
+            bookings: const [],
+            machines: [
+              const Machine(
+                id: 'm',
+                name: 'm',
+                reference: 'r',
+                category: 'c',
+                status: MachineStatus.available,
+              ),
+            ],
+            receipts: const [],
+            expenses: const [],
+            now: segunda,
+          ),
+        )
+        .where((x) => x.id == 'wednesday');
+    final comReservaNaQuartaPassada = GuidanceEngine()
+        .evaluate(
+          GuidanceInput(
+            bookings: [reserva, reserva, reserva],
+            machines: [
+              const Machine(
+                id: 'm',
+                name: 'm',
+                reference: 'r',
+                category: 'c',
+                status: MachineStatus.available,
+              ),
+            ],
+            receipts: const [],
+            expenses: const [],
+            now: segunda,
+          ),
+        )
+        .where((x) => x.id == 'wednesday');
+    // Sem dados: as 3 últimas quartas (de facto passadas) contam 0
+    // reservas cada uma, dispara a recomendação.
+    expect(semReservaNaQuartaPassada, isNotEmpty);
+    // Com 3 reservas na quarta-feira imediatamente anterior: se o código
+    // estivesse a olhar (por bug) para uma quarta-feira futura, não veria
+    // estas reservas e continuaria a disparar. Olhando para a quarta
+    // certa, a contagem sobe acima de 2 e a recomendação não dispara.
+    expect(comReservaNaQuartaPassada, isEmpty);
+  });
   test('campanha de sugestão fica rascunho', () {
     final c = campaignFromRecommendation(
       const Recommendation(

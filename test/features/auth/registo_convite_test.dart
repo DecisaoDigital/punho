@@ -17,7 +17,10 @@ void main() {
       expect(fake.codigosValidados, ['ABC1234567']);
       expect(fake.registos, hasLength(1));
       expect(fake.registos.single['convite'], 'ABC1234567');
-      expect(find.textContaining('pendente de aprovação manual'), findsOneWidget);
+      expect(
+        find.textContaining('pendente de aprovação manual'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('código expirado é recusado e não cria conta', (tester) async {

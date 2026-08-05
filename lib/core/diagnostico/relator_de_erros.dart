@@ -125,7 +125,10 @@ class RelatorDeErros {
 
   /// Sobe o que está em fila e limpa. Best-effort: sem rede, fica para a
   /// próxima.
-  Future<int> enviarPendentes(SupabaseClient cliente, {String? empresaId}) async {
+  Future<int> enviarPendentes(
+    SupabaseClient cliente, {
+    String? empresaId,
+  }) async {
     final fila = pendentes;
     if (fila.isEmpty) return 0;
     try {

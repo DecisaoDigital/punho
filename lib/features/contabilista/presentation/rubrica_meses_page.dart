@@ -28,7 +28,9 @@ class RubricaMesesPage extends ConsumerStatefulWidget {
 class _RubricaMesesPageState extends ConsumerState<RubricaMesesPage> {
   @override
   Widget build(BuildContext context) {
-    final respostas = ref.watch(respostasDaRubricaProvider(widget.rubrica.chave));
+    final respostas = ref.watch(
+      respostasDaRubricaProvider(widget.rubrica.chave),
+    );
     return Scaffold(
       appBar: AppBar(title: Text(widget.rubrica.rotulo)),
       body: respostas.when(
@@ -42,10 +44,8 @@ class _RubricaMesesPageState extends ConsumerState<RubricaMesesPage> {
             ),
           ),
         ),
-        data: (guardadas) => _Grelha(
-          rubrica: widget.rubrica,
-          guardadas: guardadas,
-        ),
+        data: (guardadas) =>
+            _Grelha(rubrica: widget.rubrica, guardadas: guardadas),
       ),
     );
   }
@@ -136,7 +136,9 @@ class _GrelhaState extends ConsumerState<_Grelha> {
       // As lacunas mudaram, e com elas as Tarefas. Sem isto o gestor preenchia
       // tudo e continuava a ver "faltam 42 meses" até reiniciar.
       ref.invalidate(lacunasContabilistaProvider);
-      return widget.rubrica.eEuros ? textoDeCents(centavos) : (valorTexto ?? '');
+      return widget.rubrica.eEuros
+          ? textoDeCents(centavos)
+          : (valorTexto ?? '');
     } catch (erro) {
       _avisar(_mensagemDeErro(erro));
       return null;
@@ -252,9 +254,7 @@ class _AnoExpansivel extends StatelessWidget {
   Widget build(BuildContext context) {
     final agora = DateTime.now();
     final ultimoMes = ano == agora.year ? agora.month - 1 : 12;
-    final meses = [
-      for (var m = 1; m <= ultimoMes; m++) DateTime(ano, m, 1),
-    ];
+    final meses = [for (var m = 1; m <= ultimoMes; m++) DateTime(ano, m, 1)];
     final preenchidos = meses.where((m) => valorDoMes(m) != null).length;
 
     return Card(
@@ -384,6 +384,7 @@ class _CampoDeRespostaState extends State<_CampoDeResposta> {
   Widget build(BuildContext context) {
     if (widget.opcoes.isNotEmpty) {
       return DropdownButtonFormField<String>(
+        isExpanded: true,
         initialValue: widget.opcoes.contains(_ultimoGravado)
             ? _ultimoGravado
             : null,

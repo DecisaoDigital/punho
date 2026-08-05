@@ -17,6 +17,7 @@ import '../../collaborator/presentation/collaborator_shell.dart';
 import '../../conta/presentation/perfil_popup.dart';
 import '../../dashboard/presentation/dashboard_page.dart';
 import '../../empresa/presentation/empresa_page.dart';
+import '../../kpis/presentation/kpis_page.dart';
 import '../../licenca/presentation/licenca_banner.dart';
 import '../../operations/presentation/operational_pages.dart';
 import '../../tarefas/data/tarefas_service.dart';
@@ -599,6 +600,7 @@ class _DestinationContent extends StatelessWidget {
     if (destination == AppDestination.clients) return const ClientsPage();
     if (destination == AppDestination.bookings) return const BookingsPage();
     if (destination == AppDestination.tasks) return const TarefasPage();
+    if (destination == AppDestination.kpis) return const KpisPage();
     if (destination == AppDestination.employees) {
       return const CollaboratorsPage();
     }

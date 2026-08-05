@@ -19,15 +19,23 @@ final convitesContabilistaProvider =
 
 /// O catálogo de perguntas. Não é `autoDispose`: muda quando se acrescenta uma
 /// rubrica à base, não durante uma sessão.
-final catalogoContabilistaProvider =
-    FutureProvider<List<RubricaContabilista>>(
-      (ref) => ref.watch(contabilistaServiceProvider).catalogo(),
-    );
+final catalogoContabilistaProvider = FutureProvider<List<RubricaContabilista>>(
+  (ref) => ref.watch(contabilistaServiceProvider).catalogo(),
+);
 
 /// O que ficou por responder. Alimenta as Tarefas e o ecrã do histórico.
 final lacunasContabilistaProvider =
     FutureProvider.autoDispose<List<LacunaContabilista>>(
       (ref) => ref.watch(contabilistaServiceProvider).lacunas(),
+    );
+
+/// O que o contabilista deixou escrito na caixa do fim do portal.
+///
+/// `autoDispose` pela mesma razão dos convites: uma mensagem que ele escreveu
+/// enquanto o ecrã esteve fechado tem de aparecer ao voltar.
+final mensagensContabilistaProvider =
+    FutureProvider.autoDispose<List<MensagemContabilista>>(
+      (ref) => ref.watch(contabilistaServiceProvider).mensagens(),
     );
 
 /// As respostas guardadas de uma rubrica, para o ecrã de edição.

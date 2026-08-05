@@ -556,6 +556,65 @@ document.querySelectorAll('input.euros, input.texto').forEach(c => {
   c.addEventListener('change', () => guardar(c));
 });
 
+// O Tab desce a coluna, não atravessa a linha.
+//
+// A ordem natural do DOM numa tabela é por linhas: Tab saltava de Faturação de
+// Janeiro para Compras de Janeiro. Mas ninguém transcreve assim. Quem tem a
+// folha à frente tem uma coluna de doze meses da mesma rubrica, e lê-a de cima
+// a baixo — atravessar a linha obrigava a procurar o número certo a cada tecla.
+//
+// Ao fim da coluna passa ao topo da coluna seguinte, e ao fim do ano ao ano
+// seguinte, abrindo-o se estiver fechado. Shift+Tab faz o inverso. Enter faz o
+// mesmo que Tab: é a tecla que a mão usa quando vem do Excel.
+function navegarPorColuna(campo, recuar){
+  const tabela = campo.closest('table');
+  if (!tabela) return null;
+  const celula = campo.closest('td');
+  const linha = campo.closest('tr');
+  if (!celula || !linha) return null;
+  const coluna = [...linha.children].indexOf(celula);
+  const linhas = [...tabela.querySelectorAll('tbody tr, tfoot tr')];
+  const daColuna = linhas
+    .map(l => l.children[coluna])
+    .map(c => c && c.querySelector('input'))
+    .filter(Boolean);
+  const posicao = daColuna.indexOf(campo);
+  const seguinte = daColuna[posicao + (recuar ? -1 : 1)];
+  if (seguinte) return seguinte;
+
+  // Fim da coluna: topo da coluna a seguir, no mesmo ano.
+  const colunas = linhas[0] ? linhas[0].children.length : 0;
+  const outra = coluna + (recuar ? -1 : 1);
+  if (outra >= 1 && outra < colunas) {
+    const alvos = linhas
+      .map(l => l.children[outra])
+      .map(c => c && c.querySelector('input'))
+      .filter(Boolean);
+    return recuar ? alvos[alvos.length - 1] : alvos[0];
+  }
+
+  // Fim do ano: o ano seguinte, aberto para o campo existir onde focar.
+  const anos = [...document.querySelectorAll('details.ano')];
+  const meu = campo.closest('details.ano');
+  const proximo = anos[anos.indexOf(meu) + (recuar ? -1 : 1)];
+  if (!proximo) return null;
+  proximo.open = true;
+  const campos = [...proximo.querySelectorAll('table input')];
+  return recuar ? campos[campos.length - 1] : campos[0];
+}
+
+document.addEventListener('keydown', e => {
+  const campo = e.target;
+  if (!campo.matches || !campo.matches('table input')) return;
+  if (e.key !== 'Tab' && e.key !== 'Enter') return;
+  if (e.altKey || e.ctrlKey || e.metaKey) return;
+  const alvo = navegarPorColuna(campo, e.key === 'Tab' && e.shiftKey);
+  if (!alvo) return;
+  e.preventDefault();
+  alvo.focus();
+  alvo.select();
+});
+
 // Encolher o período recarrega a página. Podia mexer-se no DOM e esconder os
 // anos a mais, mas a grelha, o progresso de cada ano e a linha do total anual
 // teriam de ser recalculados à mão em três sítios — e um deles ficaria por

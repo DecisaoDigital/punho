@@ -151,7 +151,10 @@ void main() {
     test('leva o link único da landing à frente do código', () {
       final texto = mensagemConvite(convite);
 
-      expect(texto, contains('https://punho.decisaodigital.pt/convite/A3F2B819D0'));
+      expect(
+        texto,
+        contains('https://punho.decisaodigital.pt/convite/A3F2B819D0'),
+      );
       // O link tem de vir antes do código: é o caminho curto.
       expect(
         texto.indexOf('/convite/A3F2B819D0'),

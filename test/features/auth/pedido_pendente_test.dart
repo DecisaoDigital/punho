@@ -56,7 +56,9 @@ void main() {
   group('decidirAcesso', () {
     test('sem adesão e pendente → espera', () {
       expect(
-        decidirAcesso(const EstadoAcesso(membroAtivo: false, estado: 'pendente')),
+        decidirAcesso(
+          const EstadoAcesso(membroAtivo: false, estado: 'pendente'),
+        ),
         DecisaoAcesso.pendente,
       );
     });

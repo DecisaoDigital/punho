@@ -59,10 +59,7 @@ void main() {
 
     expect(find.text('Indica o nome do colaborador.'), findsOneWidget);
     expect(find.byType(EcraDeFormulario), findsOneWidget);
-    expect(
-      h.read(operationsProvider).collaborators.length,
-      antes,
-    );
+    expect(h.read(operationsProvider).collaborators.length, antes);
   });
 
   testWidgets('com nome guarda e fecha', (tester) async {

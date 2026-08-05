@@ -220,7 +220,10 @@ void main() {
       // "sem rede" de "sem defines" ao ler o logcat. Não se fixa **qual** o
       // tipo — neste ambiente o `PackageInfo` falha primeiro, e o teste não
       // deve depender de qual das falhas chega em primeiro lugar.
-      expect(registo, matches(RegExp(r'falhou: \w+Exception|falhou: \w+Error')));
+      expect(
+        registo,
+        matches(RegExp(r'falhou: \w+Exception|falhou: \w+Error')),
+      );
     });
   });
 }

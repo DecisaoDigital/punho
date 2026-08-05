@@ -42,8 +42,7 @@ class HistoricoContabilistaPage extends ConsumerWidget {
         return _Corpo(
           rubricas: rubricas,
           lacunas: porChave,
-          convites:
-              convites.valueOrNull ?? const <ConviteContabilista>[],
+          convites: convites.valueOrNull ?? const <ConviteContabilista>[],
           aCarregarConvites: convites.isLoading,
           abrirRubrica: abrirRubrica,
         );
@@ -122,6 +121,7 @@ class _CorpoState extends ConsumerState<_Corpo> {
           aCarregar: widget.aCarregarConvites,
           totalConvites: widget.convites.length,
         ),
+        const _RecadosDoContabilista(),
         const SizedBox(height: 24),
         Text('As perguntas', style: textos.labelLarge),
         const SizedBox(height: 6),
@@ -173,11 +173,7 @@ class _CartaoDoContabilistaState extends ConsumerState<_CartaoDoContabilista> {
     try {
       final convite = await ref
           .read(contabilistaServiceProvider)
-          .criarConvite(
-            nome: dados.nome,
-            email: dados.email,
-            anos: dados.anos,
-          );
+          .criarConvite(nome: dados.nome, email: dados.email, anos: dados.anos);
       ref.invalidate(convitesContabilistaProvider);
       if (!mounted) return;
       // O token só existe aqui. Fechado este diálogo, não há como o mostrar
@@ -190,9 +186,9 @@ class _CartaoDoContabilistaState extends ConsumerState<_CartaoDoContabilista> {
       );
     } catch (erro) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_mensagemDeErro(erro))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_mensagemDeErro(erro))));
     } finally {
       if (mounted) setState(() => _ocupado = false);
     }
@@ -229,9 +225,9 @@ class _CartaoDoContabilistaState extends ConsumerState<_CartaoDoContabilista> {
       ref.invalidate(lacunasContabilistaProvider);
     } catch (erro) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_mensagemDeErro(erro))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_mensagemDeErro(erro))));
     } finally {
       if (mounted) setState(() => _ocupado = false);
     }
@@ -312,7 +308,9 @@ class _CartaoDoContabilistaState extends ConsumerState<_CartaoDoContabilista> {
                   onPressed: _ocupado ? null : _convidar,
                   icon: const Icon(Icons.link),
                   label: Text(
-                    convite == null ? 'Convidar contabilista' : 'Emitir novo link',
+                    convite == null
+                        ? 'Convidar contabilista'
+                        : 'Emitir novo link',
                   ),
                 ),
                 if (convite != null)
@@ -328,6 +326,107 @@ class _CartaoDoContabilistaState extends ConsumerState<_CartaoDoContabilista> {
     );
   }
 }
+
+/// O que o contabilista escreveu na caixa do fim do portal.
+///
+/// Existe porque a caixa já existia do outro lado: ele escrevia, gravava, e o
+/// texto ficava numa tabela que nenhum ecrã lia. Uma caixa assim é pior do que
+/// não haver caixa nenhuma — quem escreve fica convencido de que avisou.
+///
+/// Não aparece quando não há recados. Um cartão vazio a dizer "sem mensagens"
+/// é ruído permanente para um acontecimento raro.
+class _RecadosDoContabilista extends ConsumerStatefulWidget {
+  const _RecadosDoContabilista();
+
+  @override
+  ConsumerState<_RecadosDoContabilista> createState() =>
+      _RecadosDoContabilistaState();
+}
+
+class _RecadosDoContabilistaState
+    extends ConsumerState<_RecadosDoContabilista> {
+  /// As que já foram marcadas nesta sessão. Sem isto, marcar por lidas
+  /// invalidava o provider, o `build` corria outra vez e voltava a marcar.
+  final _marcadas = <String>{};
+
+  void _marcarLidas(List<MensagemContabilista> mensagens) {
+    final porMarcar = mensagens
+        .where((m) => m.porLer && !_marcadas.contains(m.id))
+        .map((m) => m.id)
+        .toList();
+    if (porMarcar.isEmpty) return;
+    _marcadas.addAll(porMarcar);
+    // Sem `await` e sem invalidar: a marca é do lado do servidor e o realce
+    // deste ecrã não tem de mudar debaixo dos olhos de quem está a ler.
+    ref.read(contabilistaServiceProvider).marcarMensagensLidas(porMarcar);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textos = Theme.of(context).textTheme;
+    final cores = Theme.of(context).colorScheme;
+    // Uma falha a ler os recados não pode levar o ecrã do histórico à frente:
+    // o essencial deste ecrã são as rubricas, e essas vêm de outro sítio.
+    final mensagens =
+        ref.watch(mensagensContabilistaProvider).valueOrNull ??
+        const <MensagemContabilista>[];
+    if (mensagens.isEmpty) return const SizedBox.shrink();
+
+    final porLer = mensagens.where((m) => m.porLer).length;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _marcarLidas(mensagens);
+    });
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Card(
+        color: porLer > 0 ? cores.secondaryContainer : null,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.sticky_note_2_outlined, color: cores.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      porLer > 0
+                          ? 'O contabilista deixou-lhe recado'
+                          : 'Recados do contabilista',
+                      style: textos.titleMedium,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Escrito por ele na caixa do fim do portal. Fica aqui — não se '
+                'responde por aqui.',
+                style: textos.bodySmall,
+              ),
+              for (final recado in mensagens) ...[
+                const SizedBox(height: 12),
+                Text(_quando(recado.criadoEm), style: textos.labelSmall),
+                const SizedBox(height: 2),
+                // `SelectableText` porque um recado costuma trazer um número ou
+                // um nome de ficheiro que se quer copiar para outro lado.
+                SelectableText(recado.texto, style: textos.bodyMedium),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _quando(DateTime d) =>
+    '${d.day.toString().padLeft(2, '0')}/'
+    '${d.month.toString().padLeft(2, '0')}/${d.year} às '
+    '${d.hour.toString().padLeft(2, '0')}:'
+    '${d.minute.toString().padLeft(2, '0')}';
 
 class _DadosDoConvite {
   const _DadosDoConvite({this.nome, this.email, required this.anos});
@@ -385,7 +484,8 @@ class _FormularioDeConviteState extends State<_FormularioDeConvite> {
         CampoDeTexto(
           controlador: _email,
           rotulo: 'Email',
-          ajuda: 'Opcional — o Punho não envia nada, é o senhor que entrega '
+          ajuda:
+              'Opcional — o Punho não envia nada, é o senhor que entrega '
               'o link',
           teclado: TextInputType.emailAddress,
         ),
@@ -447,9 +547,9 @@ class _DialogoDoLinkState extends ConsumerState<_DialogoDoLink> {
     await Clipboard.setData(ClipboardData(text: _mensagem));
     if (!mounted) return;
     setState(() => _jaLevou = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Mensagem copiada')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Mensagem copiada')));
   }
 
   /// Mesmo caminho do convite de colaborador: `wa.me` com `url_launcher`, sem
@@ -461,7 +561,9 @@ class _DialogoDoLinkState extends ConsumerState<_DialogoDoLink> {
   /// mensagem* está primeiro: quem quiser entregar o link por outro meio não
   /// tem de passar por aqui.
   Future<void> _enviarPorWhatsApp() async {
-    final url = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(_mensagem)}');
+    final url = Uri.parse(
+      'https://wa.me/?text=${Uri.encodeComponent(_mensagem)}',
+    );
     final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
     if (!mounted) return;
     if (ok) {
@@ -503,7 +605,11 @@ class _DialogoDoLinkState extends ConsumerState<_DialogoDoLink> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.warning_amber_outlined, size: 18, color: cores.error),
+                Icon(
+                  Icons.warning_amber_outlined,
+                  size: 18,
+                  color: cores.error,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(

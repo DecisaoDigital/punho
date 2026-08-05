@@ -122,14 +122,24 @@ void main() {
 
     await tester.tap(find.byType(TextField).at(0));
     await tester.pump();
-    expect(tester.widget<TextField>(find.byType(TextField).at(0)).focusNode!
-        .hasFocus, isTrue);
+    expect(
+      tester
+          .widget<TextField>(find.byType(TextField).at(0))
+          .focusNode!
+          .hasFocus,
+      isTrue,
+    );
 
     // O que a tecla *Seguinte* faz.
     await tester.testTextInput.receiveAction(TextInputAction.next);
     await tester.pumpAndSettle();
-    expect(tester.widget<TextField>(find.byType(TextField).at(1)).focusNode!
-        .hasFocus, isTrue);
+    expect(
+      tester
+          .widget<TextField>(find.byType(TextField).at(1))
+          .focusNode!
+          .hasFocus,
+      isTrue,
+    );
   });
 
   testWidgets('o último campo pede ✓ e não →', (tester) async {

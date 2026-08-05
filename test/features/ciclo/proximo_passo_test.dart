@@ -268,8 +268,16 @@ void main() {
     test('dentro da mesma urgência manda a data', () {
       final lista = aMinhaSemana(
         estadoCom([
-          trabalho(id: 'quinta', estado: BookingStatus.confirmed, comecaDaquiA: 3),
-          trabalho(id: 'quarta', estado: BookingStatus.confirmed, comecaDaquiA: 2),
+          trabalho(
+            id: 'quinta',
+            estado: BookingStatus.confirmed,
+            comecaDaquiA: 3,
+          ),
+          trabalho(
+            id: 'quarta',
+            estado: BookingStatus.confirmed,
+            comecaDaquiA: 2,
+          ),
         ]),
         hoje,
       );
@@ -312,22 +320,25 @@ void main() {
       expect(lista.single.trabalho.id, 'pedido-longe');
     });
 
-    test('o que está em curso entra sempre, esteja a acabar quando estiver', () {
-      final lista = aMinhaSemana(
-        estadoCom([
-          trabalho(
-            id: 'aluguer-longo',
-            estado: BookingStatus.rented,
-            comecaDaquiA: -2,
-            acabaDaquiA: 40,
-          ),
-        ]),
-        hoje,
-      );
+    test(
+      'o que está em curso entra sempre, esteja a acabar quando estiver',
+      () {
+        final lista = aMinhaSemana(
+          estadoCom([
+            trabalho(
+              id: 'aluguer-longo',
+              estado: BookingStatus.rented,
+              comecaDaquiA: -2,
+              acabaDaquiA: 40,
+            ),
+          ]),
+          hoje,
+        );
 
-      // Há uma máquina fora de casa: nunca sai de vista.
-      expect(lista.single.trabalho.id, 'aluguer-longo');
-    });
+        // Há uma máquina fora de casa: nunca sai de vista.
+        expect(lista.single.trabalho.id, 'aluguer-longo');
+      },
+    );
 
     test('o contador de atrasados é o que vai ao emblema', () {
       final estado = estadoCom([

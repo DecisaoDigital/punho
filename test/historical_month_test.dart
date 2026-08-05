@@ -19,22 +19,19 @@ void main() {
       );
     }
 
-    test(
-      'faturação divisível por 12 dá o mesmo valor em cada mês do ano '
-      'passado',
-      () {
-        final c = container();
-        addTearDown(c.dispose);
-        final n = c.read(operationsProvider.notifier);
-        completar(n, revenueLastYearCents: 1200000);
+    test('faturação divisível por 12 dá o mesmo valor em cada mês do ano '
+        'passado', () {
+      final c = container();
+      addTearDown(c.dispose);
+      final n = c.read(operationsProvider.notifier);
+      completar(n, revenueLastYearCents: 1200000);
 
-        final ano = DateTime.now().year - 1;
-        final meses = c.read(operationsProvider).historicalMonths;
-        expect(meses, hasLength(12));
-        expect(meses.every((m) => m.year == ano), isTrue);
-        expect(meses.every((m) => m.revenueReceivedCents == 100000), isTrue);
-      },
-    );
+      final ano = DateTime.now().year - 1;
+      final meses = c.read(operationsProvider).historicalMonths;
+      expect(meses, hasLength(12));
+      expect(meses.every((m) => m.year == ano), isTrue);
+      expect(meses.every((m) => m.revenueReceivedCents == 100000), isTrue);
+    });
 
     test('resto da divisão inteira cai nos primeiros meses e a soma bate '
         'certo com o valor declarado', () {
@@ -62,62 +59,52 @@ void main() {
       expect(c.read(operationsProvider).historicalMonths, isEmpty);
     });
 
-    test(
-      're-onboarding com um mês do ano já preenchido à mão não o '
-      'sobrescreve',
-      () {
-        final c = container();
-        addTearDown(c.dispose);
-        final n = c.read(operationsProvider.notifier);
-        final ano = DateTime.now().year - 1;
-        n.saveHistoricalMonth(
-          HistoricalMonth(
-            year: ano,
-            month: 3,
-            revenueReceivedCents: 555555,
-          ),
-        );
+    test('re-onboarding com um mês do ano já preenchido à mão não o '
+        'sobrescreve', () {
+      final c = container();
+      addTearDown(c.dispose);
+      final n = c.read(operationsProvider.notifier);
+      final ano = DateTime.now().year - 1;
+      n.saveHistoricalMonth(
+        HistoricalMonth(year: ano, month: 3, revenueReceivedCents: 555555),
+      );
 
-        completar(n, revenueLastYearCents: 1200000);
+      completar(n, revenueLastYearCents: 1200000);
 
-        final meses = c.read(operationsProvider).historicalMonths;
-        expect(meses, hasLength(1));
-        expect(meses.single.revenueReceivedCents, 555555);
-      },
-    );
+      final meses = c.read(operationsProvider).historicalMonths;
+      expect(meses, hasLength(1));
+      expect(meses.single.revenueReceivedCents, 555555);
+    });
 
-    test(
-      'onboarding preenchido tira "Preencher o histórico mensal" das '
-      'tarefas iniciais',
-      () {
-        final c = container();
-        addTearDown(c.dispose);
-        final n = c.read(operationsProvider.notifier);
-        n.completeOnboarding(
-          companyName: 'Alugueres Norte',
-          legalForm: 'Lda.',
-          hasFleet: false,
-          collaborators: 0,
-          totalMachinesDeclared: 0,
-          insertMachinesNow: false,
-          companyTaxId: '123456789',
-          ownerName: 'Ana Costa',
-          companyPhone: '912000000',
-          companyAddress: 'Rua do Campo, 10',
-          companyPostalCode: '1000-100',
-          companyLocality: 'Lisboa',
-          revenueLastYearCents: 1200000,
-          revenueThisYearCents: 600000,
-          maintenanceLastYearCents: 25000,
-          fixedMonthlyCostsCents: 8000,
-        );
+    test('onboarding preenchido tira "Preencher o histórico mensal" das '
+        'tarefas iniciais', () {
+      final c = container();
+      addTearDown(c.dispose);
+      final n = c.read(operationsProvider.notifier);
+      n.completeOnboarding(
+        companyName: 'Alugueres Norte',
+        legalForm: 'Lda.',
+        hasFleet: false,
+        collaborators: 0,
+        totalMachinesDeclared: 0,
+        insertMachinesNow: false,
+        companyTaxId: '123456789',
+        ownerName: 'Ana Costa',
+        companyPhone: '912000000',
+        companyAddress: 'Rua do Campo, 10',
+        companyPostalCode: '1000-100',
+        companyLocality: 'Lisboa',
+        revenueLastYearCents: 1200000,
+        revenueThisYearCents: 600000,
+        maintenanceLastYearCents: 25000,
+        fixedMonthlyCostsCents: 8000,
+      );
 
-        expect(
-          c.read(operationsProvider).initialDataTasks,
-          isNot(contains('Preencher o histórico mensal do ano passado')),
-        );
-      },
-    );
+      expect(
+        c.read(operationsProvider).initialDataTasks,
+        isNot(contains('Preencher o histórico mensal do ano passado')),
+      );
+    });
   });
 
   test('um mês histórico só conta quando contém dados', () {

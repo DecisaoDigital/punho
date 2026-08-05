@@ -168,9 +168,9 @@ class _NovaPalavraPasseScreenState extends State<NovaPalavraPasseScreen> {
       _error = erro;
     });
     if (erro != null) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Palavra-passe alterada.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Palavra-passe alterada.')));
   }
 
   Future<String?> _guardarNoSupabase(String palavraPasse) async {

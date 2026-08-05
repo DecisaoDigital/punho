@@ -223,8 +223,15 @@ class GuidanceEngine {
           title: 'Quarta-feira fraca',
           explanation:
               'Nas últimas 3 quartas-feiras tiveste apenas duas ou menos reservas. Tens $available máquinas disponíveis para a próxima quarta. 100% de zero é zero: uma máquina parada pode justificar uma promoção controlada.',
+          // Sem percentagem: o desconto máximo defensável sai da margem do
+          // aluguer, e essa ainda não é calculável (falta o valor de compra da
+          // máquina e a separação fixo/variável). Até lá a app diz que há
+          // margem para agir e deixa o quanto a quem tem os números — sugerir
+          // uma percentagem que ninguém calculou é conselho inventado, e um
+          // conselho inventado custa mais do que um indicador errado.
           impact:
-              'Considera uma promoção de quarta-feira com até 35% de desconto.',
+              'Uma promoção controlada pode compensar — decide a percentagem '
+              'a partir da margem que a máquina te deixa.',
           quality: 'Dados de reservas e inventário identificados',
           action: 'Criar campanha',
           measure:
@@ -281,9 +288,8 @@ class Campaign {
   final int discountPercent;
 }
 
-Campaign campaignFromRecommendation(Recommendation r) => Campaign(
-  name: r.title,
-  goal: r.explanation,
-  status: CampaignStatus.draft,
-  discountPercent: r.id == 'wednesday' ? 35 : 0,
-);
+/// A campanha nasce sem desconto. O valor é do gestor, ou — quando a margem
+/// por máquina for calculável — derivado dela. Nascer com uma percentagem
+/// pré-preenchida é decidir por ele no campo que mais lhe custa dinheiro.
+Campaign campaignFromRecommendation(Recommendation r) =>
+    Campaign(name: r.title, goal: r.explanation, status: CampaignStatus.draft);

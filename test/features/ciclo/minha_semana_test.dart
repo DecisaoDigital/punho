@@ -85,9 +85,7 @@ void main() {
   ) async {
     await montarLandscape(
       tester,
-      containerCom(
-        estadoCom([trabalho(estado: BookingStatus.cancelled)]),
-      ),
+      containerCom(estadoCom([trabalho(estado: BookingStatus.cancelled)])),
       MinhaSemanaPage(agora: hoje),
     );
 
@@ -136,37 +134,38 @@ void main() {
     expect(find.text('Fechar trabalho'), findsOneWidget);
   });
 
-  testWidgets('o trabalho fechado sem valor pergunta quanto valeu, e guarda-o', (
-    tester,
-  ) async {
-    final repo = _RepoCom([
-      trabalho(
-        id: 'b1',
-        estado: BookingStatus.completed,
-        comecaDaquiA: -4,
-        acabaDaquiA: -2,
-      ),
-    ]);
-    final container = ProviderContainer(
-      overrides: [operationRepositoryProvider.overrideWithValue(repo)],
-    );
-    addTearDown(container.dispose);
+  testWidgets(
+    'o trabalho fechado sem valor pergunta quanto valeu, e guarda-o',
+    (tester) async {
+      final repo = _RepoCom([
+        trabalho(
+          id: 'b1',
+          estado: BookingStatus.completed,
+          comecaDaquiA: -4,
+          acabaDaquiA: -2,
+        ),
+      ]);
+      final container = ProviderContainer(
+        overrides: [operationRepositoryProvider.overrideWithValue(repo)],
+      );
+      addTearDown(container.dispose);
 
-    await montarLandscape(tester, container, MinhaSemanaPage(agora: hoje));
+      await montarLandscape(tester, container, MinhaSemanaPage(agora: hoje));
 
-    await tester.tap(find.text('Dizer quanto valeu'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), '1.500,00');
-    await tester.tap(find.text('Guardar'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Dizer quanto valeu'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '1.500,00');
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
 
-    expect(
-      container.read(operationsProvider).bookings.single.expectedValueCents,
-      150000,
-    );
-    // Com valor declarado e nada recebido, o passo passa a ser o dinheiro.
-    expect(find.text('Registar recebimento'), findsOneWidget);
-  });
+      expect(
+        container.read(operationsProvider).bookings.single.expectedValueCents,
+        150000,
+      );
+      // Com valor declarado e nada recebido, o passo passa a ser o dinheiro.
+      expect(find.text('Registar recebimento'), findsOneWidget);
+    },
+  );
 }
 
 /// Repositório com os trabalhos que o teste quer, e mais nada.

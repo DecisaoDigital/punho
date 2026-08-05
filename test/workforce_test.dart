@@ -4,24 +4,31 @@ import 'package:punho/core/operations/operations_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
-  test('exceder as vagas não bloqueia — grava na mesma (decisão 2026-08-02)', () {
-    final c = ProviderContainer();
-    addTearDown(c.dispose);
-    final n = c.read(operationsProvider.notifier);
-    for (var i = 0; i < 3; i++) {
+  test(
+    'exceder as vagas não bloqueia — grava na mesma (decisão 2026-08-02)',
+    () {
+      final c = ProviderContainer();
+      addTearDown(c.dispose);
+      final n = c.read(operationsProvider.notifier);
+      for (var i = 0; i < 3; i++) {
+        n.saveCollaborator(
+          Collaborator(id: '$i', name: 'n', status: CollaboratorStatus.active),
+        );
+      }
       n.saveCollaborator(
-        Collaborator(id: '$i', name: 'n', status: CollaboratorStatus.active),
+        const Collaborator(
+          id: '4',
+          name: 'n',
+          status: CollaboratorStatus.active,
+        ),
       );
-    }
-    n.saveCollaborator(
-      const Collaborator(id: '4', name: 'n', status: CollaboratorStatus.active),
-    );
-    final ativos = c
-        .read(operationsProvider)
-        .collaborators
-        .where((x) => !x.archived && x.status == CollaboratorStatus.active);
-    expect(ativos.length, 4);
-  });
+      final ativos = c
+          .read(operationsProvider)
+          .collaborators
+          .where((x) => !x.archived && x.status == CollaboratorStatus.active);
+      expect(ativos.length, 4);
+    },
+  );
   test('seguro anual e semestral mensalizado', () {
     expect(
       monthlyInsuranceCost(

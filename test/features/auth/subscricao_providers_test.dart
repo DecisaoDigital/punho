@@ -44,24 +44,21 @@ void main() {
     );
   });
 
-  test(
-    'enquanto o servidor ainda não respondeu, o efetivo é já o local — não '
-    'fica bloqueado à espera',
-    () {
-      final c = ProviderContainer(
-        overrides: [
-          limiteColaboradoresServidorProvider.overrideWith(
-            (ref) => Future<int?>.delayed(const Duration(seconds: 5), () => 1),
-          ),
-        ],
-      );
-      addTearDown(c.dispose);
+  test('enquanto o servidor ainda não respondeu, o efetivo é já o local — não '
+      'fica bloqueado à espera', () {
+    final c = ProviderContainer(
+      overrides: [
+        limiteColaboradoresServidorProvider.overrideWith(
+          (ref) => Future<int?>.delayed(const Duration(seconds: 5), () => 1),
+        ),
+      ],
+    );
+    addTearDown(c.dispose);
 
-      // Sem `await`: lido logo a seguir a criar o container.
-      expect(
-        c.read(limiteColaboradoresEfetivoProvider),
-        c.read(operationsProvider).activeCollaboratorLimit,
-      );
-    },
-  );
+    // Sem `await`: lido logo a seguir a criar o container.
+    expect(
+      c.read(limiteColaboradoresEfetivoProvider),
+      c.read(operationsProvider).activeCollaboratorLimit,
+    );
+  });
 }

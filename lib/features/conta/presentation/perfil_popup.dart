@@ -387,8 +387,7 @@ class _MudarPalavraPasse extends StatefulWidget {
   const _MudarPalavraPasse();
 
   @override
-  State<_MudarPalavraPasse> createState() =>
-      _MudarPalavraPasseState();
+  State<_MudarPalavraPasse> createState() => _MudarPalavraPasseState();
 }
 
 class _MudarPalavraPasseState extends State<_MudarPalavraPasse> {

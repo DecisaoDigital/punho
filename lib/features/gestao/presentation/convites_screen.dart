@@ -187,6 +187,7 @@ class _ConvitesScreenState extends ConsumerState<ConvitesScreen> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: _perfil,
             decoration: const InputDecoration(labelText: 'Cargo'),
             items: const [

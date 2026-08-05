@@ -11,7 +11,8 @@ void main() {
     const casos = <String, int?>{
       '1234,56': 123456,
       '1.234,56': 123456,
-      '1234.56': 123456, // decimal inglês, de quem copiou de uma folha de cálculo
+      '1234.56':
+          123456, // decimal inglês, de quem copiou de uma folha de cálculo
       '1234': 123400,
       '1.200': 120000, // mil e duzentos euros, não um euro e vinte
       '12.345.678': 1234567800,

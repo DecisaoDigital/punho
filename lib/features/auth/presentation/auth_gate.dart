@@ -14,6 +14,7 @@ import '../domain/estado_acesso.dart';
 import '../domain/modo_de_recuperacao.dart';
 import 'acesso_indisponivel_screen.dart';
 import 'pedido_em_analise_screen.dart';
+import 'pedir_acesso_screen.dart';
 import 'login_screen.dart';
 import 'nova_palavra_passe_screen.dart';
 import 'registo_screen.dart';
@@ -151,6 +152,7 @@ class AcessoGate extends ConsumerWidget {
                     titulo: 'Colaborador',
                   ),
           DecisaoAcesso.pendente => const PedidoEmAnaliseScreen(),
+          DecisaoAcesso.semPedido => const PedirAcessoScreen(),
           DecisaoAcesso.indisponivel => const AcessoIndisponivelScreen(),
         },
       );

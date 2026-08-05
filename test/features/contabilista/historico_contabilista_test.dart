@@ -63,10 +63,7 @@ void main() {
         agoraFixa,
         lacunas: [lacuna()],
       );
-      expect(
-        tarefas.where((t) => t.id.startsWith('historico-')),
-        isEmpty,
-      );
+      expect(tarefas.where((t) => t.id.startsWith('historico-')), isEmpty);
     });
 
     test('singular quando falta um mês só', () {
@@ -74,7 +71,11 @@ void main() {
         estadoComMovimento(),
         agoraFixa,
         lacunas: [
-          lacuna(emFalta: 1, primeiro: DateTime(2024, 3), ultimo: DateTime(2024, 3)),
+          lacuna(
+            emFalta: 1,
+            primeiro: DateTime(2024, 3),
+            ultimo: DateTime(2024, 3),
+          ),
         ],
       );
       final t = tarefas.firstWhere((t) => t.id == 'historico-facturacao');
@@ -111,10 +112,7 @@ void main() {
         agoraFixa,
         lacunas: const [],
       );
-      expect(
-        comListaVazia.map((t) => t.id),
-        semLacunas.map((t) => t.id),
-      );
+      expect(comListaVazia.map((t) => t.id), semLacunas.map((t) => t.id));
     });
   });
 
@@ -133,17 +131,23 @@ void main() {
       expect(url, endsWith('?t=abc123'));
     });
 
-    test('a mensagem diz o período, o que fazer com o que não se sabe, e o prazo', () {
-      final texto = mensagemContabilista(criado(), empresa: 'Lavandaria Mare Alta');
-      expect(texto, contains('Lavandaria Mare Alta'));
-      expect(texto, contains('Setembro de 2021'));
-      expect(texto, contains('Julho de 2026'));
-      // O que ele precisa de saber para não inventar zeros.
-      expect(texto, contains('em branco não é zero'));
-      // E que pode voltar — senão tenta responder a tudo de uma vez e desiste.
-      expect(texto, contains('voltar ao mesmo link'));
-      expect(texto, contains('02/11/2026'));
-    });
+    test(
+      'a mensagem diz o período, o que fazer com o que não se sabe, e o prazo',
+      () {
+        final texto = mensagemContabilista(
+          criado(),
+          empresa: 'Lavandaria Mare Alta',
+        );
+        expect(texto, contains('Lavandaria Mare Alta'));
+        expect(texto, contains('Setembro de 2021'));
+        expect(texto, contains('Julho de 2026'));
+        // O que ele precisa de saber para não inventar zeros.
+        expect(texto, contains('em branco não é zero'));
+        // E que pode voltar — senão tenta responder a tudo de uma vez e desiste.
+        expect(texto, contains('voltar ao mesmo link'));
+        expect(texto, contains('02/11/2026'));
+      },
+    );
 
     test('sem nome de empresa a mensagem continua a ler-se', () {
       final texto = mensagemContabilista(criado(), empresa: '   ');

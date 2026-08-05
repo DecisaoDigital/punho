@@ -72,12 +72,17 @@ class _LoginScreenState extends State<LoginScreen> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              24,
-              24,
-              24,
-              MediaQuery.viewInsetsOf(context).bottom + 24,
-            ),
+            // Sem somar `viewInsets.bottom`: o `Scaffold` já encolheu o corpo
+            // pela altura do teclado (`resizeToAvoidBottomInset`, ligado por
+            // omissão). Somá-la outra vez aqui dava um conteúdo mais alto do
+            // que a área visível pela altura exacta do teclado — e um scroll
+            // que não cabe começa no topo, o que anula o `Center` acima.
+            //
+            // O campo do email tem `autofocus`, portanto o teclado está aberto
+            // desde o primeiro instante: não era um caso de canto, era o ecrã
+            // normal. Medido no Redmi em retrato: a marca caía a 57,8 dp, que
+            // é 33,8 da barra de estado mais os 24 de margem — colada.
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -224,8 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
             teclado: TextInputType.emailAddress,
           ),
         ],
-        aoGuardar: () =>
-            Navigator.pop(rota, _emailDeRecuperacao.text.trim()),
+        aoGuardar: () => Navigator.pop(rota, _emailDeRecuperacao.text.trim()),
       ),
     );
     if (email == null || email.isEmpty) return;

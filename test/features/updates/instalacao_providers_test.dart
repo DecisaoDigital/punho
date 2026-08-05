@@ -110,9 +110,7 @@ void main() {
 
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
       await tester.pumpAndSettle();
-      tester.binding.handleAppLifecycleStateChanged(
-        AppLifecycleState.resumed,
-      );
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();
 
       final estado = container.read(estadoDoUpdateProvider);
@@ -157,16 +155,11 @@ void main() {
       expect(instalador.chamadas, isEmpty);
       expect(rotacoes.last, ['DeviceOrientation.portraitUp']);
       // A fase não muda enquanto se espera pelo regresso das definições.
-      expect(
-        container.read(estadoDoUpdateProvider).fase,
-        FaseDoUpdate.pronta,
-      );
+      expect(container.read(estadoDoUpdateProvider).fase, FaseDoUpdate.pronta);
 
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
       await tester.pumpAndSettle();
-      tester.binding.handleAppLifecycleStateChanged(
-        AppLifecycleState.resumed,
-      );
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();
 
       expect(rotacoes.last, isNot(['DeviceOrientation.portraitUp']));

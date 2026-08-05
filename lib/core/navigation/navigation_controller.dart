@@ -49,6 +49,11 @@ List<AppDestination> visibleDestinations(CompanySettings settings) => [
 /// Entra a seguir ao Painel e não à frente dele: enquanto a carteira for curta
 /// a lista aparece vazia, e uma lista vazia é uma péssima primeira coisa a ver
 /// ao abrir a app. Passa a primeiro quando a Fase 1 estiver no terreno.
+///
+/// Nove a 5 de Agosto de 2026, com **KPIs (todos)** no fim. Fica em último de
+/// propósito: não é um sítio onde se trabalha, é onde se vai ver o que os
+/// números dizem quando o painel não chega. Quem abre a app de manhã não começa
+/// por aqui.
 List<AppDestination> visibleOperationalDestinations(OperationsState state) =>
     const [
       AppDestination.management,
@@ -59,4 +64,5 @@ List<AppDestination> visibleOperationalDestinations(OperationsState state) =>
       AppDestination.employees,
       AppDestination.empresa,
       AppDestination.tasks,
+      AppDestination.kpis,
     ];

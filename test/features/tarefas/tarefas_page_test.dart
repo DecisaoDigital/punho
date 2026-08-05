@@ -29,9 +29,7 @@ void main() {
     });
 
     test('máquinas declaradas a mais geram tarefa de identificação', () {
-      final comFalta = estadoComMovimento().copyWith(
-        totalMachinesDeclared: 8,
-      );
+      final comFalta = estadoComMovimento().copyWith(totalMachinesDeclared: 8);
       final tarefa = tarefasPendentes(
         comFalta,
         agoraFixa,
@@ -129,7 +127,11 @@ void main() {
       final comUm = estadoSemMovimento().copyWith(
         declaredCollaboratorCount: 3,
         collaborators: const [
-          Collaborator(id: 'co1', name: 'Ana', status: CollaboratorStatus.active),
+          Collaborator(
+            id: 'co1',
+            name: 'Ana',
+            status: CollaboratorStatus.active,
+          ),
         ],
       );
 
@@ -198,10 +200,7 @@ void main() {
         ],
       );
 
-      expect(
-        tarefas.where((t) => t.id.startsWith('convite-')),
-        isEmpty,
-      );
+      expect(tarefas.where((t) => t.id.startsWith('convite-')), isEmpty);
     });
 
     test('sem convites a fonte não contribui — nem erro', () {

@@ -111,7 +111,11 @@ void main() {
           acesso: fake,
         );
 
-        expect(find.byType(AcessoIndisponivelScreen), findsOneWidget, reason: estado);
+        expect(
+          find.byType(AcessoIndisponivelScreen),
+          findsOneWidget,
+          reason: estado,
+        );
         expect(_avisoOpcional, findsOneWidget, reason: estado);
         expect(find.byType(AppShell), findsNothing, reason: estado);
       }
@@ -172,11 +176,7 @@ void main() {
     });
 
     testWidgets('não tem forma de ser dispensado', (tester) async {
-      await _montar(
-        tester,
-        child: const AppShell(),
-        update: _obrigatorio,
-      );
+      await _montar(tester, child: const AppShell(), update: _obrigatorio);
 
       expect(_avisoObrigatorio, findsOneWidget);
       expect(find.text('Atualizar'), findsOneWidget);
@@ -207,7 +207,9 @@ void main() {
   });
 
   group('Update opcional', () {
-    testWidgets('empurra o conteúdo mas não lhe rouba os toques', (tester) async {
+    testWidgets('empurra o conteúdo mas não lhe rouba os toques', (
+      tester,
+    ) async {
       var toques = 0;
       await _montar(
         tester,

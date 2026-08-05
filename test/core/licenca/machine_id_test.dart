@@ -54,6 +54,24 @@ void main() {
     expect(android, isNot(windows));
   });
 
+  test('a semente do Android não é o Build.ID', () async {
+    // Era `androidInfo.id` — o identificador da ROM, `TKQ1.221013.002` no
+    // Redmi. Dois aparelhos com a mesma MIUI davam o mesmo terminal e, por
+    // consequência, a mesma licença. O que identifica um aparelho é o
+    // ANDROID_ID, que é por (aparelho, chave de assinatura) e sobrevive a uma
+    // reinstalação.
+    final romPartilhada = await resolverMachineId(
+      semente: () async => 'android:TKQ1.221013.002',
+    );
+
+    SharedPreferences.setMockInitialValues({});
+    final aparelhoReal = await resolverMachineId(
+      semente: () async => 'android:9774d56d682e549c',
+    );
+
+    expect(aparelhoReal, isNot(romPartilhada));
+  });
+
   test('cache curta ou corrompida é descartada e recalculada', () async {
     SharedPreferences.setMockInitialValues({chaveMachineId: 'curto'});
 

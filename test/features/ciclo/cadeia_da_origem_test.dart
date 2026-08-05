@@ -50,7 +50,9 @@ void main() {
     notifier.addLead(lead());
 
     final primeira = notifier.convertLead(lead());
-    final segunda = notifier.convertLead(c.read(operationsProvider).leads.single);
+    final segunda = notifier.convertLead(
+      c.read(operationsProvider).leads.single,
+    );
 
     expect(segunda.id, primeira.id);
     expect(c.read(operationsProvider).customers.length, 1);
@@ -70,7 +72,10 @@ void main() {
 
     // A conversão recusa-se — mas a origem daquele cliente ficou a saber-se
     // aqui, e é esse o elo que interessa guardar.
-    expect(() => notifier.convertLead(lead(telefone: '913 1')), throwsStateError);
+    expect(
+      () => notifier.convertLead(lead(telefone: '913 1')),
+      throwsStateError,
+    );
     expect(
       c.read(operationsProvider).leads.single.convertedCustomerId,
       'c-ja-existe',

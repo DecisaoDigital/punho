@@ -94,7 +94,10 @@ void main() {
   testWidgets('numa barra mais baixa a faixa acompanha-a', (tester) async {
     // Quanto mais alta a faixa, mais fácil é passar da margem que o sistema
     // reporta — e uma faixa maior do que a barra é navy a invadir o conteúdo.
-    await montar(tester, margens: const FakeViewPadding(top: 18, left: recorte));
+    await montar(
+      tester,
+      margens: const FakeViewPadding(top: 18, left: recorte),
+    );
 
     expect(faixaDoTopo(tester).height, 18.0);
   });

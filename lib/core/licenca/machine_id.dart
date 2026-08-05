@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:android_id/android_id.dart';
 import 'package:crypto/crypto.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -27,12 +28,34 @@ Future<String> resolverMachineId({Future<String> Function()? semente}) async {
 }
 
 /// Semente por plataforma. Nunca sai da app — só o hash é enviado.
+///
+/// **Em Android é o ANDROID_ID, e tem de ser.** Esteve em `androidInfo.id`, que
+/// não é isso: é o `Build.ID`, o identificador da *ROM* — `TKQ1.221013.002` no
+/// Redmi. Dois aparelhos com a mesma versão de MIUI produziam o mesmo hash,
+/// logo o mesmo terminal, logo a mesma licença. Dois clientes diferentes a
+/// partilhar uma linha, sem nada no ecrã a denunciá-lo.
+///
+/// O ANDROID_ID verdadeiro é único por (aparelho, chave de assinatura da app) e
+/// sobrevive a uma reinstalação — que é o que se quer de um terminal
+/// licenciado. O `device_info_plus` deixou de o expor; vem do `android_id`.
+///
+/// Corrigido a 5 de Agosto de 2026, com o Punho a recomeçar do zero. Era o
+/// único momento em que sai de graça: mudar a semente com terminais registados
+/// obrigaria a reemitir todas as licenças.
 Future<String> sementeDoDispositivo() async {
   final plugin = DeviceInfoPlugin();
   if (Platform.isAndroid) {
-    final info = await plugin.androidInfo;
-    // ANDROID_ID: estável por dispositivo + assinatura da app.
-    return 'android:${info.id}';
+    final androidId = await const AndroidId().getId();
+    if (androidId != null && androidId.trim().isNotEmpty) {
+      return 'android:${androidId.trim()}';
+    }
+    // Sem ANDROID_ID não se cai para o `Build.ID`: era esse o erro. Um valor
+    // único gerado aqui fica em cache no primeiro arranque e nunca colide —
+    // perde-se numa reinstalação, o que é preferível a dois donos na mesma
+    // licença.
+    return 'android:sem-android-id:'
+        '${DateTime.now().microsecondsSinceEpoch}:'
+        '${Object().hashCode}';
   }
   if (Platform.isWindows) {
     final info = await plugin.windowsInfo;

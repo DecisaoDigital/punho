@@ -39,10 +39,9 @@ void main() {
     await registo.esperarEscritas();
 
     expect(registo.pendentes, hasLength(11));
-    expect(
-      registo.pendentes.map((o) => o.id).toSet(),
-      {for (var i = 0; i < 11; i++) 'op$i'},
-    );
+    expect(registo.pendentes.map((o) => o.id).toSet(), {
+      for (var i = 0; i < 11; i++) 'op$i',
+    });
   });
 
   test('ler antes de esperar era o que enganava: agora espera-se', () async {
@@ -55,17 +54,20 @@ void main() {
     expect(registo.pendentes, hasLength(5));
   });
 
-  test('acrescentar e remover ao mesmo tempo não ressuscita nem perde', () async {
-    await registo.acrescentarVarias([op('a'), op('b'), op('c')]);
+  test(
+    'acrescentar e remover ao mesmo tempo não ressuscita nem perde',
+    () async {
+      await registo.acrescentarVarias([op('a'), op('b'), op('c')]);
 
-    // Remover 'a' e 'b' enquanto entram duas novas.
-    registo.remover({'a', 'b'});
-    registo.acrescentar(op('d'));
-    registo.acrescentar(op('e'));
-    await registo.esperarEscritas();
+      // Remover 'a' e 'b' enquanto entram duas novas.
+      registo.remover({'a', 'b'});
+      registo.acrescentar(op('d'));
+      registo.acrescentar(op('e'));
+      await registo.esperarEscritas();
 
-    expect(registo.pendentes.map((o) => o.id).toSet(), {'c', 'd', 'e'});
-  });
+      expect(registo.pendentes.map((o) => o.id).toSet(), {'c', 'd', 'e'});
+    },
+  );
 
   test('um lote grande entra inteiro numa só escrita', () async {
     final lote = [for (var i = 0; i < 200; i++) op('l$i')];

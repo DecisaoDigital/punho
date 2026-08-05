@@ -44,9 +44,7 @@ final limiteColaboradoresServidorProvider = FutureProvider<int?>((ref) async {
 /// autorizado é o circuito de aprovação no Control (`punho_pedidos_acesso`),
 /// não `OperationsController.saveCollaborator`.
 final limiteColaboradoresEfetivoProvider = Provider<int>((ref) {
-  final doServidor = ref
-      .watch(limiteColaboradoresServidorProvider)
-      .valueOrNull;
+  final doServidor = ref.watch(limiteColaboradoresServidorProvider).valueOrNull;
   final local = ref.watch(
     operationsProvider.select((s) => s.activeCollaboratorLimit),
   );

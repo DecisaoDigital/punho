@@ -28,10 +28,7 @@ void main() {
 
     await pendente.guardar({'nif': '509442129', 'nome_comercial': 'Mare Alta'});
 
-    expect(pendente.ficha, {
-      'nif': '509442129',
-      'nome_comercial': 'Mare Alta',
-    });
+    expect(pendente.ficha, {'nif': '509442129', 'nome_comercial': 'Mare Alta'});
   });
 
   test('guardar de novo substitui a anterior, não acumula', () async {

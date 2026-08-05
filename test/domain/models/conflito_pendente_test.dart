@@ -60,17 +60,18 @@ void main() {
   });
 
   test('paraFila/daFila é um round-trip fiel', () {
-    final original = ConflitoPendente.reservaMaquina(
-      reservaId1: 'reserva-a',
-      reservaId2: 'reserva-b',
-      machineIdsPartilhados: const ['m1', 'm2'],
-      envolvidos: const ['colab-1', 'colab-2'],
-      criadoEm: DateTime(2026, 8, 3, 9, 30),
-    ).resolvidoComo(
-      ficaComEntidadeId: 'reserva-a',
-      resolvidoPor: 'user-gestor',
-      resolvidoEm: DateTime(2026, 8, 3, 12),
-    );
+    final original =
+        ConflitoPendente.reservaMaquina(
+          reservaId1: 'reserva-a',
+          reservaId2: 'reserva-b',
+          machineIdsPartilhados: const ['m1', 'm2'],
+          envolvidos: const ['colab-1', 'colab-2'],
+          criadoEm: DateTime(2026, 8, 3, 9, 30),
+        ).resolvidoComo(
+          ficaComEntidadeId: 'reserva-a',
+          resolvidoPor: 'user-gestor',
+          resolvidoEm: DateTime(2026, 8, 3, 12),
+        );
 
     final devolta = ConflitoPendente.daFila(original.paraFila());
 

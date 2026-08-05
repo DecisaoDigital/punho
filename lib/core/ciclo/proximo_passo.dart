@@ -132,7 +132,8 @@ ProximoPasso? proximoPassoDe(
     case BookingStatus.request:
       return ProximoPasso(
         verbo: 'Enviar orçamento',
-        porque: 'Pedido para ${_quando(trabalho.startsAt, hoje)}, ainda sem '
+        porque:
+            'Pedido para ${_quando(trabalho.startsAt, hoje)}, ainda sem '
             'orçamento.',
         urgencia: _urgenciaDe(trabalho.startsAt, hoje),
         accao: AccaoDoPasso.avancarEstado,
@@ -142,7 +143,8 @@ ProximoPasso? proximoPassoDe(
     case BookingStatus.proposalSent:
       return ProximoPasso(
         verbo: 'Confirmar',
-        porque: 'Orçamento enviado, resposta por dar. Começa '
+        porque:
+            'Orçamento enviado, resposta por dar. Começa '
             '${_quando(trabalho.startsAt, hoje)}.',
         urgencia: _urgenciaDe(trabalho.startsAt, hoje),
         accao: AccaoDoPasso.avancarEstado,
@@ -178,7 +180,8 @@ ProximoPasso? proximoPassoDe(
       if (esperado == null || esperado <= 0) {
         return const ProximoPasso(
           verbo: 'Dizer quanto valeu',
-          porque: 'Trabalho fechado sem valor. Sem ele não conta para a '
+          porque:
+              'Trabalho fechado sem valor. Sem ele não conta para a '
               'receita nem para a margem.',
           urgencia: Urgencia.hoje,
           accao: AccaoDoPasso.declararValor,
@@ -231,7 +234,9 @@ List<TrabalhoComPasso> aMinhaSemana(OperationsState state, DateTime hoje) {
     lista.add(TrabalhoComPasso(trabalho, passo, dataRelevante));
   }
   lista.sort((a, b) {
-    final porUrgencia = a.passo.urgencia.index.compareTo(b.passo.urgencia.index);
+    final porUrgencia = a.passo.urgencia.index.compareTo(
+      b.passo.urgencia.index,
+    );
     if (porUrgencia != 0) return porUrgencia;
     return a.dataRelevante.compareTo(b.dataRelevante);
   });

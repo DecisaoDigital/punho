@@ -31,17 +31,32 @@ void main() {
   group('classificação da recusa', () {
     test('payload incoerente é definitivo — insistir não adianta', () {
       // O que o trigger `punho_operacoes_payload_coerente` levanta.
-      expect(SincronizacaoEntreDispositivos.ehRecusaDefinitiva('23514'), isTrue);
+      expect(
+        SincronizacaoEntreDispositivos.ehRecusaDefinitiva('23514'),
+        isTrue,
+      );
     });
 
     test('campo em falta e referência inexistente são definitivos', () {
-      expect(SincronizacaoEntreDispositivos.ehRecusaDefinitiva('23502'), isTrue);
-      expect(SincronizacaoEntreDispositivos.ehRecusaDefinitiva('23503'), isTrue);
+      expect(
+        SincronizacaoEntreDispositivos.ehRecusaDefinitiva('23502'),
+        isTrue,
+      );
+      expect(
+        SincronizacaoEntreDispositivos.ehRecusaDefinitiva('23503'),
+        isTrue,
+      );
     });
 
     test('data e número ilegíveis são definitivos', () {
-      expect(SincronizacaoEntreDispositivos.ehRecusaDefinitiva('22007'), isTrue);
-      expect(SincronizacaoEntreDispositivos.ehRecusaDefinitiva('22P02'), isTrue);
+      expect(
+        SincronizacaoEntreDispositivos.ehRecusaDefinitiva('22007'),
+        isTrue,
+      );
+      expect(
+        SincronizacaoEntreDispositivos.ehRecusaDefinitiva('22P02'),
+        isTrue,
+      );
     });
 
     test('o que pode melhorar com a rede fica na fila', () {
@@ -86,14 +101,16 @@ void main() {
       expect(outro.quarentena.single.operacao.id, 'a');
     });
 
-    test('a quarentena não é a fila — o que lá está não volta a ser enviado',
-        () async {
-      await registo.acrescentar(op('a'));
-      await registo.porEmQuarentena(op('b'), 'motivo');
+    test(
+      'a quarentena não é a fila — o que lá está não volta a ser enviado',
+      () async {
+        await registo.acrescentar(op('a'));
+        await registo.porEmQuarentena(op('b'), 'motivo');
 
-      expect(registo.pendentes.map((o) => o.id), ['a']);
-      expect(registo.quarentena.map((r) => r.operacao.id), ['b']);
-    });
+        expect(registo.pendentes.map((o) => o.id), ['a']);
+        expect(registo.quarentena.map((r) => r.operacao.id), ['b']);
+      },
+    );
 
     test('tem tecto próprio', () async {
       for (var i = 0; i < 105; i++) {

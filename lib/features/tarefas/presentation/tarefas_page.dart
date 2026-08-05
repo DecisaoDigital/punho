@@ -234,7 +234,8 @@ class _FormularioDeFacturacaoDoAno extends StatefulWidget {
       _FormularioDeFacturacaoDoAnoState();
 }
 
-class _FormularioDeFacturacaoDoAnoState extends State<_FormularioDeFacturacaoDoAno> {
+class _FormularioDeFacturacaoDoAnoState
+    extends State<_FormularioDeFacturacaoDoAno> {
   final _valor = TextEditingController();
   String? erro;
 

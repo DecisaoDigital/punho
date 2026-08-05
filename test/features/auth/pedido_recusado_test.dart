@@ -8,7 +8,9 @@ import 'gate_helpers.dart';
 
 void main() {
   group('Pedido recusado', () {
-    testWidgets('mostra "Acesso indisponível" e não a AppShell', (tester) async {
+    testWidgets('mostra "Acesso indisponível" e não a AppShell', (
+      tester,
+    ) async {
       final fake = FakeAcessoService(
         acesso: const EstadoAcesso(membroAtivo: false, estado: 'recusado'),
       );
@@ -42,7 +44,9 @@ void main() {
 
     test('decidirAcesso: recusado → indisponível', () {
       expect(
-        decidirAcesso(const EstadoAcesso(membroAtivo: false, estado: 'recusado')),
+        decidirAcesso(
+          const EstadoAcesso(membroAtivo: false, estado: 'recusado'),
+        ),
         DecisaoAcesso.indisponivel,
       );
     });

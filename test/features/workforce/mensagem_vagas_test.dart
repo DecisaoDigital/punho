@@ -19,19 +19,16 @@ void main() {
     );
   });
 
-  test(
-    'mais ativos do que vagas: diz que não há vagas livres, sem fingir que '
-    'os números batem certo',
-    () {
-      final mensagem = mensagemVagasDeColaboradores(3, 1);
-      expect(mensagem, contains('3 colaboradores ativos'));
-      expect(mensagem, contains('sem vagas livres'));
-      expect(mensagem, contains('1 vaga contratada'));
-      // Não é "de 1 vaga contratada" como no caso normal — teria a mesma
-      // forma de uma frase que bate certo, e não bate.
-      expect(mensagem, isNot(contains('de 1 vaga contratada')));
-    },
-  );
+  test('mais ativos do que vagas: diz que não há vagas livres, sem fingir que '
+      'os números batem certo', () {
+    final mensagem = mensagemVagasDeColaboradores(3, 1);
+    expect(mensagem, contains('3 colaboradores ativos'));
+    expect(mensagem, contains('sem vagas livres'));
+    expect(mensagem, contains('1 vaga contratada'));
+    // Não é "de 1 vaga contratada" como no caso normal — teria a mesma
+    // forma de uma frase que bate certo, e não bate.
+    expect(mensagem, isNot(contains('de 1 vaga contratada')));
+  });
 
   test('no limite exato ainda é a frase normal, não a de excesso', () {
     expect(
