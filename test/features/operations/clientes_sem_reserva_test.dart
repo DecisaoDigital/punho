@@ -29,10 +29,10 @@ void main() {
       );
 
   test('sem reservas nenhumas, ninguém é filtrado', () {
-    expect(
-      clientesSemReservaNoPeriodo(clientes, const [], semana),
-      [ana, bruno],
-    );
+    expect(clientesSemReservaNoPeriodo(clientes, const [], semana), [
+      ana,
+      bruno,
+    ]);
   });
 
   test('quem tem reserva dentro da semana sai da lista', () {
@@ -58,10 +58,10 @@ void main() {
       reservaDe('ana', DateTime(2026, 8, 11), DateTime(2026, 8, 12)),
     ];
 
-    expect(
-      clientesSemReservaNoPeriodo(clientes, reservas, semana),
-      [ana, bruno],
-    );
+    expect(clientesSemReservaNoPeriodo(clientes, reservas, semana), [
+      ana,
+      bruno,
+    ]);
   });
 
   test('uma reserva que acaba quando a semana começa não a ocupa', () {
@@ -72,16 +72,19 @@ void main() {
       reservaDe('ana', DateTime(2026, 7, 30), DateTime(2026, 8, 3)),
     ];
 
-    expect(
-      clientesSemReservaNoPeriodo(clientes, reservas, semana),
-      [ana, bruno],
-    );
+    expect(clientesSemReservaNoPeriodo(clientes, reservas, semana), [
+      ana,
+      bruno,
+    ]);
   });
 
-  test('o cliente escolhido que sai da lista deixa de contar como presente', () {
-    expect(clientesContem(const [ana], 'bruno'), isFalse);
-    expect(clientesContem(const [ana], 'ana'), isTrue);
-    // Nada escolhido é um estado legítimo, e não um id em falta.
-    expect(clientesContem(const [ana], null), isTrue);
-  });
+  test(
+    'o cliente escolhido que sai da lista deixa de contar como presente',
+    () {
+      expect(clientesContem(const [ana], 'bruno'), isFalse);
+      expect(clientesContem(const [ana], 'ana'), isTrue);
+      // Nada escolhido é um estado legítimo, e não um id em falta.
+      expect(clientesContem(const [ana], null), isTrue);
+    },
+  );
 }

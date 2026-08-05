@@ -130,9 +130,7 @@ void main() {
         find.widgetWithText(TextField, 'Valor previsto (€)'),
         '1.500,00',
       );
-      await tester.tap(
-        find.widgetWithText(FilledButton, 'Guardar marcação'),
-      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar marcação'));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
@@ -154,9 +152,7 @@ void main() {
         find.widgetWithText(TextField, 'Valor previsto (€)'),
         'lixo',
       );
-      await tester.tap(
-        find.widgetWithText(FilledButton, 'Guardar marcação'),
-      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar marcação'));
       await tester.pumpAndSettle();
 
       expect(find.text('Nova marcação / reserva'), findsOneWidget);

@@ -31,29 +31,34 @@ void main() {
       expect(segundo.id, primeiro.id);
     });
 
-    test('converter uma lead com telemóvel de cliente existente é recusado', () {
-      final c = container();
-      addTearDown(c.dispose);
-      final controller = c.read(operationsProvider.notifier);
-      controller.addCustomer(
-        const Customer(id: 'cx', name: 'Já existe', phone: '922 222 222'),
-      );
-      final antes = c.read(operationsProvider).customers.length;
+    test(
+      'converter uma lead com telemóvel de cliente existente é recusado',
+      () {
+        final c = container();
+        addTearDown(c.dispose);
+        final controller = c.read(operationsProvider.notifier);
+        controller.addCustomer(
+          const Customer(id: 'cx', name: 'Já existe', phone: '922 222 222'),
+        );
+        final antes = c.read(operationsProvider).customers.length;
 
-      controller.addLead(lead(phone: '922 222 222'));
-      expect(
-        () => controller.convertLead(lead(phone: '922 222 222')),
-        throwsA(isA<StateError>()),
-      );
-      // Não cria cliente nenhum, e a lead não fica pendente para sempre.
-      expect(c.read(operationsProvider).customers, hasLength(antes));
-      expect(
-        c.read(operationsProvider).leads
-            .firstWhere((l) => l.id == 'lead-1')
-            .status,
-        LeadStatus.converted,
-      );
-    });
+        controller.addLead(lead(phone: '922 222 222'));
+        expect(
+          () => controller.convertLead(lead(phone: '922 222 222')),
+          throwsA(isA<StateError>()),
+        );
+        // Não cria cliente nenhum, e a lead não fica pendente para sempre.
+        expect(c.read(operationsProvider).customers, hasLength(antes));
+        expect(
+          c
+              .read(operationsProvider)
+              .leads
+              .firstWhere((l) => l.id == 'lead-1')
+              .status,
+          LeadStatus.converted,
+        );
+      },
+    );
 
     test('lead sem telemóvel não colide com clientes sem telemóvel', () {
       final c = container();
@@ -91,14 +96,25 @@ void main() {
         isNull,
       );
       expect(
-        c.read(operationsProvider).machines.firstWhere((m) => m.id == 'm1').status,
+        c
+            .read(operationsProvider)
+            .machines
+            .firstWhere((m) => m.id == 'm1')
+            .status,
         MachineStatus.reserved,
       );
 
       // O ciclo automático anulava esta escolha na mesma chamada.
-      expect(controller.updateMachineStatus('m1', MachineStatus.available), isTrue);
       expect(
-        c.read(operationsProvider).machines.firstWhere((m) => m.id == 'm1').status,
+        controller.updateMachineStatus('m1', MachineStatus.available),
+        isTrue,
+      );
+      expect(
+        c
+            .read(operationsProvider)
+            .machines
+            .firstWhere((m) => m.id == 'm1')
+            .status,
         MachineStatus.available,
       );
     });
@@ -120,7 +136,10 @@ void main() {
         ),
         isNull,
       );
-      expect(controller.updateMachineStatus('m1', MachineStatus.available), isFalse);
+      expect(
+        controller.updateMachineStatus('m1', MachineStatus.available),
+        isFalse,
+      );
     });
   });
 

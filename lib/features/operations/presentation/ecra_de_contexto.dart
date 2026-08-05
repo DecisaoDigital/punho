@@ -10,18 +10,32 @@ import 'package:flutter/material.dart';
 /// no ecrã de boas-vindas, onde o utilizador é convidado a rodar o dispositivo
 /// *antes* de tocar no botão.
 class EcraDeContexto extends StatelessWidget {
+  /// O lado do ícone — e do símbolo, que ocupa o mesmo lugar.
+  static const _ladoDoTopo = 56.0;
+
   const EcraDeContexto({
     super.key,
-    required this.icone,
+    this.icone,
+    this.simbolo,
     required this.titulo,
     required this.paragrafos,
     required this.rotuloDoBotao,
     required this.aoAvancar,
     this.aoVoltar,
     this.rodape,
-  });
+  }) : assert(
+         (icone == null) != (simbolo == null),
+         'ou um ícone do Material ou um símbolo nosso — o topo é um só',
+       );
 
-  final IconData icone;
+  /// Um ícone do Material, para o que é conceito: um visto, um aviso.
+  final IconData? icone;
+
+  /// A marca, para quando quem abre o ecrã é a marca. Ocupa o mesmo lugar do
+  /// [icone] e mede o mesmo, para o ritmo do ecrã não mudar consoante o que lá
+  /// está.
+  final Widget? simbolo;
+
   final String titulo;
 
   /// Um `Text` por parágrafo, com respiração entre eles. Uma string só com
@@ -52,11 +66,12 @@ class EcraDeContexto extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    icone,
-                    size: 56,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  simbolo ??
+                      Icon(
+                        icone,
+                        size: _ladoDoTopo,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                   const SizedBox(height: 20),
                   Text(titulo, style: textos.headlineMedium),
                   const SizedBox(height: 16),

@@ -6,9 +6,18 @@ import 'ecra_de_contexto.dart';
 /// Último ecrã do onboarding do gestor, antes de entrar na app.
 ///
 /// Até aqui o gestor passava do último campo directamente para o painel, sem
-/// nunca lhe ter sido dito o que a app é. Este ecrã fecha o onboarding: diz o
-/// que vai encontrar, avisa que "por apurar" é normal no início, e avisa que o
+/// nunca lhe ter sido dito o que a app é. Este ecrã fecha o onboarding: diz
+/// que está feito, avisa que "por apurar" é normal no início, e avisa que o
 /// ecrã vai rodar.
+///
+/// **Já não apresenta a app.** Chamava-se "Bem-vindo à Punho." e explicava o
+/// que a Punho é — o que fazia sentido enquanto era o único ecrã a fazê-lo.
+/// Desde 5/8/2026 quem entra por pedido aprovado é recebido logo à entrada
+/// pelo [BemVindoScreen], com o texto do Cesar; ele percorreu o onboarding
+/// todo e deu por si a ser recebido outra vez, no fim — «cheguei ao menu Bem
+/// vindo 2 porque antes era o primeiro». Duas boas-vindas no mesmo percurso é
+/// uma a mais, e a que se corta é a que chega quando a pessoa já lá está
+/// dentro. Ficou-lhe o trabalho que só ele pode fazer: fechar.
 ///
 /// **A rotação é da app, não do gestor.** O ecrã abre em portrait — como todo o
 /// onboarding — e é o botão "Entrar na Punho" que pede landscape, antes de
@@ -54,16 +63,15 @@ class _BoasVindasScreenState extends State<BoasVindasScreen> {
   Widget build(BuildContext context) {
     final cores = Theme.of(context).colorScheme;
     return EcraDeContexto(
-      // Punho, a mão. É o nome da app.
-      icone: Icons.back_hand_outlined,
-      titulo: 'Bem-vindo à Punho.',
+      // A mão do Punho é do ecrã de entrada. Aqui o que se diz é "está feito".
+      icone: Icons.check_circle_outline,
+      titulo: 'Está tudo pronto.',
       paragrafos: const [
-        'A Punho é o painel do teu negócio. Mostra o que entrou, o que saiu, o '
-            'que está por cobrar e o que fazer esta semana — em cinco vistas.',
+        'As respostas ficam guardadas quando entrares. Podes mudar qualquer '
+            'uma mais tarde, em Definições.',
         'Não te preocupes se algum número aparecer como "por apurar": à medida '
             'que usas a app, ela vai aprendendo o teu ritmo e melhorando as '
             'sugestões.',
-        'Vamos a isto?',
       ],
       rodape: Container(
         padding: const EdgeInsets.all(14),

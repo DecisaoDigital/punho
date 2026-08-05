@@ -46,12 +46,11 @@ void main() {
   });
 
   group('BoasVindasScreen', () {
-    testWidgets('recebe o gestor e avisa da rotação', (tester) async {
+    testWidgets('fecha o onboarding e avisa da rotação', (tester) async {
       var entrou = 0;
       await montar(tester, BoasVindasScreen(aoEntrar: () => entrou++));
 
-      expect(find.text('Bem-vindo à Punho.'), findsOneWidget);
-      expect(find.textContaining('em cinco vistas'), findsOneWidget);
+      expect(find.text('Está tudo pronto.'), findsOneWidget);
       expect(find.textContaining('por apurar'), findsOneWidget);
       expect(find.textContaining('modo horizontal'), findsOneWidget);
       expect(find.textContaining('vai rodar sozinho'), findsOneWidget);
@@ -60,6 +59,19 @@ void main() {
 
       await tester.tap(find.text('Entrar na Punho →'));
       expect(entrou, 1);
+    });
+
+    testWidgets('não volta a apresentar a app — isso é do ecrã de entrada', (
+      tester,
+    ) async {
+      // «cheguei ao menu Bem vindo 2 porque antes era o primeiro» — Cesar,
+      // 5/8/2026. Quem chega aqui já percorreu o onboarding inteiro; ser
+      // recebido outra vez, no fim, é dizer-lhe que ainda não entrou.
+      await montar(tester, BoasVindasScreen(aoEntrar: () {}));
+
+      expect(find.textContaining('Bem-vindo'), findsNothing);
+      expect(find.textContaining('A Punho é'), findsNothing);
+      expect(find.text('Vamos a isto?'), findsNothing);
     });
 
     testWidgets('compõe em retrato e depois de rodar para paisagem', (

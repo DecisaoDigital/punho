@@ -15,9 +15,7 @@ import '../dashboard/fixtura.dart';
 /// o total declarado.
 ProviderContainer containerVazio() {
   final container = ProviderContainer(
-    overrides: [
-      operationRepositoryProvider.overrideWithValue(_RepoVazio()),
-    ],
+    overrides: [operationRepositoryProvider.overrideWithValue(_RepoVazio())],
   );
   addTearDown(container.dispose);
   return container;
@@ -50,14 +48,16 @@ void main() {
 
     test('declarar zero também não cria nada', () {
       final c = containerVazio();
-      c.read(operationsProvider.notifier).completeOnboarding(
-        companyName: 'Alugueres Norte',
-        legalForm: 'Lda.',
-        hasFleet: false,
-        collaborators: 0,
-        totalMachinesDeclared: 0,
-        insertMachinesNow: false,
-      );
+      c
+          .read(operationsProvider.notifier)
+          .completeOnboarding(
+            companyName: 'Alugueres Norte',
+            legalForm: 'Lda.',
+            hasFleet: false,
+            collaborators: 0,
+            totalMachinesDeclared: 0,
+            insertMachinesNow: false,
+          );
 
       expect(c.read(operationsProvider).machines, isEmpty);
     });
@@ -93,23 +93,25 @@ void main() {
   group('Alterar o total nas Definições', () {
     ProviderContainer comOnboardingE(int declaradas) {
       final c = containerVazio();
-      c.read(operationsProvider.notifier).completeOnboarding(
-        companyName: 'Alugueres Norte',
-        legalForm: 'Lda.',
-        hasFleet: false,
-        collaborators: 0,
-        totalMachinesDeclared: declaradas,
-        insertMachinesNow: false,
-      );
+      c
+          .read(operationsProvider.notifier)
+          .completeOnboarding(
+            companyName: 'Alugueres Norte',
+            legalForm: 'Lda.',
+            hasFleet: false,
+            collaborators: 0,
+            totalMachinesDeclared: declaradas,
+            insertMachinesNow: false,
+          );
       return c;
     }
 
     test('subir de 20 para 25 não cria máquina nenhuma', () {
       final c = comOnboardingE(20);
 
-      c.read(operationsProvider.notifier).updateCompanySettings(
-        totalMachinesDeclared: 25,
-      );
+      c
+          .read(operationsProvider.notifier)
+          .updateCompanySettings(totalMachinesDeclared: 25);
 
       expect(c.read(operationsProvider).machines, isEmpty);
       expect(c.read(operationsProvider).totalMachinesDeclared, 25);
@@ -119,27 +121,31 @@ void main() {
       // Eliminar uma máquina é decisão explícita, pelo caixote da lista — nunca
       // efeito secundário de mexer num contador.
       final c = containerVazio();
-      c.read(operationsProvider.notifier).completeOnboarding(
-        companyName: 'Alugueres Norte',
-        legalForm: 'Lda.',
-        hasFleet: false,
-        collaborators: 0,
-        totalMachinesDeclared: 20,
-        insertMachinesNow: false,
-      );
-      c.read(operationsProvider.notifier).saveMachine(
-        const Machine(
-          id: 'm1',
-          name: 'Mini escavadora',
-          reference: 'ME-01',
-          category: 'Escavação',
-          status: MachineStatus.available,
-        ),
-      );
+      c
+          .read(operationsProvider.notifier)
+          .completeOnboarding(
+            companyName: 'Alugueres Norte',
+            legalForm: 'Lda.',
+            hasFleet: false,
+            collaborators: 0,
+            totalMachinesDeclared: 20,
+            insertMachinesNow: false,
+          );
+      c
+          .read(operationsProvider.notifier)
+          .saveMachine(
+            const Machine(
+              id: 'm1',
+              name: 'Mini escavadora',
+              reference: 'ME-01',
+              category: 'Escavação',
+              status: MachineStatus.available,
+            ),
+          );
 
-      c.read(operationsProvider.notifier).updateCompanySettings(
-        totalMachinesDeclared: 15,
-      );
+      c
+          .read(operationsProvider.notifier)
+          .updateCompanySettings(totalMachinesDeclared: 15);
 
       expect(c.read(operationsProvider).machines, hasLength(1));
       expect(c.read(operationsProvider).totalMachinesDeclared, 15);
@@ -149,56 +155,63 @@ void main() {
   group('Tarefas contam contra o declarado', () {
     test('declaradas sem nenhuma registada gera a tarefa com o total', () {
       final c = containerVazio();
-      c.read(operationsProvider.notifier).completeOnboarding(
-        companyName: 'Alugueres Norte',
-        legalForm: 'Lda.',
-        hasFleet: false,
-        collaborators: 0,
-        totalMachinesDeclared: 4,
-        insertMachinesNow: false,
-      );
+      c
+          .read(operationsProvider.notifier)
+          .completeOnboarding(
+            companyName: 'Alugueres Norte',
+            legalForm: 'Lda.',
+            hasFleet: false,
+            collaborators: 0,
+            totalMachinesDeclared: 4,
+            insertMachinesNow: false,
+          );
       final estado = c.read(operationsProvider);
 
       expect(estado.machinesStillToIdentify, 4);
 
-      final tarefa = tarefasPendentes(estado, agoraFixa).firstWhere(
-        (t) => t.id == 'maquinas-por-identificar',
-      );
+      final tarefa = tarefasPendentes(
+        estado,
+        agoraFixa,
+      ).firstWhere((t) => t.id == 'maquinas-por-identificar');
       expect(tarefa.titulo, 'Identificar 4 máquinas');
       expect(tarefa.cta, 'Abrir Máquinas');
     });
 
-    test('registar as máquinas descontas ao que falta e a tarefa desaparece', () {
-      final c = containerVazio();
-      final notifier = c.read(operationsProvider.notifier);
-      notifier.completeOnboarding(
-        companyName: 'Alugueres Norte',
-        legalForm: 'Lda.',
-        hasFleet: false,
-        collaborators: 0,
-        totalMachinesDeclared: 1,
-        insertMachinesNow: false,
-      );
+    test(
+      'registar as máquinas descontas ao que falta e a tarefa desaparece',
+      () {
+        final c = containerVazio();
+        final notifier = c.read(operationsProvider.notifier);
+        notifier.completeOnboarding(
+          companyName: 'Alugueres Norte',
+          legalForm: 'Lda.',
+          hasFleet: false,
+          collaborators: 0,
+          totalMachinesDeclared: 1,
+          insertMachinesNow: false,
+        );
 
-      notifier.saveMachine(
-        const Machine(
-          id: 'martelo',
-          name: 'Martelo',
-          reference: 'MT-01',
-          category: 'Demolição',
-          status: MachineStatus.available,
-        ),
-      );
+        notifier.saveMachine(
+          const Machine(
+            id: 'martelo',
+            name: 'Martelo',
+            reference: 'MT-01',
+            category: 'Demolição',
+            status: MachineStatus.available,
+          ),
+        );
 
-      final estado = c.read(operationsProvider);
-      expect(estado.machinesStillToIdentify, 0);
-      expect(
-        tarefasPendentes(estado, agoraFixa).where(
-          (t) => t.id == 'maquinas-por-identificar',
-        ),
-        isEmpty,
-      );
-    });
+        final estado = c.read(operationsProvider);
+        expect(estado.machinesStillToIdentify, 0);
+        expect(
+          tarefasPendentes(
+            estado,
+            agoraFixa,
+          ).where((t) => t.id == 'maquinas-por-identificar'),
+          isEmpty,
+        );
+      },
+    );
 
     test('registar mais do que o declarado não gera tarefa negativa', () {
       final c = containerVazio();
@@ -234,9 +247,10 @@ void main() {
       expect(estado.machinesStillToIdentify, 0);
       expect(estado.inventoryIdentifiedAboveEstimate, isTrue);
       expect(
-        tarefasPendentes(estado, agoraFixa).where(
-          (t) => t.id == 'maquinas-por-identificar',
-        ),
+        tarefasPendentes(
+          estado,
+          agoraFixa,
+        ).where((t) => t.id == 'maquinas-por-identificar'),
         isEmpty,
       );
     });
@@ -247,23 +261,27 @@ void main() {
       tester,
     ) async {
       final c = containerVazio();
-      c.read(operationsProvider.notifier).completeOnboarding(
-        companyName: 'Alugueres Norte',
-        legalForm: 'Lda.',
-        hasFleet: false,
-        collaborators: 0,
-        totalMachinesDeclared: 2,
-        insertMachinesNow: false,
-      );
-      c.read(operationsProvider.notifier).saveMachine(
-        const Machine(
-          id: 'identificada',
-          name: 'Mini escavadora 1.8T',
-          reference: 'ME-018',
-          category: 'Escavação',
-          status: MachineStatus.available,
-        ),
-      );
+      c
+          .read(operationsProvider.notifier)
+          .completeOnboarding(
+            companyName: 'Alugueres Norte',
+            legalForm: 'Lda.',
+            hasFleet: false,
+            collaborators: 0,
+            totalMachinesDeclared: 2,
+            insertMachinesNow: false,
+          );
+      c
+          .read(operationsProvider.notifier)
+          .saveMachine(
+            const Machine(
+              id: 'identificada',
+              name: 'Mini escavadora 1.8T',
+              reference: 'ME-018',
+              category: 'Escavação',
+              status: MachineStatus.available,
+            ),
+          );
       await montarLandscape(tester, c, const MachinesPage());
 
       expect(find.text('Mini escavadora 1.8T'), findsOneWidget);
@@ -278,15 +296,17 @@ void main() {
       // interpolava categoria e referência às cegas e escrevia "Lavadora 8 kg
       // · " com o separador a apontar para o nada (visto no Redmi).
       final c = containerVazio();
-      c.read(operationsProvider.notifier).saveMachine(
-        const Machine(
-          id: 'so-nome',
-          name: 'Lavadora 8 kg',
-          reference: '',
-          category: '',
-          status: MachineStatus.available,
-        ),
-      );
+      c
+          .read(operationsProvider.notifier)
+          .saveMachine(
+            const Machine(
+              id: 'so-nome',
+              name: 'Lavadora 8 kg',
+              reference: '',
+              category: '',
+              status: MachineStatus.available,
+            ),
+          );
 
       await montarLandscape(tester, c, const MachinesPage());
 
@@ -298,15 +318,17 @@ void main() {
       tester,
     ) async {
       final c = containerVazio();
-      c.read(operationsProvider.notifier).saveMachine(
-        const Machine(
-          id: 'so-categoria',
-          name: 'Secador 20 kg',
-          reference: '',
-          category: 'Secagem',
-          status: MachineStatus.available,
-        ),
-      );
+      c
+          .read(operationsProvider.notifier)
+          .saveMachine(
+            const Machine(
+              id: 'so-categoria',
+              name: 'Secador 20 kg',
+              reference: '',
+              category: 'Secagem',
+              status: MachineStatus.available,
+            ),
+          );
 
       await montarLandscape(tester, c, const MachinesPage());
 

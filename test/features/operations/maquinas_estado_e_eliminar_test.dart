@@ -30,9 +30,18 @@ void main() {
       await tester.tap(find.byType(Chip).first);
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(PopupMenuItem<MachineStatus>, 'Disponível'), findsOneWidget);
-      expect(find.widgetWithText(PopupMenuItem<MachineStatus>, 'Reservada'), findsOneWidget);
-      expect(find.widgetWithText(PopupMenuItem<MachineStatus>, 'Alugada'), findsOneWidget);
+      expect(
+        find.widgetWithText(PopupMenuItem<MachineStatus>, 'Disponível'),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(PopupMenuItem<MachineStatus>, 'Reservada'),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(PopupMenuItem<MachineStatus>, 'Alugada'),
+        findsOneWidget,
+      );
       expect(
         find.widgetWithText(PopupMenuItem<MachineStatus>, 'Em manutenção'),
         findsOneWidget,
@@ -173,14 +182,22 @@ void main() {
 
       notifier.archiveMachine(id);
       expect(
-        container.read(operationsProvider).machines.firstWhere((m) => m.id == id).archived,
+        container
+            .read(operationsProvider)
+            .machines
+            .firstWhere((m) => m.id == id)
+            .archived,
         isTrue,
       );
 
       notifier.unarchiveMachine(id);
       notifier.unarchiveMachine(id);
       expect(
-        container.read(operationsProvider).machines.firstWhere((m) => m.id == id).archived,
+        container
+            .read(operationsProvider)
+            .machines
+            .firstWhere((m) => m.id == id)
+            .archived,
         isFalse,
       );
     });

@@ -59,9 +59,12 @@ void main() {
   }
 
   /// Percorre o onboarding de gestor pelo caminho curto (switch OFF no passo
-  /// 6), preenchendo identificação, NIF, morada, contactos e os números de
-  /// equipa e frota — chega ao ecrã de boas-vindas sem passar pelos passos
+  /// 8), preenchendo identificação, NIF, os números de equipa e frota, contacto
+  /// e morada — chega ao ecrã de boas-vindas sem passar pelos passos
   /// financeiros, que não interessam a este teste.
+  ///
+  /// A ordem é a pedida a 5/8/2026: NIF, funcionários, veículos e contacto
+  /// antes da morada, e cada um no seu ecrã.
   Future<void> preencherComoGestor(WidgetTester tester) async {
     // Passo 0: nome do responsável.
     await tester.enterText(find.byType(TextField).first, 'César Mendes');
@@ -74,27 +77,31 @@ void main() {
     // Passo 3: forma jurídica (fica na omissão) + NIF.
     await tester.enterText(find.byType(TextField).first, '509442129');
     await continuar(tester);
-    // Passo 4: morada, código-postal, localidade, telemóvel, email.
+    // Passo 4: funcionários, com o botão "+". Cada toque tem de ser seguido de
+    // um `pump()`: o `onPressed` captura `value` no fecho do `_NumberChoice`
+    // da altura, e sem redesenhar entre toques os dois primeiros toques usavam
+    // o mesmo `value` antigo e o número não subia.
+    await tester.tap(find.byIcon(Icons.add_circle_outline));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.add_circle_outline)); // 2 funcionários
+    await tester.pumpAndSettle();
+    await continuar(tester);
+    // Passo 5: veículos.
+    await tester.tap(find.byIcon(Icons.add_circle_outline)); // 1 veículo
+    await tester.pumpAndSettle();
+    await continuar(tester);
+    // Passo 6: contacto — telemóvel e email, no seu próprio ecrã desde 5/8/2026.
+    final contactos = find.byType(TextField);
+    await tester.enterText(contactos.at(0), '912480315');
+    await tester.enterText(contactos.at(1), 'gestor@marealta.pt');
+    await continuar(tester);
+    // Passo 7: morada, código-postal, localidade.
     final campos = find.byType(TextField);
     await tester.enterText(campos.at(0), 'Rua das Lavandarias, 10');
     await tester.enterText(campos.at(1), '4700-000');
     await tester.enterText(campos.at(2), 'Braga');
-    await tester.enterText(campos.at(3), '912480315');
-    await tester.enterText(campos.at(4), 'gestor@marealta.pt');
     await continuar(tester);
-    // Passo 5: colaboradores e veículos, com os botões "+". Cada toque tem de
-    // ser seguido de um `pump()`: o `onPressed` captura `value` no fecho do
-    // `_NumberChoice` da altura, e sem redesenhar entre toques os dois
-    // primeiros toques usavam o mesmo `value` antigo e o número não subia.
-    final mais = find.byIcon(Icons.add_circle_outline);
-    await tester.tap(mais.at(0)); // 1 colaborador
-    await tester.pump();
-    await tester.tap(mais.at(0)); // 2 colaboradores
-    await tester.pump();
-    await tester.tap(mais.at(1)); // 1 veículo
-    await tester.pumpAndSettle();
-    await continuar(tester);
-    // Passo 6: switch — OFF entra directo no ecrã de boas-vindas.
+    // Passo 8: switch — OFF entra directo no ecrã de boas-vindas.
     await tester.tap(find.byType(Switch));
     await tester.pumpAndSettle();
     await continuar(tester);
@@ -142,37 +149,33 @@ void main() {
     },
   );
 
-  testWidgets(
-    'o onboarding conclui mesmo quando o envio ao servidor falha',
-    (tester) async {
-      final c = container(invocar: (_) async => {'ok': false});
-      await abrir(tester, c);
+  testWidgets('o onboarding conclui mesmo quando o envio ao servidor falha', (
+    tester,
+  ) async {
+    final c = container(invocar: (_) async => {'ok': false});
+    await abrir(tester, c);
 
-      await preencherComoGestor(tester);
+    await preencherComoGestor(tester);
 
-      expect(
-        c.read(operationsProvider).onboarded,
-        isTrue,
-        reason: 'uma EF a falhar não pode prender o onboarding',
-      );
-      c.dispose();
-    },
-  );
+    expect(
+      c.read(operationsProvider).onboarded,
+      isTrue,
+      reason: 'uma EF a falhar não pode prender o onboarding',
+    );
+    c.dispose();
+  });
 
-  testWidgets(
-    'o onboarding conclui mesmo quando a chamada à EF rebenta',
-    (tester) async {
-      final c = container(
-        invocar: (_) async => throw Exception('sem rede'),
-      );
-      await abrir(tester, c);
+  testWidgets('o onboarding conclui mesmo quando a chamada à EF rebenta', (
+    tester,
+  ) async {
+    final c = container(invocar: (_) async => throw Exception('sem rede'));
+    await abrir(tester, c);
 
-      await preencherComoGestor(tester);
+    await preencherComoGestor(tester);
 
-      expect(c.read(operationsProvider).onboarded, isTrue);
-      c.dispose();
-    },
-  );
+    expect(c.read(operationsProvider).onboarded, isTrue);
+    c.dispose();
+  });
 
   testWidgets('o colaborador não manda uma ficha em branco', (tester) async {
     final chamadas = <Map<String, dynamic>>[];

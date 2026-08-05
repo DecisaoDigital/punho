@@ -70,7 +70,9 @@ void main() {
       expect(tester.getTopLeft(notas).dy, greaterThan(nome.dy));
       expect(
         tester.getSize(notas).width,
-        greaterThan(tester.getSize(find.widgetWithText(TextField, 'Nome')).width),
+        greaterThan(
+          tester.getSize(find.widgetWithText(TextField, 'Nome')).width,
+        ),
       );
     });
 

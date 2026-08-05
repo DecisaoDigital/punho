@@ -62,8 +62,9 @@ void main() {
     tester,
   ) async {
     await abrirComTeclado(tester);
-    // Nome, dono, NIF, telefone — e chega-se à morada, o passo com mais campos.
-    await avancar(tester, 4);
+    // Nome, empresa, cargo, NIF, funcionários, veículos, contacto — e chega-se
+    // à morada.
+    await avancar(tester, 7);
 
     expect(find.text('Morada'), findsOneWidget);
     // Um overflow é lançado como excepção do framework durante o layout: se
@@ -73,7 +74,7 @@ void main() {
 
   testWidgets('com o teclado aberto chega-se ao botão a rolar', (tester) async {
     await abrirComTeclado(tester);
-    await avancar(tester, 4);
+    await avancar(tester, 7);
 
     // O botão pode ficar abaixo do teclado — o que não pode é ser inalcançável.
     await tester.ensureVisible(find.text('Continuar'));
@@ -83,26 +84,27 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('sem teclado o conteúdo continua centrado, e não colado ao topo', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 3.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: containerVazio(),
-        child: const MaterialApp(home: OnboardingPage()),
-      ),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'sem teclado o conteúdo continua centrado, e não colado ao topo',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: containerVazio(),
+          child: const MaterialApp(home: OnboardingPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    // O `minHeight` do scroll é o que mantém o `Center` a centrar. Sem ele o
-    // conteúdo encostava ao topo em todos os passos.
-    final topo = tester.getTopLeft(find.text('1 de 12')).dy;
-    expect(topo, greaterThan(100));
-  });
+      // O `minHeight` do scroll é o que mantém o `Center` a centrar. Sem ele o
+      // conteúdo encostava ao topo em todos os passos.
+      final topo = tester.getTopLeft(find.text('1 de 14')).dy;
+      expect(topo, greaterThan(100));
+    },
+  );
 }
 
 class _RepoVazio implements OperationRepository {

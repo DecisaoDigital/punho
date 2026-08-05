@@ -36,7 +36,10 @@ void main() {
   const redmiDeitado = Size(838.9, 392.7);
   const margens = FakeViewPadding(top: 33.8, right: 47.3);
 
-  Future<Rect> abrirReservas(WidgetTester tester, OperationsState estado) async {
+  Future<Rect> abrirReservas(
+    WidgetTester tester,
+    OperationsState estado,
+  ) async {
     tester.view.physicalSize = redmiDeitado;
     tester.view.devicePixelRatio = 1.0;
     tester.view.padding = margens;
@@ -62,9 +65,7 @@ void main() {
     // Sem máquinas é o caso que destapou o defeito: o campo mostra uma frase
     // curta e larga a maior parte da quota que o `Flexible` lhe reservava.
     final canvas = await abrirReservas(tester, estadoSemMovimento());
-    final botao = tester.getRect(
-      find.widgetWithText(FilledButton, 'Reservar'),
-    );
+    final botao = tester.getRect(find.widgetWithText(FilledButton, 'Reservar'));
 
     expect(
       canvas.right - botao.right,
@@ -77,9 +78,7 @@ void main() {
     // Com máquinas o campo é um dropdown, com outra largura. A margem é a
     // mesma — se dependesse do conteúdo do campo, não era uma margem.
     final canvas = await abrirReservas(tester, estadoComMovimento());
-    final botao = tester.getRect(
-      find.widgetWithText(FilledButton, 'Reservar'),
-    );
+    final botao = tester.getRect(find.widgetWithText(FilledButton, 'Reservar'));
 
     expect(
       canvas.right - botao.right,
@@ -110,9 +109,7 @@ void main() {
 
     // Um `Wrap` partia o botão para uma segunda linha e ninguém dava por isso:
     // o ecrã continuava a montar sem erro. Aqui a altura denuncia-o.
-    final botao = tester.getRect(
-      find.widgetWithText(FilledButton, 'Reservar'),
-    );
+    final botao = tester.getRect(find.widgetWithText(FilledButton, 'Reservar'));
     final maquina = tester.getRect(find.byType(DropdownButton<String>));
     expect(
       botao.center.dy,

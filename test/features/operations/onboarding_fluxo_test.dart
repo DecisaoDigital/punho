@@ -15,9 +15,7 @@ import 'package:punho/features/operations/presentation/operational_pages.dart';
 void main() {
   ProviderContainer containerVazio() {
     final container = ProviderContainer(
-      overrides: [
-        operationRepositoryProvider.overrideWithValue(_RepoVazio()),
-      ],
+      overrides: [operationRepositoryProvider.overrideWithValue(_RepoVazio())],
     );
     addTearDown(container.dispose);
     return container;
@@ -44,15 +42,16 @@ void main() {
     }
   }
 
-  /// Avança até ao passo do switch (índice 6), que é o 7º de dados.
+  /// Avança até ao passo do switch (índice 8), que é o 9º de dados.
   ///
   /// Passa pelo passo 3 (forma jurídica + NIF), que desde a decisão do NIF
   /// obrigatório (2026-08-02) já não avança sem um NIF válido — preenche-o
-  /// com um valor de 9 dígitos antes de continuar.
+  /// com um valor de 9 dígitos antes de continuar. Depois dele vêm
+  /// funcionários, veículos, contacto e morada, pela ordem pedida a 5/8/2026.
   Future<void> irAteAoSwitch(WidgetTester tester) async {
     await continuar(tester, vezes: 3);
     await tester.enterText(find.byType(TextField).last, '509442129');
-    await continuar(tester, vezes: 3);
+    await continuar(tester, vezes: 5);
     expect(find.text('Continuar com os dados operacionais?'), findsOneWidget);
   }
 
@@ -68,7 +67,7 @@ void main() {
     expect(find.text('Quantas máquinas tem aproximadamente?'), findsNothing);
   });
 
-  testWidgets('depois do MaisDados vem o passo 7, e no fim o BoasVindas', (
+  testWidgets('depois do MaisDados vem o passo 9, e no fim o BoasVindas', (
     tester,
   ) async {
     await abrir(tester, containerVazio());
@@ -78,7 +77,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Quantas máquinas tem aproximadamente?'), findsOneWidget);
-    expect(find.text('8 de 12'), findsOneWidget);
+    expect(find.text('10 de 14'), findsOneWidget);
 
     // Os cinco passos que faltam: máquinas, 2× facturação, manutenção, custos.
     await continuar(tester, vezes: 5);

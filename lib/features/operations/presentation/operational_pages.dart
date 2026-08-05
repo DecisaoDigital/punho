@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../shared/widgets/brand_lockup.dart';
 
@@ -21,11 +22,14 @@ import '../../../data/repositories/operation_repository.dart';
 import '../../../domain/models/operations.dart';
 import '../../../domain/models/historical_month.dart';
 import '../../auth/acesso_providers.dart';
+import '../../auth/domain/estado_acesso.dart';
+import 'bem_vindo_screen.dart';
 import 'boas_vindas_screen.dart';
 import 'mais_dados_screen.dart';
+import 'rascunho_do_onboarding.dart';
 
 /// Os ecrãs do onboarding que explicam em vez de pedir.
-enum _EcraDeContexto { maisDados, boasVindas }
+enum _EcraDeContexto { bemVindo, maisDados, boasVindas }
 
 class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key});
@@ -33,7 +37,8 @@ class OnboardingPage extends ConsumerStatefulWidget {
   ConsumerState<OnboardingPage> createState() => _OnboardingPageState();
 }
 
-class _OnboardingPageState extends ConsumerState<OnboardingPage> {
+class _OnboardingPageState extends ConsumerState<OnboardingPage>
+    with WidgetsBindingObserver {
   int step = 0, collaborators = 0, machines = 0, vehicles = 0;
   // Se o gestor não quer/não tem tempo agora, salta os passos financeiros e
   // operacionais (máquinas + facturação + manutenção + custos).
@@ -66,6 +71,37 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   // sempre em `punho_empresas.dados={}`. Isto fecha a porta na origem.
   String? nifErro;
 
+  /// Passos que **não se voltam a perguntar** porque já foram respondidos no
+  /// pedido de acesso — índices em `titlesFull`/`titlesColab`.
+  ///
+  /// Vazio quando o servidor não sabe nada (modo de demonstração, ou conta sem
+  /// pedido): aí pergunta-se tudo, como sempre.
+  final _jaRespondidos = <int>{};
+
+  /// Quem entra, quando o servidor já o sabe — ou seja, quando o pedido foi
+  /// aprovado. Nulo em modo de demonstração, e é ele que decide se há ecrã de
+  /// boas-vindas.
+  String? _nomeConhecido;
+
+  static const _passoNome = 0, _passoEmpresa = 1, _passoCargo = 2;
+
+  /// Passos do gestor que a ordem pedida a 5/8/2026 mexeu, com nome para não
+  /// haver números soltos espalhados: o NIF valida-se, o dos funcionários leva
+  /// nota de rodapé, e o do switch é a fronteira do caminho curto.
+  static const _passoNif = 3, _passoFuncionarios = 4, _passoDoSwitch = 8;
+
+  /// Acima disto, o passo dos funcionários avisa — não recusa.
+  ///
+  /// «se passar de 3, uma nota de rodapé: limite temporário de máx. 3
+  /// funcionários, fale com a Decisão Digital para desbloquear mais» — Cesar,
+  /// 5/8/2026. É um tecto de produto, temporário e igual para todos os que
+  /// entram; o limite a sério de cada empresa é o que ele autoriza no Control
+  /// (`punho_subscricoes.limite_colaboradores_ativos`), e no onboarding ainda
+  /// não há subscrição para o ler. Nada aqui bloqueia: o número declarado é
+  /// informativo, e quem trava o acesso de quem excede é a aprovação no
+  /// Control.
+  static const _funcionariosSemAutorizacao = 3;
+
   @override
   void initState() {
     super.initState();
@@ -73,10 +109,155 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     // tablet: o `main.dart` bloqueava landscape no arranque e ninguém aqui
     // dizia o contrário (Decisão 13).
     OrientacaoDoContexto.portraitJa();
+    // Para saber quando a app vai para segundo plano — é o último momento em
+    // que ainda se pode gravar o rascunho antes de o sistema matar o processo.
+    WidgetsBinding.instance.addObserver(this);
+    _preencherComOQueOServidorJaSabe();
+    _recuperarRascunho();
+  }
+
+  /// O papel de rascunho, quando as [SharedPreferences] já responderam.
+  ///
+  /// `null` até lá e em modo de teste sem plugin — e nesse caso o onboarding
+  /// funciona exactamente como funcionava, sem guardar nada.
+  RascunhoDoOnboarding? _rascunho;
+
+  /// Traz de volta o que ficou escrito da última vez.
+  ///
+  /// Corre depois de [_preencherComOQueOServidorJaSabe] de propósito: o que o
+  /// próprio escreveu ganha ao que o servidor sabia, porque é mais recente e
+  /// porque pode ter sido uma correcção.
+  Future<void> _recuperarRascunho() async {
+    RascunhoDoOnboarding rascunho;
+    try {
+      rascunho = RascunhoDoOnboarding(await SharedPreferences.getInstance());
+    } catch (erro) {
+      // Sem armazenamento não se guarda rascunho nenhum. É uma perda de
+      // conforto, não é motivo para não deixar entrar na app.
+      debugPrint('[Onboarding] sem rascunho: $erro');
+      return;
+    }
+    if (!mounted) return;
+    _rascunho = rascunho;
+    final guardado = rascunho.ler();
+    if (guardado == null) return;
+    setState(() => _aplicarRascunho(guardado));
+  }
+
+  void _aplicarRascunho(Map<String, dynamic> r) {
+    void texto(TextEditingController controlador, String chave) {
+      final valor = r[chave];
+      if (valor is String && valor.isNotEmpty) controlador.text = valor;
+    }
+
+    int numero(String chave, int actual) =>
+        (r[chave] as num?)?.toInt() ?? actual;
+
+    texto(ownerName, 'nome');
+    texto(name, 'empresa');
+    texto(taxId, 'nif');
+    texto(phone, 'telefone');
+    texto(email, 'email');
+    texto(address, 'morada');
+    texto(postalCode, 'codigo_postal');
+    texto(locality, 'localidade');
+    texto(revenueLastYear, 'faturacao_ano_passado');
+    texto(revenueThisYear, 'faturacao_este_ano');
+    texto(maintenanceLastYear, 'manutencao');
+    texto(fixedMonthlyCosts, 'custos_fixos');
+    if (r['cargo'] is String) role = r['cargo'] as String;
+    if (r['forma_juridica'] is String) legal = r['forma_juridica'] as String;
+    if (r['quer_tudo'] is bool) wantsFullSetup = r['quer_tudo'] as bool;
+    collaborators = numero('funcionarios', collaborators);
+    vehicles = numero('veiculos', vehicles);
+    machines = numero('maquinas', machines);
+    // Volta ao passo onde ia. Se o percurso entretanto encolheu — outra conta,
+    // outro cargo —, o `build` corta-o para o último que existe.
+    step = numero('passo', step);
+  }
+
+  /// O formulário inteiro, tal como está agora.
+  Map<String, dynamic> _paraRascunho() => {
+    'passo': step,
+    'cargo': role,
+    'forma_juridica': legal,
+    'quer_tudo': wantsFullSetup,
+    'funcionarios': collaborators,
+    'veiculos': vehicles,
+    'maquinas': machines,
+    'nome': ownerName.text,
+    'empresa': name.text,
+    'nif': taxId.text,
+    'telefone': phone.text,
+    'email': email.text,
+    'morada': address.text,
+    'codigo_postal': postalCode.text,
+    'localidade': locality.text,
+    'faturacao_ano_passado': revenueLastYear.text,
+    'faturacao_este_ano': revenueThisYear.text,
+    'manutencao': maintenanceLastYear.text,
+    'custos_fixos': fixedMonthlyCosts.text,
+  };
+
+  /// Guarda sem esperar: isto não pode atrasar uma mudança de ecrã.
+  void _guardarRascunho() {
+    final rascunho = _rascunho;
+    if (rascunho == null) return;
+    unawaited(rascunho.guardar(_paraRascunho()));
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState estado) {
+    // `paused` é o último aviso antes de o Android poder terminar o processo —
+    // e o MIUI termina-o sem cerimónia. É aqui que o que está escrito no ecrã
+    // actual fica em segurança.
+    if (estado == AppLifecycleState.paused) _guardarRascunho();
+  }
+
+  /// Os três primeiros passos — nome, empresa, cargo — são exactamente o que o
+  /// pedido de acesso já perguntou e o Control já aprovou. Guarda-se a resposta
+  /// e **tira-se a pergunta do percurso**.
+  ///
+  /// «quando eu fiz log in já foi pedido isto, se já foi perguntado e já
+  /// respondi, não tem de me fazer mais estas perguntas» — César, 5/8/2026.
+  /// Tinha acabado de ser aprovado como Alfredo/DepilConcept e o Punho abriu em
+  /// «Como te chamas?». Trazer a resposta já escrita no campo não chegava: a
+  /// pergunta continuava lá, e uma pergunta já respondida não é para fazer.
+  ///
+  /// O que **não** se faz é dar o onboarding por concluído: o NIF, a morada, a
+  /// equipa e os números continuam por dizer, e é para isso que os outros
+  /// passos existem. Tiram-se os respondidos, ficam os que faltam.
+  void _preencherComOQueOServidorJaSabe() {
+    // Em modo de demonstração não há Supabase, e `Supabase.instance` rebenta.
+    // Um onboarding que não arranca é muito pior do que um campo por preencher.
+    EstadoAcesso? acesso;
+    try {
+      acesso = ref.read(estadoAcessoProvider).valueOrNull;
+    } catch (_) {
+      return;
+    }
+    if (acesso == null) return;
+    if (acesso.nome != null) {
+      ownerName.text = acesso.nome!;
+      _nomeConhecido = acesso.nome;
+      _jaRespondidos.add(_passoNome);
+    }
+    if (acesso.empresaNome != null) {
+      name.text = acesso.empresaNome!;
+      _jaRespondidos.add(_passoEmpresa);
+    }
+    // O cargo autoritativo é o de `punho_membros`, como o comentário de [role]
+    // já dizia que havia de ser assim que houvesse Supabase a sério. Deixa de
+    // ser uma pergunta: quem responde é o Control, ao aprovar.
+    if (acesso.perfil != null) {
+      role = acesso.perfil!;
+      _jaRespondidos.add(_passoCargo);
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     for (final controller in [
       name,
       ownerName,
@@ -103,6 +284,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   /// não avança depois disto, portanto não há caminho para o chamar duas vezes:
   /// o ecrã seguinte é a app.
   void _concluirOnboarding() {
+    // O rascunho existe para o caminho até aqui. A partir deste ponto a
+    // verdade é o `OperationsState`, e deixá-lo para trás fazia a próxima
+    // conta a entrar neste telemóvel herdar respostas que não são dela.
+    unawaited(_rascunho?.limpar() ?? Future.value());
     ref
         .read(operationsProvider.notifier)
         .completeOnboarding(
@@ -184,13 +369,26 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     //   [se colaborador termina aqui — não sabe nem tem de saber NIF, morada,
     //    facturação ou custos da empresa. Isso é do gestor.]
     //   3+ - só para gestor: dados administrativos + operacionais
+    // A ordem dos três primeiros passos do gestor foi dada pelo Cesar a 5 de
+    // Agosto de 2026, depois de ver o ecrã de boas-vindas: «depois do Bem-vindo
+    // pedes o contribuinte, o número de funcionários e se existem veículos da
+    // empresa e quantos». São os três que dão o painel a mexer — quem é a
+    // empresa perante o fisco, quanta gente tem e se tem frota. A morada e os
+    // contactos passaram para trás deles: são precisos para documentos, não
+    // para números, e nenhum ecrã fica à espera deles.
+    //
+    // Equipa e frota deixaram de partilhar um ecrã pela mesma razão: ele
+    // enumerou-os como duas perguntas, e a de funcionários ganhou uma nota de
+    // rodapé que não tem nada a ver com veículos.
     const titlesFull = [
       'Como te chamas?',
       'Como se chama a empresa?',
       'Qual é o teu cargo?',
       'Forma jurídica e NIF da empresa',
-      'Morada e contactos da empresa',
-      'Equipa e frota',
+      'Quantos funcionários tem a empresa?',
+      'A empresa tem veículos? Quantos?',
+      'Contacto:',
+      'Morada da empresa',
       'Continuar com os dados operacionais?',
       'Quantas máquinas tem aproximadamente?',
       'Quanto faturou no ano passado?',
@@ -212,8 +410,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       '',
       'O gestor decide e vê tudo. O colaborador só regista o seu próprio trabalho.',
       'A forma jurídica pode ser alterada mais tarde. O NIF é obrigatório: 9 dígitos, sem espaços nem pontos.',
-      'Morada, código-postal e localidade + telemóvel e email. Não é pedido país.',
-      'Número de colaboradores e de veículos (podem ser 0). Os separadores Funcionários e Veículos ficam activos quando forem maiores que 0.',
+      'Quantos trabalham contigo neste momento. Pode ser 0. O separador Funcionários fica activo quando for maior que 0.',
+      'Carrinhas, carros ou motas ao serviço da empresa. Pode ser 0 — o separador Veículos só aparece quando for maior que 0.',
+      'Telemóvel e email da empresa. É por aqui que te chegamos, e é o que sai nos documentos que envias.',
+      'Morada, código-postal e localidade. Não é pedido país.',
       'Podes saltar e preencher depois, em Definições. Sem estes números o painel mostra "Por apurar" em vez de recomendações.',
       'Uma estimativa chega. Criamos uma linha por máquina para lhes dares nome e foto aos poucos.',
       'Um número redondo serve. Fica em branco se não souberes.',
@@ -236,11 +436,16 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       'O gestor decide e vê tudo. O colaborador só regista o seu próprio trabalho.',
       'O gestor precisa deste contacto para te chegar quando for preciso.',
     ];
-    // Gestor que declarou não ter tempo agora: termina no passo 7 (o próprio
-    // switch), sem entrar nos campos financeiros. Fica lá para preencher
-    // depois, na secção Gestão.
-    final gestorTitles = wantsFullSetup ? titlesFull : titlesFull.sublist(0, 7);
-    final gestorHelps = wantsFullSetup ? helpsFull : helpsFull.sublist(0, 7);
+    // Gestor que declarou não ter tempo agora: termina no próprio switch
+    // (índice 7), sem entrar nos campos financeiros. Fica lá para preencher
+    // depois, na secção Gestão. O corte é `switch + 1` — se um passo entrar ou
+    // sair antes dele, é este número que muda.
+    final gestorTitles = wantsFullSetup
+        ? titlesFull
+        : titlesFull.sublist(0, _passoDoSwitch + 1);
+    final gestorHelps = wantsFullSetup
+        ? helpsFull
+        : helpsFull.sublist(0, _passoDoSwitch + 1);
     final titles = role == 'colaborador' ? titlesColab : gestorTitles;
     final helps = role == 'colaborador' ? helpsColab : gestorHelps;
 
@@ -248,12 +453,25 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     // de contexto entram no meio dos passos de dados e as contas de "+1 aqui,
     // −1 ali" tornavam-se impossíveis de ler. Um `int` é um passo de dados (o
     // índice em titles/helps); um `_EcraDeContexto` é um ecrã que explica.
+    // Os passos que ainda são perguntas. Os que o pedido de acesso já
+    // respondeu saem daqui — a resposta ficou guardada no `initState`, e
+    // repetir a pergunta a quem acabou de a responder é o que o César apanhou
+    // a 5/8/2026. Índices originais, para o `switch` de baixo e o `i == 6` do
+    // ecrã de contexto continuarem a falar da mesma coisa.
+    final passosDeDados = [
+      for (var i = 0; i < titles.length; i++)
+        if (!_jaRespondidos.contains(i)) i,
+    ];
     final percurso = <Object>[
-      for (var i = 0; i < titles.length; i++) ...[
+      // Quem chega aqui depois de o pedido ser aprovado nunca viu a app: é
+      // apresentada antes de lhe ser pedido o NIF. Só quando se sabe o nome —
+      // ou seja, só quando houve aprovação; em demonstração não aparece.
+      if (_nomeConhecido != null) _EcraDeContexto.bemVindo,
+      for (final i in passosDeDados) ...[
         i,
         // Depois do switch, e só quando ele está ligado: o gestor acabou de
         // dizer "sim, quero preencher" e merece saber o que vem.
-        if (role != 'colaborador' && wantsFullSetup && i == 6)
+        if (role != 'colaborador' && wantsFullSetup && i == _passoDoSwitch)
           _EcraDeContexto.maisDados,
       ],
       // Ao colaborador não se mostra: o ecrã promete um painel que o shell dele
@@ -263,21 +481,32 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     // O `step` é um índice no percurso, e o switch abaixo continua a indexar os
     // passos de dados. Fora de um passo de dados fica −1, que nenhum `case`
     // apanha, e o ecrã de contexto é devolvido antes de o `input` ser usado.
-    final ecraActual = percurso[step.clamp(0, percurso.length - 1)];
+    //
+    // O corte não é decoração: o percurso encolhe quando se desliga o switch, e
+    // um rascunho recuperado pode apontar para além do fim. Corrige-se o `step`
+    // e não só a leitura — senão o "Voltar" seguinte recuava a partir de um
+    // número que já não existe.
+    final passo = step.clamp(0, percurso.length - 1);
+    if (passo != step) step = passo;
+    final ecraActual = percurso[passo];
     final passoDeDados = ecraActual is int ? ecraActual : -1;
 
     if (ecraActual is _EcraDeContexto) {
-      void voltar() => setState(() => step--);
-      return switch (ecraActual) {
+      void voltar() => _irPara(passo - 1);
+      return _comBotaoParaTras(passo, switch (ecraActual) {
+        _EcraDeContexto.bemVindo => BemVindoScreen(
+          nome: _nomeConhecido!,
+          aoAvancar: () => _irPara(passo + 1),
+        ),
         _EcraDeContexto.maisDados => MaisDadosScreen(
-          aoAvancar: () => setState(() => step++),
+          aoAvancar: () => _irPara(passo + 1),
           aoVoltar: voltar,
         ),
         _EcraDeContexto.boasVindas => BoasVindasScreen(
           aoEntrar: _concluirOnboarding,
           aoVoltar: voltar,
         ),
-      };
+      });
     }
 
     final input = switch (passoDeDados) {
@@ -299,6 +528,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         ),
       ),
       2 => DropdownButtonFormField<String>(
+        isExpanded: true,
         initialValue: role,
         decoration: const InputDecoration(
           labelText: 'O teu cargo',
@@ -366,8 +596,67 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   ),
                 ],
               ),
-      // Passo 4 (só gestor): morada + contactos juntos.
-      4 => Column(
+      // Passo 4 (só gestor): quantos funcionários. Sozinho no ecrã porque é o
+      // único que tem um tecto a comunicar — ver [_NotaDeRodape] abaixo.
+      _passoFuncionarios => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _NumberChoice(
+            label: 'Funcionários',
+            value: collaborators,
+            onChanged: (v) => setState(() => collaborators = v),
+          ),
+          if (collaborators > _funcionariosSemAutorizacao) ...[
+            const SizedBox(height: 12),
+            const _NotaDeRodape(
+              'Limite temporário de $_funcionariosSemAutorizacao '
+              'funcionários. Fale com a Decisão Digital para desbloquear '
+              'mais. Pode continuar — os que passarem do limite cadastram-se '
+              'à mesma, só não acedem sem autorização.',
+            ),
+          ],
+        ],
+      ),
+      // Passo 5 (só gestor): frota. O número responde às duas metades da
+      // pergunta — se tem, e quantos. Deixou de ser um switch quando passou a
+      // servir também para calcular custos.
+      5 => _NumberChoice(
+        label: 'Veículos',
+        value: vehicles,
+        onChanged: (v) => setState(() => vehicles = v),
+      ),
+      // Passo 6 (só gestor): como se lhe chega. Saiu do ecrã da morada por
+      // pedido do Cesar a 5/8/2026 — «quero que perguntes o contacto no
+      // primeiro log in». Estava lá, mas em quarto e quinto campo de um ecrã
+      // com cinco: um dado que se pede não é o mesmo que um dado que está
+      // algures no formulário. De caminho, o ecrã da morada deixou de ser o
+      // que rebentava com o teclado aberto.
+      6 => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: phone,
+            autofocus: true,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(
+              labelText: 'Telemóvel ou telefone',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: email,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+      // Passo 7 (só gestor): a morada, agora só ela.
+      7 => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
@@ -402,51 +691,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: phone,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(
-              labelText: 'Telemóvel ou telefone',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: email,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              labelText: 'Email',
-              border: OutlineInputBorder(),
-            ),
-          ),
         ],
       ),
-      // Passo 5 (só gestor): equipa + frota, ambos como número (default 0).
-      // Veículos deixou de ser um switch — o número serve tanto para saber
-      // se a área Veículos deve aparecer (>0) como para calcular custos.
-      5 => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _NumberChoice(
-            label: 'Colaboradores',
-            value: collaborators,
-            onChanged: (v) => setState(() => collaborators = v),
-          ),
-          const SizedBox(height: 12),
-          _NumberChoice(
-            label: 'Veículos',
-            value: vehicles,
-            onChanged: (v) => setState(() => vehicles = v),
-          ),
-        ],
-      ),
-      // Passo 6 (só gestor): switch de decisão. Se OFF, titles.length cai
-      // para 7 e o botão passa a "Concluir" — o utilizador entra na app
-      // sem preencher máquinas/faturação/custos.
+      // Passo 8 (só gestor): switch de decisão. Se OFF, `titles` corta aqui
+      // e o botão passa a "Começar" — o utilizador entra na app sem preencher
+      // máquinas/faturação/custos.
       // Cor verde no thumb+track quando ON: torna claro visualmente que a
       // opção "sim, preencher" está seleccionada. Cinza (default) para OFF.
-      6 => SwitchListTile(
+      _passoDoSwitch => SwitchListTile(
         contentPadding: EdgeInsets.zero,
         title: Text(
           wantsFullSetup
@@ -458,20 +710,20 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         activeTrackColor: Colors.green.shade200,
         onChanged: (v) => setState(() => wantsFullSetup = v),
       ),
-      7 => _NumberChoice(
+      9 => _NumberChoice(
         label: 'Número aproximado de máquinas',
         value: machines,
         onChanged: (v) => setState(() => machines = v),
       ),
-      8 => _EuroInput(
+      10 => _EuroInput(
         controller: revenueLastYear,
         label: 'Faturação no ano passado (€)',
       ),
-      9 => _EuroInput(
+      11 => _EuroInput(
         controller: revenueThisYear,
         label: 'Faturação deste ano até hoje (€)',
       ),
-      10 => _EuroInput(
+      12 => _EuroInput(
         controller: maintenanceLastYear,
         label: 'Manutenção paga no ano passado (€)',
       ),
@@ -484,88 +736,97 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         label: 'Custos fixos mensais (€)',
       ),
     };
-    return Scaffold(
-      // Centrado enquanto couber, a rolar quando não couber.
-      //
-      // O passo com mais campos — morada, código-postal, localidade, telemóvel
-      // e email — não cabe no que sobra do ecrã com o teclado aberto, e a
-      // `Column` rebentava por baixo em vez de deixar chegar lá. O `minHeight`
-      // é o que mantém o `Center` a centrar: sem ele o scroll dá altura
-      // infinita ao filho e o conteúdo colava-se ao topo em todos os passos.
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, restricoes) => SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: restricoes.maxHeight),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: Padding(
-                    padding: const EdgeInsets.all(28),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const BrandLockup(),
-                        const SizedBox(height: 28),
-                        // Conta passos de dados, não ecrãs: os de contexto não têm
-                        // contador, e dizer "12 de 14" num percurso cujo contador nunca
-                        // chega a 14 era pior do que não o ter.
-                        Text('${passoDeDados + 1} de ${titles.length}'),
-                        const SizedBox(height: 8),
-                        Text(
-                          titles[passoDeDados],
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        // Sub-texto vazio colapsa de facto: sem isto ficava um
-                        // SizedBox fantasma a abrir buraco entre a pergunta e o campo.
-                        if (helps[passoDeDados].isNotEmpty) ...[
+    return _comBotaoParaTras(
+      passo,
+      Scaffold(
+        // Centrado enquanto couber, a rolar quando não couber.
+        //
+        // O passo com mais campos — morada, código-postal, localidade, telemóvel
+        // e email — não cabe no que sobra do ecrã com o teclado aberto, e a
+        // `Column` rebentava por baixo em vez de deixar chegar lá. O `minHeight`
+        // é o que mantém o `Center` a centrar: sem ele o scroll dá altura
+        // infinita ao filho e o conteúdo colava-se ao topo em todos os passos.
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, restricoes) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: restricoes.maxHeight),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: Padding(
+                      padding: const EdgeInsets.all(28),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const BrandLockup(),
+                          const SizedBox(height: 28),
+                          // Conta passos de dados, não ecrãs: os de contexto não têm
+                          // contador, e dizer "12 de 14" num percurso cujo contador nunca
+                          // chega a 14 era pior do que não o ter.
+                          // Conta pelos passos que restam, não pelo índice
+                          // original: com as perguntas já respondidas fora, "4 de
+                          // 12" seria mentira nos dois números.
+                          Text(
+                            '${passosDeDados.indexOf(passoDeDados) + 1}'
+                            ' de ${passosDeDados.length}',
+                          ),
                           const SizedBox(height: 8),
-                          Text(helps[passoDeDados]),
-                        ],
-                        const SizedBox(height: 24),
-                        input,
-                        const SizedBox(height: 28),
-                        Row(
-                          children: [
-                            if (step > 0)
-                              TextButton(
-                                onPressed: () => setState(() => step--),
-                                child: const Text('Voltar'),
-                              ),
-                            const Spacer(),
-                            FilledButton(
-                              onPressed: () {
-                                // Passo 3 (só gestor): forma jurídica + NIF. O NIF é
-                                // obrigatório para avançar — ver comentário em
-                                // `nifErro` para o porquê.
-                                if (passoDeDados == 3 &&
-                                    role != 'colaborador' &&
-                                    !nifValido(taxId.text)) {
-                                  setState(
-                                    () => nifErro =
-                                        'O NIF é obrigatório: 9 dígitos.',
-                                  );
-                                  return;
-                                }
-                                if (step < percurso.length - 1) {
-                                  setState(() => step++);
-                                } else {
-                                  // Só o colaborador chega aqui como último ecrã: o
-                                  // percurso do gestor termina sempre no ecrã de
-                                  // boas-vindas, e é ele que grava.
-                                  _concluirOnboarding();
-                                }
-                              },
-                              child: Text(
-                                step == percurso.length - 1
-                                    ? 'Começar'
-                                    : 'Continuar',
-                              ),
-                            ),
+                          Text(
+                            titles[passoDeDados],
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          // Sub-texto vazio colapsa de facto: sem isto ficava um
+                          // SizedBox fantasma a abrir buraco entre a pergunta e o campo.
+                          if (helps[passoDeDados].isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Text(helps[passoDeDados]),
                           ],
-                        ),
-                      ],
+                          const SizedBox(height: 24),
+                          input,
+                          const SizedBox(height: 28),
+                          Row(
+                            children: [
+                              if (passo > 0)
+                                TextButton(
+                                  onPressed: () => _irPara(passo - 1),
+                                  child: const Text('Voltar'),
+                                ),
+                              const Spacer(),
+                              FilledButton(
+                                onPressed: () {
+                                  // Passo 3 (só gestor): forma jurídica + NIF. O NIF é
+                                  // obrigatório para avançar — ver comentário em
+                                  // `nifErro` para o porquê.
+                                  if (passoDeDados == _passoNif &&
+                                      role != 'colaborador' &&
+                                      !nifValido(taxId.text)) {
+                                    setState(
+                                      () => nifErro =
+                                          'O NIF é obrigatório: 9 dígitos.',
+                                    );
+                                    return;
+                                  }
+                                  if (passo < percurso.length - 1) {
+                                    _irPara(passo + 1);
+                                  } else {
+                                    // Só o colaborador chega aqui como último ecrã: o
+                                    // percurso do gestor termina sempre no ecrã de
+                                    // boas-vindas, e é ele que grava.
+                                    _concluirOnboarding();
+                                  }
+                                },
+                                child: Text(
+                                  passo == percurso.length - 1
+                                      ? 'Começar'
+                                      : 'Continuar',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -576,6 +837,34 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       ),
     );
   }
+
+  /// Muda de ecrã e deixa o rascunho a par.
+  ///
+  /// Gravar aqui e não a cada tecla é de propósito: o que interessa não perder
+  /// é um passo terminado. O que estiver a ser escrito neste momento fica
+  /// seguro pelo [didChangeAppLifecycleState], que dispara quando a app sai
+  /// para segundo plano.
+  void _irPara(int destino) {
+    setState(() => step = destino);
+    _guardarRascunho();
+  }
+
+  /// O "para trás" do Android recua um passo, como o botão Voltar.
+  ///
+  /// Não recuava: saía do onboarding inteiro. O Cesar estava a meio dos dados
+  /// da empresa, carregou para trás, foi parar ao ecrã inicial do telemóvel e
+  /// perdeu o que tinha escrito — «só deveria ter ido uma página para trás».
+  ///
+  /// No primeiro ecrã deixa-se sair, que é o que o Android manda: aí não há
+  /// passo nenhum atrás, e prender a pessoa dentro da app era pior.
+  Widget _comBotaoParaTras(int passo, Widget filho) => PopScope(
+    canPop: passo == 0,
+    onPopInvokedWithResult: (saiu, _) {
+      if (saiu || passo == 0) return;
+      _irPara(passo - 1);
+    },
+    child: filho,
+  );
 }
 
 String? _optional(String value) {
@@ -602,6 +891,34 @@ class _EuroInput extends StatelessWidget {
       border: const OutlineInputBorder(),
     ),
   );
+}
+
+/// Nota que aparece por baixo do campo quando há algo a dizer sobre a resposta
+/// que acabou de ser dada — e só então.
+///
+/// Não é um erro e não veste a cor de erro: o passo continua a avançar. É um
+/// aviso do que vai acontecer a seguir, e a diferença tem de se ver.
+class _NotaDeRodape extends StatelessWidget {
+  const _NotaDeRodape(this.texto);
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
+    final cor = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.info_outline, size: 18, color: cor),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            texto,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cor),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _NumberChoice extends StatelessWidget {
@@ -882,6 +1199,7 @@ class _HistoricalDataPageState extends ConsumerState<HistoricalDataPage> {
             ),
             const SizedBox(height: 18),
             DropdownButtonFormField<int>(
+              isExpanded: true,
               initialValue: year,
               decoration: const InputDecoration(labelText: 'Ano'),
               items: [
@@ -3340,6 +3658,7 @@ class _FormularioDeConfirmacaoDeReservaState
           ),
         ),
         DropdownButtonFormField<BookingStatus>(
+          isExpanded: true,
           initialValue: status,
           decoration: const InputDecoration(labelText: 'Estado inicial'),
           items: const [
@@ -3536,6 +3855,7 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
       aviso: erro,
       campos: [
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: customerId,
           decoration: const InputDecoration(labelText: 'Cliente'),
           items: activeCustomers
@@ -3549,6 +3869,7 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
           onChanged: (value) => setState(() => customerId = value!),
         ),
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: machineId,
           decoration: const InputDecoration(labelText: 'Máquina'),
           items:
@@ -3569,6 +3890,7 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
               : (value) => setState(() => machineId = value!),
         ),
         DropdownButtonFormField<_BookingDuration>(
+          isExpanded: true,
           initialValue: duration,
           decoration: const InputDecoration(labelText: 'Duração'),
           items: const [
@@ -3594,6 +3916,7 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
         ),
         if (duration == _BookingDuration.halfDay)
           DropdownButtonFormField<_HalfDay>(
+            isExpanded: true,
             initialValue: halfDay,
             decoration: const InputDecoration(labelText: 'Período'),
             items: const [
@@ -3643,6 +3966,7 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
           ),
         ),
         DropdownButtonFormField<BookingStatus>(
+          isExpanded: true,
           initialValue: status,
           decoration: const InputDecoration(labelText: 'Estado inicial'),
           items: const [
@@ -3663,6 +3987,7 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
         ),
         if (widget.responsibleId == null)
           DropdownButtonFormField<String?>(
+            isExpanded: true,
             initialValue: collaboratorId,
             decoration: const InputDecoration(labelText: 'Responsável'),
             items: [

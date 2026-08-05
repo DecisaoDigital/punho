@@ -89,40 +89,41 @@ void main() {
     },
   );
 
-  testWidgets('editar e gravar actualiza o cliente sem perder os outros campos', (
-    tester,
-  ) async {
-    final container = containerComClientes([clienteCompleto]);
-    await montarLandscape(
-      tester,
-      container,
-      const ClientsPage(),
-      tamanho: const Size(1280, 800),
-    );
+  testWidgets(
+    'editar e gravar actualiza o cliente sem perder os outros campos',
+    (tester) async {
+      final container = containerComClientes([clienteCompleto]);
+      await montarLandscape(
+        tester,
+        container,
+        const ClientsPage(),
+        tamanho: const Size(1280, 800),
+      );
 
-    await tester.tap(find.byTooltip('Editar cliente').first);
-    await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Editar cliente').first);
+      await tester.pumpAndSettle();
 
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Notas'),
-      'Já não aceita obras aos sábados.',
-    );
-    await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
-    await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Notas'),
+        'Já não aceita obras aos sábados.',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+      await tester.pumpAndSettle();
 
-    expect(tester.takeException(), isNull);
-    expect(find.byType(EcraDeFormulario), findsNothing);
+      expect(tester.takeException(), isNull);
+      expect(find.byType(EcraDeFormulario), findsNothing);
 
-    final guardado = container
-        .read(operationsProvider)
-        .customers
-        .firstWhere((c) => c.id == 'c-silva');
-    expect(guardado.notes, 'Já não aceita obras aos sábados.');
-    // O resto do cliente não se perdeu por causa da edição.
-    expect(guardado.taxId, '501234567');
-    expect(guardado.email, 'geral@silva.pt');
-    expect(guardado.address, 'Rua Nova 12');
-  });
+      final guardado = container
+          .read(operationsProvider)
+          .customers
+          .firstWhere((c) => c.id == 'c-silva');
+      expect(guardado.notes, 'Já não aceita obras aos sábados.');
+      // O resto do cliente não se perdeu por causa da edição.
+      expect(guardado.taxId, '501234567');
+      expect(guardado.email, 'geral@silva.pt');
+      expect(guardado.address, 'Rua Nova 12');
+    },
+  );
 
   testWidgets(
     'gravar sem mudar o telemóvel ou o NIF não acusa duplicado consigo mesmo',
@@ -145,7 +146,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Já existe um cliente com o mesmo telemóvel ou NIF na empresa.'),
+        find.text(
+          'Já existe um cliente com o mesmo telemóvel ou NIF na empresa.',
+        ),
         findsNothing,
       );
       expect(find.byType(EcraDeFormulario), findsNothing);
@@ -183,7 +186,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Já existe um cliente com o mesmo telemóvel ou NIF na empresa.'),
+        find.text(
+          'Já existe um cliente com o mesmo telemóvel ou NIF na empresa.',
+        ),
         findsOneWidget,
       );
       // Continua aberto: a recusa não fecha o diálogo.
