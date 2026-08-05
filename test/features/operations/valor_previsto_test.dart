@@ -16,7 +16,7 @@ import '../dashboard/fixtura.dart';
 /// Definições) nos dois formulários que pedem "Valor previsto (€)":
 /// confirmação de reserva (a partir do calendário) e nova marcação. Texto que
 /// não se consegue ler já não vira zero silencioso — recusa a gravação com um
-/// aviso visível, via `DialogoDeFormulario.aviso`.
+/// aviso visível, via `EcraDeFormulario.aviso`.
 void main() {
   Future<void> abrirConfirmacaoDeReserva(
     WidgetTester tester,

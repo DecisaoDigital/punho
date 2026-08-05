@@ -104,7 +104,7 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
   /// Recusa a mostrar-se junto ao campo, não num `SnackBar`.
   ///
   /// Este ecrã é uma página inteira, não um diálogo — não tem o `aviso` do
-  /// [DialogoDeFormulario]. Mas o problema é o mesmo que o originou: num
+  /// [EcraDeFormulario]. Mas o problema é o mesmo que o originou: num
   /// telemóvel deitado com o teclado aberto, o `SnackBar` nasce por baixo do
   /// teclado, escondido. Ficar junto ao campo do valor garante que se vê
   /// mesmo com o teclado ainda aberto — o botão *Guardar*, mais abaixo, pode
@@ -514,7 +514,7 @@ String _money(int cents) =>
     '${(cents / 100).toStringAsFixed(2).replaceAll('.', ',')} €';
 
 /// Recusa a mostrar-se dentro do formulário, junto ao campo do valor — o
-/// mesmo desenho visual do `aviso` de [DialogoDeFormulario], para quem não
+/// mesmo desenho visual do `aviso` de [EcraDeFormulario], para quem não
 /// vive num diálogo. Ver o comentário em `_RegisterExpensePageState.erro`.
 class _AvisoDeValor extends StatelessWidget {
   const _AvisoDeValor({required this.texto});

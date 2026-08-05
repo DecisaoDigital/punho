@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/layout/dialogo_de_formulario.dart';
 import 'package:punho/core/layout/ecra_de_formulario.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/operations.dart';
@@ -11,7 +10,7 @@ import '../dashboard/fixtura.dart';
 
 /// "Abro o diálogo no telemóvel, o teclado sobe e o Guardar desaparece."
 ///
-/// Os três diálogos de registo passaram a usar o [DialogoDeFormulario]: rodapé
+/// Os três formulários de registo passaram a usar o [EcraDeFormulario]: rodapé
 /// fora do scroll e altura a descontar o teclado. Estes testes fixam as duas
 /// propriedades que interessam — o Guardar está sempre visível e cabe dentro do
 /// ecrã — em retrato com teclado e em paisagem sem ele.

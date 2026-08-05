@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/layout/dialogo_de_formulario.dart';
+import 'package:punho/core/layout/ecra_de_formulario.dart';
 import 'package:punho/core/operations/kpis.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/data/repositories/operation_repository.dart';
@@ -402,7 +402,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(DialogoDeFormulario), findsNothing);
+      expect(find.byType(EcraDeFormulario), findsNothing);
       expect(
         container
             .read(operationsProvider)
