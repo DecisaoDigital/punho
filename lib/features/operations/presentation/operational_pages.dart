@@ -2230,73 +2230,41 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
       // "Marcações / Reservas" eram duas palavras para a mesma coisa, e a
       // barra lateral já diz "Reservas".
       title: 'Reservas',
-      // Tudo na linha do "+ Reservar", alinhado pelo topo dele.
-      //
-      // A máquina, a navegação de datas e o Semana/Mês viviam numa segunda
-      // barra por baixo, que num telemóvel deitado partia em duas ou três
-      // linhas e roubava altura ao calendário — que é o que interessa ver.
-      // `Row` e não `Wrap`.
-      //
-      // O `Wrap` dizia-se numa linha só mas partia assim que não coubesse — e
-      // não cabia: o "+ Reservar" caía para uma segunda linha, sozinho, a
-      // gastar 50 dp de altura que o calendário precisava. Numa `Row` os campos
-      // encolhem em vez de fugirem, e o botão fica onde tem de estar: encostado
-      // ao canto superior direito, sempre.
-      action: Row(
-        children: [
-          // Largura própria, e não `Flexible`.
-          //
-          // `Flexible` participa na repartição do espaço livre tal como o
-          // `Expanded` da data: com flex igual, o `Row` reservava metade para
-          // cada um. O campo da máquina usava só o que o texto pedia e os 85 dp
-          // que sobravam da sua quota ficavam mortos — empurrando o botão
-          // "+ Reservar" para dentro, longe da margem direita.
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 220),
-            child: _EscolhaDeMaquina(
-              maquinas: state.machines
-                  .where((machine) => !machine.archived)
-                  .toList(),
-              escolhida: selectedMachine,
-              aoEscolher: (machineId) => setState(() {
-                _selectedMachineId = machineId;
-                _selectedSlotStarts.clear();
-                // O aviso cumpriu o que tinha a dizer: volta ao normal.
-                _tentativasSemMaquina = 0;
-              }),
+      action: LayoutBuilder(
+        builder: (_, restricoes) {
+          final escolhaDeMaquina = _EscolhaDeMaquina(
+            maquinas: state.machines
+                .where((machine) => !machine.archived)
+                .toList(),
+            escolhida: selectedMachine,
+            aoEscolher: (machineId) => setState(() {
+              _selectedMachineId = machineId;
+              _selectedSlotStarts.clear();
+              // O aviso cumpriu o que tinha a dizer: volta ao normal.
+              _tentativasSemMaquina = 0;
+            }),
+          );
+          final navegacaoDeDatas = _NavegacaoDeDatas(
+            focus: _focus,
+            view: _view,
+            onPrevious: () => setState(
+              () => _focus = _view == _CalendarView.week
+                  ? _focus.subtract(const Duration(days: 7))
+                  : DateTime(_focus.year, _focus.month - 1, 1),
             ),
-          ),
-          const SizedBox(width: 8),
-          // A data ao centro do que sobra entre a máquina e o botão. Antes
-          // vinha colada à máquina, com todo o vazio a seguir.
-          Expanded(
-            child: Center(
-              child: _NavegacaoDeDatas(
-                focus: _focus,
-                view: _view,
-                onPrevious: () => setState(
-                  () => _focus = _view == _CalendarView.week
-                      ? _focus.subtract(const Duration(days: 7))
-                      : DateTime(_focus.year, _focus.month - 1, 1),
-                ),
-                onNext: () => setState(
-                  () => _focus = _view == _CalendarView.week
-                      ? _focus.add(const Duration(days: 7))
-                      : DateTime(_focus.year, _focus.month + 1, 1),
-                ),
-              ),
+            onNext: () => setState(
+              () => _focus = _view == _CalendarView.week
+                  ? _focus.add(const Duration(days: 7))
+                  : DateTime(_focus.year, _focus.month + 1, 1),
             ),
-          ),
-          // O Semana/Mês desceu para o canto vazio da coluna Manhã/Tarde: não
-          // gasta altura nenhuma lá, e aqui era ele que empurrava o botão para
-          // a segunda linha.
-          const SizedBox(width: 8),
-          if (_selectedSlotStarts.isNotEmpty)
-            TextButton(
-              onPressed: _clearSelection,
-              child: const Text('Limpar seleção'),
-            ),
-          FilledButton.icon(
+          );
+          final limparSelecao = _selectedSlotStarts.isEmpty
+              ? null
+              : TextButton(
+                  onPressed: _clearSelection,
+                  child: const Text('Limpar seleção'),
+                );
+          final reservar = FilledButton.icon(
             // Tamanho de origem, como os outros botões da app.
             //
             // Esteve a −5% para a linha caber, quando o Semana/Mês ainda estava
@@ -2332,8 +2300,82 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                   ? 'Reservar'
                   : 'Reservar (${_selectedSlotStarts.length})',
             ),
-          ),
-        ],
+          );
+
+          // Duas linhas quando a largura não dá para uma, e a conta é esta: a
+          // máquina pede 220, o "+ Reservar" mede 178, e sobre os 8+8 de ar dá
+          // 414. Deitado sobram-lhe 800 e não há discussão; de pé há 363, e é
+          // por 51 que não cabia — o `Row` transbordava pela direita.
+          //
+          // Abaixo de 560 desce a data para a segunda linha. Os 146 que
+          // sobrariam dos 414 chegam para as duas setas e pouco mais, e uma
+          // data ilegível ao centro não vale a linha que poupa. De pé é a
+          // altura que sobra: é dela que se paga.
+          if (restricoes.maxWidth < 560) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    // Aqui `Expanded` e não os 220 fixos: o que sobrar do botão
+                    // é dela, e o nome da máquina corta antes de transbordar.
+                    Expanded(child: escolhaDeMaquina),
+                    const SizedBox(width: 8),
+                    reservar,
+                  ],
+                ),
+                const SizedBox(height: 4),
+                // O "Limpar seleção" acompanha a data: na linha de cima
+                // apareceria e desapareceria a encolher o campo da máquina.
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (limparSelecao != null) limparSelecao,
+                    navegacaoDeDatas,
+                  ],
+                ),
+              ],
+            );
+          }
+
+          // Tudo na linha do "+ Reservar", alinhado pelo topo dele.
+          //
+          // A máquina, a navegação de datas e o Semana/Mês viviam numa segunda
+          // barra por baixo, que num telemóvel deitado partia em duas ou três
+          // linhas e roubava altura ao calendário — que é o que interessa ver.
+          // `Row` e não `Wrap`.
+          //
+          // O `Wrap` dizia-se numa linha só mas partia assim que não coubesse —
+          // e não cabia: o "+ Reservar" caía para uma segunda linha, sozinho, a
+          // gastar 50 dp de altura que o calendário precisava. Numa `Row` os
+          // campos encolhem em vez de fugirem, e o botão fica onde tem de
+          // estar: encostado ao canto superior direito, sempre.
+          return Row(
+            children: [
+              // Largura própria, e não `Flexible`.
+              //
+              // `Flexible` participa na repartição do espaço livre tal como o
+              // `Expanded` da data: com flex igual, o `Row` reservava metade
+              // para cada um. O campo da máquina usava só o que o texto pedia e
+              // os 85 dp que sobravam da sua quota ficavam mortos — empurrando
+              // o botão "+ Reservar" para dentro, longe da margem direita.
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 220),
+                child: escolhaDeMaquina,
+              ),
+              const SizedBox(width: 8),
+              // A data ao centro do que sobra entre a máquina e o botão. Antes
+              // vinha colada à máquina, com todo o vazio a seguir.
+              Expanded(child: Center(child: navegacaoDeDatas)),
+              // O Semana/Mês desceu para o canto vazio da coluna Manhã/Tarde:
+              // não gasta altura nenhuma lá, e aqui era ele que empurrava o
+              // botão para a segunda linha.
+              const SizedBox(width: 8),
+              if (limparSelecao != null) limparSelecao,
+              reservar,
+            ],
+          );
+        },
       ),
       child: Column(
         children: [

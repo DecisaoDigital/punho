@@ -24,13 +24,14 @@ import 'fixtura.dart';
 ///
 ///   - slides do painel, Redmi deitado (873x393) — 161 px · **corrigido**
 ///   - slides do painel, telemóvel pequeno (720x360) — 222 px · **corrigido**
-///   - ecrãs operacionais, Redmi de pé (393x873) — 51 px · **por corrigir**
+///   - ecrãs operacionais, Redmi de pé (393x873) — 51 px · **corrigido**
 ///
 /// Os dois primeiros eram a mesma causa: o rótulo do botão da recomendação não
-/// encolhia. O terceiro fica marcado com `skip` para a suite não ficar
-/// vermelha — **é dívida a pagar, não um teste a ignorar**.
-const _porCorrigir = true;
-
+/// encolhia. O terceiro esteve marcado com `skip` como dívida assumida e foi
+/// pago a 5 de Agosto de 2026: era a linha de acção das Reservas, que pede
+/// 414 dp de largura — o campo da máquina 220, o "+ Reservar" 178, e o ar
+/// entre eles — e de pé só tem 363. Abaixo de 560 a data desce para uma
+/// segunda linha; de pé é a altura que sobra, e é dela que se paga.
 void main() {
   /// Redmi Note 10 Pro: 1080x2400 físicos a 2.75 de densidade.
   const redmiDeitado = Size(873, 393);
@@ -70,26 +71,58 @@ void main() {
 
   group('os ecrãs operacionais cabem', () {
     for (final entrada in tamanhos.entries) {
-      testWidgets(
-        'em ${entrada.key}',
-        // Só o retrato continua a transbordar (51 px). Os restantes tamanhos
-        // ficam a proteger o que já foi corrigido.
-        skip: entrada.value.height > entrada.value.width && _porCorrigir,
-        (tester) async {
-          for (final ecra in const [
-            MachinesPage(),
-            BookingsPage(),
-            TarefasPage(),
-          ]) {
-            await montarLandscape(
-              tester,
-              containerCom(estadoComMovimento()),
-              ecra,
-              tamanho: entrada.value,
-            );
-          }
-        },
-      );
+      testWidgets('em ${entrada.key}', (tester) async {
+        for (final ecra in const [
+          MachinesPage(),
+          BookingsPage(),
+          TarefasPage(),
+        ]) {
+          await montarLandscape(
+            tester,
+            containerCom(estadoComMovimento()),
+            ecra,
+            tamanho: entrada.value,
+          );
+        }
+      });
+    }
+  });
+
+  group('a linha de acção das Reservas', () {
+    // Não chega não transbordar: encolher o "+ Reservar" ou espremer a data a
+    // duas setas coladas também não transborda, e seria pior. O que se fixa
+    // aqui é a saída escolhida — deitado tudo numa linha, de pé a data desce.
+    for (final entrada in {
+      'deitado fica numa linha só': redmiDeitado,
+      'de pé desce a data para a segunda linha': redmiDePe,
+    }.entries) {
+      testWidgets(entrada.key, (tester) async {
+        await montarLandscape(
+          tester,
+          containerCom(estadoComMovimento()),
+          const BookingsPage(),
+          tamanho: entrada.value,
+        );
+
+        final reservar = tester.getRect(find.byType(FilledButton).first);
+        final setaAnterior = tester.getRect(
+          find.byIcon(Icons.chevron_left).first,
+        );
+
+        if (entrada.value.width < entrada.value.height) {
+          expect(
+            setaAnterior.top,
+            greaterThanOrEqualTo(reservar.bottom),
+            reason: 'a data devia ter descido para debaixo do "+ Reservar"',
+          );
+        } else {
+          expect(
+            setaAnterior.center.dy,
+            closeTo(reservar.center.dy, 4),
+            reason: 'a data devia estar na mesma linha do "+ Reservar"',
+          );
+        }
+      });
     }
   });
 
