@@ -507,6 +507,11 @@ class _EditorDeCustosFixos extends StatelessWidget {
     aoMudar(copia);
   }
 
+  /// Quantas rubricas ficaram sem dia de vencimento. Uma rubrica sem dia não
+  /// chega à Caixa: sem data não há como saber se já saiu da conta.
+  static int _semDia(List<CustoFixo> rubricas) =>
+      rubricas.where((c) => c.diaDoMes == null).length;
+
   @override
   Widget build(BuildContext context) {
     final total = totalDeCustosFixos(rubricas);
@@ -632,6 +637,33 @@ class _EditorDeCustosFixos extends StatelessWidget {
               style: Theme.of(
                 context,
               ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+          ),
+        // O campo "Dia" já cá estava, e mesmo assim as rubricas ficavam sem
+        // ele: uma caixa pequena ao fundo da linha, com um rótulo que não diz
+        // o que se perde por a deixar em branco. Quem a deixou vazia foi
+        // depois ver a Caixa e não encontrou lá a renda.
+        if (_semDia(rubricas) > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.event_busy_outlined, size: 16),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _semDia(rubricas) == 1
+                        ? 'Uma rubrica está sem dia. Sem o dia em que sai, não '
+                              'entra na Caixa — o painel só a pode repartir '
+                              'pelos dias do mês.'
+                        : '${_semDia(rubricas)} rubricas estão sem dia. Sem o '
+                              'dia em que saem, não entram na Caixa — o painel '
+                              'só as pode repartir pelos dias do mês.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
             ),
           ),
       ],
