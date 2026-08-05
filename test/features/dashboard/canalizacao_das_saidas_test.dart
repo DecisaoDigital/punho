@@ -162,35 +162,38 @@ void main() {
       expect(mes.saidasCents, 80000);
     });
 
-    test('uma rubrica com data não conta duas vezes quando também é lançada', () {
-      // O risco de duplicação é real: o gestor declara a renda como rubrica
-      // fixa e, no mês seguinte, lança-a outra vez como despesa. Manda a fonte
-      // declarada — a mesma regra que já valia para os salários.
-      final mes = tesourariaDoMes(
-        estadoCom(
-          custosFixos: const [
-            CustoFixo(
-              id: 'cf1',
-              categoria: ExpenseCategory.rent,
-              valorCents: 80000,
-              diaDoMes: 1,
-            ),
-          ],
-          despesas: [
-            Expense(
-              id: 'd1',
-              date: DateTime(2026, 8, 1),
-              amountCents: 80000,
-              category: ExpenseCategory.rent,
-              status: ExpensePaymentStatus.paid,
-            ),
-          ],
-        ),
-        quatroDeAgosto,
-      );
+    test(
+      'uma rubrica com data não conta duas vezes quando também é lançada',
+      () {
+        // O risco de duplicação é real: o gestor declara a renda como rubrica
+        // fixa e, no mês seguinte, lança-a outra vez como despesa. Manda a fonte
+        // declarada — a mesma regra que já valia para os salários.
+        final mes = tesourariaDoMes(
+          estadoCom(
+            custosFixos: const [
+              CustoFixo(
+                id: 'cf1',
+                categoria: ExpenseCategory.rent,
+                valorCents: 80000,
+                diaDoMes: 1,
+              ),
+            ],
+            despesas: [
+              Expense(
+                id: 'd1',
+                date: DateTime(2026, 8, 1),
+                amountCents: 80000,
+                category: ExpenseCategory.rent,
+                status: ExpensePaymentStatus.paid,
+              ),
+            ],
+          ),
+          quatroDeAgosto,
+        );
 
-      expect(mes.saidasCents, 80000);
-    });
+        expect(mes.saidasCents, 80000);
+      },
+    );
 
     test('despesa de categoria sem rubrica declarada continua a contar', () {
       final mes = tesourariaDoMes(

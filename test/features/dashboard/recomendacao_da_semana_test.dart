@@ -199,10 +199,7 @@ void main() {
       final r = recomendacaoDaSemana(estado, ultimoDiaDoMes);
 
       expect(r!.id, 'custos-criticos');
-      expect(
-        r.title,
-        'Custos a comer a receita — já vão em 87% do que entrou',
-      );
+      expect(r.title, 'Custos a comer a receita — já vão em 87% do que entrou');
     });
 
     test('quem está a recibos verdes não leva carga social', () {
@@ -312,7 +309,10 @@ void main() {
       final r = recomendacaoDaSemana(empresa, DateTime(2026, 8, 31, 10, 30));
 
       expect(r!.id, 'custos-criticos');
-      expect(r.title, 'Custos a comer a receita — já vão em 105% do que entrou');
+      expect(
+        r.title,
+        'Custos a comer a receita — já vão em 105% do que entrou',
+      );
     });
   });
 

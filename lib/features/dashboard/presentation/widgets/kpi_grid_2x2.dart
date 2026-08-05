@@ -2,6 +2,26 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/punho_theme.dart';
 
+/// Quanto mede um cartão de KPI quando é preciso dizê-lo — no telemóvel
+/// deitado, onde a grelha 2×2 não cabe e os cartões passam a uma coluna, e na
+/// página dos KPIs, que é uma coluna desde que nasceu.
+///
+/// «o KPI no menu dos KPIs tem de ter o mesmo formato e tamanho dos KPIs no
+/// dashboard» — Cesar, 5/8/2026. Os números estavam escritos à mão aqui dentro
+/// e a página dos KPIs não tinha como os saber: o cartão da Caixa media o que o
+/// conteúdo dele pedisse, e dava um cartão de outro tamanho a dizer a mesma
+/// coisa.
+abstract final class AlturaDoKpi {
+  /// O KPI-herói: número grande e gráfico.
+  static const heroi = 200.0;
+
+  /// Todos os outros — e é este que a página dos KPIs usa.
+  static const normal = 150.0;
+
+  /// De um cartão para o seguinte.
+  static const entre = 12.0;
+}
+
 /// Grelha 2×2 que enche a área que lhe dão.
 ///
 /// A célula 1-1 é maior (`flexHero`) porque recebe o KPI-herói: número grande e
@@ -32,13 +52,13 @@ class KpiGrid2x2 extends StatelessWidget {
         return ListView(
           padding: EdgeInsets.zero,
           children: [
-            SizedBox(height: 200, child: heroi),
-            const SizedBox(height: 12),
-            SizedBox(height: 150, child: cimaDireita),
-            const SizedBox(height: 12),
-            SizedBox(height: 150, child: baixoEsquerda),
-            const SizedBox(height: 12),
-            SizedBox(height: 150, child: baixoDireita),
+            SizedBox(height: AlturaDoKpi.heroi, child: heroi),
+            const SizedBox(height: AlturaDoKpi.entre),
+            SizedBox(height: AlturaDoKpi.normal, child: cimaDireita),
+            const SizedBox(height: AlturaDoKpi.entre),
+            SizedBox(height: AlturaDoKpi.normal, child: baixoEsquerda),
+            const SizedBox(height: AlturaDoKpi.entre),
+            SizedBox(height: AlturaDoKpi.normal, child: baixoDireita),
           ],
         );
       }

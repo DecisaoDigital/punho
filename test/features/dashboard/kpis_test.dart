@@ -58,11 +58,7 @@ void main() {
         // histórico existia, mas ninguém ia lá buscar o número (achado 9/10).
         final comHistorico = estado.copyWith(
           historicalMonths: const [
-            HistoricalMonth(
-              year: 2025,
-              month: 7,
-              revenueReceivedCents: 100000,
-            ),
+            HistoricalMonth(year: 2025, month: 7, revenueReceivedCents: 100000),
           ],
         );
 
@@ -89,11 +85,7 @@ void main() {
           ),
         ],
         historicalMonths: const [
-          HistoricalMonth(
-            year: 2025,
-            month: 7,
-            revenueReceivedCents: 100000,
-          ),
+          HistoricalMonth(year: 2025, month: 7, revenueReceivedCents: 100000),
         ],
       );
 
@@ -128,49 +120,46 @@ void main() {
     // Agosto de 2026: mês anterior é Julho de 2026, homólogo é Agosto de 2025.
     final agora = DateTime(2026, 8, 15);
 
-    test(
-      'entradas somam o já recebido e o por receber de reservas do mês',
-      () {
-        final previsto = previsaoDoMes(
-          OperationsState(
-            onboarded: true,
-            receipts: [
-              Receipt(
-                id: 'r1',
-                date: DateTime(2026, 8, 5),
-                amountCents: 50000,
-                customerId: 'c1',
-                method: PaymentMethod.transfer,
-              ),
-            ],
-            bookings: [
-              Booking(
-                id: 'b1',
-                customerId: 'c1',
-                machineIds: ['m1'],
-                startsAt: DateTime(2026, 8, 10),
-                endsAt: DateTime(2026, 8, 12),
-                status: BookingStatus.confirmed,
-                expectedValueCents: 40000,
-              ),
-              // Cancelada: não é um compromisso, não entra na previsão.
-              Booking(
-                id: 'b2',
-                customerId: 'c1',
-                machineIds: ['m1'],
-                startsAt: DateTime(2026, 8, 20),
-                endsAt: DateTime(2026, 8, 22),
-                status: BookingStatus.cancelled,
-                expectedValueCents: 100000,
-              ),
-            ],
-          ),
-          agora,
-        );
+    test('entradas somam o já recebido e o por receber de reservas do mês', () {
+      final previsto = previsaoDoMes(
+        OperationsState(
+          onboarded: true,
+          receipts: [
+            Receipt(
+              id: 'r1',
+              date: DateTime(2026, 8, 5),
+              amountCents: 50000,
+              customerId: 'c1',
+              method: PaymentMethod.transfer,
+            ),
+          ],
+          bookings: [
+            Booking(
+              id: 'b1',
+              customerId: 'c1',
+              machineIds: ['m1'],
+              startsAt: DateTime(2026, 8, 10),
+              endsAt: DateTime(2026, 8, 12),
+              status: BookingStatus.confirmed,
+              expectedValueCents: 40000,
+            ),
+            // Cancelada: não é um compromisso, não entra na previsão.
+            Booking(
+              id: 'b2',
+              customerId: 'c1',
+              machineIds: ['m1'],
+              startsAt: DateTime(2026, 8, 20),
+              endsAt: DateTime(2026, 8, 22),
+              status: BookingStatus.cancelled,
+              expectedValueCents: 100000,
+            ),
+          ],
+        ),
+        agora,
+      );
 
-        expect(previsto.entradasPrevistasCents, 50000 + 40000);
-      },
-    );
+      expect(previsto.entradasPrevistasCents, 50000 + 40000);
+    });
 
     test('saídas são nulas sem custos fixos declarados', () {
       final previsto = previsaoDoMes(
@@ -181,66 +170,63 @@ void main() {
       expect(previsto.saldoPrevistoCents, isNull);
     });
 
-    test(
-      'saídas somam os custos fixos à média das variáveis do mês passado e '
-      'do homólogo',
-      () {
-        final previsto = previsaoDoMes(
-          OperationsState(
-            onboarded: true,
-            custosFixos: const [
-              CustoFixo(
-                id: 'renda',
-                categoria: ExpenseCategory.rent,
-                valorCents: 30000,
-              ),
-            ],
-            expenses: [
-              // Variável do mês anterior (Julho de 2026): combustível 100 €.
-              Expense(
-                id: 'e1',
-                date: DateTime(2026, 7, 10),
-                amountCents: 10000,
-                category: ExpenseCategory.fuel,
-                status: ExpensePaymentStatus.paid,
-              ),
-              // Variável do homólogo (Agosto de 2025): combustível 200 €.
-              Expense(
-                id: 'e2',
-                date: DateTime(2025, 8, 10),
-                amountCents: 20000,
-                category: ExpenseCategory.fuel,
-                status: ExpensePaymentStatus.paid,
-              ),
-              // Renda paga em Julho, mesma categoria da rubrica fixa: não
-              // conta como variável, senão a renda entrava duas vezes.
-              Expense(
-                id: 'e3',
-                date: DateTime(2026, 7, 5),
-                amountCents: 30000,
-                category: ExpenseCategory.rent,
-                status: ExpensePaymentStatus.paid,
-              ),
-              // Por pagar: não é gasto real ainda, não entra na média.
-              Expense(
-                id: 'e4',
-                date: DateTime(2026, 7, 12),
-                amountCents: 90000,
-                category: ExpenseCategory.fuel,
-                status: ExpensePaymentStatus.unpaid,
-              ),
-            ],
-          ),
-          agora,
-        );
+    test('saídas somam os custos fixos à média das variáveis do mês passado e '
+        'do homólogo', () {
+      final previsto = previsaoDoMes(
+        OperationsState(
+          onboarded: true,
+          custosFixos: const [
+            CustoFixo(
+              id: 'renda',
+              categoria: ExpenseCategory.rent,
+              valorCents: 30000,
+            ),
+          ],
+          expenses: [
+            // Variável do mês anterior (Julho de 2026): combustível 100 €.
+            Expense(
+              id: 'e1',
+              date: DateTime(2026, 7, 10),
+              amountCents: 10000,
+              category: ExpenseCategory.fuel,
+              status: ExpensePaymentStatus.paid,
+            ),
+            // Variável do homólogo (Agosto de 2025): combustível 200 €.
+            Expense(
+              id: 'e2',
+              date: DateTime(2025, 8, 10),
+              amountCents: 20000,
+              category: ExpenseCategory.fuel,
+              status: ExpensePaymentStatus.paid,
+            ),
+            // Renda paga em Julho, mesma categoria da rubrica fixa: não
+            // conta como variável, senão a renda entrava duas vezes.
+            Expense(
+              id: 'e3',
+              date: DateTime(2026, 7, 5),
+              amountCents: 30000,
+              category: ExpenseCategory.rent,
+              status: ExpensePaymentStatus.paid,
+            ),
+            // Por pagar: não é gasto real ainda, não entra na média.
+            Expense(
+              id: 'e4',
+              date: DateTime(2026, 7, 12),
+              amountCents: 90000,
+              category: ExpenseCategory.fuel,
+              status: ExpensePaymentStatus.unpaid,
+            ),
+          ],
+        ),
+        agora,
+      );
 
-        expect(previsto.saidasPrevistasCents, 30000 + (10000 + 20000) ~/ 2);
-        expect(
-          previsto.saldoPrevistoCents,
-          previsto.entradasPrevistasCents - previsto.saidasPrevistasCents!,
-        );
-      },
-    );
+      expect(previsto.saidasPrevistasCents, 30000 + (10000 + 20000) ~/ 2);
+      expect(
+        previsto.saldoPrevistoCents,
+        previsto.entradasPrevistasCents - previsto.saidasPrevistasCents!,
+      );
+    });
   });
 
   group('Cobranças', () {
