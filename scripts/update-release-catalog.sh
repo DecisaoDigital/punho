@@ -103,16 +103,47 @@ upsert_version() {
       }'
   )"
 
-  # Primeiro ativa a versão nova; só depois desativa as antigas. Se a segunda
-  # chamada falhar, a função escolhe na mesma o build mais alto e a repetição
-  # deste comando conclui a limpeza.
-  curl --fail-with-body --silent --show-error \
-    -X POST "${api}?on_conflict=app%2Cplataforma%2Cbuild_number" \
-    -H "apikey: ${admin_key}" \
-    -H "Authorization: Bearer ${admin_key}" \
-    -H "Content-Type: application/json" \
-    -H "Prefer: resolution=merge-duplicates,return=minimal" \
-    --data "$payload"
+  # Um upsert simples não serve aqui, e a promessa de "pode ser repetido" no
+  # topo deste ficheiro era falsa por causa disso.
+  #
+  # O gatilho `trg_versoes_apps_release_integrity` exige, no INSERT, que o
+  # build_number seja maior que o máximo já catalogado. Em Postgres o BEFORE
+  # INSERT dispara *antes* de o ON CONFLICT ser resolvido, por isso a linha
+  # rebenta com "build_number tem que ser > max existente" em vez de cair no
+  # UPDATE. Resultado: repetir este comando para um build já catalogado morria
+  # — exactamente na altura em que se repete, que é a seguir a uma falha.
+  #
+  # Daí a bifurcação: se a linha já existe, actualizam-se só os campos que o
+  # gatilho deixa mexer (app, plataforma, versao e build_number são imutáveis).
+  ja_existe="$(
+    curl --fail-with-body --silent --show-error \
+      "${api}?app=eq.punho&plataforma=eq.${platform}&build_number=eq.${build}&select=id" \
+      -H "apikey: ${admin_key}" \
+      -H "Authorization: Bearer ${admin_key}" | jq 'length'
+  )"
+
+  if [[ "$ja_existe" -gt 0 ]]; then
+    printf 'A linha %s+%s (%s) já existia; a actualizar o que é mutável.\n' \
+      "$version" "$build" "$platform"
+    curl --fail-with-body --silent --show-error \
+      -X PATCH \
+      "${api}?app=eq.punho&plataforma=eq.${platform}&build_number=eq.${build}" \
+      -H "apikey: ${admin_key}" \
+      -H "Authorization: Bearer ${admin_key}" \
+      -H "Content-Type: application/json" \
+      --data "$(jq 'del(.app, .plataforma, .versao, .build_number)' <<< "$payload")"
+  else
+    # Primeiro activa a versão nova; só depois desactiva as antigas. Se a
+    # segunda chamada falhar, a function escolhe na mesma o build mais alto e
+    # a repetição deste comando conclui a limpeza.
+    curl --fail-with-body --silent --show-error \
+      -X POST "$api" \
+      -H "apikey: ${admin_key}" \
+      -H "Authorization: Bearer ${admin_key}" \
+      -H "Content-Type: application/json" \
+      -H "Prefer: return=minimal" \
+      --data "$payload"
+  fi
 
   curl --fail-with-body --silent --show-error \
     -X PATCH \
