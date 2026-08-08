@@ -182,7 +182,7 @@ Quando cair no i9, os comandos são:
 ### Passos
 
 ```bash
-ssh cesar@home-lab-claude   # Tailscale MagicDNS; alternativas: 100.92.206.22 (Tailscale fixo) ou 192.168.1.253 (LAN)
+ssh cesar@decisaodigital   # Tailscale MagicDNS; alternativas: 100.92.206.22 (Tailscale fixo) ou 192.168.1.150 (LAN)
 cd ~/punho
 git pull
 flutter build apk --release --split-per-abi \

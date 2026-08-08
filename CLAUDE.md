@@ -12,9 +12,9 @@ resolve isto de forma estrutural.
 ### Como fazer login
 
 ```bash
-ssh cesar@home-lab-claude       # via Tailscale MagicDNS (preferido)
+ssh cesar@decisaodigital       # via Tailscale MagicDNS (preferido)
 ssh cesar@100.92.206.22         # IP fixo Tailscale (fallback)
-ssh cesar@192.168.1.253         # LAN local (DHCP — pode mudar)
+ssh cesar@192.168.1.150         # LAN local (DHCP — pode mudar)
 ```
 
 - **Utilizador:** `cesar`

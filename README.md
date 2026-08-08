@@ -68,16 +68,16 @@ Windows — excluídos no CI, corridos localmente quando se toca em UI.
 ## Infra de trabalho
 
 - **Máquina de trabalho preferida: i9 do Home Lab** (Ubuntu Server 24.04),
-  hostname Tailscale `home-lab-claude` (IP fixo `100.92.206.22`). Compila
+  hostname Tailscale `decisaodigital` (IP fixo `100.92.206.22`). Compila
   Flutter, corre `analyze` e `test`, produz APKs assinados. É onde deve
   arrancar qualquer build ou tarefa demorada — o mount NTFS do PC Windows
   via sandbox Cowork é impraticável (task #229): `flutter --version` já não
   cabe no timeout de 45 s.
 
   ```bash
-  ssh cesar@home-lab-claude       # via Tailscale MagicDNS (preferido)
+  ssh cesar@decisaodigital       # via Tailscale MagicDNS (preferido)
   ssh cesar@100.92.206.22         # IP fixo Tailscale (fallback)
-  ssh cesar@192.168.1.253         # LAN local (DHCP — pode mudar)
+  ssh cesar@192.168.1.150         # LAN local (DHCP — pode mudar)
   ```
 
   Chave SSH ed25519 já autorizada em `~/.ssh/authorized_keys` (chaves

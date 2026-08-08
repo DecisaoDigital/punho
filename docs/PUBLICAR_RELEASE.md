@@ -3,7 +3,7 @@
 ## Regra inegociável
 
 Código, branches, commits, dependências, análise, testes, compilações, assinatura
-e validação de artefactos são feitos no servidor i9 `home-lab-claude`, dentro de
+e validação de artefactos são feitos no servidor i9 `decisaodigital`, dentro de
 `/home/cesar/punho`.
 
 O GitHub só recebe o código e os binários depois de tudo ficar verde no i9.
@@ -46,7 +46,7 @@ i9:
 ### 1. Entrar no servidor e sincronizar
 
 ```bash
-ssh cesar@home-lab-claude
+ssh cesar@decisaodigital
 cd ~/punho
 git status --short --branch
 git fetch origin

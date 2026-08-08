@@ -311,7 +311,7 @@ aparelho real ou por teste automático — ver `docs/PLANO_DE_TESTES_2026-08-02.
 ## Como trabalhar aqui
 
 Builds, `flutter analyze`, `flutter test` e APK **no i9** — e a sessão de hoje
-correu **dentro** do i9 (`hostname` = `home-lab-claude`), sem SSH: o `flutter`
+correu **dentro** do i9 (`hostname` = `decisaodigital`), sem SSH: o `flutter`
 está no PATH e chama-se directamente. Ver `CLAUDE.md` na raiz.
 
 `git add` explícito por ficheiro, nunca `-A`. Commits directos a `main`.

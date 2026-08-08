@@ -4,9 +4,9 @@ Este ficheiro aplica-se a todo o repositório.
 
 ## Fonte de verdade
 
-- Máquina de trabalho: `home-lab-claude` (servidor i9 Ubuntu).
+- Máquina de trabalho: `decisaodigital` (servidor i9 Ubuntu).
 - Repositório: `/home/cesar/punho`.
-- Acesso normal: `ssh cesar@home-lab-claude`.
+- Acesso normal: `ssh cesar@decisaodigital`.
 
 Não desenvolver, testar, compilar ou criar commits numa cópia local alternativa.
 O i9 é a única árvore de trabalho oficial.

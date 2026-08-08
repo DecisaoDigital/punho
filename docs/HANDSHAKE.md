@@ -4,7 +4,7 @@ Lê só isto para começar. O detalhe está em `docs/HANDOVER_SESSAO_SEGUINTE.md
 vai lá quando precisares, não antes.
 
 **Onde estás:** `/home/cesar/punho`, dentro do i9 (`hostname` =
-`home-lab-claude`). `flutter` está no PATH — corre directamente, **não uses
+`decisaodigital`). `flutter` está no PATH — corre directamente, **não uses
 ssh**. Branch `main`, commits directos, `git add` por ficheiro, nunca `-A`.
 
 **Estado:** limpo em `21b269a` (branch `main`). `flutter test` verde (641, 1
