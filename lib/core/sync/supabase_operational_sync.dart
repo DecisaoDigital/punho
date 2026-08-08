@@ -30,7 +30,13 @@ class SupabaseOperationalSync {
           .eq('ativo', true)
           .maybeSingle();
       if (member == null) return SyncStatus.requiresReview;
-      if (member['perfil'] != 'gestor') return SyncStatus.synchronized;
+      if (member['perfil'] != 'gestor') {
+        // No telemóvel do operador não fica nada da empresa entre arranques.
+        // O perfil vem daqui, de `punho_membros`, e não de nada que a app
+        // tenha guardado — quem decide o que este aparelho é não é ele.
+        _repository.naoGuardarNoAparelho();
+        return SyncStatus.synchronized;
+      }
 
       final empresaId = member['empresa_id'] as String;
       final remote = await client
@@ -47,7 +53,20 @@ class SupabaseOperationalSync {
       }
 
       final remoteRevision = (remote['revision'] as num).toInt();
-      if (!_repository.hasPendingRemoteChanges) {
+
+      // **O servidor manda.**
+      //
+      // Se a revisão que lá está não é a que este aparelho conhece, o que ele
+      // tem é velho — e velho perde, mesmo que tenha alterações por subir.
+      // Um telemóvel que esteve uma semana sem rede abre a app e recebe a
+      // ficha como ela está agora; não a impõe de volta com o que sabia
+      // quando se desligou.
+      //
+      // Isto substituiu uma paragem: dava `requiresReview` e a sincronização
+      // ficava encravada até alguém intervir — só que não há ninguém a
+      // intervir, e o aparelho ficava indefinidamente a mostrar uma ficha que
+      // já não era a da empresa.
+      if (_repository.remoteRevision != remoteRevision) {
         final payload = Map<String, dynamic>.from(remote['payload'] as Map);
         return _repository.importOperationalPayload(
               jsonEncode(payload),
@@ -57,9 +76,10 @@ class SupabaseOperationalSync {
             : SyncStatus.requiresReview;
       }
 
-      if (_repository.remoteRevision != remoteRevision) {
-        return SyncStatus.requiresReview;
-      }
+      // Revisões iguais: o que este aparelho tem por subir foi escrito **em
+      // cima** do que está no servidor. Só essas alterações sobem — e passam a
+      // ser a verdade para todos os outros.
+      if (!_repository.hasPendingRemoteChanges) return SyncStatus.synchronized;
       return _push(client, expectedRevision: remoteRevision);
     } on PostgrestException {
       return SyncStatus.requiresReview;
@@ -83,7 +103,11 @@ class SupabaseOperationalSync {
       _repository.markRemoteSynchronized((revision as num).toInt());
       return SyncStatus.synchronized;
     } on PostgrestException {
-      return SyncStatus.requiresReview;
+      // Alguém escreveu entre a leitura e esta escrita, e a função recusou por
+      // a revisão já não bater certo. Não é caso de revisão humana: na volta
+      // seguinte a revisão remota já é outra, o servidor manda, e este
+      // aparelho recebe o que lá está.
+      return SyncStatus.pendingChanges;
     } catch (_) {
       return SyncStatus.pendingChanges;
     }

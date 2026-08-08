@@ -317,6 +317,26 @@ Dois separadores: **A precisar de ti** e **A manter**. Cada ficha com barra de b
 
 Perguntas por responder, ordenadas por **Verdade > Eficiência > Urgência > Antiguidade**. Uma pergunta que faz a app mentir ganha a uma que só deixa um card por apurar. Cada tarefa diz o que destranca. **Enquanto a empresa está vazia, Tarefas é a aterragem** — não o painel.
 
+### Onde os dados vivem
+
+**O servidor manda.** Um telemóvel que esteve uma semana sem rede abre a app e recebe a ficha como ela está agora — não a impõe de volta com o que sabia quando se desligou. Só depois, com essa informação à frente, é que o que ele produzir sobe e passa a ser a verdade para os outros.
+
+A forma tem nome e é a de qualquer app que tenha de funcionar sem rede: **fila para escrever, tabelas para ler.**
+
+| | Onde | O que é |
+|---|---|---|
+| **Escrever** | `punho_operacoes` | Uma linha por alteração. É onde o telemóvel encosta o que fez enquanto não há ligação, e a ordem dessas linhas é que decide quem ganha. |
+| **Escrever a ficha** | `punho_estado_operacional` | A ficha inteira do gestor, com número de revisão. Onboarding, custos fixos, histórico mensal. |
+| **Ler** | `punho_maquinas`, `punho_clientes`, `punho_reservas`, `punho_leads`, `punho_recebimentos`, `punho_despesas`, `punho_veiculos`, `punho_colaboradores` | Tabelas normais, indexadas. O servidor projecta-as a partir das duas de cima, por gatilho, dentro da mesma transacção. |
+
+**Ninguém escreve nas tabelas de leitura.** Uma escrita directa não passava pela fila, e o telemóvel do gestor nunca a via aparecer. Quem quer escrever escreve na fila, e a linha aparece nas tabelas por si.
+
+**Se a projecção falhar, a escrita falha.** Uma projecção que engolisse o erro deixava as tabelas caladas e erradas — e quem as lê está em obra, a decidir.
+
+**No telemóvel do operador não fica nada da empresa.** A única coisa gravada lá é a identificação dele, e essa também está no servidor. A inscrição da empresa é outra coisa: é o vínculo dele a uma empresa e o perfil que lá tem, e quem a concede é o servidor.
+
+**Quem vê o quê é do servidor, não do ecrã.** O colaborador lê clientes, máquinas — todas, com disponibilidade —, reservas, leads e recebimentos. Despesas, veículos e a folha de colaboradores são do gestor. Esconder um botão não é uma permissão.
+
 ## 13. Os indicadores
 
 Aplicabilidade **[T]** transversal · **[S]** sectorial. Disponibilidade **[E]** existe · **[C]** calculável · **[N]** exige captura nova.

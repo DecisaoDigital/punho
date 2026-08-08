@@ -515,7 +515,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   void saveMachine(Machine item) {
     super.saveMachine(item);
     _registar('machine', item.id, _machineToJson(item));
-    _markDirty();
+    _persist();
   }
 
   @override
@@ -527,21 +527,21 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     if (arquivada != null) {
       _registar('machine', id, _machineToJson(arquivada));
     }
-    _markDirty();
+    _persist();
   }
 
   @override
   void saveLead(Lead item) {
     super.saveLead(item);
     _registar('lead', item.id, _leadToJson(item));
-    _markDirty();
+    _persist();
   }
 
   @override
   void saveCustomer(Customer item) {
     super.saveCustomer(item);
     _registar('customer', item.id, _customerToJson(item));
-    _markDirty();
+    _persist();
   }
 
   @override
@@ -552,42 +552,42 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     if (arquivado != null) {
       _registar('customer', id, _customerToJson(arquivado));
     }
-    _markDirty();
+    _persist();
   }
 
   @override
   void saveBooking(Booking item) {
     super.saveBooking(item);
     _registar('booking', item.id, _bookingToJson(item));
-    _markDirty();
+    _persist();
   }
 
   @override
   void saveExpense(Expense item) {
     super.saveExpense(item);
     _registar('expense', item.id, _expenseToJson(item));
-    _markDirty();
+    _persist();
   }
 
   @override
   void saveReceipt(Receipt item) {
     super.saveReceipt(item);
     _registar('receipt', item.id, _receiptToJson(item));
-    _markDirty();
+    _persist();
   }
 
   @override
   void saveCollaborator(Collaborator item) {
     super.saveCollaborator(item);
     _registar('collaborator', item.id, _collaboratorToJson(item));
-    _markDirty();
+    _persist();
   }
 
   @override
   void saveVehicle(Vehicle item) {
     super.saveVehicle(item);
     _registar('vehicle', item.id, _vehicleToJson(item));
-    _markDirty();
+    _persist();
   }
 
   @override
@@ -597,7 +597,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     if (arquivado != null) {
       _registar('vehicle', id, _vehicleToJson(arquivado));
     }
-    _markDirty();
+    _persist();
   }
 
   @override
@@ -657,6 +657,18 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     _persist();
   }
 
+  /// Marca que há **ficha da empresa** por subir ao instantâneo.
+  ///
+  /// Só o onboarding, os custos fixos e o histórico mensal passam por aqui —
+  /// é o que este canal possui. As entidades (máquinas, clientes, reservas,
+  /// despesas, recebimentos, colaboradores, veículos) gravam com [_persist] e
+  /// sobem pela fila de operações, que é o dono delas.
+  ///
+  /// Marcavam todas, e isso tinha um preço que não se via: gravar uma máquina
+  /// punha o instantâneo por subir, o instantâneo subia e a revisão avançava
+  /// no servidor. Nos outros telemóveis a revisão deixava de bater certo, e a
+  /// regra "o servidor manda" mandava-os deitar fora a ficha que tivessem por
+  /// subir — perdida por causa de trabalho que nada tinha a ver com ela.
   void _markDirty() {
     _hasPendingRemoteChanges = true;
     _persist();
@@ -699,7 +711,41 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'historicalMonths': _historicalMonths.map(_historicalMonthToJson).toList(),
   };
 
+  /// Se este aparelho pode guardar dados da empresa entre arranques.
+  ///
+  /// Falso no telemóvel do operador. Ver [naoGuardarNoAparelho].
+  bool _guardaNoAparelho = true;
+
+  /// **Neste aparelho não fica nada da empresa.**
+  ///
+  /// Regra do Cesar para o operador: a única coisa gravada no telemóvel dele é
+  /// **a identificação dele** — quem ele é, a sua sessão —, e essa também está
+  /// no servidor.
+  ///
+  /// A inscrição da empresa é outra coisa e não se confunde com isto: o
+  /// `machine_id` de `licencas` identifica o *terminal* perante a licença da
+  /// empresa, não identifica o operador. Clientes, máquinas, reservas e
+  /// recebimentos aparecem-lhe porque o servidor lhos manda, e desaparecem
+  /// quando a app fecha.
+  ///
+  /// Isto não estava a acontecer: a `CollaboratorShell` usa o mesmo
+  /// repositório que a shell do gestor, e o repositório gravava tudo a toda a
+  /// gente. Um telemóvel de operador perdido ou revendido levava consigo a
+  /// carteira de clientes da empresa, legível sem sessão nenhuma.
+  ///
+  /// Apaga já o que lá esteja — não basta parar de escrever, porque o que foi
+  /// gravado antes desta chamada continuava lá.
+  ///
+  /// Não limpa a memória: o que está a ser mostrado veio do servidor e é dele
+  /// que continua a vir. No arranque seguinte não há nada para ler, e é o
+  /// servidor que volta a encher o ecrã.
+  void naoGuardarNoAparelho() {
+    _guardaNoAparelho = false;
+    _preferences.remove(_storageKey);
+  }
+
   void _persist() {
+    if (!_guardaNoAparelho) return;
     final data = _operationalPayload();
     data['sync'] = {
       'remoteRevision': _remoteRevision,
