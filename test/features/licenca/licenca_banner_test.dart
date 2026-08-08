@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -186,9 +188,11 @@ void main() {
 
       // Um ecrã por cima, e de volta — com o widget desmontado pelo caminho.
       final navegador = tester.state<NavigatorState>(find.byType(Navigator));
-      navegador.push(
-        MaterialPageRoute<void>(
-          builder: (_) => const Scaffold(body: Text('outro ecrã')),
+      unawaited(
+        navegador.push(
+          MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('outro ecrã')),
+          ),
         ),
       );
       await tester.pumpAndSettle();

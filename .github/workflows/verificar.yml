@@ -1,0 +1,29 @@
+# Verificação, e só verificação.
+#
+# Não compila, não assina, não publica e não toca em keystores nem em secrets.
+# O portão continua a ser o i9 (ver AGENTS.md); isto é uma segunda opinião que
+# apanha o commit que subiu sem alguém ter corrido a suite. Sem isto, os 960
+# testes só correm quando se arranca uma publicação — o pior momento possível
+# para descobrir que estão vermelhos.
+name: Verificar
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.8
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      # Os testes de screenshot precisam de fontes e de um aparelho; ficam para
+      # o i9, que é onde correm de verdade. O release.sh exclui-os pela mesma
+      # razão.
+      - run: flutter test --exclude-tags=screenshot

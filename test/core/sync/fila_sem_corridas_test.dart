@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/sync/registo_de_operacoes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,7 +36,7 @@ void main() {
   test('onze escritas à solta não se perdem umas às outras', () async {
     // Exactamente o padrão que falhou: enfileirar sem esperar por cada uma.
     for (var i = 0; i < 11; i++) {
-      registo.acrescentar(op('op$i'));
+      unawaited(registo.acrescentar(op('op$i')));
     }
     await registo.esperarEscritas();
 
@@ -46,7 +48,7 @@ void main() {
 
   test('ler antes de esperar era o que enganava: agora espera-se', () async {
     for (var i = 0; i < 5; i++) {
-      registo.acrescentar(op('x$i'));
+      unawaited(registo.acrescentar(op('x$i')));
     }
     // Sem `esperarEscritas`, `pendentes` podia vir vazia — e o envio dava
     // "0 enviadas", com a fila cheia por baixo.
@@ -60,9 +62,9 @@ void main() {
       await registo.acrescentarVarias([op('a'), op('b'), op('c')]);
 
       // Remover 'a' e 'b' enquanto entram duas novas.
-      registo.remover({'a', 'b'});
-      registo.acrescentar(op('d'));
-      registo.acrescentar(op('e'));
+      unawaited(registo.remover({'a', 'b'}));
+      unawaited(registo.acrescentar(op('d')));
+      unawaited(registo.acrescentar(op('e')));
       await registo.esperarEscritas();
 
       expect(registo.pendentes.map((o) => o.id).toSet(), {'c', 'd', 'e'});

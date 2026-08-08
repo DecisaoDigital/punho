@@ -21,8 +21,30 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # Cada uma destas está aqui por um defeito que já aconteceu, não por gosto.
+
+    # Um `print` num APK de release escreve para o logcat do utilizador e não
+    # para lado nenhum útil. O que interessa diagnosticar tem de ir para o
+    # registo de erros, não para um sítio onde ninguém olha.
+    avoid_print: true
+
+    # Um `Future` sem `await` nem `unawaited()` é uma escrita que pode não ter
+    # acontecido quando o ecrã seguinte já a lê — e uma excepção lá dentro
+    # desaparece sem deixar rasto.
+    unawaited_futures: true
+
+    # Usar o `BuildContext` depois de um `await` é o bug que dá "Looking up a
+    # deactivated widget's ancestor": o widget já saiu da árvore e o Navigator
+    # ou o ScaffoldMessenger apanham o contexto morto.
+    use_build_context_synchronously: true
+
+    # Sem tipo de retorno declarado, `dynamic` entra em silêncio e leva com ele
+    # a verificação estática toda.
+    always_declare_return_types: true
+
+    # Vírgula final: o formatter passa a partir uma linha por argumento, e os
+    # diffs passam a mostrar o que mudou em vez da linha inteira.
+    require_trailing_commas: true
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
