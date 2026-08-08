@@ -48,6 +48,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Arnês do `integration_test`: é o que permite correr um teste Dart
+        // dentro da app instalada, por `am instrument`, sem a desinstalar.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -97,4 +100,13 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // As versões têm de casar com as que o plugin `integration_test` já põe no
+    // classpath — subir qualquer uma faz o Gradle recusar por "consistent
+    // resolution".
+    androidTestImplementation("androidx.test:runner:1.3.0")
+    androidTestImplementation("androidx.test:rules:1.2.0")
+    androidTestImplementation("junit:junit:4.12")
 }
