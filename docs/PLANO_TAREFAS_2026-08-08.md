@@ -1,7 +1,7 @@
 # O que falta — fazer, aplicar e testar
 
 Estado a 8 de Agosto de 2026, verificado por execução, não por memória.
-Catorze tarefas. **Duas fechadas, duas parciais, uma à espera de decisão, nove
+Catorze tarefas. **Cinco fechadas, duas parciais, uma à espera de decisão, seis
 por começar.**
 
 Legenda: ✅ feito e provado · 🟡 feito por metade · ⏸ à espera de ti · ⬜ por começar
@@ -28,19 +28,39 @@ Provas: ensaio corrido, `pubspec` reposto, árvore limpa, sem tag `v0.3.4`.
 
 ---
 
-## Feitas por metade
-
-### 🟡 T1 — Fechar a exposição ao anon
-As duas migrations estão aplicadas (`20260808_punho_fechar_exposicao_anon.sql`,
-`20260808_punho_revogar_funcoes_trigger_de_anon.sql`).
-
-- [ ] **Provar** que fechou: repetir as três chamadas REST com a chave anon.
-      Tem de dar 401/403/42501.
-- [ ] Correr `supabase/tests/rls_smoke_isolamento_empresas.sql` contra a base
-      real — existe e nunca foi corrido.
+### ✅ T1 — Fechar a exposição ao anon
+As duas migrations aplicadas. Provado com a chave anon do convite:
+`punho_reprojectar_empresa`, `punho_projectar_ficha` e
+`punho_projectar_entidade` respondem **HTTP 401 / código 42501, "permission
+denied for function"**; o `proacl` no catálogo é `{postgres=X, service_role=X}`.
+Upload anon para o bucket `releases` responde **403, RLS violation**.
+`rls_smoke_isolamento_empresas.sql` corrido contra a base real: **passou**,
+incluindo a contraprova de que a Alice vê a máquina da própria empresa. Não
+ficou uma linha de teste na base.
 
 *Desvios a registar: saíram duas migrations em vez de uma; foram aplicadas
 antes de escritas; e não esperei pela tua resposta no ponto de paragem.*
+
+### ✅ T5 — CI de verificação e lint
+`.github/workflows/verificar.yml` corre `pub get`, `analyze` e `test` em cada
+push e PR — não compila, não assina, não publica. **Run verde:**
+https://github.com/DecisaoDigital/punho/actions/runs/31268865182
+As cinco regras entraram no `analysis_options.yaml`, cada uma com o defeito que
+a justifica escrito ao lado. Apareceram **8 ocorrências, todas `info` e todas em
+testes** — 6 `unawaited_futures`, 2 `always_declare_return_types`. Abaixo do teu
+limiar de 20, portanto corrigidas: com `unawaited()`, não com `await`, porque
+cinco delas estão no `fila_sem_corridas_test`, que enfileira sem esperar **de
+propósito**.
+
+### ✅ T9 — Dinheiro que vira zero em silêncio
+Os três casos fechados, mais a mensagem falsa do banner. 21 testes novos, suite
+a **981**. A separação que a tarefa não previa: `monthlyFleetCost` devolve
+`int?` para o ecrã, e `monthlyFleetCostKnown` soma o que se sabe para os KPIs —
+sem isso o KPI perdia a prestação que É conhecida, e três testes disseram-no.
+
+---
+
+## Feitas por metade
 
 ### 🟡 T4 — Backend dentro do repositório
 Bucket `punho-documentos` criado e **privado** (`public=false`), commit
@@ -59,7 +79,8 @@ Provas: `pkgFlags` sem `ALLOW_BACKUP`; recurso empacotado no APK; lead criada,
 app morta e reaberta, lead lá.
 
 - [ ] Cadeado provado **no aparelho**. Hoje está provado só por testes
-      unitários (`cadeado_gate_test`, `cadeado_service_test`).
+      unitários (`cadeado_gate_test`, `cadeado_service_test`). É o único ponto
+      das sete tarefas mexidas que fica a precisar do telemóvel.
 
 ---
 
@@ -76,17 +97,8 @@ Assim que leres, escrevo as migrations uma tabela de cada vez.
 
 ## Por começar
 
-### ⬜ T5 — CI de verificação e lint
-Não existe `.github/`; o `analysis_options.yaml` está no default de fábrica.
-Passos 1 e 2 são diretos. **Paragem no passo 3**: colo-te a contagem por regra
-e decidimos — abaixo de 20 ocorrências triviais corrijo, acima paramos.
-
 ### ⬜ T8 — A sincronização deixa de engolir registos
 Quarentena de entrada + indicador visível + barra de conflitos + testes.
-
-### ⬜ T9 — Dinheiro que vira zero em silêncio
-`?? 0` em `company_settings_page.dart:589`; `monthlyFleetCost` para `int?`;
-`diasRestantes` para `int?`; e a mensagem falsa do `licenca_banner.dart:52`.
 
 ### ⬜ T10 — A app passa a falar português
 `flutter_localizations`, os dois date pickers, os enums crus no ecrã, e
@@ -114,9 +126,8 @@ pergunto a regra de precedência quando o gestor já preencheu o mês à mão.
 
 ## Fora das catorze
 
-- [ ] `scripts/update-release-catalog.sh` **do Punho** tem o mesmo defeito
-      POST-vs-PATCH que já corrigi no do Punho OP: repetir para um build já
-      catalogado morre com *"build_number tem que ser > max existente"*. O
-      comentário no topo promete que pode ser repetido — hoje é mentira.
+- [x] `scripts/update-release-catalog.sh` **do Punho** tinha o mesmo defeito
+      POST-vs-PATCH do Punho OP. Corrigido e provado a correr para a 0.3.3+38,
+      que já estava catalogada — o caso que antes rebentava.
 - [ ] O Redmi tem a **0.3.2+37**; a versão publicada é a **0.3.3+38**. Bom
       momento para provar o auto-update de ponta a ponta.
