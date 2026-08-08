@@ -66,8 +66,15 @@ sem isso o KPI perdia a prestação que É conhecida, e três testes disseram-no
 Bucket `punho-documentos` criado e **privado** (`public=false`), commit
 `6381c03`. Migrations no repo: 18 → 44.
 
-- [ ] Faltam **~36**: a base tem 80 aplicadas. Listar nome a nome antes de
-      commitar.
+**Edge functions: fechado.** Catorze em produção, **sete sem ficheiro nenhum**
+em repositório — recuperadas e commitadas. Duas das que já cá estavam estavam
+**desactualizadas**, e são as perigosas: um `deploy` a partir do repositório
+teria partido o auto-update do Punho OP (`versao-mais-recente` sem `punho_op`)
+e tirado o prefixo `[POS]`/`[PUNHO]` de todas as notificações (`enviar-push`
+anterior à v8). Inventário e regra em `supabase/functions/README.md`.
+
+- [ ] Faltam **~36** migrations: a base tem 80 aplicadas. Listar nome a nome
+      antes de commitar.
 - [ ] Provar que as fotos de máquinas voltaram a funcionar — ficheiro a chegar
       mesmo ao bucket.
 
@@ -129,5 +136,25 @@ pergunto a regra de precedência quando o gestor já preencheu o mês à mão.
 - [x] `scripts/update-release-catalog.sh` **do Punho** tinha o mesmo defeito
       POST-vs-PATCH do Punho OP. Corrigido e provado a correr para a 0.3.3+38,
       que já estava catalogada — o caso que antes rebentava.
-- [ ] O Redmi tem a **0.3.2+37**; a versão publicada é a **0.3.3+38**. Bom
-      momento para provar o auto-update de ponta a ponta.
+- [x] O Redmi tem a **0.3.2+37**; a versão publicada é a **0.3.3+38**. Bom
+      momento para provar o auto-update de ponta a ponta. **Provado** — o
+      travão que resta é o Google Play Protect, não a nossa cadeia.
+- [x] `validar-licenca` dava a licença por expirada durante todo o último dia
+      válido, e anunciava sempre um dia a menos. Corrigido e verificado contra
+      as duas licenças reais. Afectava também o POS.
+- [ ] **O nome do operador não chega à app.** A identidade nasce bem — em
+      `punho_pedidos_acesso` ficam `nome`, `email`, `machine_id` e `app` no
+      momento da inscrição — mas `punho_membros`, que é o que a OP lê ao
+      entrar, só tem `user_id`, `perfil` e `ativo`. `punho_colaboradores` está
+      vazia e sem ligação a `user_id`, e `punho_reservas` já tem
+      `colaborador_responsavel_id` e `colaborador_nome_snapshot` à espera.
+      Falta o elo: sem ele, "quem atendeu" é um UUID. Dos 2 membros actuais só
+      1 passou pelo pedido de acesso — o gestor não tem nome em lado nenhum.
+- [ ] **`comunicar-serie` tem um token de bypass em produção.** `PROBE_TOKEN =
+      'probe-9f3a1c7e-at-series'` no header `x-probe-token` salta a camada que
+      verifica `is_admin()`, e a função corre com `verify_jwt: false`. Nesse
+      modo a acção `guardar_credenciais` fica alcançável sem ser admin — quem
+      souber o token pode escrever credenciais AT em qualquer `machine_id`.
+      Está igual no repositório e em produção, portanto foi deliberado para
+      testes; deixá-lo lá não é. Decisão tua: remover, ou trocar por um secret
+      de ambiente.

@@ -451,7 +451,7 @@ Contabilidade certificada · processador salarial · e-commerce · portal públi
 
 ## 18. Diagnóstico
 
-**Versão `0.3.1+36`.** Verificado no código, não em documentação.
+**Versão `0.3.3+38`.** Verificado no código, não em documentação.
 
 ### O que está de pé
 

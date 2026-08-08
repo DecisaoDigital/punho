@@ -7,8 +7,14 @@ e validação de artefactos são feitos no servidor i9 `decisaodigital`, dentro 
 `/home/cesar/punho`.
 
 O GitHub só recebe o código e os binários depois de tudo ficar verde no i9.
-**Não usar GitHub Actions para analisar, testar, compilar, assinar ou gerar APKs
-e instaladores.**
+**Não usar GitHub Actions para compilar, assinar ou gerar APKs e instaladores.**
+
+Verificar é outra coisa. `.github/workflows/verificar.yml` corre `flutter pub
+get`, `flutter analyze` e `flutter test` em cada push e PR — não compila, não
+assina, não publica, e não produz nenhum artefacto que chegue a um cliente. É
+uma segunda opinião sobre código que já passou no i9, não um caminho
+alternativo para publicar. O portão continua a ser o i9: uma CI verde não
+autoriza uma release, e uma CI vermelha é motivo para parar.
 
 ## Credenciais no i9
 

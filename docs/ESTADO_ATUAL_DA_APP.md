@@ -1,5 +1,35 @@
 # Estado atual do Punho
 
+> **Release v0.3.3** (tag `v0.3.3`, `version: 0.3.3+38`) — 8 de agosto de 2026
+>
+> A cadeia de publicação foi provada de ponta a ponta em aparelho real: a
+> 0.3.2+37 instalada no Redmi recebeu o aviso, descarregou, verificou o
+> `sha256` e instalou a 0.3.3+38 pelo instalador do sistema, sem cair para o
+> browser. Ficou também documentado o que **não** é nosso e trava à mesma: o
+> Google Play Protect exige que cada cliente mande o APK para análise a cada
+> actualização, e não oferece "instalar mesmo assim" — ver
+> `docs/SMOKE.md`, ponto 11.
+>
+> Publicar e anunciar passaram a ser dois comandos (`release.sh` pára na
+> GitHub Release; `update-release-catalog.sh` é que faz a versão chegar aos
+> telemóveis), com `docs/SMOKE.md` entre os dois e um `--ensaio` que corre
+> tudo sem deixar rasto. Runbook único: `docs/PUBLICAR_RELEASE.md`.
+>
+> Correcções que mudam o que o cliente vê: o dinheiro deixou de virar zero em
+> silêncio (custos fixos recusam gravar um valor inválido em vez de o
+> substituírem por zero; o custo de frota distingue "por apurar" de "zero
+> euros"), e a `validar-licenca` deixou de dar uma licença por expirada
+> durante todo o último dia em que ainda era válida — defeito que afectava
+> também o WashInvoice POS. Ver `docs/LICENCIAMENTO.md`.
+>
+> Fecho de segurança e de infra: funções e recursos expostos ao papel `anon`
+> fechados e provados (HTTP 401/42501), `allowBackup="false"` mais regras de
+> extracção — com o cadeado provado **no aparelho** por `integration_test`,
+> não só por testes unitários — e uma CI só de verificação
+> (`.github/workflows/verificar.yml`: `analyze` + `test`, nunca compilar nem
+> assinar). O plano vivo do que falta está em
+> `docs/PLANO_TAREFAS_2026-08-08.md`.
+
 > **Release v0.2.0** (tag `v0.2.0`, `version: 0.2.0+33`) — 3 de agosto de 2026
 >
 > Sincronização automática de custos fixos e de dados da empresa — deixa de

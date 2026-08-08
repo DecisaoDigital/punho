@@ -90,12 +90,34 @@ durante o onboarding o terminal ainda agora foi registado, e o colaborador não
 | `activa` | plano pago, ou trial com > 10 dias | — | não mostra nada |
 | `activa` | trial, 4 a 10 dias | amarelo | "Trial termina em N dias. Contactar suporte." |
 | `activa` | trial, ≤ 3 dias | laranja | "Trial termina em N dias — contactar já." |
-| `expirada` | — | vermelho | "Licença expirada. A app está em modo limitado." |
+| `expirada` | — | vermelho | "Licença expirada. Contactar suporte para renovar." |
 | `inactiva` | — | vermelho | "Licença suspensa. Contactar suporte." |
 | `inexistente` | — | cinzento | "Terminal por registar. A tentar registo…" |
 
 No estado `inexistente` o banner volta a chamar `registar-terminal` uma vez e
 revalida. Cobre o caso de o registo do arranque ter falhado por estar offline.
+
+`dias_restantes` a `null` quer dizer **"o servidor não disse"** — o banner
+cala-se em vez de mostrar "0 dias". Antes, um campo em falta virava zero e a
+app anunciava uma expiração que não existia.
+
+### Os dias contam-se em dias, não em horas
+
+`licencas.validade` é uma coluna `DATE`: a licença vale o **dia inteiro**.
+Até 8 de Agosto de 2026 a `validar-licenca` comparava esse dia com o instante
+actual, e isso custava duas coisas, ambas contra o cliente:
+
+* `new Date('2026-08-10')` é `2026-08-10T00:00:00Z`; subtrair-lhe o instante
+  actual perdia a fracção no `Math.floor`, e **todas** as licenças anunciavam
+  um dia a menos do que tinham;
+* pior, no próprio dia da validade `validade < agora` passava a verdade à
+  meia-noite UTC — 01:00 em Lisboa no Verão — e a licença dava-se por
+  **expirada durante todo o dia em que ainda era válida**.
+
+Agora os dois lados são dias e comparam-se como dias, em UTC de propósito: em
+Portugal isso dá, quando muito, uma hora de tolerância a mais na viragem do
+dia, e numa licença é esse o lado certo para errar. A função é partilhada com
+o WashInvoice POS, portanto a correcção vale para os dois produtos.
 
 `LicencaInfo` a `null` significa **"não foi possível saber"** — sem Supabase
 configurado, offline, ou timeout. Não é o mesmo que "sem licença", e por isso
