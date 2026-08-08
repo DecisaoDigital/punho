@@ -10,10 +10,26 @@
          quando for preciso, nunca no arranque. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <!-- Os dados dos clientes finais não saem deste telemóvel para uma conta
+         pessoal.
+
+         Sem `allowBackup="false"`, o Auto Backup do Android copia as
+         SharedPreferences da app — onde vivem nomes, telefones, NIF, IBAN e
+         NISS — para o Google Drive **pessoal** de quem usa o telemóvel. São
+         dados de clientes de uma empresa a aterrar numa conta particular, sem
+         base legal nenhuma e sem ninguém o ter pedido.
+
+         As duas linhas são precisas e não se substituem: `allowBackup` trata da
+         cópia para a nuvem (e é o que vale até ao Android 11), e
+         `dataExtractionRules` trata da transferência directa entre aparelhos no
+         Android 12+, que **ignora** o `allowBackup`. Só com as duas é que a
+         mudança de telemóvel não leva os dados atrás. -->
     <application
         android:label="punho"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/regras_de_extraccao">
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  O que a app guarda no telemóvel não é do telemóvel: é da empresa.
+
+  Clientes com nome, telefone e NIF; fichas fiscais com IBAN e NISS; despesas;
+  leads. Está tudo em SharedPreferences, em claro (ver
+  lib/data/repositories/operation_repository.dart). Enquanto não houver cifra
+  local a sério — chave no Android Keystore, ver docs/CIFRA_LOCAL.md — o mínimo
+  é não deixar que o sistema operativo distribua esses ficheiros por conta
+  própria.
+
+  São dois canais distintos e é preciso fechar os dois:
+
+  - `cloud-backup` — o Auto Backup para o Google Drive pessoal do utilizador.
+    O `android:allowBackup="false"` do manifesto já o desliga; isto é o cinto
+    para além dos suspensórios, e o que fica válido se alguém reactivar o
+    `allowBackup` sem pensar duas vezes.
+
+  - `device-transfer` — a cópia directa de telemóvel para telemóvel quando se
+    muda de aparelho. Esta **ignora** o `allowBackup`. Sem este bloco, trocar de
+    telemóvel levava os dados dos clientes atrás, para um aparelho que pode nem
+    ser da mesma pessoa.
+
+  Exclui-se tudo, e de propósito. Não há aqui nenhum dado cuja perda valha o
+  risco de o transportar: o que interessa vive no Supabase e volta na
+  sincronização, com autenticação pelo meio. O que está no aparelho é cache.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>
