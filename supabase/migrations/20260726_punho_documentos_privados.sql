@@ -1,4 +1,10 @@
 -- Comprovativos privados: apenas autor e gestores da mesma empresa têm leitura.
+--
+-- APLICADA A 2026-08-08. Esteve neste repo desde 26 de Julho sem nunca ter
+-- corrido: o bucket `punho-documentos` não existia, e por isso as fotografias
+-- de máquinas e os recibos de despesa falhavam em produção — a app inseria a
+-- linha em `punho_documentos`, o upload rebentava, e o `catch` apagava a linha
+-- outra vez. Sem rasto nenhum.
 insert into storage.buckets (id, name, public)
 values ('punho-documentos', 'punho-documentos', false)
 on conflict (id) do update set public = false;
@@ -39,7 +45,7 @@ create policy "autor ou gestor apaga comprovativo" on storage.objects for delete
   )
 );
 
--- Fotografias de mÃ¡quinas pertencem Ã  empresa: qualquer membro pode enviar
+-- Fotografias de máquinas pertencem à empresa: qualquer membro pode enviar
 -- e todos os membros ativos da mesma empresa podem consultar.
 create policy "membros leem imagens de maquinas" on storage.objects for select to authenticated using (
   bucket_id = 'punho-documentos'
