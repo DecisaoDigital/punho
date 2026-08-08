@@ -12,15 +12,16 @@ recomendadas. A primeira vertical aprofundada é o aluguer de máquinas.
 - [Estado actual da aplicação](docs/ESTADO_ATUAL_DA_APP.md)
 - [O que é o Punho](docs/O_QUE_E_O_PUNHO.md)
 - [Decisões e roadmap vivo](docs/DECISOES_E_ROADMAP_VIVO.md)
-- [Processo de release (runbook)](docs/PROCESSO_DE_RELEASE.md) ← **ler antes de cortar tag**
-- [Smoke manual v0.0.8](docs/SMOKE_v0.0.8_CHECKLIST.md)
+- [Publicar uma versão (runbook)](docs/PUBLICAR_RELEASE.md) ← **ler antes de cortar tag**
+- [Smoke antes de anunciar](docs/SMOKE.md)
 - [Índice da documentação](docs/README.md)
 
 ## Plataformas
 
-- **Android** — plataforma principal e única publicada actualmente pelo CI.
-- **Windows** — suportado para desenvolvimento e builds locais; job Windows
-  do GitHub Actions está suspenso.
+- **Android** — plataforma principal e a única publicada. Compilada, assinada e
+  verificada no i9; o GitHub só recebe o APK já pronto.
+- **Windows** — suportado para desenvolvimento e builds locais; por publicar,
+  falta o worker Windows no i9.
 - **iOS** — suspenso.
 
 ## Preparar o ambiente
@@ -61,9 +62,10 @@ Windows — excluídos no CI, corridos localmente quando se toca em UI.
 
 - Branch principal: `main`. Push directo é permitido para fixes pequenos;
   features estruturais em `feat/*` com merge por PR.
-- Antes de cortar tag: **smoke manual dos 9 fluxos** (`docs/SMOKE_*.md`).
-- Ver [PROCESSO_DE_RELEASE.md](docs/PROCESSO_DE_RELEASE.md) para a sequência
-  exacta de release (bump → workflow_dispatch → tag → APK → catálogo).
+- Antes de anunciar uma versão: **smoke no aparelho** ([SMOKE.md](docs/SMOKE.md)).
+- Ver [PUBLICAR_RELEASE.md](docs/PUBLICAR_RELEASE.md) para a sequência exacta
+  de release (bump → analyze → testes → APK verificado → tag → Release → smoke
+  → catálogo).
 
 ## Infra de trabalho
 
@@ -85,8 +87,9 @@ Windows — excluídos no CI, corridos localmente quando se toca em UI.
   Repos já clonados: `~/punho`, `~/washinvoice-control`. Keystores em
   `~/keystores/` (permissão 600, passwords em `D:\Seguro\`).
   Estado completo do i9 em `D:\Claude\infra\maquina_linux_i9.md`.
-- **Self-hosted GitHub Actions runner** — no i9 (plano B quando CI cloud
-  falhar, task #234).
+- **GitHub Actions** — se existir, só para verificação (`flutter analyze` e
+  `flutter test`). Nunca compila, assina ou publica: o APK sai sempre do i9.
+  Ver [AGENTS.md](AGENTS.md). *(workflow de verificação ainda por criar.)*
 - **PC Windows do Cesar** — desenvolvimento visual, smoke manual no
   telemóvel via cabo USB, build do instalador Windows (Inno Setup).
 - **Supabase project `oefqbkhioncakojipqyx`** — partilhado com POS e Control
@@ -95,23 +98,31 @@ Windows — excluídos no CI, corridos localmente quando se toca em UI.
 ## Releases
 
 Não é apenas criar uma tag. **Ler o
-[PROCESSO_DE_RELEASE.md](docs/PROCESSO_DE_RELEASE.md) antes de qualquer
-release** — captura lições reais (a v0.0.8 teve 3 falhas até publicar).
+[PUBLICAR_RELEASE.md](docs/PUBLICAR_RELEASE.md) antes de qualquer release** —
+captura lições reais (a v0.0.8 teve 3 falhas até publicar).
 
 Resumo:
-1. `workflow_dispatch` verde primeiro (build + testes sem tag).
-2. Só depois tag `vX.Y.Z` no commit certo → publica APK Android no GitHub Releases.
-3. Só depois de APK público e testado, inserir linha em `versoes_apps`
-   do Supabase para os clientes verem o update.
+1. Ensaio primeiro, que não deixa rasto:
+   `./scripts/release.sh X.Y.Z --ensaio`
+2. `./scripts/release.sh X.Y.Z --yes` — analyze, testes, APK assinado e
+   verificado, commit, tag e GitHub Release. **Pára aqui de propósito.**
+3. Instalar o APK no aparelho e correr o [SMOKE.md](docs/SMOKE.md).
+4. Só então anunciar aos telemóveis que já têm a app:
+   `./scripts/update-release-catalog.sh X.Y.Z <build>`
+
+Publicar o APK e anunciá-lo são dois comandos separados porque são duas
+decisões separadas: entre eles está o smoke. Enquanto o passo 4 não correr,
+ninguém recebe a actualização — e não há nada para desfazer.
 
 Instalador Windows: `installer/punho_setup.iss` (Inno Setup, local).
 
 ## Segurança
 
 - Nunca commitar `.env`, chaves, tokens, keystones ou credenciais.
-- Keystore de release: `D:\Seguro\keystores\punho_release.jks` (fora do repo).
-  Nos secrets do GitHub Actions: `PUNHO_KEYSTORE_BASE64` (jks em base64) +
-  `PUNHO_KEYSTORE_PASSWORD` (password da chave).
+- Keystore de release: `~/keystores/punho_release.jks` no i9 (permissão 600,
+  fora do repo; cópia em `D:\Seguro\keystores\`). **Não existem secrets de
+  keystore no GitHub**, e não devem passar a existir: o GitHub não assina nada.
+  Perder esta chave significa não voltar a poder actualizar a app instalada.
 - Antes de trabalhar no backend, consultar [Segurança e RLS](docs/SEGURANCA_E_RLS.md).
 - Valores públicos em `.env.example` (URL + anon key), nunca a service_role.
 

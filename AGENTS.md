@@ -15,14 +15,19 @@ O i9 é a única árvore de trabalho oficial.
 
 É proibido usar GitHub Actions ou runners GitHub para:
 
-- instalar dependências como parte do gate;
-- executar análise ou testes;
 - compilar Android ou Windows;
 - assinar APKs;
-- gerar ou validar artefactos de release.
+- gerar, validar ou publicar artefactos de release.
 
 Também é proibido fazer push para “ver se passa”. O GitHub só recebe código que
 já passou no i9 e binários que já foram produzidos e verificados no i9.
+
+**O que é permitido:** um workflow que corra apenas `flutter pub get`,
+`flutter analyze` e `flutter test`. Não compila, não assina, não publica e não
+toca em keystores nem em secrets. Não é o portão — o portão continua a ser o
+i9 —, é uma segunda opinião que apanha o commit que subiu sem alguém ter
+corrido a suite. Hoje os 960 testes só correm quando se arranca uma publicação,
+que é o pior momento possível para descobrir que estão vermelhos.
 
 O GitHub é usado apenas para:
 

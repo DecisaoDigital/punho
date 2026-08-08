@@ -25,21 +25,39 @@ Não colocar passwords nem tokens no repositório.
 Se uma sessão expirar, renovar a autenticação no i9. Nunca escrever tokens em
 comandos que fiquem no histórico, logs, documentação ou commits.
 
-## Atenção ao mecanismo antigo
+## O mecanismo antigo já não existe
 
-O ficheiro `.github/workflows/release.yml` e a versão atual de
-`scripts/release.sh` ainda representam o processo antigo, que compilava no
-GitHub Actions. Não os executar nem usar como caminho de publicação.
+O `.github/workflows/release.yml`, que compilava e assinava no GitHub, foi
+removido a 3 de Agosto de 2026 (commit `65fae4e`). O `scripts/release.sh` **é**
+hoje o caminho de publicação, e faz tudo no i9.
 
-Enquanto esse mecanismo não for removido ou migrado para compilação integral no
-i9:
+Continua a valer, e não por inércia:
 
-- não executar `gh workflow run`, `gh run rerun` ou `gh run watch` para builds;
-- não usar um push ou uma tag para descobrir se o projeto compila;
-- não enviar uma tag de release sem garantir que o workflow antigo não será
-  acionado;
+- não usar um push ou uma tag para descobrir se o projecto compila;
 - não publicar uma versão sem os binários finais já existirem e terem sido
-  verificados no i9.
+  verificados no i9;
+- não devolver ao GitHub a compilação nem a assinatura — as chaves não saem do
+  i9.
+
+## Publicar e anunciar são dois comandos
+
+É a regra que estrutura tudo o resto, e existe porque estiveram colados:
+
+| Comando | O que faz | Quem é afectado |
+| --- | --- | --- |
+| `scripts/release.sh` | commit, tag, GitHub Release com o APK | ninguém — o APK fica à espera de quem o vá buscar |
+| `scripts/update-release-catalog.sh` | activa a versão em `versoes_apps` | **todos os telemóveis**, por auto-update |
+
+Entre um e outro está o [SMOKE.md](SMOKE.md). Um APK que compila, está assinado
+e tem os defines mas rebenta ao arrancar passa as duas primeiras fases sem uma
+queixa — e só o smoke o apanha antes de ser tarde. Depois do segundo comando,
+reverter é SQL à mão com o cliente já parado.
+
+Ensaio antes, que não deixa rasto nenhum:
+
+```bash
+./scripts/release.sh X.Y.Z --ensaio
+```
 
 ## Sequência obrigatória
 
@@ -138,10 +156,33 @@ sido produzidos e validados no i9:
 1. criar a tag no i9;
 2. enviar a tag;
 3. criar a GitHub Release;
-4. carregar com `gh` os APKs e o instalador já existentes;
-5. atualizar e verificar o catálogo Supabase.
+4. carregar com `gh` os APKs e o instalador já existentes.
+
+É tudo isto que o `./scripts/release.sh X.Y.Z --yes` faz de uma vez. E acaba
+aqui: o script imprime o que falta e **não** anuncia nada.
 
 O GitHub armazena e distribui os ficheiros. Não os constrói.
+
+### 7. Smoke no aparelho
+
+```bash
+adb install -r dist/punho-android-vX.Y.Z.apk
+```
+
+Correr os dez pontos do [SMOKE.md](SMOKE.md). Instalar por cima da versão
+anterior, não numa app limpa.
+
+### 8. Anunciar
+
+Só com o smoke todo verde:
+
+```bash
+./scripts/update-release-catalog.sh X.Y.Z <build>
+```
+
+É este comando, e só este, que faz a versão aparecer nos telemóveis. Pode ser
+repetido sem risco: se a linha já existir, actualiza o que é mutável em vez de
+rebentar.
 
 ## Regra de paragem
 
@@ -153,3 +194,8 @@ Se qualquer análise, teste, compilação, assinatura ou verificação falhar:
 - corrigir e repetir todo o gate relevante no i9.
 
 Uma execução verde no i9 é condição obrigatória para o código subir ao GitHub.
+
+E a paragem que interessa mais, porque é a única depois de o código já estar
+público: **se o smoke falhar, não correr o passo 8.** Não há nada para desfazer
+— a release fica no GitHub sem ninguém a receber. Corrige-se e publica-se
+`X.Y.(Z+1)`. Nunca mover uma tag publicada.

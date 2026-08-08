@@ -28,14 +28,19 @@ ssh cesar@192.168.1.150         # LAN local (DHCP — pode mudar)
 Estado detalhado do i9 (hardware, software instalado, monitorização,
 credenciais, roadmap): `D:\Claude\infra\maquina_linux_i9.md`.
 
-O i9 é também o self-hosted GitHub Actions runner (plano B quando o CI
-cloud falhar, task #234).
+O GitHub não compila, não assina e não publica nada (ver `AGENTS.md`). Um
+workflow só de verificação — `analyze` e `test` — é permitido; o portão
+continua a ser o i9.
 
 ## Antes de qualquer release
 
-- Ler `docs/PROCESSO_DE_RELEASE.md` completo
-- Correr smoke manual (`docs/SMOKE_*.md`) antes de tag
-- As 7 lições da v0.0.10 estão registadas no topo do runbook — não repetir
+- Ler `docs/PUBLICAR_RELEASE.md` completo — é o runbook único
+- Ensaiar primeiro: `./scripts/release.sh X.Y.Z --ensaio` (não deixa rasto)
+- **Publicar e anunciar são dois comandos.** O `release.sh` cria a Release e
+  pára; quem faz a versão chegar aos telemóveis é o
+  `./scripts/update-release-catalog.sh`. Entre os dois corre-se o
+  `docs/SMOKE.md` no aparelho
+- As 7 lições da v0.0.10 estão em `docs/PROCESSO_DE_RELEASE.md` — não repetir
 
 ## Regras gerais Cowork
 

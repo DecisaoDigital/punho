@@ -10,7 +10,7 @@ readonly PROJECT_REF="oefqbkhioncakojipqyx"
 usage() {
   cat <<'EOF'
 Uso:
-  ./scripts/release.sh <versão> [--yes]
+  ./scripts/release.sh <versão> [--yes] [--ensaio]
 
 Exemplo:
   ./scripts/release.sh 0.0.10 --yes
@@ -20,8 +20,17 @@ O build number é incrementado automaticamente. O comando:
   2. atualiza pubspec.yaml;
   3. executa flutter analyze e os testes;
   4. constrói e verifica o APK, e só então faz commit, tag e push;
-  5. cria a GitHub Release e carrega o APK construído no i9;
-  6. atualiza e verifica o catálogo Supabase.
+  5. cria a GitHub Release e carrega o APK construído no i9.
+
+E PÁRA AÍ. Publicar o APK e anunciá-lo aos telemóveis são duas decisões
+diferentes, e no meio delas está o smoke no aparelho. Quem anuncia é:
+
+  ./scripts/update-release-catalog.sh <versão> <build>
+
+  --ensaio  Corre tudo até à verificação do APK e pára antes do commit: sem
+            commit, sem tag, sem push, sem release. O pubspec.yaml é reposto no
+            fim. Serve para ver a publicação toda falhar (ou passar) sem deixar
+            rasto nenhum.
 EOF
 }
 
@@ -34,17 +43,23 @@ require_command() {
   command -v "$1" >/dev/null 2>&1 || die "comando em falta: $1"
 }
 
-if [[ $# -lt 1 || $# -gt 2 ]]; then
+if [[ $# -lt 1 ]]; then
   usage
   exit 2
 fi
 
 version="${1#v}"
+shift
 assume_yes=false
-if [[ $# -eq 2 ]]; then
-  [[ "$2" == "--yes" ]] || die "opção desconhecida: $2"
-  assume_yes=true
-fi
+ensaio=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --yes) assume_yes=true ;;
+    --ensaio) ensaio=true ;;
+    *) die "opção desconhecida: $1" ;;
+  esac
+  shift
+done
 
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
   die "versão inválida; use o formato 0.0.10"
@@ -99,11 +114,16 @@ if gh release view "$tag" --repo "$REPOSITORY" >/dev/null 2>&1; then
   die "a release $tag já existe"
 fi
 
-printf 'Preparado para publicar %s+%s (atual: %s+%s).\n' \
-  "$version" "$new_build" "$current_version" "$current_build"
-if [[ "$assume_yes" != true ]]; then
-  read -r -p "Continuar? [y/N] " answer
-  [[ "$answer" =~ ^[Yy]$ ]] || die "cancelado"
+if [[ "$ensaio" == true ]]; then
+  printf 'ENSAIO de %s+%s (atual: %s+%s) — não sai nada daqui.\n' \
+    "$version" "$new_build" "$current_version" "$current_build"
+else
+  printf 'Preparado para publicar %s+%s (atual: %s+%s).\n' \
+    "$version" "$new_build" "$current_version" "$current_build"
+  if [[ "$assume_yes" != true ]]; then
+    read -r -p "Continuar? [y/N] " answer
+    [[ "$answer" =~ ^[Yy]$ ]] || die "cancelado"
+  fi
 fi
 
 committed=false
@@ -165,6 +185,23 @@ grep -Fq "package: name='pt.decisaodigital.punho'" <<< "$badging" ||
 grep -Fq "$CERTIFICADO_SHA256" <<< "$certificados" ||
   die "o APK não está assinado com a keystore definitiva do Punho"
 
+# Fim do ensaio. Tudo o que vem a seguir deixa rasto: commit, tag, push e
+# release. O ensaio corre de propósito **até aqui** e não menos — o que costuma
+# falhar não são os passos de git, são os testes e a verificação do APK, e um
+# ensaio que parasse antes disso não valia o tempo que demora.
+if [[ "$ensaio" == true ]]; then
+  git restore -- pubspec.yaml pubspec.lock 2>/dev/null || true
+  trap - EXIT
+  printf '\n%s\n' '────────────────────────────────────────────────────────'
+  printf 'ENSAIO CONCLUÍDO — nada foi commitado, empurrado nem publicado.\n'
+  printf '%s\n\n' '────────────────────────────────────────────────────────'
+  printf 'Passou: main, GitHub, Supabase, analyze, testes, build e as três\n'
+  printf 'verificações do APK (versão, pacote e certificado).\n'
+  printf 'O pubspec.yaml foi reposto como estava.\n'
+  printf 'O APK do ensaio ficou em %s\n' "$apk_construido"
+  exit 0
+fi
+
 git add -- pubspec.yaml
 if ! git diff --quiet -- pubspec.lock; then
   git add -- pubspec.lock
@@ -188,15 +225,36 @@ gh release create "$tag" \
   --notes "Ver o histórico de commits desde a etiqueta anterior." \
   "dist/${asset}#${asset}"
 
-"$repo_root/scripts/update-release-catalog.sh" "$version" "$new_build"
-
 release_url="$(
   gh release view "$tag" --repo "$REPOSITORY" --json url --jq .url
 )"
 trap - EXIT
 
-printf '\nPUBLICAÇÃO CONCLUÍDA\n'
+# É aqui que este script acaba, e é de propósito.
+#
+# Até esta linha nada chegou a ninguém: o APK está no GitHub à espera de quem o
+# vá buscar de propósito. A linha seguinte — o catálogo — é que acende a
+# auto-actualização e empurra a versão para todos os telemóveis. Estavam
+# coladas, sem nada pelo meio, e por isso um APK que compila, está assinado e
+# tem os defines mas rebenta ao arrancar ia parar a toda a gente sem ninguém o
+# ter aberto uma vez. O rollback disso é SQL à mão, com o cliente já parado.
+#
+# O runbook sempre exigiu smoke manual antes de anunciar. O script é que não o
+# impunha, e um passo que só o documento exige é um passo que se salta num dia
+# cheio.
+printf '\n%s\n' '════════════════════════════════════════════════════════════'
+printf 'APK PUBLICADO — E AINDA NÃO ANUNCIADO A NINGUÉM\n'
+printf '%s\n\n' '════════════════════════════════════════════════════════════'
 printf 'Versão: %s+%s\n' "$version" "$new_build"
 printf 'Release: %s\n' "$release_url"
-printf 'Supabase: Android activo e verificado.\n'
+printf 'APK local: %s\n\n' "dist/${asset}"
+printf 'Nenhum telemóvel vai ver esta versão até correres o catálogo.\n'
+printf 'Falta, por esta ordem:\n\n'
+printf '  1. Instalar o APK no aparelho:\n'
+printf '     adb install -r dist/%s\n\n' "$asset"
+printf '  2. Correr o smoke — os fluxos estão em docs/SMOKE.md.\n\n'
+printf '  3. Só depois, anunciar a quem já tem a app instalada:\n'
+printf '     ./scripts/update-release-catalog.sh %s %s\n\n' "$version" "$new_build"
+printf 'Se o smoke correr mal, não há nada para desfazer: basta não correr o\n'
+printf 'passo 3. A release fica no GitHub sem ninguém a receber.\n\n'
 printf 'Windows: continua por publicar — falta o worker Windows no i9.\n'
