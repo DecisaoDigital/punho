@@ -149,14 +149,20 @@ apk_construido="build/app/outputs/flutter-apk/app-release.apk"
 readonly CERTIFICADO_SHA256="33386ff0dd95bb57818aaabc32b37e378da9febb1fb905b2388c4b5aa0f70205"
 build_tools="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
 
-"$build_tools/aapt2" dump badging "$apk_construido" |
-  grep -Fq "versionCode='${new_build}' versionName='${version}'" ||
+# Recolher a saída para variáveis ANTES de a filtrar. Ligar estes comandos a
+# um `grep -q` por um cano é uma corrida perdida à espera de acontecer: o grep
+# sai no primeiro acerto — que aqui é a primeira linha —, o produtor fica a
+# escrever para um cano fechado, apanha SIGPIPE, e o `pipefail` lá em cima
+# transforma uma verificação bem-sucedida numa falha da release. Aconteceu a
+# publicar a 0.3.3: o APK declarava 0.3.3+38 e o script disse que não.
+badging="$("$build_tools/aapt2" dump badging "$apk_construido")"
+certificados="$("$build_tools/apksigner" verify --print-certs "$apk_construido")"
+
+grep -Fq "versionCode='${new_build}' versionName='${version}'" <<< "$badging" ||
   die "o APK não declara ${version}+${new_build}"
-"$build_tools/aapt2" dump badging "$apk_construido" |
-  grep -Fq "package: name='pt.decisaodigital.punho'" ||
+grep -Fq "package: name='pt.decisaodigital.punho'" <<< "$badging" ||
   die "o APK não é pt.decisaodigital.punho"
-"$build_tools/apksigner" verify --print-certs "$apk_construido" |
-  grep -Fq "$CERTIFICADO_SHA256" ||
+grep -Fq "$CERTIFICADO_SHA256" <<< "$certificados" ||
   die "o APK não está assinado com a keystore definitiva do Punho"
 
 git add -- pubspec.yaml
