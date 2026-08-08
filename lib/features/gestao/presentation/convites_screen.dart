@@ -59,7 +59,6 @@ class ConvitesScreen extends ConsumerStatefulWidget {
 
 class _ConvitesScreenState extends ConsumerState<ConvitesScreen> {
   final _email = TextEditingController();
-  String _perfil = 'colaborador';
   bool _ocupado = false;
   String? _erro;
 
@@ -82,7 +81,8 @@ class _ConvitesScreenState extends ConsumerState<ConvitesScreen> {
     try {
       final convite = await ref
           .read(acessoServiceProvider)
-          .criarConvite(email: _email.text.trim(), perfil: _perfil);
+          // Um convite é sempre para um futuro operador. Ver a nota no ecrã.
+          .criarConvite(email: _email.text.trim(), perfil: 'colaborador');
       if (!mounted) return;
       _email.clear();
       ref.invalidate(convitesProvider);
@@ -186,20 +186,21 @@ class _ConvitesScreenState extends ConsumerState<ConvitesScreen> {
             decoration: const InputDecoration(labelText: 'Email do convidado'),
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            isExpanded: true,
-            initialValue: _perfil,
-            decoration: const InputDecoration(labelText: 'Cargo'),
-            items: const [
-              DropdownMenuItem(value: 'gestor', child: Text('Gestor')),
-              DropdownMenuItem(
-                value: 'colaborador',
-                child: Text('Colaborador'),
-              ),
-            ],
-            onChanged: _ocupado
-                ? null
-                : (v) => setState(() => _perfil = v ?? 'colaborador'),
+          // Não há cargo a escolher. Um convite serve para pôr alguém a
+          // trabalhar — é sempre para um operador.
+          //
+          // A lista que aqui estava oferecia também "Gestor", e nunca foi
+          // usada: não existe convite de gestor, nem no que o produto faz nem
+          // no que se pretende que faça. Quem gere a empresa é quem a criou. A
+          // escolha só servia para alguém a errar uma vez e dar as chaves da
+          // casa a quem devia entrar para trabalhar — e um erro desses não dá
+          // sinal nenhum, porque o convite parece igual dos dois lados.
+          //
+          // O servidor não depende disto: a inscrição pela app do operador
+          // força `colaborador` mesmo que o convite diga outra coisa.
+          const Text(
+            'O convidado entra como operador.',
+            style: TextStyle(fontSize: 12),
           ),
           if (_erro != null)
             Padding(

@@ -45,12 +45,31 @@ void main() {
 
       expect(fake.convitesCriados, hasLength(1));
       expect(fake.convitesCriados.single['email'], 'novo@exemplo.pt');
-      // Cargo por omissão: colaborador, não gestor.
+      // Um convite é sempre para um operador. Não é um valor por omissão que
+      // se possa mudar — é o único que existe.
       expect(fake.convitesCriados.single['perfil'], 'colaborador');
 
       expect(find.text('Convite criado'), findsOneWidget);
       expect(find.text('ABC1234567'), findsOneWidget);
       expect(find.textContaining('aprovação manual'), findsOneWidget);
+    });
+
+    testWidgets('não há cargo a escolher — o convite é sempre de operador', (
+      tester,
+    ) async {
+      // O ecrã oferecia uma lista com "Gestor" e "Colaborador". Nunca foi
+      // usada para gestor, e não devia poder ser: um convite serve para pôr
+      // alguém a trabalhar. Bastava errar a lista uma vez para dar as chaves
+      // da casa a quem devia entrar como operador — e nada denunciaria o
+      // engano, porque o convite parece igual dos dois lados.
+      //
+      // Este teste existe para que a lista não volte por distracção.
+      final fake = FakeAcessoService();
+      await _montar(tester, fake);
+
+      expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+      expect(find.text('Gestor'), findsNothing);
+      expect(find.text('O convidado entra como operador.'), findsOneWidget);
     });
 
     testWidgets('colaborador é recusado pelo servidor e vê o motivo', (

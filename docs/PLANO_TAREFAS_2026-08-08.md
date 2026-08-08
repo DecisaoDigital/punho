@@ -150,11 +150,9 @@ pergunto a regra de precedência quando o gestor já preencheu o mês à mão.
       `colaborador_responsavel_id` e `colaborador_nome_snapshot` à espera.
       Falta o elo: sem ele, "quem atendeu" é um UUID. Dos 2 membros actuais só
       1 passou pelo pedido de acesso — o gestor não tem nome em lado nenhum.
-- [ ] **`comunicar-serie` tem um token de bypass em produção.** `PROBE_TOKEN =
-      'probe-9f3a1c7e-at-series'` no header `x-probe-token` salta a camada que
-      verifica `is_admin()`, e a função corre com `verify_jwt: false`. Nesse
-      modo a acção `guardar_credenciais` fica alcançável sem ser admin — quem
-      souber o token pode escrever credenciais AT em qualquer `machine_id`.
-      Está igual no repositório e em produção, portanto foi deliberado para
-      testes; deixá-lo lá não é. Decisão tua: remover, ou trocar por um secret
-      de ambiente.
+- [x] **`comunicar-serie` tinha um token de bypass em produção**, escrito à mão
+      num repositório público desde 22 de Julho: quem o lesse saltava o
+      `is_admin()` e chegava a `guardar_credenciais`. Passou a vir do segredo
+      `AT_PROBE_TOKEN`, com falha fechada, mínimo de 32 caracteres e comparação
+      em tempo constante. Segredo novo gerado e publicado; o antigo já não abre
+      nada — provado contra a função em produção.
