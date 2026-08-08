@@ -71,6 +71,16 @@ depois do catálogo:
       botão, sem cair para o browser. *(Se cair para o browser, falta o `sha256`
       no catálogo.)*
 
+      **Conta com o Google Play Protect pelo caminho.** Depois do «Pretende
+      atualizar esta app?» do Android aparece *"Análise da app recomendada — o
+      Play Protect ainda não conhece esta app"*, e as únicas opções são
+      **Analisar app** (envia o APK ao Google, ~40 s, acaba em "parece ser
+      segura" e um botão Instalar) ou **Não instalar app**. Não há "instalar
+      mesmo assim". Isto não é uma falha da release: é o que **todos os
+      clientes** vão ver a cada actualização, e quem não souber julga que a
+      instalação rebentou. Confirmado no Redmi a 8 de Agosto de 2026, na
+      passagem de 0.3.2+37 para 0.3.3+38.
+
 ## Se algo falhar
 
 Não há nada para desfazer enquanto o catálogo não correr — é esse o ponto de
