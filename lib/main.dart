@@ -29,6 +29,15 @@ import 'features/sync/sync_providers.dart';
 import 'features/updates/presentation/update_banner_wrapper.dart';
 
 Future<void> main() async {
+  // Antes de tudo, e **fora** da zona guardada de propósito.
+  //
+  // Um APK de release compilado sem os `--dart-define` do Supabase tem de
+  // parar aqui, alto. Lá dentro não parava: o apanhador da zona engolia a
+  // excepção, o `runApp` nunca chegava a correr, e o utilizador ficava com um
+  // ecrã preto sem uma linha que explicasse porquê — que é pior do que o
+  // silêncio que isto veio corrigir.
+  SupabaseConfig.assertConfiguredOrCrash();
+
   // Tudo dentro da zona guardada: uma excepção assíncrona fora dela não é
   // apanhada por ninguém, e era assim que a app perdia exactamente os erros
   // que mais interessa ver — os que acontecem no arranque, em casa do cliente.
