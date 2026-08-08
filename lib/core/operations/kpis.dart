@@ -1094,7 +1094,12 @@ CustosMes custosMesAgregados(
   final naEstrada = state.vehicles
       .where((v) => !v.archived && v.status != VehicleStatus.inactive)
       .toList();
-  final frota = naEstrada.fold(0, (soma, v) => soma + monthlyFleetCost(v));
+  // Mesmo padrão do bruto do pessoal, dez linhas acima: soma-se o que se sabe
+  // e o total fica a subestimar. Usa-se a variante `Known` de propósito — a
+  // `monthlyFleetCost` devolve `null` quando falta uma parcela, e aqui isso
+  // deitaria fora a prestação que É conhecida. Quem mostra o número é que tem
+  // de dizer que há veículos por apurar — ver `VehiclesPage`.
+  final frota = naEstrada.fold(0, (soma, v) => soma + monthlyFleetCostKnown(v));
   final comData = naEstrada.where(
     (v) => v.monthlyPaymentCents != null && v.paymentDayOfMonth != null,
   );

@@ -8,17 +8,6 @@ import '../../../core/documents/expense_document_storage.dart';
 import '../../../domain/models/finance.dart';
 import '../../../domain/models/operations.dart';
 
-/// Mensagem do valor recusado: distingue campo vazio (falta preencher) de
-/// texto que não se consegue ler (escreveu-se algo, mas não é um euro válido —
-/// por exemplo "1.500.00" com dois pontos, ou letras). Nenhum dos dois casos
-/// grava um zero calado; ambos recusam com aviso visível.
-String _mensagemDeValorInvalido(String textoEscrito) {
-  final texto = textoEscrito.trim();
-  return texto.isEmpty
-      ? 'Indica um valor superior a zero.'
-      : 'Não consigo ler o valor "$texto" — escreve por exemplo 1.500,00.';
-}
-
 class FinanceListPage extends ConsumerWidget {
   const FinanceListPage({
     super.key,
@@ -269,7 +258,7 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
                   final cents = centsDeTexto(amount.text);
                   if (cents == null || cents <= 0) {
                     setState(
-                      () => erro = _mensagemDeValorInvalido(amount.text),
+                      () => erro = mensagemDeValorInvalido(amount.text),
                     );
                     return;
                   }
@@ -493,7 +482,7 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
                         final cents = centsDeTexto(amount.text);
                         if (cents == null || cents <= 0) {
                           setState(
-                            () => erro = _mensagemDeValorInvalido(amount.text),
+                            () => erro = mensagemDeValorInvalido(amount.text),
                           );
                           return;
                         }

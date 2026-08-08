@@ -57,6 +57,23 @@ int? centsDeTexto(String valor, {bool permitirNegativo = false}) {
   return (montante * 100).round();
 }
 
+/// Mensagem para um valor em euros que não se aceita.
+///
+/// Distingue campo vazio (falta preencher) de texto que não se consegue ler
+/// (escreveu-se algo, mas não é um euro válido — por exemplo "1.500.00" com
+/// dois pontos, ou letras). Nenhum dos dois grava um zero calado: ambos
+/// recusam com aviso visível.
+///
+/// Vive aqui, e não em cada ecrã, porque já esteve duplicada: o ecrã de
+/// Finanças recusava com mensagem e o de Custos Fixos gravava `?? 0` em
+/// silêncio. Um valor ilegível tem de dizer a mesma coisa em toda a app.
+String mensagemDeValorInvalido(String textoEscrito) {
+  final texto = textoEscrito.trim();
+  return texto.isEmpty
+      ? 'Indica um valor superior a zero.'
+      : 'Não consigo ler o valor "$texto" — escreve por exemplo 1.500,00.';
+}
+
 /// Cêntimos em texto para mostrar num campo. `null` fica em branco.
 String textoDeCents(int? cents) =>
     cents == null ? '' : (cents / 100).toStringAsFixed(2).replaceAll('.', ',');

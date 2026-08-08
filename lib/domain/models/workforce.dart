@@ -251,7 +251,39 @@ int? monthlyInsuranceCost(Vehicle v) =>
       };
 int? monthlyMaintenanceCost(Vehicle v) =>
     v.maintenanceCents == null ? null : v.maintenanceCents! ~/ 12;
-int monthlyFleetCost(Vehicle v) =>
+/// Custo mensal do veículo, ou `null` quando falta alguma parcela.
+///
+/// Devolve `null` de propósito em vez de somar zeros. Um veículo com a
+/// prestação preenchida e o seguro e a manutenção por declarar aparecia como
+/// "Custo mensal da frota: 350,00 €" — um número que o gestor lê como facto
+/// quando é, quando muito, um terço da conta. As três funções acima já
+/// devolvem `null` de propósito; transformá-las em zero aqui era desfazer
+/// nesta linha o cuidado que elas têm.
+///
+/// Ressalva conhecida: uma prestação a `null` tanto pode querer dizer "por
+/// declarar" como "veículo pago, sem financiamento". O modelo `Vehicle` não
+/// distingue os dois hoje, por isso um veículo próprio conta como por apurar.
+/// Distingui-los é uma mudança no modelo, não nesta função.
+/// O que se sabe custar, somando só as parcelas declaradas.
+///
+/// Responde a uma pergunta diferente da [monthlyFleetCost] e por isso existe
+/// à parte. Aqui a pergunta é "quanto é que esta frota já pesa na tesouraria",
+/// e a resposta certa para uma parcela por declarar é não a contar — não é
+/// deitar fora as que estão declaradas. Um veículo com prestação conhecida e
+/// seguro por preencher pesa a prestação; dizer que pesa zero seria pior do
+/// que subestimar.
+///
+/// A [monthlyFleetCost] responde a "qual é o custo deste veículo", e aí uma
+/// resposta incompleta é uma resposta errada — daí devolver `null`.
+int monthlyFleetCostKnown(Vehicle v) =>
     (v.monthlyPaymentCents ?? 0) +
     (monthlyInsuranceCost(v) ?? 0) +
     (monthlyMaintenanceCost(v) ?? 0);
+
+int? monthlyFleetCost(Vehicle v) {
+  final prestacao = v.monthlyPaymentCents;
+  final seguro = monthlyInsuranceCost(v);
+  final manutencao = monthlyMaintenanceCost(v);
+  if (prestacao == null || seguro == null || manutencao == null) return null;
+  return prestacao + seguro + manutencao;
+}

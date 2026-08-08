@@ -62,6 +62,14 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
   // com `dados={}` no Supabase. Ver `nifValido` em `core/format/campos.dart`.
   String? _nifErro;
 
+  /// Rubricas cujo campo de valor tem texto que não se consegue ler, por id.
+  ///
+  /// Existe porque o `?? 0` que aqui estava transformava "1.500.00" — ou
+  /// qualquer letra — num custo fixo de 0 €, calado, a cada tecla. E um custo
+  /// fixo alimenta a tesouraria inteira: o gestor via a conta dele mudar sem
+  /// perceber porquê.
+  final Map<String, String> _errosCustos = {};
+
   @override
   void initState() {
     super.initState();
@@ -143,6 +151,18 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
     // `if` manual antes de tocar no estado, mesmo esquema do onboarding.
     if (!nifValido(_taxId.text)) {
       setState(() => _nifErro = 'O NIF é obrigatório: 9 dígitos.');
+      return;
+    }
+    // Gravar com um valor ilegível no ecrã guardaria o valor anterior sem o
+    // dizer — que é a mesma mentira do `?? 0`, só mais discreta.
+    if (_errosCustos.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Há custos fixos com valores por corrigir. Nada foi guardado.',
+          ),
+        ),
+      );
       return;
     }
     ref
@@ -346,6 +366,14 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
           _EditorDeCustosFixos(
             rubricas: _custosFixos,
             aoMudar: (novas) => setState(() => _custosFixos = novas),
+            erros: _errosCustos,
+            aoMudarErro: (id, mensagem) => setState(() {
+              if (mensagem == null) {
+                _errosCustos.remove(id);
+              } else {
+                _errosCustos[id] = mensagem;
+              }
+            }),
           ),
         ],
       ),
@@ -466,10 +494,19 @@ class _CardSeccao extends StatelessWidget {
 /// se revê nem se corrige — quando a renda sobe, o gestor não sabe que parte do
 /// número mudar, e o painel não consegue dizer onde apertar.
 class _EditorDeCustosFixos extends StatelessWidget {
-  const _EditorDeCustosFixos({required this.rubricas, required this.aoMudar});
+  const _EditorDeCustosFixos({
+    required this.rubricas,
+    required this.aoMudar,
+    required this.erros,
+    required this.aoMudarErro,
+  });
 
   final List<CustoFixo> rubricas;
   final ValueChanged<List<CustoFixo>> aoMudar;
+
+  /// Mensagem por id de rubrica, para o campo de valor. Vazio = tudo legível.
+  final Map<String, String> erros;
+  final void Function(String id, String? mensagem) aoMudarErro;
 
   /// As que aparecem primeiro no selector. As restantes continuam lá.
   static const List<ExpenseCategory> _sugeridas = [
@@ -582,13 +619,30 @@ class _EditorDeCustosFixos extends StatelessWidget {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: '€ / mês'),
-                    onChanged: (valor) => _substituir(
-                      i,
-                      rubricas[i].copyWith(
-                        valorCents: centsDeTexto(valor) ?? 0,
-                      ),
+                    decoration: InputDecoration(
+                      labelText: '€ / mês',
+                      errorText: erros[rubricas[i].id],
                     ),
+                    onChanged: (valor) {
+                      // `centsDeTexto` devolve `null` tanto para o campo vazio
+                      // como para texto ilegível — nunca inventa um zero. O
+                      // `?? 0` que aqui estava inventava-o por ele: "1.500.00"
+                      // virava 0 € numa rubrica que alimenta toda a cadeia de
+                      // tesouraria, sem uma palavra no ecrã.
+                      final cents = centsDeTexto(valor);
+                      if (cents == null || cents <= 0) {
+                        aoMudarErro(
+                          rubricas[i].id,
+                          mensagemDeValorInvalido(valor),
+                        );
+                        return; // fica o valor anterior, não um zero
+                      }
+                      aoMudarErro(rubricas[i].id, null);
+                      _substituir(
+                        i,
+                        rubricas[i].copyWith(valorCents: cents),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),

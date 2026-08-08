@@ -21,11 +21,17 @@ EstadoLicenca _estadoDe(Object? valor) => switch (valor) {
   _ => EstadoLicenca.inexistente,
 };
 
-int _inteiroDe(Object? valor) => switch (valor) {
+/// Inteiro do servidor, ou `null` quando o campo não veio ou não se lê.
+///
+/// Antes devolvia `0` no caso `_`. Parece inofensivo e não é: um
+/// `dias_restantes` em falta virava zero, e o banner dizia "Trial termina em 0
+/// dias — contactar já" a um cliente com 60 dias pela frente. Zero é uma
+/// afirmação; ausência não é.
+int? _inteiroOuNulo(Object? valor) => switch (valor) {
   final int x => x,
   final num x => x.toInt(),
-  final String x => int.tryParse(x) ?? 0,
-  _ => 0,
+  final String x => int.tryParse(x),
+  _ => null,
 };
 
 String? _textoDe(Object? valor) {
@@ -44,7 +50,7 @@ class LicencaInfo {
     this.nif,
     this.nome,
     this.validade,
-    this.diasRestantes = 0,
+    this.diasRestantes,
     this.oferta = false,
     this.chaveMestre,
     this.tier = 'base',
@@ -59,7 +65,10 @@ class LicencaInfo {
   final String? nif;
   final String? nome;
   final DateTime? validade;
-  final int diasRestantes;
+
+  /// Dias que faltam, ou `null` quando o servidor não os disse. Nunca zero por
+  /// omissão — ver [_inteiroOuNulo].
+  final int? diasRestantes;
   final bool oferta;
   final String machineId;
 
@@ -91,7 +100,7 @@ class LicencaInfo {
       nif: _textoDe(json['nif']),
       nome: _textoDe(json['nome']),
       validade: validadeCrua is String ? DateTime.tryParse(validadeCrua) : null,
-      diasRestantes: _inteiroDe(json['dias_restantes']),
+      diasRestantes: _inteiroOuNulo(json['dias_restantes']),
       oferta: json['oferta'] == true,
       chaveMestre: _textoDe(json['chave_mestre']),
       tier: _textoDe(json['tier']) ?? 'base',

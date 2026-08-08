@@ -34,6 +34,11 @@ AvisoLicenca? avisoParaLicenca(LicencaInfo? licenca) {
   final dias = licenca.diasRestantes;
   switch (licenca.estado) {
     case EstadoLicenca.activa:
+      // Sem dias declarados não há contagem para mostrar. Antes o `null` vinha
+      // como zero e isto anunciava "termina em 0 dias — contactar já" a quem
+      // tinha o trial inteiro pela frente: um alarme falso a partir de uma
+      // ausência.
+      if (dias == null) return null;
       if (!licenca.emTrial || dias > 10) return null;
       if (dias <= 3) {
         return AvisoLicenca(
@@ -49,7 +54,12 @@ AvisoLicenca? avisoParaLicenca(LicencaInfo? licenca) {
       );
     case EstadoLicenca.expirada:
       return const AvisoLicenca(
-        mensagem: 'Licença expirada. A app está em modo limitado.',
+        // Não diz "modo limitado" porque não há modo limitado nenhum:
+        // `LicencaInfo.funcional` não tem um único consumidor e nada na app
+        // está restringido. Prometer uma limitação que não existe ensina o
+        // utilizador a ignorar o aviso — e no dia em que houver limitação a
+        // sério, ele já não acredita nela.
+        mensagem: 'Licença expirada. Contactar suporte para renovar.',
         fundo: Color(0xFFF8CFCB),
         icone: Icons.error_outline_rounded,
       );

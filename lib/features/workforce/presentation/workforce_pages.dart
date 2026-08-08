@@ -661,7 +661,12 @@ class VehiclesPage extends ConsumerWidget {
     // linha (e o número) desaparecer, ou não se acredita que eliminou — mesma
     // regra das outras entidades.
     final veiculos = s.vehicles.where((v) => !v.archived).toList();
-    final total = veiculos.fold(0, (sum, v) => sum + monthlyFleetCost(v));
+    // Soma-se o que se sabe e diz-se quantos ficaram por apurar. Esconder o
+    // total até estar tudo preenchido seria pior: quem tem nove veículos
+    // completos e um por declarar ficava sem número nenhum.
+    final custos = veiculos.map(monthlyFleetCost).toList();
+    final total = custos.whereType<int>().fold(0, (sum, c) => sum + c);
+    final porApurar = custos.where((c) => c == null).length;
     return Scaffold(
       body: Padding(
         // Começa por texto: margem vertical inteira. Ver [MargensDoCanvas].
@@ -678,7 +683,9 @@ class VehiclesPage extends ConsumerWidget {
             Text(
               veiculos.isEmpty
                   ? 'Frota declarada, veículos por identificar'
-                  : 'Custo mensal estimado da frota: ${(total / 100).toStringAsFixed(2)} €',
+                  : 'Custo mensal estimado da frota: '
+                        '${(total / 100).toStringAsFixed(2)} €'
+                        '${porApurar == 0 ? '' : porApurar == 1 ? ' · 1 veículo por apurar' : ' · $porApurar veículos por apurar'}',
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
@@ -696,8 +703,18 @@ class VehiclesPage extends ConsumerWidget {
                         // gesto que não fazia nada antes desta correcção.
                         onTap: () => _formularioDeVeiculo(context, ref, v),
                         title: Text(v.plate),
-                        subtitle: Text(
-                          '${v.type} · Custo: ${(monthlyFleetCost(v) / 100).toStringAsFixed(2)} €/mês',
+                        subtitle: Builder(
+                          builder: (_) {
+                            // "por apurar" e não 0 €, que se leria como "não
+                            // custa nada" — mesmo padrão da ficha fiscal.
+                            final custo = monthlyFleetCost(v);
+                            return Text(
+                              custo == null
+                                  ? '${v.type} · Custo: por apurar'
+                                  : '${v.type} · Custo: '
+                                        '${(custo / 100).toStringAsFixed(2)} €/mês',
+                            );
+                          },
                         ),
                         trailing: Wrap(
                           crossAxisAlignment: WrapCrossAlignment.center,

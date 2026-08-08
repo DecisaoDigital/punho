@@ -81,7 +81,11 @@ class DiagnosticoLicenca extends ConsumerWidget {
 
   static String _estado(LicencaInfo info) => switch (info.estado) {
     EstadoLicenca.activa =>
-      info.emTrial ? 'Avaliação (${info.diasRestantes} dias)' : 'Activa',
+      info.emTrial
+          ? (info.diasRestantes == null
+                ? 'Avaliação (dias por apurar)'
+                : 'Avaliação (${info.diasRestantes} dias)')
+          : 'Activa',
     EstadoLicenca.expirada => 'Expirada',
     EstadoLicenca.inactiva => 'Suspensa',
     EstadoLicenca.inexistente => 'Por registar',
