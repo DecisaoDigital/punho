@@ -125,10 +125,22 @@ void main() {
       expiraEm: expira ?? DateTime(2026, 11, 2),
     );
 
-    test('o link aponta à Edge Function, com o token na query', () {
+    test('o link aponta à página do portal, com o token na query', () {
+      // Já apontou à Edge Function. Deixou de apontar porque o Supabase serve
+      // o HTML das funções como `text/plain` e o contabilista via o
+      // código-fonte. Ver [portalContabilista].
       final url = linkContabilista('abc123');
-      expect(url, contains('/functions/v1/portal-contabilista'));
+      expect(url, startsWith(portalContabilista));
       expect(url, endsWith('?t=abc123'));
+    });
+
+    test('o link nunca sai por http nem aponta ao domínio das funções', () {
+      // Duas maneiras de este link voltar a partir sem ninguém dar por isso:
+      // alguém repõe o URL da função, ou escreve-o sem TLS. O contabilista
+      // abre-o fora de casa, numa rede que não é dele.
+      final url = linkContabilista('abc123');
+      expect(url, startsWith('https://'));
+      expect(url, isNot(contains('supabase.co')));
     });
 
     test(

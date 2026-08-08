@@ -63,14 +63,48 @@ function escapar(s: unknown): string {
     .replaceAll("'", "&#39;");
 }
 
+// O portal deixou de ser servido daqui.
+//
+// O Supabase reescreve `text/html` para `text/plain` com `nosniff` em
+// `*.supabase.co` — defesa contra phishing alojado em funções. O contabilista
+// abria o link e via o código-fonte. Agora o HTML viaja dentro do JSON, que
+// passa intacto, e quem o escreve no documento e uma pagina estatica noutro
+// dominio. Dai o CORS.
+//
+// Lista de origens, nao `*`: o token do convite chega no URL, e um `*` punha
+// qualquer pagina do mundo a poder le-lo com o token na mao.
+const ORIGENS_PERMITIDAS = new Set([
+  "https://decisaodigital.tailb66396.ts.net",
+]);
+
+function cabecalhosCors(req: Request): Record<string, string> {
+  const origem = req.headers.get("Origin") ?? "";
+  if (!ORIGENS_PERMITIDAS.has(origem)) return { "Vary": "Origin" };
+  return {
+    "Access-Control-Allow-Origin": origem,
+    "Access-Control-Allow-Headers": "content-type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
+  };
+}
+
 function json(corpo: unknown, status = 200): Response {
   return new Response(JSON.stringify(corpo), {
     status,
-    headers: { "Content-Type": "application/json; charset=utf-8" },
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store, private",
+    },
   });
 }
 
-function paginaDeErro(mensagem: string, status: number): Response {
+function paginaDeErro(
+  mensagem: string,
+  status: number,
+  comoJson = false,
+): Response {
+  if (comoJson) return json({ erro: mensagem }, status);
   return new Response(
     `<!doctype html><html lang="pt"><head><meta charset="utf-8">
      <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -155,7 +189,12 @@ type Resposta = {
   valor_texto: string | null;
 };
 
-async function desenharPagina(convite: Convite, token: string): Promise<Response> {
+async function desenharPagina(
+  convite: Convite,
+  token: string,
+  api: string,
+  comoJson: boolean,
+): Promise<Response> {
   const [rubricasRes, respostasRes, empresaRes] = await Promise.all([
     supabase.from("punho_rubricas_contabilista")
       .select("chave, rotulo, ajuda, periodicidade, tipo, opcoes, aceita_anual")
@@ -499,6 +538,7 @@ ${seccoesAnuais}
 
 <script>
 const TOKEN = ${JSON.stringify(token)};
+const API = ${JSON.stringify(api)};
 const estado = document.getElementById('estado');
 let timerEstado;
 
@@ -510,7 +550,7 @@ function dizer(texto){
 }
 
 async function pedir(corpo){
-  const r = await fetch(location.pathname + '?t=' + encodeURIComponent(TOKEN), {
+  const r = await fetch(API + '?t=' + encodeURIComponent(TOKEN), {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(corpo),
@@ -666,6 +706,8 @@ actualizarProgresso();
 </script>
 </body></html>`;
 
+  if (comoJson) return json({ html });
+
   return new Response(html, {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
@@ -765,14 +807,21 @@ async function tratarPost(convite: Convite, req: Request): Promise<Response> {
 
 // ---------------------------------------------------------------------------
 
-Deno.serve(async (req: Request) => {
+async function tratar(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const token = url.searchParams.get("t") ?? "";
+  // `?formato=json` e o que a pagina estatica pede. Sem ele responde HTML
+  // directo, que continua a servir para depurar com `curl`.
+  const comoJson = url.searchParams.get("formato") === "json";
+  // Nao vale derivar isto de `req.url`: dentro da funcao o Supabase ja
+  // terminou o TLS (da `http://`) e cortou o prefixo `/functions/v1`. O URL
+  // que o cliente precisa e o publico, e esse vem do ambiente.
+  const api = `${Deno.env.get("SUPABASE_URL")}/functions/v1/portal-contabilista`;
   const convite = await convitePorToken(token);
 
   if (!convite) {
     return req.method === "GET"
-      ? paginaDeErro("Este link já não é válido.", 404)
+      ? paginaDeErro("Este link já não é válido.", 404, comoJson)
       : json({ erro: "link inválido" }, 401);
   }
 
@@ -784,10 +833,22 @@ Deno.serve(async (req: Request) => {
         .eq("id", convite.id)
         .is("aberto_em", null);
     }
-    return desenharPagina(convite, token);
+    return desenharPagina(convite, token, api, comoJson);
   }
 
   if (req.method === "POST") return tratarPost(convite, req);
 
   return json({ erro: "método não suportado" }, 405);
+}
+
+Deno.serve(async (req: Request) => {
+  // O preflight responde-se sem ir a base nenhuma.
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: cabecalhosCors(req) });
+  }
+  const resposta = await tratar(req);
+  for (const [chave, valor] of Object.entries(cabecalhosCors(req))) {
+    resposta.headers.set(chave, valor);
+  }
+  return resposta;
 });

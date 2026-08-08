@@ -1,16 +1,27 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../core/config/supabase_config.dart';
 import '../domain/contabilista.dart';
 
-/// Link que o contabilista abre.
+/// Onde vive a página que o contabilista abre.
 ///
-/// Aponta directamente à Edge Function, e não à landing do Punho, por causa do
-/// token: um `redirect` na Vercel punha-o no cabeçalho `Location` e nos logs de
-/// mais um serviço. O link fica mais feio e passa por menos mãos — nesta troca,
-/// menos mãos ganha.
-String linkContabilista(String token) =>
-    '${SupabaseConfig.url}/functions/v1/portal-contabilista?t=$token';
+/// Já apontou directamente à Edge Function, para o token passar por menos
+/// mãos — mas essa página nunca chegou a ver-se: o Supabase reescreve
+/// `text/html` para `text/plain` com `nosniff` em `*.supabase.co`, defesa
+/// contra phishing alojado em funções, e o contabilista recebia o código-fonte
+/// em bruto. Verificado com uma função descartável: só o HTML é degradado, o
+/// JSON passa intacto.
+///
+/// Agora a página é estática, servida pelo i9 por Tailscale Funnel, e é ela
+/// que vai buscar o HTML à função dentro de JSON. O token continua a não
+/// passar por serviço nenhum a mais: sai daqui e entra na função.
+///
+/// Mudar isto **parte todos os convites já enviados** — o link é gravado no
+/// momento em que se cria o convite, não é resolvido depois.
+const portalContabilista =
+    'https://decisaodigital.tailb66396.ts.net/portal/';
+
+/// Link que o contabilista abre.
+String linkContabilista(String token) => '$portalContabilista?t=$token';
 
 /// Mensagem pronta a enviar ao contabilista.
 ///
