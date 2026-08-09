@@ -96,8 +96,10 @@ void main() {
     await montarLandscape(tester, container, SinteseSlide(agora: agora));
 
     // 1200 contra 1000 do homólogo = +20%. Contra o mês passado seria −40%.
+    // Sem reservas na agenda, o previsto do mês é igual ao recebido, por isso
+    // a percentagem não muda — muda só o rótulo, que agora diz "previsto".
     expect(
-      find.textContaining('▲ 20% vs mesmo mês do ano passado'),
+      find.textContaining('▲ 20% previsto vs mesmo mês do ano passado'),
       findsOneWidget,
     );
   });
@@ -122,7 +124,7 @@ void main() {
 
     await montarLandscape(tester, container, SinteseSlide(agora: agora));
 
-    expect(find.textContaining('▼ 40% vs mês passado'), findsOneWidget);
+    expect(find.textContaining('▼ 40% previsto vs mês passado'), findsOneWidget);
   });
 
   testWidgets('sem recebimentos hoje, a sub-linha não fala do dia', (
