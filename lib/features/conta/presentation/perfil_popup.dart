@@ -14,6 +14,7 @@ import '../../auth/acesso_providers.dart';
 import '../../company/presentation/company_settings_page.dart';
 import '../../licenca/presentation/diagnostico_licenca.dart';
 import '../../gestao/presentation/convites_screen.dart';
+import '../../gestao/presentation/pedidos_pendentes_screen.dart';
 import '../data/sugestoes_service.dart';
 
 /// Quem está autenticado, e como sair.
@@ -147,6 +148,16 @@ class PerfilPopup extends ConsumerWidget {
                     icon: const Icon(Icons.person_add_alt),
                     label: const Text('Convidar membros'),
                   ),
+                  const SizedBox(height: 8),
+                  // Convidar e autorizar são dois momentos separados por dias:
+                  // o convite sai hoje, a pessoa inscreve-se quando puder. Sem
+                  // uma entrada própria, quem se inscreveu ficava à espera sem
+                  // que o gestor tivesse onde reparar nele.
+                  OutlinedButton.icon(
+                    onPressed: () => _abrirPedidos(context),
+                    icon: const Icon(Icons.how_to_reg_outlined),
+                    label: const Text('Pedidos de acesso'),
+                  ),
                 ],
                 const SizedBox(height: 8),
               ],
@@ -234,6 +245,14 @@ class PerfilPopup extends ConsumerWidget {
     navegador.pop();
     navegador.push(
       MaterialPageRoute<void>(builder: (_) => const ConvitesScreen()),
+    );
+  }
+
+  void _abrirPedidos(BuildContext context) {
+    final navegador = Navigator.of(context, rootNavigator: true);
+    navegador.pop();
+    navegador.push(
+      MaterialPageRoute<void>(builder: (_) => const PedidosPendentesScreen()),
     );
   }
 

@@ -191,19 +191,14 @@ void main() {
       expect(texto, isNot(contains('github.com')));
     });
 
-    test('diz o cargo certo e avisa do email preso ao convite', () {
-      expect(mensagemConvite(convite), contains('colaborador'));
-      expect(
-        mensagemConvite(
-          Convite(
-            codigo: 'G1',
-            email: 'g@exemplo.pt',
-            perfil: 'gestor',
-            expiraEm: DateTime.parse('2026-08-09T12:00:00Z'),
-          ),
-        ),
-        contains('como gestor'),
-      );
+    test('não anuncia cargo nenhum, e avisa do email preso ao convite', () {
+      // A mensagem dizia "foste convidado como colaborador" — ou "como
+      // gestor", quando a lista de cargos ainda existia. Saiu com a lista: um
+      // convite é sempre para trabalhar, e anunciar um cargo a quem ainda nem
+      // tem conta só levanta a pergunta "e podia ser outro?".
+      expect(mensagemConvite(convite), isNot(contains('como gestor')));
+      expect(mensagemConvite(convite), isNot(contains('como colaborador')));
+
       // O trigger de `auth.users` exige que o email do registo seja o do
       // convite. Se a mensagem não o disser, o convidado descobre-o a bater
       // contra um erro.

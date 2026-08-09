@@ -30,8 +30,7 @@ const kUrlDescargaPunho = '$kBaseLandingPunho/download';
 /// landing pode não abrir (sem rede, DNS por propagar, link cortado por um
 /// cliente de mensagens) e nesse caso a app aceita-o à mão.
 String mensagemConvite(Convite convite) {
-  final cargo = convite.perfil == 'gestor' ? 'gestor' : 'colaborador';
-  return 'Olá! Foste convidado(a) para o Punho como $cargo.\n\n'
+  return 'Olá! Foste convidado(a) para trabalhar com o Punho.\n\n'
       'Abre este link no telemóvel para criares conta:\n'
       '${linkConvite(convite.codigo)}\n\n'
       'Se o link não funcionar, instala a app em\n'
@@ -44,8 +43,9 @@ String mensagemConvite(Convite convite) {
 /// Convites da empresa, para um gestor já aprovado.
 ///
 /// Não há envio de emails nesta fase: o gestor copia o código e partilha-o por
-/// fora. Quem se registar com ele fica ligado a esta empresa, mas continua a
-/// precisar da aprovação manual do Control.
+/// fora. Quem se registar com ele fica ligado a esta empresa e aparece em
+/// "Pedidos de acesso", à espera de que o próprio gestor o autorize — é lá que
+/// se decide também em que ficha de empregado a pessoa entra.
 class ConvitesScreen extends ConsumerStatefulWidget {
   const ConvitesScreen({super.key, this.destacarCodigo});
 
