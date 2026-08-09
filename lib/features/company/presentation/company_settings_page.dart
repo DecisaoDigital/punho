@@ -213,13 +213,20 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
   /// o mesmo `paraPayload`, para as duas pontas nunca dessincronizarem.
   Map<String, dynamic> _payloadSincronizacao() {
     String? txt(String v) => v.trim().isEmpty ? null : v.trim();
-    int? n(String v) {
-      final s = v.replaceAll(',', '.').trim();
-      if (s.isEmpty) return null;
-      final d = double.tryParse(s);
-      if (d == null) return null;
-      return (d * 100).round();
-    }
+
+    // `centsDeTexto` e não uma conversão feita aqui. A que aqui estava fazia
+    // `replaceAll(',', '.')` e depois `double.tryParse`, e isso engana-se de
+    // duas maneiras num teclado português:
+    //
+    //   "1.200"     → tryParse dá 1.2 → 120 cêntimos. Mil e duzentos euros
+    //                 gravados como um euro e vinte. Mil vezes menos.
+    //   "1.200,50"  → vira "1.200.50", tryParse devolve nulo, e o campo
+    //                 desaparece sem uma palavra.
+    //
+    // O ponto é separador de milhares em português, não decimal. Isto vai para
+    // a `sincronizar-empresa-punho` e daí para o contabilista — é facturação
+    // declarada, não um campo de conforto.
+    int? n(String v) => centsDeTexto(v);
 
     return FichaDaEmpresa(
       nif: _taxId.text.trim(),
