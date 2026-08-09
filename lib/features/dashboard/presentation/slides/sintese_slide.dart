@@ -77,7 +77,7 @@ class SinteseSlide extends ConsumerWidget {
     final tendencia = comparacao == null
         ? 'Sem histórico para comparar'
         : '${comparacao.variacao >= 0 ? '▲' : '▼'} '
-              '${comparacao.variacao.abs().round()}% vs '
+              '${comparacao.variacao.abs().round()}% previsto vs '
               '${comparacao.homologo ? 'mesmo mês do ano passado' : 'mês passado'}';
     return CelulaSemaforo(
       nivel: comparacao != null && comparacao.variacao < 0

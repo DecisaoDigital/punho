@@ -102,6 +102,53 @@ void main() {
       expect(julho.recebidoMesHomologoCents, 0);
       expect(julho.variacaoVsHomologo, isNull);
     });
+
+    test('a tendência é o previsto do mês, não só o recebido de hoje', () {
+      // O exemplo do gestor: o mês passado faturou 10.000 €; hoje (dia 15) só
+      // entraram 1.000 €, mas há 5.000 € de reservas marcadas até ao fim do
+      // mês. O previsto é 6.000 € — 40% abaixo do mês passado. A seta mostra
+      // esse −40% (o gestor sabe que tem de converter mais leads), e não um
+      // −90% falso que só diria "o mês agora começou". O número grande continua
+      // a ser o dinheiro que entrou de verdade.
+      final cenario = vazio.copyWith(
+        historicalMonths: const [],
+        receipts: [
+          Receipt(
+            id: 'r-mes-passado',
+            date: DateTime(2026, 6, 10),
+            amountCents: 1000000,
+            customerId: 'c1',
+            method: PaymentMethod.transfer,
+          ),
+          Receipt(
+            id: 'r-este-mes',
+            date: DateTime(2026, 7, 5),
+            amountCents: 100000,
+            customerId: 'c1',
+            method: PaymentMethod.cash,
+          ),
+        ],
+        bookings: [
+          Booking(
+            id: 'b-por-realizar',
+            customerId: 'c1',
+            machineIds: ['m1'],
+            startsAt: DateTime(2026, 7, 20),
+            endsAt: DateTime(2026, 7, 22),
+            status: BookingStatus.confirmed,
+            expectedValueCents: 500000,
+          ),
+        ],
+      );
+
+      final julho = tesourariaDoMes(cenario, agoraFixa);
+
+      expect(julho.recebidoCents, 100000, reason: 'o número grande é o recebido');
+      expect(julho.entradasPrevistasCents, 600000, reason: '1000 feito + 5000 marcado');
+      expect(julho.variacaoVsMesAnterior, closeTo(-40, 0.001));
+      expect(julho.comparacao?.variacao, closeTo(-40, 0.001));
+      expect(julho.comparacao?.homologo, isFalse);
+    });
   });
 
   group('Resultado do mês', () {

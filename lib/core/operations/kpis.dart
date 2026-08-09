@@ -37,6 +37,7 @@ class TesourariaMes {
   const TesourariaMes({
     required this.mes,
     required this.recebidoCents,
+    required this.entradasPrevistasCents,
     required this.pagoCents,
     required this.encargosFixosVencidosCents,
     required this.recebidoMesAnteriorCents,
@@ -60,6 +61,19 @@ class TesourariaMes {
 
   /// O mesmo mês do ano passado. Zero quando não há histórico que lá chegue.
   final int recebidoMesHomologoCents;
+
+  /// O que o mês está **previsto** faturar: o já recebido mais o valor das
+  /// reservas já na agenda até ao fim do mês que ainda não entrou. É este — e
+  /// não o recebido — que a tendência compara com o mês de referência.
+  ///
+  /// Porquê: a dia 5 o recebido ainda não conta o trabalho já marcado para o
+  /// resto do mês. Se o mês passado faturou 10.000 €, hoje só entraram 1.000 €
+  /// mas há reservas de 5.000 € até ao fim, o previsto são 6.000 € — 40% abaixo
+  /// do mês passado. O gestor lê a seta e sabe que tem de converter mais leads
+  /// para lá chegar, em vez de ver um −90% falso que só dizia "o mês agora
+  /// começou". A tendência é direccional, não é um número exacto — por isso
+  /// conta o que está previsto. Ver [_variacao].
+  final int entradasPrevistasCents;
 
   /// Um valor por dia do mês, para a sparkline. Índice 0 = dia 1.
   final List<int> serieDiariaCents;
@@ -89,8 +103,11 @@ class TesourariaMes {
     return null;
   }
 
+  /// Compara o **previsto** deste mês com um mês de referência já fechado. O
+  /// numerador é [entradasPrevistasCents], não [recebidoCents]: a tendência
+  /// mede o rumo do mês inteiro, não a foto de hoje.
   double? _variacao(int base) =>
-      base == 0 ? null : (recebidoCents - base) / base * 100;
+      base == 0 ? null : (entradasPrevistasCents - base) / base * 100;
 
   /// Tudo o que saiu: o lançado à mão mais os encargos declarados já vencidos.
   int get saidasCents => pagoCents + encargosFixosVencidosCents;
@@ -169,6 +186,12 @@ TesourariaMes tesourariaDoMes(
   return TesourariaMes(
     mes: inicio,
     recebidoCents: receiptTotal(state.receipts, inicio, fim),
+    // O previsto do mês: o recebido mais o valor das reservas já na agenda que
+    // ainda não entrou. Mesma conta que a previsão do mês (`previsaoDoMes`),
+    // aqui só para a tendência da célula de entradas.
+    entradasPrevistasCents:
+        receiptTotal(state.receipts, inicio, fim) +
+        _porReceberDeReservasDoMes(state, mes),
     // As categorias que já têm rubrica fixa declarada com data ficam de fora:
     // entram pelo valor declarado, e contá-las dos dois lados duplicava a
     // saída. É a mesma regra que já valia para os salários em
