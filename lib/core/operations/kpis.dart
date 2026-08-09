@@ -317,6 +317,23 @@ int _despesasVariaveisDoMes(OperationsState state, DateTime mes) {
       .fold(0, (sum, x) => sum + x.amountCents);
 }
 
+/// Houve alguma despesa lançada neste mês?
+///
+/// Distingue "gastou zero em variáveis" (dado real, um mês que só teve custos
+/// fixos) de "não há registo nenhum" (mês em falta — o negócio ainda não
+/// existia, ou nada foi lançado). Sem esta distinção, a previsão do mês dividia
+/// a média por dois mesmo quando só um mês de referência tinha dados.
+bool _temDespesasNoMes(OperationsState state, DateTime mes) {
+  final inicio = _inicioDoMes(mes);
+  final fim = _fimDoMes(mes);
+  return state.expenses.any(
+    (x) =>
+        !x.archived &&
+        x.status == ExpensePaymentStatus.paid &&
+        isInPeriod(x.date, inicio, fim),
+  );
+}
+
 /// Valor ainda por receber das reservas deste mês que ainda não foi cobrado.
 ///
 /// Só reservas já na agenda (confirmadas, alugadas ou concluídas — nunca
@@ -356,9 +373,18 @@ PrevisaoDoMes previsaoDoMes(OperationsState state, DateTime now) {
   final custosFixos = state.custoFixoMensalCents;
   int? saidas;
   if (custosFixos != null) {
-    final variavelAnterior = _despesasVariaveisDoMes(state, anterior);
-    final variavelHomologo = _despesasVariaveisDoMes(state, homologo);
-    final mediaVariavel = (variavelAnterior + variavelHomologo) ~/ 2;
+    // Média das despesas variáveis, mas só sobre os meses de referência que
+    // *têm* despesas registadas. Um mês sem lançamento nenhum (o negócio ainda
+    // não existia, ou nada foi lançado) não é uma despesa de zero euros — é
+    // ausência de dados. Dividir sempre por dois arrastava a estimativa para
+    // metade quando só um dos meses tinha histórico.
+    final variaveis = [anterior, homologo]
+        .where((m) => _temDespesasNoMes(state, m))
+        .map((m) => _despesasVariaveisDoMes(state, m))
+        .toList();
+    final mediaVariavel = variaveis.isEmpty
+        ? 0
+        : variaveis.reduce((a, b) => a + b) ~/ variaveis.length;
     saidas = custosFixos + mediaVariavel;
   }
 

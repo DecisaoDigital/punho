@@ -274,6 +274,73 @@ void main() {
         previsto.entradasPrevistasCents - previsto.saidasPrevistasCents!,
       );
     });
+
+    test('só um mês de referência com dados não corta a média a metade', () {
+      // Negócio recente: o homólogo (Agosto de 2025) não existia, não tem
+      // lançamento nenhum. Isso é ausência de dados, não uma despesa de zero —
+      // a previsão tem de usar os 100 € do mês anterior por inteiro, não 50.
+      final previsto = previsaoDoMes(
+        OperationsState(
+          onboarded: true,
+          custosFixos: const [
+            CustoFixo(
+              id: 'renda',
+              categoria: ExpenseCategory.rent,
+              valorCents: 30000,
+            ),
+          ],
+          expenses: [
+            Expense(
+              id: 'e1',
+              date: DateTime(2026, 7, 10),
+              amountCents: 10000,
+              category: ExpenseCategory.fuel,
+              status: ExpensePaymentStatus.paid,
+            ),
+          ],
+        ),
+        agora,
+      );
+
+      expect(previsto.saidasPrevistasCents, 30000 + 10000);
+    });
+
+    test('mês com despesas mas zero variáveis conta como zero real', () {
+      // O homólogo teve actividade — mas só a renda, que é custo fixo. A sua
+      // parte variável é um zero verdadeiro, e entra na média: (100 + 0) / 2.
+      final previsto = previsaoDoMes(
+        OperationsState(
+          onboarded: true,
+          custosFixos: const [
+            CustoFixo(
+              id: 'renda',
+              categoria: ExpenseCategory.rent,
+              valorCents: 30000,
+            ),
+          ],
+          expenses: [
+            Expense(
+              id: 'e1',
+              date: DateTime(2026, 7, 10),
+              amountCents: 10000,
+              category: ExpenseCategory.fuel,
+              status: ExpensePaymentStatus.paid,
+            ),
+            // Homólogo (Agosto de 2025): só renda, categoria de custo fixo.
+            Expense(
+              id: 'e2',
+              date: DateTime(2025, 8, 5),
+              amountCents: 30000,
+              category: ExpenseCategory.rent,
+              status: ExpensePaymentStatus.paid,
+            ),
+          ],
+        ),
+        agora,
+      );
+
+      expect(previsto.saidasPrevistasCents, 30000 + (10000 + 0) ~/ 2);
+    });
   });
 
   group('Cobranças', () {
