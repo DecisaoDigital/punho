@@ -450,7 +450,9 @@ void main() {
       tester,
     ) async {
       await abrir(tester, 'cliente');
-      exigeTeclado(tester, 'Telemóvel', TextInputType.phone);
+      // 'Telemóvel *': o contacto do cliente é obrigatório desde 10 de Agosto
+      // de 2026. O do colaborador e o da lead continuam sem asterisco.
+      exigeTeclado(tester, 'Telemóvel *', TextInputType.phone);
       exigeTeclado(tester, 'NIF', TextInputType.number);
       exigeTeclado(tester, 'Email', TextInputType.emailAddress);
     });

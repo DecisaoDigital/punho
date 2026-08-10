@@ -6,6 +6,7 @@ import '../../../core/format/campos.dart';
 import '../../../core/layout/ecra_de_formulario.dart';
 import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/operations/operations_controller.dart';
+import '../../../core/operations/preco_da_reserva.dart';
 import '../../../domain/models/operations.dart';
 import '../../finance/presentation/finance_pages.dart';
 
@@ -218,13 +219,16 @@ class _CartaoDoTrabalho extends ConsumerWidget {
   void _executar(BuildContext context, WidgetRef ref, OperationsState state) {
     switch (item.passo.accao) {
       case AccaoDoPasso.avancarEstado:
+        final anterior = item.trabalho.status;
+        final seguinte = item.passo.estadoSeguinte!;
         // O conflito é devolvido, não lançado: avançar para "confirmada" ou
         // "entregue" volta a verificar a ocupação da máquina, e é aqui que
         // isso pode falhar.
         final conflito = ref
             .read(operationsProvider.notifier)
-            .updateBookingStatus(item.trabalho.id, item.passo.estadoSeguinte!);
-        if (conflito != null && context.mounted) {
+            .updateBookingStatus(item.trabalho.id, seguinte);
+        if (!context.mounted) return;
+        if (conflito != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -232,7 +236,25 @@ class _CartaoDoTrabalho extends ConsumerWidget {
               ),
             ),
           );
+          return;
         }
+        // **O sucesso era mudo.** Só o conflito falava; quando corria bem, o
+        // botão trocava de verbo e mais nada. O César, a 10 de Agosto de 2026:
+        // «"Enviar Orçamento" carrego no botão e não faz nada, aparece novo
+        // botão "confirmar"». Fazia — mudava o estado — mas não o dizia, e um
+        // toque que muda o estado sem o dizer não se distingue de um toque que
+        // falhou. Vai com desfazer: é um toque só, e enganar-se é fácil.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_confirmacaoDe(seguinte)),
+            action: SnackBarAction(
+              label: 'Anular',
+              onPressed: () => ref
+                  .read(operationsProvider.notifier)
+                  .updateBookingStatus(item.trabalho.id, anterior),
+            ),
+          ),
+        );
       case AccaoDoPasso.declararValor:
         abrirFormulario<void>(
           context,
@@ -252,6 +274,21 @@ class _CartaoDoTrabalho extends ConsumerWidget {
   }
 }
 
+/// O que se diz depois de o passo dar certo.
+///
+/// Diz o que **a app** fez, e não o que o gestor tem de fazer: a app não manda
+/// emails nem telefona a ninguém, e "Orçamento enviado" seria uma promessa que
+/// ela não cumpre. Marca-se como enviado — o envio é dele.
+String _confirmacaoDe(BookingStatus estado) => switch (estado) {
+  BookingStatus.proposalSent =>
+    'Marcado como orçamento enviado. Falta a resposta do cliente.',
+  BookingStatus.confirmed => 'Reserva confirmada.',
+  BookingStatus.rented => 'Máquina entregue — está na rua.',
+  BookingStatus.completed => 'Trabalho fechado.',
+  BookingStatus.request => 'Voltou a pedido.',
+  BookingStatus.cancelled => 'Reserva cancelada.',
+};
+
 /// Quanto valeu o trabalho, perguntado no momento em que ele fecha.
 ///
 /// Um campo só. É a pergunta mais rentável da app inteira — sem ela o trabalho
@@ -269,6 +306,28 @@ class _FormularioDeValorState extends ConsumerState<_FormularioDeValor> {
   final valor = TextEditingController();
   String? erro;
 
+  /// Um trabalho por fazer pede um **preço**; um trabalho fechado pede o que
+  /// **valeu**. É a mesma caixa e o mesmo campo, mas não é a mesma pergunta, e
+  /// perguntar "quanto valeu" sobre um pedido de amanhã não se percebe.
+  bool get _aindaPorFazer => widget.trabalho.status != BookingStatus.completed;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!_aindaPorFazer) return;
+    // O preço à tabela já é sabido: preço/dia das máquinas × dias da reserva.
+    // Chega escrito, e quem vende corrige se o negócio foi outro.
+    final estado = ref.read(operationsProvider);
+    final maquinas = estado.machines.where(
+      (m) => widget.trabalho.machineIds.contains(m.id),
+    );
+    valor.text = textoDoValorPrevisto(
+      maquinas,
+      widget.trabalho.startsAt,
+      widget.trabalho.endsAt,
+    );
+  }
+
   @override
   void dispose() {
     valor.dispose();
@@ -277,13 +336,17 @@ class _FormularioDeValorState extends ConsumerState<_FormularioDeValor> {
 
   @override
   Widget build(BuildContext context) => EcraDeFormulario(
-    titulo: 'Quanto valeu este trabalho?',
+    titulo: _aindaPorFazer
+        ? 'Quanto vai custar este trabalho?'
+        : 'Quanto valeu este trabalho?',
     aviso: erro,
     campos: [
       CampoDeTexto(
         controlador: valor,
         rotulo: 'Valor (€)',
-        ajuda: 'O que foi facturado ao cliente, com IVA incluído.',
+        ajuda: _aindaPorFazer
+            ? 'O que vai ser orçamentado ao cliente, com IVA incluído.'
+            : 'O que foi facturado ao cliente, com IVA incluído.',
         autofocus: true,
         teclado: const TextInputType.numberWithOptions(decimal: true),
       ),

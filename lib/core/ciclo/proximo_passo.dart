@@ -138,11 +138,27 @@ ProximoPasso? proximoPassoDe(
       return null;
 
     case BookingStatus.request:
+      // **Um orçamento sem preço não é um orçamento.** O "Enviar orçamento"
+      // avançava o estado de um pedido em branco, e a reserva passava a
+      // "proposta enviada" sem nunca ter tido valor — que é o caminho directo
+      // para o trabalho fechar sem valor, o buraco mais caro que a app tem.
+      // Pergunta-se o preço primeiro; a seguir é que se envia.
+      final pedido = trabalho.expectedValueCents;
+      if (pedido == null || pedido <= 0) {
+        return ProximoPasso(
+          verbo: 'Pôr preço',
+          porque:
+              'Pedido para ${_quando(trabalho.startsAt, hoje)}, entrega '
+              'prevista às $_horaEntrega. Sem valor não há orçamento a enviar.',
+          urgencia: _urgenciaDe(trabalho.startsAt, hoje),
+          accao: AccaoDoPasso.declararValor,
+        );
+      }
       return ProximoPasso(
         verbo: 'Enviar orçamento',
         porque:
             'Pedido para ${_quando(trabalho.startsAt, hoje)}, entrega prevista '
-            'às $_horaEntrega. Ainda sem orçamento.',
+            'às $_horaEntrega. Orçamento de ${_euros(pedido)} por enviar.',
         urgencia: _urgenciaDe(trabalho.startsAt, hoje),
         accao: AccaoDoPasso.avancarEstado,
         estadoSeguinte: BookingStatus.proposalSent,

@@ -17,6 +17,7 @@ import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/theme/punho_theme.dart';
 import '../../../core/media/machine_image_store.dart';
 import '../../../core/operations/operations_controller.dart';
+import '../../../core/operations/preco_da_reserva.dart';
 import '../../../core/orientacao/orientacao_do_contexto.dart';
 import '../../../core/session/demo_session.dart';
 import '../../../data/repositories/operation_repository.dart';
@@ -2254,7 +2255,7 @@ class _FormularioDeClienteState extends State<_FormularioDeCliente> {
         ),
         CampoDeTexto(
           controlador: phone,
-          rotulo: 'Telemóvel',
+          rotulo: 'Telemóvel *',
           teclado: TextInputType.phone,
         ),
         CampoDeTexto(
@@ -2286,6 +2287,16 @@ class _FormularioDeClienteState extends State<_FormularioDeCliente> {
           setState(() => erro = 'O nome é obrigatório.');
           return;
         }
+        // **O contacto também.** Um cliente sem número é um cliente a quem não
+        // se liga: não se confirma a entrega, não se avisa da recolha, não se
+        // cobra. O nome sozinho serve para a lista e para mais nada — e depois
+        // é preciso ir perguntar a alguém quem é que sabe o número.
+        if (phone.text.trim().isEmpty) {
+          setState(
+            () => erro = 'O telemóvel é obrigatório — é por onde se lhe chega.',
+          );
+          return;
+        }
         final anterior = current;
         if (anterior == null) {
           try {
@@ -2307,6 +2318,7 @@ class _FormularioDeClienteState extends State<_FormularioDeCliente> {
                     ? null
                     : locality.text.trim(),
                 notes: notes.text.trim(),
+                createdAt: DateTime.now(),
               ),
             );
             Navigator.pop(context, novoId);
@@ -2546,7 +2558,12 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
     // dois SizedBox fixos em volta, que abriam um buraco de 20 dp mesmo quando
     // não havia nada para dizer.
     final (String? aviso, bool avisoForte) = switch (selectedMachine) {
-      null => ('Escolhe uma máquina para marcar os períodos livres.', false),
+      // "Todas as máquinas" é para ver o parque todo de uma vez. Para marcar é
+      // preciso dizer qual sai — uma reserva é sempre de uma máquina concreta.
+      null => (
+        'A ver todas as máquinas. Escolhe uma para marcar períodos livres.',
+        false,
+      ),
       final m when !_machineCanReceiveReservation(m) => (
         '${m.reference} está ${machineStatusLabel(m.status).toLowerCase()} e não pode receber reservas.',
         false,
@@ -2792,7 +2809,9 @@ class _EscolhaDeMaquina extends StatelessWidget {
   });
   final List<Machine> maquinas;
   final Machine? escolhida;
-  final ValueChanged<String> aoEscolher;
+
+  /// `null` é **todas as máquinas** — uma escolha, e não a ausência dela.
+  final ValueChanged<String?> aoEscolher;
 
   @override
   Widget build(BuildContext context) {
@@ -2803,7 +2822,12 @@ class _EscolhaDeMaquina extends StatelessWidget {
       value: escolhida?.id,
       isExpanded: true,
       isDense: true,
-      hint: const Text('Máquina'),
+      // **"Todas" tem nome.** Sem escolha o calendário já mostrava o parque
+      // inteiro, mas o campo dizia só "Máquina" — parecia por preencher, e
+      // depois de se escolher uma não havia caminho de volta ao panorama todo.
+      // O César, a 10 de Agosto de 2026: «deve existir o "Todas" que retrata no
+      // calendário todas as reservas marcadas».
+      hint: const Text('Todas as máquinas'),
       // A seta é o único sinal de que aqui se escolhe alguma coisa: sem ela, o
       // nome da máquina lê-se como um rótulo e ninguém lhe toca. Explícita, e
       // não a de origem, para não encolher com o `isDense`.
@@ -2813,10 +2837,17 @@ class _EscolhaDeMaquina extends StatelessWidget {
       style: Theme.of(
         context,
       ).textTheme.titleSmall?.copyWith(fontSize: 15, color: PunhoTheme.navy),
-      onChanged: (id) {
-        if (id != null) aoEscolher(id);
-      },
+      onChanged: aoEscolher,
       items: [
+        const DropdownMenuItem(
+          child: Row(
+            children: [
+              Icon(Icons.calendar_month_outlined, size: 18),
+              SizedBox(width: 8),
+              Expanded(child: Text('Todas as máquinas')),
+            ],
+          ),
+        ),
         for (final machine in maquinas)
           DropdownMenuItem(
             value: machine.id,
@@ -3616,7 +3647,17 @@ class _FormularioDeConfirmacaoDeReservaState
   // texto e concluía que o campo de cliente não existia. Existia — o diálogo é
   // que nunca chegava a abrir. Agora abre sempre, e cria-se o cliente aqui
   // mesmo, sem sair do calendário nem perder os períodos escolhidos.
-  late String? customerId = _clienteInicial();
+  // **Ninguém vem escolhido de fábrica.**
+  //
+  // Isto abria com o primeiro cliente da lista já no campo, e uma reserva
+  // grava-se sem se tocar nele: bastava não reparar para a máquina sair em
+  // nome de outra pessoa. O César, a 10 de Agosto de 2026: «o nome do cliente
+  // não deve aparecer a preencher o campo por defeito, devia haver uma
+  // selecção forçada».
+  //
+  // Forçada é o que fica: sem escolha não se grava (ver `aoGuardar`), e o campo
+  // arranca vazio a pedi-la.
+  String? customerId;
   var status = BookingStatus.request;
   // Quem já tem reserva no período em vista fica de fora da lista.
   //
@@ -3627,19 +3668,24 @@ class _FormularioDeConfirmacaoDeReservaState
   final expectedValue = TextEditingController();
   final notes = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    // **O valor chega feito.** A máquina e o período já estão decididos quando
+    // este ecrã abre, e o preço/dia foi perguntado no cadastro — não há nada
+    // para adivinhar. Fica editável: isto é a tabela, não o preço fechado.
+    expectedValue.text = textoDoValorPrevisto(
+      [widget.machine],
+      widget.startsAt,
+      widget.endsAt,
+    );
+  }
+
   /// Recusa a mostrar-se dentro do diálogo, como no formulário de cliente —
   /// ver [EcraDeFormulario.aviso]. Nada de gravar um valor inventado
   /// (nem `null` disfarçado de "sem valor") quando o texto escrito não dá
   /// para ler: quem escreveu lixo tem de o ver.
   String? erro;
-
-  String? _clienteInicial() {
-    final customers = ref
-        .read(operationsProvider)
-        .customers
-        .where((c) => !c.archived);
-    return customers.isEmpty ? null : customers.first.id;
-  }
 
   @override
   void dispose() {
@@ -3650,6 +3696,7 @@ class _FormularioDeConfirmacaoDeReservaState
 
   @override
   Widget build(BuildContext context) {
+    final dias = diasDeAluguer(widget.startsAt, widget.endsAt);
     return EcraDeFormulario(
       titulo: 'Confirmar reserva',
       rotuloGuardar: 'Gravar reserva',
@@ -3723,10 +3770,10 @@ class _FormularioDeConfirmacaoDeReservaState
                     initialValue: customerId,
                     isExpanded: true,
                     decoration: InputDecoration(
-                      labelText: 'Cliente',
+                      labelText: 'Cliente *',
                       hintText: clientes.isEmpty
                           ? 'Ainda não tens clientes — cria o primeiro'
-                          : null,
+                          : 'Escolhe para quem é a reserva',
                     ),
                     items: [
                       for (final customer in clientes)
@@ -3792,6 +3839,7 @@ class _FormularioDeConfirmacaoDeReservaState
         CampoDeTexto(
           controlador: expectedValue,
           rotulo: 'Valor previsto (€)',
+          ajuda: _ajudaDoValorPrevisto([widget.machine], dias),
           teclado: const TextInputType.numberWithOptions(decimal: true),
         ),
         CampoDeTexto(controlador: notes, rotulo: 'Notas', linhas: 2),
@@ -3920,9 +3968,21 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
   late final activeCustomers = state.customers
       .where((c) => !c.archived)
       .toList();
-  late var customerId = activeCustomers.first.id;
+  // Ninguém vem escolhido de fábrica — a mesma regra do outro formulário de
+  // reserva. `activeCustomers.first` punha aqui o primeiro cliente da lista e
+  // uma marcação gravava-se sem se tocar no campo: bastava não reparar para a
+  // máquina sair em nome de outra pessoa.
+  String? customerId;
   late var machineId = state.machines.firstWhere((m) => !m.archived).id;
   var status = BookingStatus.request;
+
+  /// O valor previsto deixa de se recalcular assim que alguém lhe mexe.
+  ///
+  /// Enquanto ninguém lhe toca, o campo segue a tabela: trocar de máquina ou
+  /// alargar os dias muda o número à frente de quem está a marcar. Depois de
+  /// escrito à mão, o que lá está é a decisão de quem vende, e nenhuma mudança
+  /// de máquina a apaga.
+  var valorEscritoAMao = false;
   late var startDate = DateUtils.dateOnly(
     widget.initialDate ?? DateTime.now().add(const Duration(days: 1)),
   );
@@ -3947,6 +4007,7 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
   Widget build(BuildContext context) {
     final startsAt = _bookingStartsAt(startDate, duration, halfDay);
     final endsAt = _bookingEndsAt(endDate, duration, halfDay);
+    final dias = diasDeAluguer(startsAt, endsAt);
     final availableMachines = state.machines
         .where(
           (machine) =>
@@ -3961,6 +4022,18 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
           ? availableMachines.first.id
           : state.machines.firstWhere((machine) => !machine.archived).id;
     }
+    final maquinaEscolhida = state.machines.firstWhere(
+      (machine) => machine.id == machineId,
+    );
+    // Segue a tabela enquanto ninguém escrever por cima. Escrito directamente
+    // no controlador, e não com `setState`: estamos dentro do `build`.
+    if (!valorEscritoAMao) {
+      expectedValue.text = textoDoValorPrevisto(
+        [maquinaEscolhida],
+        startsAt,
+        endsAt,
+      );
+    }
     return EcraDeFormulario(
       titulo: 'Nova marcação / reserva',
       rotuloGuardar: 'Guardar marcação',
@@ -3969,7 +4042,10 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
         DropdownButtonFormField<String>(
           isExpanded: true,
           initialValue: customerId,
-          decoration: const InputDecoration(labelText: 'Cliente'),
+          decoration: const InputDecoration(
+            labelText: 'Cliente *',
+            hintText: 'Escolhe para quem é a marcação',
+          ),
           items: activeCustomers
               .map(
                 (customer) => DropdownMenuItem(
@@ -4139,7 +4215,13 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
         CampoDeTexto(
           controlador: expectedValue,
           rotulo: 'Valor previsto (€)',
+          ajuda: valorEscritoAMao
+              ? 'Escrito à mão — já não segue a tabela'
+              : _ajudaDoValorPrevisto([maquinaEscolhida], dias),
           teclado: const TextInputType.numberWithOptions(decimal: true),
+          aoMudar: (_) {
+            if (!valorEscritoAMao) setState(() => valorEscritoAMao = true);
+          },
         ),
         CampoDeTexto(controlador: notes, rotulo: 'Notas', linhas: 2),
         if (availableMachines.isEmpty)
@@ -4148,6 +4230,11 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
       aoGuardar: () {
         if (availableMachines.isEmpty) {
           setState(() => erro = 'Não há máquinas disponíveis neste período.');
+          return;
+        }
+        // Sem cliente não há marcação.
+        if (customerId == null) {
+          setState(() => erro = 'Escolhe um cliente para guardar a marcação.');
           return;
         }
         final textoValor = expectedValue.text.trim();
@@ -4173,7 +4260,7 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
               .addBooking(
                 Booking(
                   id: 'b${DateTime.now().microsecondsSinceEpoch}',
-                  customerId: customerId,
+                  customerId: customerId!,
                   machineIds: [machineId],
                   startsAt: startsAt,
                   endsAt: endsAt,
@@ -4198,6 +4285,39 @@ class _FormularioDeMarcacaoState extends ConsumerState<_FormularioDeMarcacao> {
       },
     );
   }
+}
+
+/// A linha por baixo do "Valor previsto": de onde saiu o número que lá está.
+///
+/// Um campo que se preenche sozinho e não diz porquê é pior do que um campo
+/// vazio — quem o lê não sabe se pode confiar nele nem o que muda se lhe mexer.
+/// Aqui diz-se a conta: preço/dia × dias. E quando não há tabela diz-se isso,
+/// em vez de deixar o campo em branco sem explicação.
+String _ajudaDoValorPrevisto(List<Machine> maquinas, double dias) {
+  final semPreco = maquinas.where(
+    (m) => m.dailyRateCents == null || m.dailyRateCents! <= 0,
+  );
+  if (semPreco.isNotEmpty) {
+    return semPreco.length == maquinas.length && maquinas.length == 1
+        ? '${maquinas.single.name} não tem preço/dia — escreve o valor combinado'
+        : 'Sem preço/dia em ${semPreco.map((m) => m.name).join(', ')} — '
+              'escreve o valor combinado';
+  }
+  final tabela = maquinas
+      .map((m) => '${textoDeCents(m.dailyRateCents!)} €/dia')
+      .join(' + ');
+  return '$tabela × ${_diasEmTexto(dias)}. Editável.';
+}
+
+/// "meio dia", "1 dia", "3 dias", "1,5 dias".
+String _diasEmTexto(double dias) {
+  if (dias == 0.5) return 'meio dia';
+  if (dias == 1) return '1 dia';
+  final redondo = dias == dias.roundToDouble();
+  final numero = redondo
+      ? dias.round().toString()
+      : dias.toStringAsFixed(1).replaceAll('.', ',');
+  return '$numero dias';
 }
 
 enum _BookingDuration { halfDay, fullDay, multipleDays }

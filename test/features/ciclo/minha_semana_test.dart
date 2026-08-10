@@ -59,7 +59,13 @@ void main() {
       tester,
       containerCom(
         estadoCom([
-          trabalho(id: 'pedido', estado: BookingStatus.request),
+          // Com preço: sem ele o passo deixou de ser "Enviar orçamento" e
+          // passou a "Pôr preço" — ver `proximo_passo_test.dart`.
+          trabalho(
+            id: 'pedido',
+            estado: BookingStatus.request,
+            valorCents: 40000,
+          ),
           trabalho(
             id: 'entrega-atrasada',
             estado: BookingStatus.confirmed,

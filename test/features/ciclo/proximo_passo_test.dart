@@ -42,12 +42,45 @@ void main() {
       proximoPassoDe(b, hoje: hoje, recebimentos: recebido);
 
   group('cada estado sabe dizer o que falta', () {
-    test('um pedido pede orçamento', () {
-      final passo = passoDe(trabalho(estado: BookingStatus.request))!;
+    test('um pedido com preço pede que se envie o orçamento', () {
+      final passo = passoDe(
+        trabalho(estado: BookingStatus.request, valorCents: 40000),
+      )!;
 
       expect(passo.verbo, 'Enviar orçamento');
       expect(passo.accao, AccaoDoPasso.avancarEstado);
       expect(passo.estadoSeguinte, BookingStatus.proposalSent);
+      // O valor vai na razão: quem carrega no botão tem de saber o que está a
+      // dar por enviado.
+      expect(passo.porque, contains('400,00 €'));
+    });
+
+    /// **Um orçamento sem preço não é um orçamento.**
+    ///
+    /// Isto dizia "Enviar orçamento" a um pedido em branco, e o botão avançava
+    /// o estado à mesma: a reserva passava a "proposta enviada" sem nunca ter
+    /// tido valor. Daí ao trabalho fechado sem valor — o buraco mais caro da
+    /// app — é uma linha recta, e por essa altura já ninguém se lembra do
+    /// preço. A prova real: a reserva `b1786396745111605` do César, criada a
+    /// 10 de Agosto de 2026 com `expectedValueCents: null`.
+    test('um pedido sem preço pede o preço, e não o envio', () {
+      final passo = passoDe(trabalho(estado: BookingStatus.request))!;
+
+      expect(passo.verbo, 'Pôr preço');
+      expect(passo.accao, AccaoDoPasso.declararValor);
+      expect(
+        passo.estadoSeguinte,
+        isNull,
+        reason: 'sem valor não se avança para proposta enviada',
+      );
+    });
+
+    test('um pedido a zero conta como pedido sem preço', () {
+      final passo = passoDe(
+        trabalho(estado: BookingStatus.request, valorCents: 0),
+      )!;
+
+      expect(passo.verbo, 'Pôr preço');
     });
 
     test('um orçamento enviado pede resposta', () {

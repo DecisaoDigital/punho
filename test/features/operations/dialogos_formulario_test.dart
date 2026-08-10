@@ -15,6 +15,22 @@ import '../dashboard/fixtura.dart';
 /// propriedades que interessam — o Guardar está sempre visível e cabe dentro do
 /// ecrã — em retrato com teclado e em paisagem sem ele.
 void main() {
+  /// **Ninguém vem escolhido de fábrica** desde 10 de Agosto de 2026: sem
+  /// cliente escolhido não se grava, e estes testes são sobre o fecho do
+  /// diálogo, não sobre a validação.
+  Future<void> escolherCliente(WidgetTester tester) async {
+    await tester.tap(
+      find.byWidgetPredicate(
+        (w) =>
+            w is DropdownButtonFormField<String> &&
+            (w.decoration.labelText?.startsWith('Cliente') ?? false),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Construções Silva').last);
+    await tester.pumpAndSettle();
+  }
+
   /// Simula o teclado aberto: é isto que o sistema faz ao focar um campo.
   void abrirTeclado(WidgetTester tester, {double altura = 320}) {
     tester.view.viewInsets = FakeViewPadding(
@@ -344,6 +360,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Confirmar reserva'), findsOneWidget);
+      await escolherCliente(tester);
       await tester.tap(find.widgetWithText(FilledButton, 'Gravar reserva'));
       await tester.pumpAndSettle();
 
@@ -374,6 +391,7 @@ void main() {
       await tester.tap(find.text('abrir marcação'));
       await tester.pumpAndSettle();
       expect(find.text('Nova marcação / reserva'), findsOneWidget);
+      await escolherCliente(tester);
 
       await tester.tap(find.widgetWithText(FilledButton, 'Guardar marcação'));
       await tester.pumpAndSettle();

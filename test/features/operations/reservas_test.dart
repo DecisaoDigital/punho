@@ -86,7 +86,10 @@ void main() {
     await abrirReservas(tester);
 
     expect(
-      find.text('Escolhe uma máquina para marcar os períodos livres.'),
+      find.text(
+        'A ver todas as máquinas. Escolhe uma para marcar '
+        'períodos livres.',
+      ),
       findsOneWidget,
     );
   });
@@ -126,7 +129,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Confirmar reserva'), findsOneWidget);
-    expect(find.text('Cliente'), findsOneWidget);
+    // 'Cliente *': obrigatório desde que ninguém vem escolhido de fábrica.
+    expect(find.text('Cliente *'), findsOneWidget);
 
     // E a saída para criar um cliente novo está na própria lista.
     await tester.tap(find.byType(DropdownButtonFormField<String>).first);
@@ -140,7 +144,7 @@ void main() {
     await abrirReservas(tester);
 
     Color? corDoAviso() => tester
-        .widget<Text>(find.textContaining('Escolhe uma máquina'))
+        .widget<Text>(find.textContaining('Escolhe uma para marcar'))
         .style
         ?.color;
 
@@ -169,6 +173,6 @@ void main() {
     await tester.tap(find.textContaining('PE-02').last);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Escolhe uma máquina'), findsNothing);
+    expect(find.textContaining('Escolhe uma para marcar'), findsNothing);
   });
 }
