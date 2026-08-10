@@ -3,24 +3,29 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/layout/margens_do_canvas.dart';
+import '../../../core/navigation/app_destination.dart';
+import '../../../core/navigation/navigation_controller.dart';
 import '../../../core/operations/operations_controller.dart';
-import 'slides/operacional_slide.dart';
-import 'slides/procura_slide.dart';
-import 'slides/sintese_slide.dart';
+import '../../../core/operations/painel_controller.dart';
+import 'kpi_catalogo.dart';
+import 'pagina_do_painel.dart';
 import 'widgets/dots_indicator.dart';
 
-/// Painel de gestão: 3 primeiros slides do brainstorm 9-screens.
+/// **O painel é o que o gestor lá puser.**
 ///
-/// - Slide 1 · **Primeiro impulso** (síntese) — estou vivo hoje?
-/// - Slide 2 · **Operacional** — o que faço agora?
-/// - Slide 3 · **Procura e vendas** (alavanca) — que alavanca puxo?
+/// Durante meses foram três slides escritos à mão — Síntese, Operacional,
+/// Procura —, doze células fixas iguais para toda a gente. Serviram para
+/// acertar a leitura, e cumpriram; mas uma empresa que ainda não tem leads
+/// abria a app e via quatro caixas a dizer "aguarda". A app parecia não saber
+/// nada da vida dela, e nesse ponto tinha razão.
 ///
-/// Os restantes 6 (Tesouraria, Margem, Frota, Equipa, Objectivos,
-/// Previsibilidade Simulada) entram depois de a UX e integração de dados
-/// destes 3 estarem estáveis.
+/// Agora começa **vazio** e enche-se por escolha, na bancada ("KPIs (todos)"):
+/// marca-se o que sobe, arrasta-se para dar a ordem, e o painel pagina-os de
+/// quatro em quatro. A ordem da lista é a ordem daqui — não há segunda regra
+/// escondida.
 ///
 /// `PageView` e não carrossel próprio: dá o swipe do tablet de graça, mantém só
-/// os slides vizinhos montados e a animação é a do sistema. Um carrossel
+/// as páginas vizinhas montadas e a animação é a do sistema. Um carrossel
 /// manual só se justificava para efeitos que aqui não valem nada.
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key, this.agora});
@@ -38,7 +43,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   final _foco = FocusNode();
   int _slide = 0;
 
-  static const _nomes = ['Primeiro impulso', 'Operacional', 'Procura e vendas'];
+  /// Quantas páginas há neste momento. Muda quando o gestor marca ou desmarca
+  /// um KPI, e é por isso que não pode ser constante.
+  int _quantasPaginas = 0;
 
   @override
   void dispose() {
@@ -48,7 +55,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   void _irPara(int indice) {
-    if (indice < 0 || indice >= _nomes.length) return;
+    if (indice < 0 || indice >= _quantasPaginas) return;
     _controller.animateToPage(
       indice,
       duration: const Duration(milliseconds: 220),
@@ -64,13 +71,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     // dimensão é que identifica o dispositivo e evita desperdiçar altura no
     // cabeçalho antes dos indicadores importantes.
     final cabecalhoCompacto = MediaQuery.sizeOf(context).shortestSide < 600;
-    // Painel refactorado para a arquitectura de 9 slides do brainstorm
-    // (BRAINSTORM_DASHBOARD_9_SCREENS). Nesta fase só os 3 primeiros estão
-    // visiveis (Sintese · Operacional · Procura), com dados placeholder para
-    // validar a UX. Integração real de dados vem na v0.0.16; alavancas
-    // restantes (Tesouraria, Margem, Frota, Equipa, Objectivos, Previsibilidade)
-    // entram depois de a UX estabilizar.
-    final slides = const [SinteseSlide(), OperacionalSlide(), ProcuraSlide()];
+    final paginas = _paginar(kpisEscolhidos(ref.watch(painelProvider)));
+    _quantasPaginas = paginas.length;
+    // Desmarcar KPIs encurta o painel debaixo dos pés de quem está na última
+    // página. Sem isto, `nomes[activo]` ia buscar uma página que já não existe
+    // e o ecrã rebentava a seguir a uma marcação — longe da causa.
+    if (_slide >= paginas.length) {
+      _slide = paginas.isEmpty ? 0 : paginas.length - 1;
+      // O `PageView` guarda a página no controlador, não aqui. Corrigir só o
+      // `_slide` deixava a barra a dizer "3/3" com o carrossel parado num
+      // sítio que já não tem nada — um painel em branco sem erro nenhum.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _controller.hasClients) _controller.jumpToPage(_slide);
+      });
+    }
 
     // A moldura superior é desenhada pela shell. Não reservar novamente a
     // mesma área aqui: o cabeçalho deve ficar imediatamente abaixo dela.
@@ -129,52 +143,139 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ),
               ),
               SizedBox(height: cabecalhoCompacto ? 2 : 10),
-              Expanded(
-                child: Row(
-                  children: [
-                    _SetaLateral(
-                      icone: Icons.chevron_left,
-                      tooltip: 'Slide anterior',
-                      onPressed: _slide == 0 ? null : () => _irPara(_slide - 1),
-                    ),
-                    Expanded(
-                      child: PageView(
-                        controller: _controller,
-                        onPageChanged: (i) => setState(() => _slide = i),
-                        children: [
-                          for (final slide in slides)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              child: slide,
-                            ),
-                        ],
+              if (paginas.isEmpty)
+                Expanded(child: _PainelVazio(agora: agora))
+              else ...[
+                Expanded(
+                  child: Row(
+                    children: [
+                      _SetaLateral(
+                        icone: Icons.chevron_left,
+                        tooltip: 'Ecrã anterior',
+                        onPressed: _slide == 0
+                            ? null
+                            : () => _irPara(_slide - 1),
                       ),
-                    ),
-                    _SetaLateral(
-                      icone: Icons.chevron_right,
-                      tooltip: 'Slide seguinte',
-                      onPressed: _slide == _nomes.length - 1
-                          ? null
-                          : () => _irPara(_slide + 1),
-                    ),
-                  ],
+                      Expanded(
+                        child: PageView.builder(
+                          controller: _controller,
+                          onPageChanged: (i) => setState(() => _slide = i),
+                          itemCount: paginas.length,
+                          itemBuilder: (context, i) => Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: PaginaDoPainel(
+                              ids: [for (final kpi in paginas[i]) kpi.id],
+                              agora: widget.agora,
+                            ),
+                          ),
+                        ),
+                      ),
+                      _SetaLateral(
+                        icone: Icons.chevron_right,
+                        tooltip: 'Ecrã seguinte',
+                        onPressed: _slide == paginas.length - 1
+                            ? null
+                            : () => _irPara(_slide + 1),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: MargensDoCanvas.arDaSeta,
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: MargensDoCanvas.arDaSeta,
+                  ),
+                  child: DotsIndicator(
+                    // Cada ecrã chama-se pelo primeiro KPI que lá está. Podia
+                    // ser "Painel 1, 2, 3" — mas quem lê a barra quer saber o
+                    // que está do outro lado, e um número não diz nada.
+                    nomes: [for (final pagina in paginas) pagina.first.titulo],
+                    activo: _slide,
+                    onEscolher: _irPara,
+                  ),
                 ),
-                child: DotsIndicator(
-                  nomes: _nomes,
-                  activo: _slide,
-                  onEscolher: _irPara,
-                ),
-              ),
+              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Quantos KPIs cabem num ecrã. É a grelha 2×2 de sempre: mais do que isto não
+/// é uma leitura de cinco segundos, é uma tabela.
+const _porEcra = 4;
+
+/// Parte a lista escolhida em ecrãs de [_porEcra], pela ordem que ela traz.
+List<List<KpiDefinicao>> _paginar(List<KpiDefinicao> kpis) => [
+  for (var i = 0; i < kpis.length; i += _porEcra)
+    kpis.sublist(i, (i + _porEcra).clamp(0, kpis.length)),
+];
+
+/// O painel de quem ainda não escolheu nada.
+///
+/// **Não se põem KPIs "para começar".** Uma sugestão automática seria a app a
+/// dizer "isto é o que interessa ao teu negócio" sem saber nada dele — e, pior,
+/// a encher o ecrã de células a dizer "aguarda", que foi exactamente o defeito
+/// que este painel veio resolver. Diz-se o que falta e leva-se lá.
+class _PainelVazio extends ConsumerWidget {
+  const _PainelVazio({required this.agora});
+
+  final DateTime agora;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tt = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
+    // **Uma empresa acabada de nascer não tem nada para escolher.** Sem
+    // reservas nem recebimentos, o catálogo inteiro está em "aguarda" e a
+    // bancada não mostra uma única caixa. Mandá-lo lá com "escolhe os que
+    // queres" era um convite para uma porta fechada — e a primeira coisa que a
+    // app lhe dizia era falso.
+    final estado = ref.watch(operationsProvider);
+    final haProntos = catalogoKpis.any(
+      (k) => k.estado(estado, agora) == EstadoVerdade.pronto,
+    );
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.space_dashboard_outlined,
+              size: 34,
+              color: cs.onSurfaceVariant,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              haProntos
+                  ? 'O painel ainda está vazio'
+                  : 'Ainda não há KPIs a dizer verdade',
+              textAlign: TextAlign.center,
+              style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              haProntos
+                  ? 'Escolhe em "KPIs (todos)" os que queres aqui e arrasta-os '
+                        'para a ordem que preferires. Ficam quatro por ecrã.'
+                  : 'Vão aparecendo à medida que registares o teu trabalho — '
+                        'uma reserva, um recebimento, uma despesa. Em "KPIs '
+                        '(todos)" vês quais são e o que falta a cada um.',
+              textAlign: TextAlign.center,
+              style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: () => ref
+                  .read(navigationProvider.notifier)
+                  .goTo(AppDestination.kpis),
+              icon: const Icon(Icons.insights_outlined, size: 18),
+              label: Text(haProntos ? 'Escolher KPIs' : 'Ver o que falta'),
+            ),
+          ],
         ),
       ),
     );

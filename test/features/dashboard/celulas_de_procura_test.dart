@@ -2,16 +2,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/operations/kpis.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/operations.dart';
-import 'package:punho/features/dashboard/presentation/slides/procura_slide.dart';
+import 'package:punho/features/dashboard/presentation/pagina_do_painel.dart';
 
 import 'fixtura.dart';
 
-/// Slide 3 · Procura e vendas.
+/// As quatro células que antes viviam no slide de Procura e vendas.
 ///
 /// A célula "clientes novos" é a única do painel cujo dado não existe no
 /// modelo: `Customer` não guarda data de criação. É inferida da primeira
 /// reserva — e estes testes fixam essa regra, para ninguém a trocar por um
 /// número inventado outra vez.
+const idsDeProcura = [
+  'clientes-novos-30d',
+  'leads-pipeline',
+  'ticket-medio-mes',
+  'conversao-lead-cliente',
+];
+
 void main() {
   final agora = DateTime(2026, 7, 15, 10, 30);
   DateTime dia(int mes, int d) => DateTime(2026, mes, d);
@@ -101,7 +108,11 @@ void main() {
       const OperationsState(onboarded: true, companyName: 'Alugueres Norte'),
     );
 
-    await montarLandscape(tester, container, ProcuraSlide(agora: agora));
+    await montarLandscape(
+      tester,
+      container,
+      PaginaDoPainel(ids: idsDeProcura, agora: agora),
+    );
 
     expect(find.text('Ainda sem clientes'), findsOneWidget);
     expect(find.text('Sem reservas com valor'), findsOneWidget);
@@ -127,7 +138,11 @@ void main() {
       ),
     );
 
-    await montarLandscape(tester, container, ProcuraSlide(agora: agora));
+    await montarLandscape(
+      tester,
+      container,
+      PaginaDoPainel(ids: idsDeProcura, agora: agora),
+    );
 
     // 2 clientes novos, 1 lead por contactar, ticket médio 420 €, conversão 50%.
     expect(
@@ -139,41 +154,5 @@ void main() {
       find.textContaining('50 % · 1 de 2', findRichText: true),
       findsOneWidget,
     );
-  });
-
-  testWidgets('lead fria manda na recomendação', (tester) async {
-    final container = containerCom(
-      OperationsState(
-        onboarded: true,
-        companyName: 'Alugueres Norte',
-        leads: [lead('fria', LeadStatus.newLead, dia(7, 1))],
-      ),
-    );
-
-    await montarLandscape(tester, container, ProcuraSlide(agora: agora));
-
-    expect(find.textContaining('sem contacto há mais de 5 dias'), findsWidgets);
-    expect(find.textContaining('é procura que já pagaste'), findsOneWidget);
-    expect(find.textContaining('Abrir Leads (1)'), findsOneWidget);
-  });
-
-  testWidgets('sem sinal, a recomendação cala-se em vez de inventar', (
-    tester,
-  ) async {
-    final container = containerCom(
-      OperationsState(
-        onboarded: true,
-        companyName: 'Alugueres Norte',
-        bookings: [reserva('a', 'c1', dia(7, 2), valor: 40000)],
-        leads: [
-          lead('l1', LeadStatus.converted, dia(7, 10)),
-          lead('l2', LeadStatus.converted, dia(7, 11)),
-        ],
-      ),
-    );
-
-    await montarLandscape(tester, container, ProcuraSlide(agora: agora));
-
-    expect(find.textContaining('Nada a puxar nesta alavanca'), findsOneWidget);
   });
 }

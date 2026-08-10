@@ -4,6 +4,7 @@ import '../sync/supabase_operational_sync.dart';
 import '../sync/sync_engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/operation_repository.dart';
+import 'painel_controller.dart';
 import '../../domain/models/operations.dart';
 import '../../domain/models/finance.dart';
 import '../../domain/models/workforce.dart';
@@ -1017,7 +1018,14 @@ class OperationsController extends Notifier<OperationsState> {
     final result = await SupabaseOperationalSync(
       _repo as PersistentOperationRepository,
     ).synchronize();
-    if (result == SyncStatus.synchronized) state = _fromRepo();
+    if (result == SyncStatus.synchronized) {
+      state = _fromRepo();
+      // O instantâneo também traz o painel, e esse não vive aqui dentro. Sem
+      // isto, o painel composto noutro aparelho chegava ao telemóvel, ficava
+      // gravado — e o ecrã continuava a dizer que estava vazio até a app ser
+      // fechada e reaberta.
+      ref.read(painelProvider.notifier).recarregarDoRepositorio();
+    }
     return result;
   }
 }

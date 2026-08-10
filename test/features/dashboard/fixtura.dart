@@ -394,3 +394,21 @@ Future<void> montarLandscape(
   );
   await tester.pumpAndSettle();
 }
+
+/// Cinco KPIs para o painel deixar de estar vazio.
+///
+/// O painel nasce vazio de propósito, e por isso os testes que medem o
+/// carrossel — setas, rodapé, nomes dos ecrãs — não têm nada para medir se não
+/// escolherem primeiro. Cinco dão duas páginas: quatro na primeira e uma na
+/// segunda, que é o mínimo para o rodapé ter nome de cada lado.
+const kpisNoPainelParaMedir = [
+  'caixa',
+  'entradas-mes',
+  'encontro-contas',
+  'reservas-activas',
+  'ticket-medio-mes',
+];
+
+/// O nome do segundo ecrã do painel montado com [kpisNoPainelParaMedir]: cada
+/// ecrã chama-se pelo primeiro KPI que lá está.
+const nomeDoSegundoEcra = 'Ticket médio (mês)';

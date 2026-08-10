@@ -28,11 +28,13 @@ enum AppDestination {
 
   /// Todos os indicadores num sítio só, em lista.
   ///
-  /// O Painel é um carrossel de quatro KPIs por slide, escolhidos para caberem
-  /// numa leitura de cinco segundos. Isso é uma virtude e é também um tecto: um
-  /// KPI que não caiba nos doze lugares não existe em lado nenhum. Esta é a
-  /// página onde cabem — a lista completa, com espaço para cada um dizer de onde
-  /// vem e o que lhe falta para ser apurável.
+  /// **É daqui que o Painel se monta.** O Painel mostra quatro KPIs por ecrã,
+  /// que é o que cabe numa leitura de cinco segundos — e nasce vazio. Esta é a
+  /// bancada: a lista completa, cada um a dizer de onde vem e o que lhe falta
+  /// para ser apurável, com a caixa de o pôr no painel e a pega de o ordenar.
+  ///
+  /// Os doze lugares fixos acabaram (Ago 2026). Já não há tecto: um KPI que não
+  /// caiba no painel de hoje continua aqui, à espera de vez.
   kpis('KPIs (todos)', Icons.insights_outlined),
 
   // ---------------------------------------------------------------------

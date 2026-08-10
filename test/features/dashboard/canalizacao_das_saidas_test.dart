@@ -4,9 +4,17 @@ import 'package:punho/core/operations/kpis.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/finance.dart';
 import 'package:punho/domain/models/workforce.dart';
-import 'package:punho/features/dashboard/presentation/slides/sintese_slide.dart';
+import 'package:punho/features/dashboard/presentation/pagina_do_painel.dart';
 
 import 'fixtura.dart';
+
+/// As quatro células da Síntese — o painel novo pagina por ids, não por slide.
+const _idsDaSintese = [
+  'entradas-mes',
+  'utilizacao-rentabilidade',
+  'encontro-contas',
+  'recomendacao-dia',
+];
 
 /// Teste de canalização: o dinheiro declarado num ecrã tem de sair no outro.
 ///
@@ -296,7 +304,7 @@ void main() {
     await montarLandscape(
       tester,
       container,
-      SinteseSlide(agora: quatroDeAgosto),
+      PaginaDoPainel(ids: _idsDaSintese, agora: quatroDeAgosto),
     );
 
     // 1200 € entraram, 775,50 € saíram: saldo + 425 €. Antes desta ligação o
@@ -317,7 +325,7 @@ void main() {
     await montarLandscape(
       tester,
       container,
-      SinteseSlide(agora: quatroDeAgosto),
+      PaginaDoPainel(ids: _idsDaSintese, agora: quatroDeAgosto),
     );
 
     expect(find.text('Sem movimentos este mês'), findsNothing);

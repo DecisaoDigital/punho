@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/dashboard/presentation/slides/operacional_slide.dart';
-import 'package:punho/features/dashboard/presentation/slides/procura_slide.dart';
-import 'package:punho/features/dashboard/presentation/slides/sintese_slide.dart';
+import 'package:punho/features/dashboard/presentation/pagina_do_painel.dart';
 import 'package:punho/features/operations/presentation/operational_pages.dart';
 import 'package:punho/features/tarefas/presentation/tarefas_page.dart';
 
@@ -47,21 +45,35 @@ void main() {
     'tablet': const Size(1280, 800),
   };
 
-  group('os slides do painel cabem', () {
+  group('as páginas do painel cabem', () {
+    // As quatro células de cada antigo slide, agora paginadas pelo gestor em
+    // vez de escritas à mão — mesmos ids que os testes de célula usam.
+    const idsPorPagina = [
+      [
+        'entradas-mes',
+        'utilizacao-rentabilidade',
+        'encontro-contas',
+        'recomendacao-dia',
+      ],
+      ['reservas-activas', 'entregas-hoje', 'recolhas-fazer', 'cobrancas-7d'],
+      [
+        'clientes-novos-30d',
+        'leads-pipeline',
+        'ticket-medio-mes',
+        'conversao-lead-cliente',
+      ],
+    ];
+
     for (final entrada in tamanhos.entries) {
       // O painel é landscape por decisão de produto; de pé não se testa.
       if (entrada.value.width < entrada.value.height) continue;
 
       testWidgets('em ${entrada.key}', (tester) async {
-        for (final slide in [
-          SinteseSlide(agora: agoraFixa),
-          OperacionalSlide(agora: agoraFixa),
-          ProcuraSlide(agora: agoraFixa),
-        ]) {
+        for (final ids in idsPorPagina) {
           await montarLandscape(
             tester,
             containerCom(estadoComMovimento()),
-            slide,
+            PaginaDoPainel(ids: ids, agora: agoraFixa),
             tamanho: entrada.value,
           );
         }

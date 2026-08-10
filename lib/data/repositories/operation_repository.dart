@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../domain/models/arranjo_do_painel.dart';
 import '../../domain/models/conflito_pendente.dart';
 import '../../domain/models/operations.dart';
 import '../../domain/models/finance.dart';
@@ -19,6 +20,9 @@ abstract interface class OperationRepository {
   List<Vehicle> get vehicles;
   List<HistoricalMonth> get historicalMonths;
   OnboardingData? get onboarding;
+
+  /// Que KPIs o gestor pôs no painel, e por que ordem. Vazio até ele escolher.
+  ArranjoDoPainel get painel;
   void saveMachine(Machine item);
   void archiveMachine(String id);
   void saveLead(Lead item);
@@ -32,6 +36,7 @@ abstract interface class OperationRepository {
   void archiveVehicle(String id);
   void saveHistoricalMonth(HistoricalMonth item);
   void saveOnboarding(OnboardingData value);
+  void savePainel(ArranjoDoPainel value);
 
   /// Apaga tudo — onboarding incluído — e deixa o repositório vazio. Não repõe
   /// dados de demonstração: a app volta ao onboarding com zero registos.
@@ -151,6 +156,7 @@ class LocalDemoOperationRepository implements OperationRepository {
   final List<Vehicle> _vehicles = [];
   final List<HistoricalMonth> _historicalMonths = [];
   OnboardingData? _onboarding;
+  ArranjoDoPainel _painel = ArranjoDoPainel.vazio;
   @override
   List<Machine> get machines =>
       List.unmodifiable(_machines.map(_semEstadoParada));
@@ -182,6 +188,8 @@ class LocalDemoOperationRepository implements OperationRepository {
       List.unmodifiable(_historicalMonths);
   @override
   OnboardingData? get onboarding => _onboarding;
+  @override
+  ArranjoDoPainel get painel => _painel;
   @override
   void saveMachine(Machine item) {
     final i = _machines.indexWhere((x) => x.id == item.id);
@@ -302,6 +310,9 @@ class LocalDemoOperationRepository implements OperationRepository {
   void saveOnboarding(OnboardingData value) => _onboarding = value;
 
   @override
+  void savePainel(ArranjoDoPainel value) => _painel = value;
+
+  @override
   void resetAll() => _limparMemoria();
 
   /// Esvazia as colecções em memória, dados de demonstração incluídos. O
@@ -318,6 +329,7 @@ class LocalDemoOperationRepository implements OperationRepository {
     _vehicles.clear();
     _historicalMonths.clear();
     _onboarding = null;
+    _painel = ArranjoDoPainel.vazio;
   }
 }
 
@@ -330,6 +342,19 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   final SharedPreferences _preferences;
   int? _remoteRevision;
   bool _hasPendingRemoteChanges = false;
+
+  /// Este aparelho arrumou o painel e ainda não o entregou ao servidor.
+  ///
+  /// Marca à parte do [_hasPendingRemoteChanges], que é do bloco todo. O
+  /// instantâneo tem a regra "o servidor manda": quem chega com uma revisão
+  /// velha deita fora o que tinha por subir — e é essa a regra certa para a
+  /// ficha da empresa, que se edita uma vez por ano num sítio só.
+  ///
+  /// Para o painel não serve. Marca-se uma caixa e a alteração fica à espera
+  /// do próximo ciclo; se nesse intervalo qualquer outro aparelho tocar na
+  /// ficha, a revisão avança e a arrumação desaparecia sem erro nenhum. Esta
+  /// marca diz "isto ainda não teve a sua vez" — e sobrevive à importação.
+  bool _painelPorSubir = false;
 
   int? get remoteRevision => _remoteRevision;
   bool get hasPendingRemoteChanges => _hasPendingRemoteChanges;
@@ -612,6 +637,22 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     _markDirty();
   }
 
+  /// O painel sobe pelo canal do instantâneo, com o onboarding e os custos
+  /// fixos — não pela fila de operações.
+  ///
+  /// É a divisão que [_markDirty] descreve: a fila serve o que duas pessoas
+  /// mexem ao mesmo tempo e precisa de ordem do servidor para não se perder. O
+  /// painel não é isso. É arrumação do gestor, feita num sítio só, e o
+  /// instantâneo já é o dono do que tem esse feitio. Pô-lo na fila obrigava a
+  /// inventar uma entidade nova e a alargar-lhe a lista no servidor, para
+  /// resolver uma disputa que não existe.
+  @override
+  void savePainel(ArranjoDoPainel value) {
+    super.savePainel(value);
+    _painelPorSubir = true;
+    _markDirty();
+  }
+
   String exportOperationalPayload() => jsonEncode(_operationalPayload());
 
   /// Traz do servidor o instantâneo do que é **da empresa** — e só isso.
@@ -638,12 +679,23 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   /// Cada coisa tem um dono. Este canal deixou de opinar sobre o que não é dele.
   bool importOperationalPayload(String raw, {required int revision}) {
     try {
+      final painelDesteAparelho = painel;
       _applyData(
         Map<String, dynamic>.from(jsonDecode(raw) as Map),
         apenasDadosDaEmpresa: true,
       );
       _remoteRevision = revision;
-      _hasPendingRemoteChanges = false;
+      // **A arrumação do painel não se perde à passagem.**
+      //
+      // Tudo o resto que vinha por subir cede ao servidor, e é assim que deve
+      // ser: velho perde. Mas o painel muda-se com um toque, e entre o toque e
+      // o ciclo de sincronização cabe qualquer coisa que outro aparelho faça à
+      // ficha. Aqui fica de pé o que este aparelho arrumou, e sobe já a seguir,
+      // por cima do que o servidor acabou de dizer — ver [_painelPorSubir].
+      if (_painelPorSubir) {
+        _painel = painelDesteAparelho;
+      }
+      _hasPendingRemoteChanges = _painelPorSubir;
       _persist();
       return true;
     } catch (_) {
@@ -654,6 +706,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   void markRemoteSynchronized(int revision) {
     _remoteRevision = revision;
     _hasPendingRemoteChanges = false;
+    _painelPorSubir = false;
     _persist();
   }
 
@@ -709,6 +762,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'collaborators': _collaborators.map(_collaboratorToJson).toList(),
     'vehicles': _vehicles.map(_vehicleToJson).toList(),
     'historicalMonths': _historicalMonths.map(_historicalMonthToJson).toList(),
+    'painel': painel.toJson(),
   };
 
   /// Se este aparelho pode guardar dados da empresa entre arranques.
@@ -750,6 +804,9 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     data['sync'] = {
       'remoteRevision': _remoteRevision,
       'hasPendingRemoteChanges': _hasPendingRemoteChanges,
+      // Gravada, e não só em memória: arrumar o painel e fechar a app antes de
+      // haver rede é o caso normal, não a excepção.
+      'painelPorSubir': _painelPorSubir,
     };
     _preferences.setString(_storageKey, jsonEncode(data));
   }
@@ -759,6 +816,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     super.resetAll();
     _remoteRevision = null;
     _hasPendingRemoteChanges = false;
+    _painelPorSubir = false;
     _preferences.remove(_storageKey);
   }
 
@@ -776,6 +834,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
       final sync = _mapOrNull(data['sync']);
       _remoteRevision = _nullableInt(sync?['remoteRevision']);
       _hasPendingRemoteChanges = sync?['hasPendingRemoteChanges'] == true;
+      _painelPorSubir = sync?['painelPorSubir'] == true;
       _applyData(data);
     } catch (_) {
       // Uma cache antiga ou inválida não impede a app de arrancar — arranca
@@ -836,6 +895,20 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
       data['historicalMonths'],
       _historicalMonthFromJson,
     );
+    // O painel também: é arrumação do gestor, não trabalho de terreno. Fica
+    // antes do corte porque tem de chegar pelas duas vias — a leitura do que
+    // está no telemóvel e o instantâneo que vem do servidor.
+    //
+    // **Ausente não é vazio.** Um instantâneo escrito por uma app que ainda não
+    // sabia do painel não está a dizer "não escolheu nada" — está calada sobre
+    // ele. Ler esse silêncio como painel vazio apagava a arrumação do gestor de
+    // cada vez que um aparelho com a versão antiga sincronizasse, sem erro
+    // nenhum à vista. Esvaziá-lo de propósito continua a passar: aí a chave vem,
+    // com as listas vazias.
+    final painelDoServidor = _mapOrNull(data['painel']);
+    if (painelDoServidor != null) {
+      _painel = ArranjoDoPainel.fromJson(painelDoServidor);
+    }
     if (apenasDadosDaEmpresa) return;
     _replace(_machines, data['machines'], _machineFromJson);
     _replace(_customers, data['customers'], _customerFromJson);

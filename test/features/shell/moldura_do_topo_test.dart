@@ -6,6 +6,7 @@ import 'package:punho/core/navigation/app_destination.dart';
 import 'package:punho/core/navigation/navigation_controller.dart';
 import 'package:punho/core/theme/punho_theme.dart';
 import 'package:punho/features/dashboard/presentation/dashboard_page.dart';
+import 'package:punho/core/operations/painel_controller.dart';
 import 'package:punho/features/shell/presentation/app_shell.dart';
 
 import '../dashboard/fixtura.dart';
@@ -44,9 +45,16 @@ void main() {
     addTearDown(tester.view.resetPadding);
     addTearDown(tester.view.resetViewPadding);
 
+    final container = containerCom(estadoComMovimento());
+    // O painel nasce vazio, e as setas do carrossel só existem quando lá está
+    // alguma coisa para percorrer.
+    final painel = container.read(painelProvider.notifier);
+    for (final id in kpisNoPainelParaMedir) {
+      painel.alternar(id, escolher: true);
+    }
     await tester.pumpWidget(
       UncontrolledProviderScope(
-        container: containerCom(estadoComMovimento()),
+        container: container,
         child: MaterialApp(theme: PunhoTheme.light, home: const AppShell()),
       ),
     );

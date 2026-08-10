@@ -1,0 +1,100 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:punho/core/operations/operations_controller.dart';
+import 'package:punho/domain/models/operations.dart';
+import 'package:punho/features/dashboard/presentation/kpi_catalogo.dart';
+import 'package:punho/features/dashboard/presentation/widgets/celula_semaforo.dart';
+
+/// O catálogo é a bancada: uma fonte única para as doze células, cada uma capaz
+/// de dizer em que ponto de verdade está. Estes testes guardam três coisas — que
+/// estão lá todas, que nenhuma parte a construir a célula, e que o estado de
+/// verdade lê o que é suposto ler.
+void main() {
+  final now = DateTime(2026, 8, 9);
+
+  OperationsState comReserva() => OperationsState(
+    onboarded: true,
+    companyName: 'Alugueres Norte',
+    bookings: [
+      Booking(
+        id: 'b1',
+        customerId: 'c1',
+        machineIds: const ['m1'],
+        startsAt: DateTime(2026, 8, 12),
+        endsAt: DateTime(2026, 8, 14),
+        status: BookingStatus.confirmed,
+        expectedValueCents: 50000,
+      ),
+    ],
+  );
+
+  const vazio = OperationsState(onboarded: true, companyName: 'Alugueres Norte');
+
+  group('o catálogo está inteiro', () {
+    test('tem os catorze KPIs, com ids únicos e títulos', () {
+      // Doze do painel + a Caixa e a Tendência do mês, nascidas na bancada.
+      expect(catalogoKpis, hasLength(14));
+      expect(kpiPorId('caixa'), isNotNull);
+      expect(kpiPorId('tendencia-mes'), isNotNull);
+
+      final ids = catalogoKpis.map((k) => k.id).toSet();
+      expect(ids, hasLength(14), reason: 'ids têm de ser únicos');
+
+      for (final k in catalogoKpis) {
+        expect(k.id, isNotEmpty);
+        expect(k.titulo, isNotEmpty);
+        expect(k.desbloqueio, isNotEmpty);
+      }
+    });
+
+    test('kpiPorId encontra e falha em silêncio', () {
+      expect(kpiPorId('ticket-medio-mes'), isNotNull);
+      expect(kpiPorId('nao-existe'), isNull);
+    });
+
+    test('nenhuma célula parte, com dados ou sem eles', () {
+      for (final k in catalogoKpis) {
+        expect(
+          () => k.celula(vazio, now),
+          returnsNormally,
+          reason: '${k.id} partiu com estado vazio',
+        );
+        expect(
+          () => k.celula(comReserva(), now),
+          returnsNormally,
+          reason: '${k.id} partiu com uma reserva',
+        );
+      }
+    });
+  });
+
+  group('o estado de verdade', () {
+    test('sem fonte cheia é "por definir"', () {
+      // Empresa vazia: as entradas não têm de onde vir → a célula aguarda.
+      final entradas = kpiPorId('entradas-mes')!;
+
+      expect(entradas.celula(vazio, now).nivel, NivelSemaforo.aguarda);
+      expect(entradas.fonteCheia(vazio, now), isFalse);
+      expect(entradas.estado(vazio, now), EstadoVerdade.porDefinir);
+    });
+
+    test('fonte cheia + conta verificada é "pronto"', () {
+      // O ticket médio já passou pelo nosso crivo (contaVerificada: true); com
+      // uma reserva com valor no mês, a fonte enche → pode subir ao painel.
+      final ticket = kpiPorId('ticket-medio-mes')!;
+      expect(ticket.contaVerificada, isTrue);
+
+      expect(ticket.fonteCheia(comReserva(), now), isTrue);
+      expect(ticket.estado(comReserva(), now), EstadoVerdade.pronto);
+    });
+
+    test('fonte cheia mas conta por verificar é "por verificar"', () {
+      // Clientes novos ainda não passou pelo crivo (contaVerificada: false):
+      // chega quando há reservas, mas fica à espera da nossa confirmação.
+      final clientes = kpiPorId('clientes-novos-30d')!;
+      expect(clientes.contaVerificada, isFalse);
+
+      expect(clientes.fonteCheia(comReserva(), now), isTrue);
+      expect(clientes.estado(comReserva(), now), EstadoVerdade.porVerificar);
+    });
+  });
+}

@@ -103,6 +103,38 @@ void main() {
       expect(julho.variacaoVsHomologo, isNull);
     });
 
+    test(
+      'sem recebimentos do mês anterior mas com histórico, compara na mesma',
+      () {
+        // O caso da empresa nova: não tem homólogo nenhum (não existia há um
+        // ano) e o mês anterior ainda não tem recibos lançados, mas o gestor —
+        // ou o contabilista — já declarou quanto facturou. Antes, esse ramo só
+        // olhava para os recibos crus e a tendência caía sempre em "sem
+        // histórico"; agora a rede de segurança do histórico vale para os dois
+        // lados, homólogo e mês anterior.
+        final cenario = vazio.copyWith(
+          historicalMonths: const [
+            HistoricalMonth(year: 2026, month: 7, revenueReceivedCents: 100000),
+          ],
+          receipts: [
+            Receipt(
+              id: 'r-agosto',
+              date: DateTime(2026, 8, 5),
+              amountCents: 60000,
+              customerId: 'c1',
+              method: PaymentMethod.cash,
+            ),
+          ],
+        );
+
+        final agosto = tesourariaDoMes(cenario, DateTime(2026, 8, 1));
+
+        expect(agosto.recebidoMesAnteriorCents, 100000);
+        expect(agosto.variacaoVsMesAnterior, closeTo(-40, 0.001));
+        expect(agosto.comparacao?.homologo, isFalse);
+      },
+    );
+
     test('a tendência é o previsto do mês, não só o recebido de hoje', () {
       // O exemplo do gestor: o mês passado faturou 10.000 €; hoje (dia 15) só
       // entraram 1.000 €, mas há 5.000 € de reservas marcadas até ao fim do
@@ -460,9 +492,52 @@ void main() {
       expect(paradas.map((p) => p.maquina.id), isNot(contains('m1')));
     });
 
-    test('ticket médio ignora reservas sem valor', () {
-      expect(ticketMedioReserva(estado), (120000 + 78000 + 90000) ~/ 3);
-      expect(ticketMedioReserva(vazio), isNull);
+    test('ticket médio do mês é por empresa, não por reserva', () {
+      // Julho da fixtura: a c1 comprou duas vezes (120000 a 18/7 + 90000 a 6/7);
+      // a c2 é de Junho, fica fora do mês. Uma empresa, 210000 de total → o
+      // ticket é 210000, não a média das três reservas. É a definição do Cesar:
+      // total do mês a dividir pelas empresas distintas do mês.
+      final t = ticketMedioDoMes(estado, agoraFixa)!;
+
+      expect(t.empresas, 1);
+      expect(t.totalCents, 120000 + 90000);
+      expect(t.porEmpresaCents, (120000 + 90000) ~/ 1);
+      // Uma empresa, duas compras no mês → recorrência média 2×/mês.
+      expect(t.transacoes, 2);
+      expect(t.transacoesMediasPorEmpresa, 2.0);
+      expect(ticketMedioDoMes(vazio, agoraFixa), isNull);
+    });
+
+    test('duas empresas: soma tudo e divide pelo número de empresas', () {
+      // A c1 comprou duas vezes (300 + 400 = 700) e a c2 uma (200). Total 900,
+      // duas empresas → 450 por empresa. Se dividisse por reserva davam 300.
+      final agora = DateTime(2026, 7, 15);
+      Booking r(String id, String cliente, int dia, int cents) => Booking(
+        id: id,
+        customerId: cliente,
+        machineIds: const ['m1'],
+        startsAt: DateTime(2026, 7, dia),
+        endsAt: DateTime(2026, 7, dia + 1),
+        status: BookingStatus.confirmed,
+        expectedValueCents: cents,
+      );
+      final estadoDuas = OperationsState(
+        onboarded: true,
+        bookings: [
+          r('a', 'c1', 3, 30000),
+          r('b', 'c1', 10, 40000),
+          r('c', 'c2', 12, 20000),
+        ],
+      );
+
+      final t = ticketMedioDoMes(estadoDuas, agora)!;
+
+      expect(t.empresas, 2);
+      expect(t.totalCents, 90000);
+      expect(t.porEmpresaCents, 45000);
+      // Três compras, duas empresas → recorrência média 1,5×/mês.
+      expect(t.transacoes, 3);
+      expect(t.transacoesMediasPorEmpresa, 1.5);
     });
   });
 

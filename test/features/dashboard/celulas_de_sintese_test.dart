@@ -2,14 +2,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/finance.dart';
 import 'package:punho/domain/models/operations.dart';
-import 'package:punho/features/dashboard/presentation/slides/sintese_slide.dart';
+import 'package:punho/features/dashboard/presentation/pagina_do_painel.dart';
 
 import 'fixtura.dart';
 
-/// Slide 1 · Primeiro impulso.
+/// As quatro células que antes viviam no slide da Síntese.
 ///
 /// O que estes testes protegem: **o dinheiro é do mês**, o dia é contexto, e
 /// nenhuma célula inventa um número.
+const idsDaSintese = [
+  'entradas-mes',
+  'utilizacao-rentabilidade',
+  'encontro-contas',
+  'recomendacao-dia',
+];
+
 void main() {
   final agora = DateTime(2026, 7, 15, 10, 30);
   DateTime dia(int d) => DateTime(2026, 7, d);
@@ -27,7 +34,11 @@ void main() {
       const OperationsState(onboarded: true, companyName: 'Alugueres Norte'),
     );
 
-    await montarLandscape(tester, container, SinteseSlide(agora: agora));
+    await montarLandscape(
+      tester,
+      container,
+      PaginaDoPainel(ids: idsDaSintese, agora: agora),
+    );
 
     // Entradas, utilização e encontro de contas dizem o que falta fazer. A
     // quarta célula é a recomendação, que se cala em vez de inventar conselho.
@@ -53,7 +64,11 @@ void main() {
       ),
     );
 
-    await montarLandscape(tester, container, SinteseSlide(agora: agora));
+    await montarLandscape(
+      tester,
+      container,
+      PaginaDoPainel(ids: idsDaSintese, agora: agora),
+    );
 
     // 1000 + 500 + 240 = 1740 no mês. O dia 15 rendeu 240.
     expect(
@@ -93,7 +108,11 @@ void main() {
       ),
     );
 
-    await montarLandscape(tester, container, SinteseSlide(agora: agora));
+    await montarLandscape(
+      tester,
+      container,
+      PaginaDoPainel(ids: idsDaSintese, agora: agora),
+    );
 
     // 1200 contra 1000 do homólogo = +20%. Contra o mês passado seria −40%.
     // Sem reservas na agenda, o previsto do mês é igual ao recebido, por isso
@@ -122,9 +141,16 @@ void main() {
       ),
     );
 
-    await montarLandscape(tester, container, SinteseSlide(agora: agora));
+    await montarLandscape(
+      tester,
+      container,
+      PaginaDoPainel(ids: idsDaSintese, agora: agora),
+    );
 
-    expect(find.textContaining('▼ 40% previsto vs mês passado'), findsOneWidget);
+    expect(
+      find.textContaining('▼ 40% previsto vs mês passado'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('sem recebimentos hoje, a sub-linha não fala do dia', (
@@ -138,7 +164,11 @@ void main() {
       ),
     );
 
-    await montarLandscape(tester, container, SinteseSlide(agora: agora));
+    await montarLandscape(
+      tester,
+      container,
+      PaginaDoPainel(ids: idsDaSintese, agora: agora),
+    );
 
     expect(find.textContaining('Hoje:'), findsNothing);
   });
@@ -161,7 +191,11 @@ void main() {
       ),
     );
 
-    await montarLandscape(tester, container, SinteseSlide(agora: agora));
+    await montarLandscape(
+      tester,
+      container,
+      PaginaDoPainel(ids: idsDaSintese, agora: agora),
+    );
 
     expect(
       find.textContaining('+ 380 € saldo', findRichText: true),
@@ -197,8 +231,59 @@ void main() {
       ),
     );
 
-    await montarLandscape(tester, container, SinteseSlide(agora: agora));
+    await montarLandscape(
+      tester,
+      container,
+      PaginaDoPainel(ids: idsDaSintese, agora: agora),
+    );
 
     expect(find.text('Falta o preço de 1 de 2 máquinas'), findsOneWidget);
+  });
+
+  testWidgets('com valor de compra inventado, mostra o retorno e não parte', (
+    tester,
+  ) async {
+    // O Cesar pediu (9 Ago): meter um valor de compra inventado só para ver que
+    // a célula acende sem partir. Precisa das duas coisas — preço/dia em TODAS
+    // as máquinas e valor de compra em pelo menos uma — senão fica no "falta".
+    final container = containerCom(
+      OperationsState(
+        onboarded: true,
+        companyName: 'Alugueres Norte',
+        machines: const [
+          Machine(
+            id: 'm1',
+            name: 'Mini escavadora',
+            reference: 'ME-01',
+            category: 'Escavação',
+            status: MachineStatus.available,
+            dailyRateCents: 18500,
+            purchasePriceCents: 500000, // 5000 € inventados
+          ),
+        ],
+        bookings: [
+          Booking(
+            id: 'b1',
+            customerId: 'c1',
+            machineIds: const ['m1'],
+            startsAt: dia(14),
+            endsAt: dia(16),
+            status: BookingStatus.confirmed,
+            expectedValueCents: 80000, // 800 € → 16% de 5000 €
+          ),
+        ],
+      ),
+    );
+
+    await montarLandscape(
+      tester,
+      container,
+      PaginaDoPainel(ids: idsDaSintese, agora: agora),
+    );
+
+    // Deixou de dizer "falta" e passou a medir o retorno. Se a montagem
+    // rebentasse por overflow ou excepção, o teste caía aqui.
+    expect(find.text('Falta o valor de compra'), findsNothing);
+    expect(find.textContaining('16% do investido recuperado'), findsOneWidget);
   });
 }

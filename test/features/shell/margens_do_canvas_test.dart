@@ -6,6 +6,8 @@ import 'package:punho/core/navigation/app_destination.dart';
 import 'package:punho/core/navigation/navigation_controller.dart';
 import 'package:punho/core/theme/punho_theme.dart';
 import 'package:punho/features/dashboard/presentation/dashboard_page.dart';
+import 'package:punho/core/operations/painel_controller.dart';
+import 'package:punho/features/dashboard/presentation/widgets/dots_indicator.dart';
 import 'package:punho/features/shell/presentation/app_shell.dart';
 
 import '../dashboard/fixtura.dart';
@@ -48,6 +50,13 @@ void main() {
     addTearDown(tester.view.reset);
 
     final container = containerCom(estadoComMovimento());
+    // O painel nasce vazio, e o carrossel — setas, rodapé, nomes — só existe
+    // quando lá está alguma coisa. Cinco KPIs dão duas páginas, que é o mínimo
+    // para o rodapé ter nome de cada lado.
+    final painel = container.read(painelProvider.notifier);
+    for (final id in kpisNoPainelParaMedir) {
+      painel.alternar(id, escolher: true);
+    }
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
@@ -173,13 +182,21 @@ void main() {
   testWidgets('o rodapé do painel encosta às duas margens', (tester) async {
     await abrir(tester);
 
-    // O último nome de slide ficava a 64,8 dp da margem direita: a caixa dos
+    // O último nome de ecrã ficava a 64,8 dp da margem direita: a caixa dos
     // três nomes tinha 300 dp fixos e vinha centrada no espaço que sobrava, em
-    // vez de o ocupar. Do lado esquerdo o "1/3 · …" encostava certo — os dois
+    // vez de o ocupar. Do lado esquerdo o "1/2 · …" encostava certo — os dois
     // extremos do rodapé não batiam um com o outro.
+    //
+    // Procura-se dentro do rodapé, e não no ecrã todo: os nomes dos ecrãs são
+    // títulos de KPIs, e os mesmos títulos estão nas células do painel.
     final canvas = tester.getRect(find.byType(DashboardPage));
-    final contador = tester.getRect(find.textContaining('1/3').first);
-    final ultimoNome = tester.getRect(find.text('Operacional'));
+    final rodape = find.byType(DotsIndicator);
+    final contador = tester.getRect(
+      find.descendant(of: rodape, matching: find.textContaining('1/2')).first,
+    );
+    final ultimoNome = tester.getRect(
+      find.descendant(of: rodape, matching: find.text(nomeDoSegundoEcra)),
+    );
 
     expect(
       contador.left - canvas.left,

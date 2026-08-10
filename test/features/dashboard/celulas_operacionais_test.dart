@@ -1,13 +1,22 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/domain/models/operations.dart';
-import 'package:punho/features/dashboard/presentation/slides/operacional_slide.dart';
+import 'package:punho/features/dashboard/presentation/pagina_do_painel.dart';
 import 'package:punho/features/dashboard/presentation/widgets/celula_semaforo.dart';
 
 import 'fixtura.dart';
 
-/// O slide 2 é o primeiro ligado a dados a sério. O que estes testes protegem
-/// não é o layout — é a promessa de que **nenhum número no ecrã é inventado**.
+/// As quatro células que antes viviam no slide Operacional.
+///
+/// O que estes testes protegem não é o layout — é a promessa de que **nenhum
+/// número no ecrã é inventado**.
+const idsOperacionais = [
+  'reservas-activas',
+  'entregas-hoje',
+  'recolhas-fazer',
+  'cobrancas-7d',
+];
+
 void main() {
   final agora = DateTime(2026, 7, 15, 10, 30);
   DateTime dia(int d) => DateTime(2026, 7, d);
@@ -19,7 +28,11 @@ void main() {
       const OperationsState(onboarded: true, companyName: 'Alugueres Norte'),
     );
 
-    await montarLandscape(tester, container, OperacionalSlide(agora: agora));
+    await montarLandscape(
+      tester,
+      container,
+      PaginaDoPainel(ids: idsOperacionais, agora: agora),
+    );
 
     // Quatro células, todas honestas sobre a falta de dados — e o que ocupa o
     // lugar do número é a acção que o destranca, não o rótulo "Por apurar"
@@ -70,7 +83,11 @@ void main() {
       ),
     );
 
-    await montarLandscape(tester, container, OperacionalSlide(agora: agora));
+    await montarLandscape(
+      tester,
+      container,
+      PaginaDoPainel(ids: idsOperacionais, agora: agora),
+    );
 
     expect(find.text('Por apurar'), findsNothing);
     // 2 reservas activas, 1 entrega hoje ainda por sair. O valor e a unidade
@@ -100,50 +117,12 @@ void main() {
       ),
     );
 
-    await montarLandscape(tester, container, OperacionalSlide(agora: agora));
+    await montarLandscape(
+      tester,
+      container,
+      PaginaDoPainel(ids: idsOperacionais, agora: agora),
+    );
 
     expect(find.text('1 em atraso — a mais antiga há 3 dias'), findsOneWidget);
-    expect(
-      find.text('Alertas operacionais: 1 recolha em atraso'),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('sem nada a assinalar, a faixa de alertas não aparece', (
-    tester,
-  ) async {
-    final container = containerCom(
-      OperationsState(
-        onboarded: true,
-        companyName: 'Alugueres Norte',
-        bookings: [
-          Booking(
-            id: 'tranquila',
-            customerId: 'c1',
-            machineIds: const ['m1'],
-            startsAt: dia(10),
-            endsAt: dia(25),
-            status: BookingStatus.rented,
-          ),
-        ],
-      ),
-    );
-
-    await montarLandscape(tester, container, OperacionalSlide(agora: agora));
-
-    expect(find.textContaining('Alertas operacionais'), findsNothing);
-  });
-
-  testWidgets('o vocabulário é recolhas, nunca devoluções', (tester) async {
-    // As máquinas são alugadas e têm de ser recuperadas: é trabalho da empresa,
-    // não um acto do cliente.
-    final container = containerCom(
-      const OperationsState(onboarded: true, companyName: 'Alugueres Norte'),
-    );
-
-    await montarLandscape(tester, container, OperacionalSlide(agora: agora));
-
-    expect(find.textContaining('evolu'), findsNothing);
-    expect(find.textContaining('RECOLHAS A FAZER'), findsOneWidget);
   });
 }
