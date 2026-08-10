@@ -4,11 +4,32 @@
 //
 // Multi-app: `body.app` é OBRIGATÓRIO (rompe compat com clientes que não o
 // enviam). Aceita 'pos' ou 'punho'. Filtra `licencas` por (machine_id, app).
+//
+// ─── A chave_mestre saiu daqui, 10/08/2026 ──────────────────────────────────
+//
+// Esta função responde a quem tiver a chave publicável `anon` — que vai dentro
+// de cada APK e é pública por desenho. `verify_jwt: true` não muda isso: a
+// chave anon é um JWT válido do projecto e passa o portão da plataforma.
+//
+// Continua assim, e tem de continuar: o POS não tem uma única conta em
+// `auth.users` e o Punho valida a licença no arranque, antes do login. Sem esta
+// porta aberta as duas apps não sabem se podem arrancar.
+//
+// O que saiu foi a `chave_mestre`. É a metade "empresa" do par que identifica
+// uma instalação — um segredo — e ia na resposta a qualquer um que soubesse um
+// `machine_id`. Agora só sai contra prova de pertença: sessão de utilizador a
+// sério, e essa pessoa membro activo da empresa dona da licença. Para toda a
+// gente vai `null`, que é exactamente o que já ia em todas as licenças de hoje
+// — nenhuma tem `chave_mestre` preenchida —, por isso nada regride.
+//
+// O resto da resposta fica: estado, plano, validade, nome e nif são o que o
+// terminal precisa de saber sobre si próprio para decidir se arranca.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 const APPS = ['pos', 'punho'] as const;
 type AppName = typeof APPS[number];
@@ -25,6 +46,27 @@ function json(status: number, data: unknown) {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+/// Quem está mesmo a chamar. `null` quando o Authorization traz só a chave
+/// publicável do projecto — o caso normal do arranque, e não é erro nenhum.
+/// Mesmo padrão da `sincronizar-empresa-punho:37`: a identidade vem do token.
+async function utilizadorDoPedido(req: Request): Promise<string | null> {
+  const auth = req.headers.get('Authorization') ?? '';
+  const jwt = auth.replace(/^Bearer\s+/i, '').trim();
+  if (!jwt || jwt === ANON_KEY) return null;
+
+  const comoUtilizador = createClient(SUPABASE_URL, ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${jwt}` } },
+    auth: { persistSession: false },
+  });
+  // O token TEM de ir como argumento. `getUser()` sem argumentos lê a sessão
+  // guardada no cliente — que aqui nunca existe — e devolve sempre nulo, por
+  // muito válido que seja o cabeçalho. A lição já estava em `gerir-licenca:130`
+  // e voltou a morder: a primeira versão disto respondia 401 a tokens bons.
+  const { data, error } = await comoUtilizador.auth.getUser(jwt);
+  if (error || !data?.user) return null;
+  return data.user.id;
 }
 
 Deno.serve(async (req) => {
@@ -111,9 +153,39 @@ Deno.serve(async (req) => {
   else estado = 'activa';
 
   // `chave_mestre` é a metade "empresa" do par (a outra é o `machine_id`, já
-  // aqui). Vai `null` nas instalações anteriores ao modelo do par. Devolvê-la
-  // aqui é o que dá ao Punho — que não tem `licenca.json` assinado — maneira de
-  // saber a que empresa pertence. Aditivo: nenhum campo sai nem muda de nome.
+  // aqui). Devolvê-la é o que dá ao Punho — que não tem `licenca.json` assinado
+  // — maneira de saber a que empresa pertence. Mas é um segredo, e por isso só
+  // sai contra prova de pertença: quem chama tem de ter sessão de utilizador a
+  // sério e ser membro activo da empresa cujo NIF é o desta licença. Sem isso
+  // vai `null`, que é o que já ia antes do modelo do par existir — o campo
+  // continua sempre presente e nunca muda de nome.
+  let chaveMestre: string | null = null;
+  if (l.chave_mestre) {
+    const uid = await utilizadorDoPedido(req);
+    if (uid) {
+      const { data: membros } = await supabase
+        .from('punho_membros')
+        .select('punho_empresas(dados)')
+        .eq('user_id', uid)
+        .eq('ativo', true);
+
+      const eDaEmpresa = (membros ?? []).some((m: Record<string, unknown>) => {
+        const empresa = m.punho_empresas as { dados?: Record<string, unknown> } | null;
+        const nif = empresa?.dados?.nif;
+        return typeof nif === 'string' && nif.trim() === String(l.nif).trim();
+      });
+
+      if (eDaEmpresa) {
+        chaveMestre = l.chave_mestre;
+      } else {
+        console.warn(
+          `validar-licenca: ${uid} pediu chave_mestre de machine_id=${machineId}, ` +
+            'que não é da empresa dele'
+        );
+      }
+    }
+  }
+
   return json(200, {
     estado,
     app: appTyped,
@@ -124,7 +196,7 @@ Deno.serve(async (req) => {
     dias_restantes: diasRestantes,
     oferta: l.oferta ?? false,
     machine_id: machineId,
-    chave_mestre: l.chave_mestre ?? null,
+    chave_mestre: chaveMestre,
     tier: l.tier ?? 'base',
     preferencias_features: l.preferencias_features ?? {},
   });
