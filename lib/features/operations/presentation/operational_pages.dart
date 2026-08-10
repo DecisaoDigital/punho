@@ -785,7 +785,23 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
                             Text(helps[passoDeDados]),
                           ],
                           const SizedBox(height: 24),
-                          input,
+                          // **Uma chave por passo, e é por causa do teclado.**
+                          //
+                          // Os passos são todos `Column` com um `TextField` à
+                          // cabeça, na mesma posição da árvore. Sem chave, o
+                          // Flutter reaproveita o elemento: o campo muda de
+                          // controlador e de rótulo, mas a ligação ao teclado
+                          // do sistema é a que já estava aberta — e o passo do
+                          // contacto abre-a com `TextInputType.phone`. Escrevia-
+                          // -se «Morada da empresa» num teclado de marcar
+                          // números (visto no Redmi a 10 de Agosto de 2026).
+                          //
+                          // Aqui e não em cada campo: assim o passo que alguém
+                          // acrescentar amanhã já nasce com o teclado dele.
+                          KeyedSubtree(
+                            key: ValueKey('passo-$passoDeDados'),
+                            child: input,
+                          ),
                           const SizedBox(height: 28),
                           Row(
                             children: [
