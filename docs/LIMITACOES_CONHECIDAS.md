@@ -41,3 +41,31 @@ Actualizado na sprint de estabilização v0.0.3.
 - **Os edge cases de rede, sessão expirada, duplo toque e rotação não foram
   verificados.** Lista completa em `AUDITORIA_BUGS_v0.0.3.md`, secção "Por
   verificar à mão".
+
+## Dívida deixada em aberto pelo hardening de 10/08/2026
+
+- **Qualquer pessoa forja uma aceitação de termos com o `machine_id` de outro.**
+  A migration `20260810120000_fechar_tabelas_partilhadas_do_pos.sql` fechou as
+  sete tabelas partilhadas com o WashInvoice, mas manteve de pé o `INSERT`
+  anónimo em `pings` e `aceites_termos`. Manteve-o por uma razão concreta: o POS
+  não tem conta nenhuma em `auth.users` — zero, verificado — e este é o único
+  caminho que tem para escrever. Tirá-lo cegava seis terminais e calava a prova
+  de aceitação de termos.
+
+  O preço é que a porta continua aberta a quem tiver a chave anon, que é
+  pública por definição. `aceites_termos` é prova contratual: guarda machine_id,
+  NIF, IP e cidade de quem aceitou. Com o `INSERT` aberto, um terceiro insere
+  uma linha com o `machine_id` de um cliente e a prova deixa de provar. Em
+  `pings` o estrago é menor — telemetria envenenada, terminais que não existem.
+
+  **Aceitável hoje** porque não há um único cliente real no POS: os dados são
+  todos de teste.
+
+  **Solução:** mover as duas escritas para uma Edge Function com service_role,
+  exactamente como a `receber-lead` já faz — a função recebe o pedido, valida o
+  `machine_id` contra `licencas`, e só depois escreve. Aí o `INSERT` anónimo
+  desaparece das duas tabelas e o revoke a `anon` fica completo.
+
+  **Quando:** antes do primeiro cliente real do POS. Não antes, e não depois.
+  Implicará mexer no código do POS, que não está nesta máquina — contar com isso
+  no planeamento.

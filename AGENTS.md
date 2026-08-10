@@ -36,6 +36,26 @@ O GitHub é usado apenas para:
 - tags e release notes;
 - armazenamento e distribuição de artefactos já compilados no i9.
 
+## Nenhuma alteração em produção sem migration no repositório primeiro
+
+Ordem obrigatória, sem excepção: **escrever o ficheiro em
+`supabase/migrations/` e só depois aplicar**. Nunca ao contrário, nunca só um
+dos dois.
+
+Vale para tudo o que muda o servidor: tabelas, colunas, políticas RLS, `grant`
+e `revoke`, funções, triggers, vistas. Aplicar por SQL solto — pelo editor do
+Supabase, pelo MCP, por `psql` — é a mesma coisa que não aplicar: fica no
+servidor e desaparece do repositório na primeira vez que alguém for procurar.
+
+Foi assim que se perdeu o guard-rail #236 e é por isso que o repositório tinha
+58 migrations para 96 versões aplicadas na base. Um `revoke` que ninguém sabe
+que existe é indistinguível de um `revoke` que nunca foi feito.
+
+Se encontrares deriva entre o repositório e a produção, reconcilia — não
+dupliques. Quando um `supabase db pull` gerar um ficheiro que repete uma
+migration escrita à mão, **fica com a escrita à mão e descarta a gerada**: os
+comentários dela explicam porquê, e é isso que se perde.
+
 ## Credenciais: onde procurar
 
 Usar primeiro as sessões já configuradas no i9. Os agentes não devem pedir,
