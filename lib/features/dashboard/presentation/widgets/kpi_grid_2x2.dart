@@ -15,11 +15,26 @@ abstract final class AlturaDoKpi {
   /// O KPI-herói: número grande e gráfico.
   static const heroi = 200.0;
 
-  /// Todos os outros — e é este que a página dos KPIs usa.
+  /// Todos os outros, **na grelha**, onde quatro dividem o ecrã.
   static const normal = 150.0;
 
   /// De um cartão para o seguinte.
   static const entre = 12.0;
+
+  /// O cartão **deitado** da bancada, onde é um por linha e a largura é toda
+  /// dele. Medido, não arbitrado: a célula deitada mais alta do catálogo quer
+  /// **79 dp** (rótulo e número na mesma linha, mais duas linhas de nota), e
+  /// isto são esses 79 com folga para quem tem a letra do sistema maior.
+  ///
+  /// Os 150 da grelha aqui eram ar: mediu-se a 10 de Agosto de 2026 que doze
+  /// das catorze células enchiam entre 47% e 65% da largura, e cabia **linha e
+  /// meia** por ecrã no Redmi deitado.
+  static const deitado = 84.0;
+
+  /// De um cartão deitado para o seguinte. Menor do que [entre]: numa lista o
+  /// que separa é a linha, e não a moldura de cada um contra os vizinhos dos
+  /// quatro lados.
+  static const entreDeitados = 8.0;
 }
 
 /// Grelha 2×2 que enche a área que lhe dão.

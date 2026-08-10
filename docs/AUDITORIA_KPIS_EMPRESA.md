@@ -467,3 +467,67 @@ ecrã do colaborador já existem.
 - **Utilização — indústria de aluguer de equipamento.** [Best KPIs for the Equipment Rental Industry — Targit](https://www.targit.com/en/blog/best-kpis-for-the-equipment-rental-industry); [Equipment Rental KPIs — Quipli](https://quipli.com/resources/top-kpis-for-a-rental-business/); [Six KPIs for the Equipment Rental Elite — Construction Executive](https://constructionexec.com/article/six-kpis-for-the-equipment-rental-elite/).
 - **Retenção de clientes — impacto no lucro.** [Customer Retention — Zendesk](https://www.zendesk.com/blog/customer-experience/retention/customer-retention/); [Customer Retention Statistics — Flowlu](https://www.flowlu.com/blog/crm/customer-retention-statistics/); [Retention Rate by Industry — Focus Digital](https://focus-digital.co/average-customer-retention-rate-by-industry/).
 - **Contexto português — subsídio de férias.** [Subsídio de férias em Portugal — Factorial](https://factorialhr.pt/blog/subsidio-ferias-portugal/); [Duodécimos ou por inteiro — Xfin](https://www.xfin.pt/blog/subsidio-de-ferias-duodecimos-ou-por-inteiro).
+
+---
+
+## Parte E — Estado a 10 de Agosto de 2026
+
+**Os oito não cobertos deixaram de o estar.** Entraram no catálogo
+(`lib/features/dashboard/presentation/kpi_catalogo.dart`) e as contas vivem em
+`lib/core/operations/kpis_de_saude.dart`, todas puras em `(estado, agora)` e
+todas com teste em `test/features/dashboard/kpis_de_saude_test.dart`.
+
+| Da auditoria | Entrada do catálogo | Fonte, e o que ela não é |
+|---|---|---|
+| 1+2. Saldo de tesouraria e runway | `saldo-e-autonomia` | recebimentos − despesas **pagas**, desde o primeiro movimento registado. **Não é o saldo bancário** — a app não fala com o banco, e a célula di-lo com a data desde quando conta |
+| 3. Cash Conversion Cycle | `ciclo-de-tesouraria` | a versão simplificada da Parte D: DSO + dias de máquina parada − DPO, em 90 dias. O DPO sai das despesas marcadas por pagar, que é o mais perto de contas a pagar que há |
+| 5. Margem bruta e tendência | `margem-bruta` | receita do mês menos os custos **directos**, com a variação em pontos face ao mês passado |
+| 7. Free Cash Flow | `fluxo-de-caixa-livre` | operacional do mês menos as máquinas com `acquiredOn` neste mês |
+| 12. CAC | `custo-de-aquisicao` | despesas de **Publicidade** em 90 dias ÷ clientes novos. É um **piso**: quem paga angariação por outra via não a tem aqui |
+| 14. % receita de clientes recorrentes | `receita-recorrente` | fatia dos recebimentos do mês de quem já tinha reserva antes dele |
+| 15. NPS / satisfação | `satisfacao-cliente` | **nenhuma** — fica em «Por definir» a dizer que falta o inquérito no fim da recolha. Escondê-lo era fingir a lista completa |
+
+**A linha entre custo directo e custo de estrutura é uma decisão declarada**, e
+está numa constante com nome (`custosDirectosDoAluguer`): manutenção de máquina,
+combustível, manutenção de viatura e consumíveis. Renda, electricidade, água,
+limpeza, salários, seguros e publicidade são estrutura — pagam-se com a máquina
+parada. Nada nos dados traça esta linha sozinho; quem discordar discorda da
+constante, e não de um número que apareceu do nada.
+
+**Mais quatro, que não vinham desta auditoria:**
+
+- `leads-frias` e `alertas-operacionais` — as duas peças que se perderam quando
+  o painel deixou de ser slides. Os números equivalentes tinham ficado; a prosa
+  que dizia o que fazer com eles, não;
+- `gastos-previstos-mes` e `saldo-previsto-mes` — a futurologia: como o mês
+  fecha se a tendência se mantiver. A base de cálculo (`previsaoDoMes`) já
+  existia e ninguém a lia.
+
+## Parte F — O crivo, 10 de Agosto de 2026
+
+O César mandou verificar as contas e promover as que estivessem certas.
+**Passaram 13; ficaram 2 de fora.** Ler cada fórmula contra o que a célula
+promete deu **seis defeitos**, todos corrigidos antes de promover:
+
+| Defeito | Onde | Porque é que mentia |
+|---|---|---|
+| A queima incluía o mês em curso | `saldoEAutonomia` | a 10 de Agosto o mês tem 10 dias de despesas; dividir por 3 meses baixava a média e **aumentava** a autonomia anunciada. Numa medida de risco é o erro que dói. Passou a usar meses **completos**, e só os que têm registo |
+| O custo fixo contado duas vezes | `saldoEAutonomia` | sem rubricas, somava o total redondo do onboarding **e** a renda lançada como despesa. Agora, sem rubricas, fica a maior das duas |
+| Margem de caixa contra custo lançado | `margemBruta` | a receita era o recebido e o custo era o lançado: atrasar um pagamento mudava a margem de dois meses. Passou a caixa dos dois lados |
+| Máquina parada antes de existir | `cicloDeTesouraria` | a comprada ontem arrastava os 89 dias em que ainda não era da empresa — o ciclo **piorava por se ter investido** |
+| «Gastou-se e não veio ninguém» sem haver reservas | `custoDeAquisicao` | pintava vermelho quando o que se passava era não haver como contar. Agora pede reservas |
+| «0 por contactar» sem uma única lead | `kpiLeadsPipeline` | fonte vazia a passar por zero verdadeiro. Só apareceu **porque** foi promovido: pôs uma empresa acabada de abrir com um «pronto» a fingir |
+
+Mais duas correcções de texto, que não são contas mas eram afirmações falsas:
+os **gastos previstos** diziam «mais o que já foi lançado» quando são a média
+das variáveis dos meses com registo; as **leads a arrefecer** diziam «parada há
+N dias» quando a lead só guarda quando **entrou**, não quando foi tocada. E as
+«leads em pipeline» passaram a dizer no subtexto quantas estão **em aberto** —
+um gestor com dez leads todas contactadas lia «0» debaixo do rótulo «pipeline».
+
+**Os dois que não passam, e porquê:**
+
+- **`recomendacao-dia`** — não é uma conta, é prosa tirada dos sinais dos outros
+  KPIs. Assinar isto era assinar por tabela tudo o que ela lê;
+- **`satisfacao-cliente`** — não há fonte nenhuma. Fica em «Por definir» a dizer
+  que falta o inquérito, que é o seu trabalho.

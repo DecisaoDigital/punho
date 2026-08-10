@@ -81,22 +81,23 @@ class KpisPage extends ConsumerWidget {
       child: CustomScrollView(
         slivers: [
           SliverPadding(
-            padding: margem.copyWith(top: MargensDoCanvas.vertical),
+            padding: margem.copyWith(top: _arPorCimaDaLista),
             sliver: SliverList.list(
               children: [
+                // **Sem título repetido e com uma linha só de explicação.**
+                //
+                // O ecrã já se chama «KPIs (todos)» na barra lateral, e a
+                // barra está sempre à vista. Repeti-lo aqui custava 24 dp; a
+                // explicação em quatro linhas custava outros 48. No Redmi
+                // deitado o cabeçalho comia 133 dp dos 368 do canvas — e nem
+                // três cartões inteiros cabiam. Agora cabem, que é o que o
+                // ecrã existe para fazer.
                 Text(
-                  'KPIs (todos)',
-                  style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'A app cresce contigo: à medida que preencheres a informação, '
-                  'os KPIs vão chegando aqui. Marca os que queres no painel e '
-                  'arrasta-os para a ordem que preferires — ficam quatro por '
-                  'ecrã.',
+                  'A app cresce contigo: os KPIs vão chegando à medida que '
+                  'preencheres a informação. Arrasta pela pega para ordenar.',
                   style: tt.bodySmall,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 if (arrumados.isNotEmpty) ...[
                   _CabecalhoGrupo(
                     titulo: 'Prontos',
@@ -243,6 +244,14 @@ class KpisPage extends ConsumerWidget {
   }
 }
 
+/// O ar entre o topo do canvas e a primeira linha desta página.
+///
+/// Menos do que `MargensDoCanvas.vertical` de propósito, e com medida: no Redmi
+/// deitado o canvas tem ~368 dp de altura e três cartões deitados ocupam 268.
+/// O que resta para o cabeçalho é meia centena de dp — e o que este ecrã existe
+/// para fazer é mostrar KPIs, não apresentar-se.
+const _arPorCimaDaLista = 8.0;
+
 const _corPronto = Color(0xFF3DC97A);
 const _corAChegar = Color(0xFFFFB246);
 
@@ -250,10 +259,18 @@ const _corAChegar = Color(0xFFFFB246);
 /// Material (48 dp) — abaixo disto falha-se a marcação com o dedo.
 const _larguraDaMarca = 48.0;
 
-/// A coluna da pega de arrastar, à direita. Menor que a da marca de propósito:
-/// arrastar aceita-se numa faixa mais estreita porque o gesto começa devagar e
-/// corrige-se; um toque não tem segunda tentativa.
-const _larguraDaPega = 40.0;
+/// A coluna da pega de arrastar, à direita.
+///
+/// **48 dp, o alvo mínimo do Material** — os mesmos da caixa de marcar. Esteve
+/// em 40, com o argumento de que arrastar se aceita numa faixa mais estreita
+/// porque o gesto começa devagar e corrige-se. Não se corrigia: o alvo era o
+/// ícone de 24 dp no meio da coluna, e falhá-lo parecia a app a não responder.
+///
+/// Agora a coluna inteira pega, e é só ela: «só nos 6 pontinhos e pouco mais»,
+/// pediu o César a 10 de Agosto de 2026, depois de eu ter posto o cartão todo
+/// a arrastar. Os 8 dp que isto custa à célula não se dão por eles; falhar a
+/// pega dá-se sempre.
+const _larguraDaPega = 48.0;
 
 /// Uma linha da lista: marcar à esquerda, o KPI no meio, a pega de arrastar à
 /// direita.
@@ -288,12 +305,12 @@ class _LinhaDeKpi extends ConsumerWidget {
     final marcado = this.marcado;
     final indice = indiceParaArrastar;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AlturaDoKpi.entre),
+      padding: const EdgeInsets.only(bottom: AlturaDoKpi.entreDeitados),
       child: SizedBox(
-        // A altura afinada do cartão de KPI (`AlturaDoKpi.normal`), a mesma que
-        // a página usa desde que nasceu: cabe sem partir e a célula clipa por
-        // dentro. Não se inventam medidas aqui.
-        height: AlturaDoKpi.normal,
+        // O cartão **deitado**: rótulo e número na mesma linha. A altura é
+        // medida (`AlturaDoKpi.deitado`), não inventada — e é aqui que a
+        // bancada deixou de gastar 150 dp e metade da largura por KPI.
+        height: AlturaDoKpi.deitado,
         child: Row(
           children: [
             SizedBox(
@@ -311,18 +328,35 @@ class _LinhaDeKpi extends ConsumerWidget {
                       semanticLabel: '${kpi.titulo} no painel',
                     ),
             ),
-            Expanded(child: kpi.celula(estado, now)),
+            // **O cartão não pega.** Chegou a pegar — meio segundo em cima dele
+            // levantava-o — e o César cortou: «não quero o card todo a ficar
+            // activo, deve ser só nos 6 pontinhos e pouco mais». O cartão é
+            // para se ler; quem manda nele é a pega, aqui à direita.
+            Expanded(child: kpi.celula(estado, now).deitada()),
             SizedBox(
               width: _larguraDaPega,
               child: indice == null
                   ? null
                   : ReorderableDragStartListener(
                       index: indice,
-                      child: Tooltip(
-                        message: 'Arrastar para ordenar',
-                        child: Icon(
-                          Icons.drag_indicator,
-                          color: Theme.of(context).colorScheme.outline,
+                      // **Sem `Tooltip`.** O tooltip abre ao fim de meio
+                      // segundo de dedo em cima e leva o gesto com ele: quem
+                      // segurava a pega à espera de a poder mexer via aparecer
+                      // um balão preto e o cartão não saía do sítio. A dica
+                      // não valia o gesto que custava — o que ela dizia passou
+                      // para a semântica, onde não disputa nada.
+                      child: Semantics(
+                        label: 'Arrastar ${kpi.titulo} para ordenar',
+                        // Opaco e a ocupar a coluna toda: o alvo era o ícone de
+                        // 24 dp no meio de 40, e falhar a pega parecia a app a
+                        // não responder.
+                        child: Container(
+                          color: Colors.transparent,
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.drag_indicator,
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
                         ),
                       ),
                     ),

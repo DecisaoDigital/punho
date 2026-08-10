@@ -22,6 +22,7 @@ class CelulaSemaforo extends StatelessWidget {
     this.texto,
     this.subtexto,
     this.valorEmDestaque = false,
+    this.emLinha = false,
   }) : assert(valor != null || texto != null, 'valor ou texto obrigatório');
 
   final NivelSemaforo nivel;
@@ -34,6 +35,35 @@ class CelulaSemaforo extends StatelessWidget {
   /// Quando true, o número é pintado com a cor do semáforo (para valores
   /// financeiros positivos/negativos). Caso contrário fica na cor do texto.
   final bool valorEmDestaque;
+
+  /// **Rótulo e número na mesma linha**, para quando a célula ocupa a largura
+  /// toda em vez de um quarto do ecrã.
+  ///
+  /// A célula do painel é feita para a grelha 2×2, onde quatro dividem o ecrã:
+  /// aí o rótulo por cima e o número por baixo aproveitam uma caixa estreita e
+  /// alta. Na bancada é uma por linha, e a mesma anatomia deixava a metade
+  /// direita vazia — medido a 10 de Agosto de 2026 no Redmi deitado: das
+  /// catorze do catálogo, **doze ocupavam entre 47% e 65%** dos 555 dp de
+  /// largura, e a altura de 150 dp era esticada para conteúdo que precisa de
+  /// 62. Dois KPIs por ecrã, numa lista de catorze.
+  ///
+  /// Deitada, a mesma informação usa a largura que já lá estava e o cartão
+  /// desce de 150 para os 84 dp medidos (`AlturaDoKpi.deitado`). Nada se corta:
+  /// o `texto` e o `subtexto` juntam-se na segunda linha.
+  final bool emLinha;
+
+  /// A mesma célula, deitada. Para quem recebe uma célula já construída — a
+  /// bancada recebe-as do catálogo e não sabe fazê-las.
+  CelulaSemaforo deitada() => CelulaSemaforo(
+    nivel: nivel,
+    rotulo: rotulo,
+    valor: valor,
+    unidade: unidade,
+    texto: texto,
+    subtexto: subtexto,
+    valorEmDestaque: valorEmDestaque,
+    emLinha: true,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -64,9 +94,102 @@ class CelulaSemaforo extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(width: 4, color: cor),
-            Expanded(child: _conteudo(context, cor)),
+            Expanded(
+              child: emLinha ? _deitada(context, cor) : _conteudo(context, cor),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// A segunda linha da célula deitada: o que a de pé mostra em dois sítios.
+  ///
+  /// Junta-se em vez de se escolher um. O `texto` das células à espera de dados
+  /// é o que diz o que fazer («Regista um recebimento») e o `subtexto` é o
+  /// caminho («Toca para abrir Finanças») — deitar a célula não é razão para
+  /// deixar cair metade da instrução.
+  String? get _segundaLinha {
+    final partes = [texto, subtexto].whereType<String>();
+    return partes.isEmpty ? null : partes.join(' · ');
+  }
+
+  Widget _deitada(BuildContext context, Color cor) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final segunda = _segundaLinha;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 10, 14, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            // Pela linha de base e não pelo centro: o rótulo pequeno assenta no
+            // mesmo chão do número grande, que é o que os faz ler como uma
+            // linha só em vez de duas coisas empilhadas ao lado uma da outra.
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            // Os dois em `Flexible` frouxo e `spaceBetween`: cada um mede-se
+            // pelo que precisa e o que sobra fica no meio, com o número
+            // encostado à direita. Quando não sobra, encolhem os dois em vez de
+            // transbordar — e o número leva três quartos do que houver, porque
+            // é o que a linha existe para dizer. Com um deles fora do `Flexible`
+            // transbordava: medido, 7,5 px num cartão de 300 dp.
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  rotulo.toUpperCase(),
+                  style: tt.labelSmall?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    letterSpacing: 0.8,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (valor != null) ...[
+                const SizedBox(width: 10),
+                Flexible(
+                  flex: 3,
+                  child: RichText(
+                    textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      style: tt.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: valorEmDestaque ? cor : cs.onSurface,
+                        height: 1.1,
+                      ),
+                      children: [
+                        TextSpan(text: valor),
+                        if (unidade != null)
+                          TextSpan(
+                            text: ' ${unidade!}',
+                            style: tt.labelMedium?.copyWith(
+                              color: cs.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (segunda != null) ...[
+            const SizedBox(height: 3),
+            Text(
+              segunda,
+              style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
       ),
     );
   }

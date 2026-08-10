@@ -31,7 +31,10 @@ void main() {
   ) async {
     await abrir(tester);
 
-    expect(find.text('KPIs (todos)'), findsOneWidget);
+    // O título saiu da página: a barra lateral já diz o nome do ecrã, e os
+    // 24 dp que ele gastava faziam falta ao terceiro cartão. O que fica é a
+    // ideia, numa linha.
+    expect(find.text('KPIs (todos)'), findsNothing);
     expect(find.textContaining('A app cresce contigo'), findsOneWidget);
   });
 

@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/features/dashboard/presentation/kpi_catalogo.dart';
+import 'package:punho/features/dashboard/presentation/widgets/celula_semaforo.dart';
 import 'package:punho/core/operations/painel_controller.dart';
 import 'package:punho/features/kpis/presentation/kpis_page.dart';
 
 import '../dashboard/fixtura.dart';
+
+/// A largura da coluna da pega, como a página a define. Aqui repetida de
+/// propósito: um teste que fosse buscar a constante ao próprio ecrã concordava
+/// com ela fosse ela qual fosse.
+const _larguraDaPegaEsperada = 48.0;
 
 /// **A bancada é onde o painel se monta.**
 ///
@@ -61,12 +67,31 @@ void main() {
       // Os prontos vêm primeiro na página.
       expect(find.byIcon(Icons.drag_indicator), findsWidgets);
 
-      await _atePaginaAbaixo(tester);
-      expect(
-        find.byIcon(Icons.drag_indicator),
-        findsNothing,
-        reason: 'os grupos de baixo não se ordenam — não estão no painel',
-      );
+      // E em nenhum ponto do rolar aparece uma pega fora da lista que se
+      // ordena — a lista que só tem prontos.
+      //
+      // Isto já foi «rolar até ao fim e não ver pega nenhuma». Deixou de servir
+      // quando o cartão deitado encolheu de 150 para 84 dp: a página passou a
+      // caber quase toda no ecrã, e no fim do rolar os prontos ainda lá estão.
+      // O teste falhava por a bancada ter melhorado — que é o pior género de
+      // teste. Agora afirma-se a regra e não a altura da página.
+      void soDentroDaLista() {
+        expect(
+          find
+              .descendant(
+                of: find.byType(SliverReorderableList),
+                matching: find.byIcon(Icons.drag_indicator),
+              )
+              .evaluate()
+              .length,
+          find.byIcon(Icons.drag_indicator).evaluate().length,
+          reason: 'os grupos de baixo não se ordenam — não estão no painel',
+        );
+      }
+
+      soDentroDaLista();
+      await _atePaginaAbaixo(tester, aCadaPasso: soDentroDaLista);
+      soDentroDaLista();
     });
   });
 
@@ -152,6 +177,15 @@ void main() {
     // ainda cabe, em vez de se estimar que sim.
     const redmiDeitado = Size(838.9, 392.7);
 
+    // **O canvas, que é menos do que a janela.** Medido no aparelho a 10 de
+    // Agosto de 2026: `adb shell dumpsys window displays` dá `app=2177x1080`
+    // a 440 dpi, ou seja 791,6 × 392,7 dp — e a faixa escura do topo da shell
+    // come 27 (`_alturaDaFaixa`). O que a página recebe são 365,7.
+    //
+    // Medir a 392,7 era medir uma altura que a página nunca tem, e foi por
+    // isso que o ecrã dizia caber três e no Redmi cabiam dois.
+    const canvasDoRedmi = Size(791.6 - 88, 392.7 - 27);
+
     testWidgets('as linhas cabem, com caixa e pega', (tester) async {
       final container = containerCom(estado);
       await montarLandscape(
@@ -162,6 +196,40 @@ void main() {
       );
 
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('cabem três KPIs de uma vez, contra a linha e meia de antes', (
+      tester,
+    ) async {
+      final container = containerCom(estado);
+      await montarLandscape(
+        tester,
+        container,
+        KpisPage(agora: agoraFixa),
+        tamanho: canvasDoRedmi,
+      );
+
+      int inteirasNoEcra() => find.byType(CelulaSemaforo).evaluate().where((e) {
+        final r = tester.getRect(find.byWidget(e.widget));
+        return r.top >= 0 && r.bottom <= canvasDoRedmi.height;
+      }).length;
+
+      // **Este número é o defeito de 10 de Agosto de 2026.** A bancada usava a
+      // altura da célula da grelha 2×2 (150 dp) com uma célula por linha:
+      // cabia **linha e meia** por ecrã numa lista de catorze, e cada cartão
+      // gastava 555 dp de largura para conteúdo que enchia 47% a 65% deles.
+      //
+      // Duas medidas, porque são duas coisas diferentes: com o cabeçalho da
+      // página no ecrã (que se lê uma vez e depois some) e sem ele.
+      // **Sem rolar.** Foi o que o César pediu a 10 de Agosto de 2026, depois
+      // de ver o ecrã no aparelho: três inteiros logo à entrada, mesmo que não
+      // sobre nada em baixo. Antes cabia linha e meia, e o cabeçalho da página
+      // comia 133 dp com um título que a barra lateral já mostrava.
+      expect(
+        inteirasNoEcra(),
+        greaterThanOrEqualTo(3),
+        reason: 'o cabeçalho ou o cartão voltaram a crescer',
+      );
     });
 
     testWidgets('a caixa de marcar não fica abaixo do alvo de toque', (
@@ -202,6 +270,81 @@ void main() {
         prontos[1].id,
         prontos[0].id,
       ]);
+    });
+
+    testWidgets('segurar o cartão não o arrasta — só a pega o faz', (
+      tester,
+    ) async {
+      // Chegou a arrastar, e o César cortou: «não quero o card todo a ficar
+      // activo, deve ser só nos 6 pontinhos e pouco mais». O cartão é para se
+      // ler — um dedo pousado nele a ler não pode desarrumar o painel.
+      final container = containerCom(estado);
+      final painel = container.read(painelProvider.notifier);
+      painel
+        ..alternar(prontos[0].id, escolher: true)
+        ..alternar(prontos[1].id, escolher: true);
+      await montarLandscape(tester, container, KpisPage(agora: agoraFixa));
+
+      final cartoes = find.byType(CelulaSemaforo);
+      final origem = tester.getCenter(cartoes.first);
+      final passo = tester.getCenter(cartoes.at(1)).dy - origem.dy;
+
+      final gesto = await tester.startGesture(origem);
+      // O tempo do long-press: sem ele o dedo está pousado, não está a pegar.
+      await tester.pump(const Duration(milliseconds: 600));
+      for (var andado = 0.0; andado < passo * 1.2; andado += passo / 4) {
+        await gesto.moveBy(Offset(0, passo / 4));
+        await tester.pump();
+      }
+      await gesto.up();
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(painelProvider).noPainel,
+        [prontos[0].id, prontos[1].id],
+        reason: 'o cartão voltou a pegar; a ordem devia estar intacta',
+      );
+    });
+
+    testWidgets('não há tooltip nenhuma a disputar o gesto', (tester) async {
+      // A pega tinha um `Tooltip`, e o tooltip abre ao fim de meio segundo de
+      // dedo pousado — exactamente o gesto de quem está a tentar pegar. Quem
+      // segurava via aparecer um balão preto e o cartão ficava onde estava.
+      final container = containerCom(estado);
+      container
+          .read(painelProvider.notifier)
+          .alternar(prontos.first.id, escolher: true);
+      await montarLandscape(tester, container, KpisPage(agora: agoraFixa));
+
+      expect(find.byType(Tooltip), findsNothing);
+      expect(
+        find.bySemanticsLabel(RegExp('Arrastar .* para ordenar')),
+        findsWidgets,
+        reason: 'a dica saiu do ecrã, não pode ter saído da leitura em voz alta',
+      );
+    });
+
+    testWidgets('a pega é uma coluna inteira, não um ícone no meio dela', (
+      tester,
+    ) async {
+      final container = containerCom(estado);
+      container
+          .read(painelProvider.notifier)
+          .alternar(prontos.first.id, escolher: true);
+      await montarLandscape(tester, container, KpisPage(agora: agoraFixa));
+
+      // O alvo era o ícone de 24 dp dentro de uma coluna de 40, e falhá-lo
+      // parecia a app a não responder. Agora o alvo é a coluna.
+      final alvo = tester.getSize(
+        find
+            .ancestor(
+              of: find.byIcon(Icons.drag_indicator).first,
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      expect(alvo.width, greaterThanOrEqualTo(_larguraDaPegaEsperada));
+      expect(alvo.height, greaterThanOrEqualTo(48));
     });
 
     testWidgets('arrastar não marca nem desmarca ninguém', (tester) async {

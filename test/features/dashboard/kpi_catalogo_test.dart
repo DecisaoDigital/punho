@@ -27,17 +27,24 @@ void main() {
     ],
   );
 
-  const vazio = OperationsState(onboarded: true, companyName: 'Alugueres Norte');
+  const vazio = OperationsState(
+    onboarded: true,
+    companyName: 'Alugueres Norte',
+  );
 
   group('o catálogo está inteiro', () {
-    test('tem os catorze KPIs, com ids únicos e títulos', () {
-      // Doze do painel + a Caixa e a Tendência do mês, nascidas na bancada.
-      expect(catalogoKpis, hasLength(14));
+    test('tem os vinte e cinco KPIs, com ids únicos e títulos', () {
+      // Doze do painel antigo + a Caixa e a Tendência do mês (nascidas na
+      // bancada) + os onze de 10 de Agosto de 2026: os sete que a auditoria
+      // (`docs/AUDITORIA_KPIS_EMPRESA.md`) dava como não cobertos, as duas que
+      // se perderam quando o painel deixou de ser slides, e as duas da
+      // futurologia.
+      expect(catalogoKpis, hasLength(25));
       expect(kpiPorId('caixa'), isNotNull);
       expect(kpiPorId('tendencia-mes'), isNotNull);
 
       final ids = catalogoKpis.map((k) => k.id).toSet();
-      expect(ids, hasLength(14), reason: 'ids têm de ser únicos');
+      expect(ids, hasLength(25), reason: 'ids têm de ser únicos');
 
       for (final k in catalogoKpis) {
         expect(k.id, isNotEmpty);
@@ -88,13 +95,18 @@ void main() {
     });
 
     test('fonte cheia mas conta por verificar é "por verificar"', () {
-      // Clientes novos ainda não passou pelo crivo (contaVerificada: false):
-      // chega quando há reservas, mas fica à espera da nossa confirmação.
-      final clientes = kpiPorId('clientes-novos-30d')!;
-      expect(clientes.contaVerificada, isFalse);
+      // A recomendação do dia não passou pelo crivo, e é a única com fonte que
+      // enche que continua por verificar: não é uma conta, é prosa tirada dos
+      // sinais dos outros KPIs. Enquanto esses não estiverem todos assinados,
+      // esta não pode ser.
+      final recomendacao = kpiPorId('recomendacao-dia')!;
+      expect(recomendacao.contaVerificada, isFalse);
 
-      expect(clientes.fonteCheia(comReserva(), now), isTrue);
-      expect(clientes.estado(comReserva(), now), EstadoVerdade.porVerificar);
+      expect(recomendacao.fonteCheia(comReserva(), now), isTrue);
+      expect(
+        recomendacao.estado(comReserva(), now),
+        EstadoVerdade.porVerificar,
+      );
     });
   });
 }

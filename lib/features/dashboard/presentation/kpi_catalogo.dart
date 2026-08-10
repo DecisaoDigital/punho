@@ -21,9 +21,11 @@ import '../../../core/navigation/app_destination.dart';
 import '../../../core/kpis/apreciacao.dart';
 import '../../../core/operations/caixa.dart';
 import '../../../core/operations/kpis.dart';
+import '../../../core/operations/kpis_de_saude.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/arranjo_do_painel.dart';
 import '../../../domain/models/finance.dart';
+import '../../../domain/models/operations.dart';
 import 'widgets/celula_semaforo.dart';
 import 'widgets/kpi_grid_2x2.dart';
 
@@ -179,14 +181,14 @@ const catalogoKpis = <KpiDefinicao>[
     id: 'clientes-novos-30d',
     titulo: 'Clientes novos (30d)',
     celula: kpiClientesNovos,
-    contaVerificada: false,
+    contaVerificada: true,
     desbloqueio: 'Primeira reserva de cada cliente',
   ),
   KpiDefinicao(
     id: 'leads-pipeline',
     titulo: 'Leads em pipeline',
     celula: kpiLeadsPipeline,
-    contaVerificada: false,
+    contaVerificada: true,
     desbloqueio: 'Leads registadas',
   ),
   KpiDefinicao(
@@ -200,8 +202,103 @@ const catalogoKpis = <KpiDefinicao>[
     id: 'conversao-lead-cliente',
     titulo: 'Conversão lead → cliente',
     celula: kpiConversao,
-    contaVerificada: false,
+    contaVerificada: true,
     desbloqueio: 'Leads registadas + reservas que delas saíram',
+  ),
+  // Saúde da empresa — os sete que `docs/AUDITORIA_KPIS_EMPRESA.md` deu como
+  // não cobertos. Nascem todos com a conta por verificar: a fórmula é nossa, o
+  // crivo é do César, um a um.
+  KpiDefinicao(
+    id: 'saldo-e-autonomia',
+    titulo: 'Saldo e autonomia',
+    celula: kpiSaldoEAutonomia,
+    contaVerificada: true,
+    desbloqueio: 'Entradas e saídas registadas + custos fixos declarados',
+    destino: AppDestination.finances,
+  ),
+  KpiDefinicao(
+    id: 'margem-bruta',
+    titulo: 'Margem bruta',
+    celula: kpiMargemBruta,
+    contaVerificada: true,
+    desbloqueio: 'Recebimentos do mês + despesas com categoria',
+    destino: AppDestination.finances,
+  ),
+  KpiDefinicao(
+    id: 'ciclo-de-tesouraria',
+    titulo: 'Ciclo de tesouraria',
+    celula: kpiCicloDeTesouraria,
+    contaVerificada: true,
+    desbloqueio: 'Recebimentos em 90 dias + reservas com valor + despesas',
+    destino: AppDestination.finances,
+  ),
+  KpiDefinicao(
+    id: 'fluxo-de-caixa-livre',
+    titulo: 'Fluxo de caixa livre',
+    celula: kpiFluxoLivre,
+    contaVerificada: true,
+    desbloqueio: 'Movimentos do mês + valor de compra e data das máquinas',
+    destino: AppDestination.finances,
+  ),
+  KpiDefinicao(
+    id: 'custo-de-aquisicao',
+    titulo: 'Custo de aquisição',
+    celula: kpiCustoDeAquisicao,
+    contaVerificada: true,
+    desbloqueio: 'Despesas de publicidade + primeira reserva de cada cliente',
+    destino: AppDestination.finances,
+  ),
+  KpiDefinicao(
+    id: 'receita-recorrente',
+    titulo: 'Receita de quem volta',
+    celula: kpiReceitaRecorrente,
+    contaVerificada: true,
+    desbloqueio:
+        'Recebimentos do mês + reservas anteriores dos mesmos clientes',
+    destino: AppDestination.clients,
+  ),
+  KpiDefinicao(
+    id: 'satisfacao-cliente',
+    titulo: 'Satisfação do cliente',
+    celula: kpiSatisfacao,
+    contaVerificada: false,
+    // Não é um dado que falte preencher: é uma pergunta que a app ainda não
+    // sabe fazer. Fica dito, em vez de o KPI desaparecer da lista.
+    desbloqueio: 'Um inquérito ao cliente no fim da recolha — ainda não existe',
+  ),
+  // As duas que se perderam quando o painel deixou de ser slides.
+  KpiDefinicao(
+    id: 'leads-frias',
+    titulo: 'Leads a arrefecer',
+    celula: kpiLeadsFrias,
+    contaVerificada: true,
+    desbloqueio: 'Leads registadas há mais de duas semanas',
+    destino: AppDestination.clients,
+  ),
+  KpiDefinicao(
+    id: 'alertas-operacionais',
+    titulo: 'Alertas operacionais',
+    celula: kpiAlertasOperacionais,
+    contaVerificada: true,
+    desbloqueio: 'Reservas na agenda',
+    destino: AppDestination.semana,
+  ),
+  // Futurologia — o mês por fechar.
+  KpiDefinicao(
+    id: 'gastos-previstos-mes',
+    titulo: 'Gastos previstos do mês',
+    celula: kpiGastosPrevistos,
+    contaVerificada: true,
+    desbloqueio: 'Custos fixos declarados em Empresa › Custos fixos',
+    destino: AppDestination.empresa,
+  ),
+  KpiDefinicao(
+    id: 'saldo-previsto-mes',
+    titulo: 'Saldo previsto do mês',
+    celula: kpiSaldoPrevisto,
+    contaVerificada: true,
+    desbloqueio: 'Custos fixos declarados + reservas na agenda',
+    destino: AppDestination.finances,
   ),
 ];
 
@@ -594,11 +691,30 @@ CelulaSemaforo kpiClientesNovos(OperationsState estado, DateTime now) {
 }
 
 CelulaSemaforo kpiLeadsPipeline(OperationsState estado, DateTime now) {
+  // **Zero leads não é «zero por contactar».** Sem uma única lead registada a
+  // fonte está vazia, e dizer «0 por contactar · nenhuma lead à espera» em
+  // verde era dar por respondida uma pergunta que nunca foi feita — e, desde
+  // que este KPI passou a pronto, punha uma empresa acabada de abrir com um
+  // indicador «a dizer verdade» no painel.
+  if (estado.leads.isEmpty) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Leads em pipeline',
+      texto: 'Sem leads registadas',
+      subtexto: 'Regista quem te procura e o funil acende',
+    );
+  }
   final porContactar = leadsPorContactar(estado);
   final frias = porContactar
       .where((l) => _dia(now).difference(_dia(l.createdAt)).inDays > 5)
       .length;
   final n = porContactar.length;
+  const abertas = {
+    LeadStatus.newLead,
+    LeadStatus.contacted,
+    LeadStatus.proposal,
+  };
+  final emAberto = estado.leads.where((l) => abertas.contains(l.status)).length;
   return CelulaSemaforo(
     nivel: frias > 0
         ? NivelSemaforo.vermelho
@@ -608,11 +724,17 @@ CelulaSemaforo kpiLeadsPipeline(OperationsState estado, DateTime now) {
     rotulo: 'Leads em pipeline',
     valor: '$n',
     unidade: 'por contactar',
+    // **O total em aberto vai no subtexto.** O número grande são as que ainda
+    // ninguém tocou, e um gestor com dez leads todas contactadas lia «0» com o
+    // rótulo «leads em pipeline» — e podia concluir que não tinha pipeline
+    // nenhum. O que está em aberto é o funil todo menos o que fechou.
     subtexto: frias > 0
-        ? '$frias sem contacto há mais de 5 dias'
+        ? '$frias sem contacto há mais de 5 dias · $emAberto em aberto'
         : n == 0
-        ? 'Nenhuma lead à espera'
-        : 'Todas contactadas nos últimos 5 dias',
+        ? (emAberto == 0
+              ? 'Nenhuma lead à espera'
+              : '$emAberto em aberto, todas já contactadas')
+        : 'Todas contactadas nos últimos 5 dias · $emAberto em aberto',
   );
 }
 
@@ -689,4 +811,357 @@ String _recorrencia(double v) {
   return arred == arred.roundToDouble()
       ? arred.round().toString()
       : arred.toStringAsFixed(1).replaceAll('.', ',');
+}
+
+// ---------------------------------------------------------------------------
+// Saúde da empresa — o que a auditoria apontou como em falta
+// ---------------------------------------------------------------------------
+
+/// **Saldo e autonomia** — quanto há, e para quantas semanas dá.
+///
+/// O número grande são as semanas e não os euros, de propósito: o saldo sozinho
+/// não diz nada sem se saber o que se queima. É a pergunta que a auditoria pôs
+/// em primeiro lugar dos quinze.
+CelulaSemaforo kpiSaldoEAutonomia(OperationsState estado, DateTime now) {
+  final saude = saldoEAutonomia(estado, now);
+  if (saude == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Saldo e autonomia',
+      texto: 'Regista entradas e saídas',
+      subtexto: 'Sem movimentos não há saldo para contar',
+    );
+  }
+  final desde =
+      '${saude.desdeQuando.day}/${saude.desdeQuando.month}/'
+      '${saude.desdeQuando.year}';
+  final semanas = saude.semanas;
+  if (semanas == null) {
+    return CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Saldo e autonomia',
+      valor: _euros(saude.saldoCents),
+      unidade: '€ em caixa',
+      subtexto:
+          'Falta o que se gasta por mês para dizer para quanto dá · '
+          'aproximado, conta desde $desde',
+    );
+  }
+  return CelulaSemaforo(
+    nivel: semanas < 6
+        ? NivelSemaforo.vermelho
+        : semanas < 12
+        ? NivelSemaforo.laranja
+        : NivelSemaforo.verde,
+    rotulo: 'Saldo e autonomia',
+    valor: _recorrencia(semanas),
+    unidade: 'semanas de autonomia',
+    valorEmDestaque: true,
+    subtexto:
+        '${_euros(saude.saldoCents)} € a queimar '
+        '${_euros(saude.queimaSemanalCents)} €/semana · '
+        'aproximado, conta desde $desde',
+  );
+}
+
+/// **Margem bruta** — o que sobra depois de pagar o que custou servir.
+CelulaSemaforo kpiMargemBruta(OperationsState estado, DateTime now) {
+  final margem = margemBruta(estado, now);
+  if (margem == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Margem bruta',
+      texto: 'Sem receita este mês',
+      subtexto: 'Regista os recebimentos e a margem aparece',
+    );
+  }
+  final variacao = margem.variacao;
+  return CelulaSemaforo(
+    nivel: margem.percent >= 60
+        ? NivelSemaforo.verde
+        : margem.percent >= 35
+        ? NivelSemaforo.laranja
+        : NivelSemaforo.vermelho,
+    rotulo: 'Margem bruta',
+    valor: margem.percent.round().toString(),
+    unidade: '% este mês',
+    valorEmDestaque: true,
+    subtexto: variacao == null
+        ? '${_euros(margem.custosDirectosCents)} € de custos directos · '
+              'sem mês passado para comparar'
+        : '${variacao >= 0 ? '▲' : '▼'} ${variacao.abs().round()} pontos face '
+              'ao mês passado · ${_euros(margem.custosDirectosCents)} € de '
+              'custos directos',
+  );
+}
+
+/// **Ciclo de tesouraria** — quantos dias o dinheiro passa fora do bolso.
+CelulaSemaforo kpiCicloDeTesouraria(OperationsState estado, DateTime now) {
+  final ciclo = cicloDeTesouraria(estado, now);
+  if (ciclo == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Ciclo de tesouraria',
+      texto: 'Sem receita nos últimos 90 dias',
+      subtexto: 'Sem facturação não há ciclo a medir',
+    );
+  }
+  return CelulaSemaforo(
+    nivel: ciclo.dias <= 30
+        ? NivelSemaforo.verde
+        : ciclo.dias <= 60
+        ? NivelSemaforo.laranja
+        : NivelSemaforo.vermelho,
+    rotulo: 'Ciclo de tesouraria',
+    valor: ciclo.dias.round().toString(),
+    unidade: 'dias',
+    valorEmDestaque: true,
+    subtexto:
+        '${ciclo.diasACobrar.round()} a cobrar + '
+        '${ciclo.diasParada.round()} de máquina parada − '
+        '${ciclo.diasAPagar.round()} a pagar',
+  );
+}
+
+/// **Fluxo de caixa livre** — o que sobra depois de repor máquina.
+CelulaSemaforo kpiFluxoLivre(OperationsState estado, DateTime now) {
+  final fluxo = fluxoDeCaixaLivre(estado, now);
+  if (fluxo == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Fluxo de caixa livre',
+      texto: 'Sem movimentos este mês',
+      subtexto: 'Regista entradas e saídas',
+    );
+  }
+  final livre = fluxo.livreCents;
+  return CelulaSemaforo(
+    nivel: livre >= 0 ? NivelSemaforo.verde : NivelSemaforo.vermelho,
+    rotulo: 'Fluxo de caixa livre',
+    valor: '${livre >= 0 ? '+ ' : '− '}${_euros(livre.abs())}',
+    unidade: '€ este mês',
+    valorEmDestaque: true,
+    subtexto: fluxo.maquinasCompradas == 0
+        ? 'Sem compras de máquina este mês'
+        : '${_euros(fluxo.operacionalCents)} € de operação − '
+              '${_euros(fluxo.investimentoCents)} € em '
+              '${fluxo.maquinasCompradas} '
+              '${fluxo.maquinasCompradas == 1 ? 'máquina' : 'máquinas'}',
+  );
+}
+
+/// **Custo de aquisição** — quanto custou, em publicidade, cada cliente novo.
+CelulaSemaforo kpiCustoDeAquisicao(OperationsState estado, DateTime now) {
+  final cac = custoDeAquisicao(estado, now);
+  if (cac == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Custo de aquisição',
+      texto: 'Sem despesas de publicidade em 90 dias',
+      subtexto: 'Regista-as e vê-se quanto custa cada cliente novo',
+    );
+  }
+  if (cac.semComoContar) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Custo de aquisição',
+      texto: 'Sem reservas para saber quem é novo',
+      subtexto: 'O cliente conta-se pela primeira reserva',
+    );
+  }
+  final porCliente = cac.porClienteCents;
+  if (porCliente == null) {
+    return CelulaSemaforo(
+      nivel: NivelSemaforo.vermelho,
+      rotulo: 'Custo de aquisição',
+      valor: _euros(cac.investidoCents),
+      unidade: '€ sem cliente novo',
+      valorEmDestaque: true,
+      subtexto: 'Investiu-se em ${cac.janelaDias} dias e não entrou ninguém',
+    );
+  }
+  return CelulaSemaforo(
+    nivel: NivelSemaforo.verde,
+    rotulo: 'Custo de aquisição',
+    valor: _euros(porCliente),
+    unidade: '€ por cliente novo',
+    subtexto:
+        '${_euros(cac.investidoCents)} € em publicidade · '
+        '${cac.clientesNovos} '
+        '${cac.clientesNovos == 1 ? 'cliente' : 'clientes'} em '
+        '${cac.janelaDias} dias · só publicidade, é um piso',
+  );
+}
+
+/// **Receita de quem volta** — a fatia do mês que veio de clientes antigos.
+CelulaSemaforo kpiReceitaRecorrente(OperationsState estado, DateTime now) {
+  final recorrente = receitaRecorrente(estado, now);
+  if (recorrente == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Receita de quem volta',
+      texto: 'Sem recebimentos este mês',
+      subtexto: 'Regista-os e vê-se quem está a voltar',
+    );
+  }
+  return CelulaSemaforo(
+    nivel: recorrente.percent >= 50
+        ? NivelSemaforo.verde
+        : recorrente.percent >= 25
+        ? NivelSemaforo.laranja
+        : NivelSemaforo.vermelho,
+    rotulo: 'Receita de quem volta',
+    valor: recorrente.percent.round().toString(),
+    unidade: '% este mês',
+    valorEmDestaque: true,
+    subtexto:
+        '${recorrente.clientesRecorrentes} de ${recorrente.clientesDoMes} '
+        'clientes já cá tinham estado',
+  );
+}
+
+/// **Satisfação do cliente** — e não há como a medir.
+///
+/// Fica no catálogo de propósito, em «Por definir». A auditoria pô-la nos
+/// quinze essenciais e a app não tem por onde perguntar ao cliente: escondê-la
+/// era fingir que a lista está completa. O que aparece aqui é a falta, com o
+/// nome dela.
+CelulaSemaforo kpiSatisfacao(OperationsState estado, DateTime now) =>
+    const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Satisfação do cliente',
+      texto: 'Ainda não há como perguntar',
+      subtexto: 'Falta o inquérito no fim da recolha',
+    );
+
+// ---------------------------------------------------------------------------
+// As duas que se perderam quando o painel deixou de ser slides
+// ---------------------------------------------------------------------------
+
+/// **Leads a arrefecer** — o card de recomendação lateral do slide de Procura.
+///
+/// «Leads em pipeline» conta-as todas como se estivessem vivas. Esta conta as
+/// que estão paradas há mais de duas semanas, que é outra coisa.
+CelulaSemaforo kpiLeadsFrias(OperationsState estado, DateTime now) {
+  final frias = leadsFrias(estado, now);
+  if (estado.leads.isEmpty) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Leads a arrefecer',
+      texto: 'Sem leads registadas',
+      subtexto: 'Regista quem pediu orçamento e não fechou',
+    );
+  }
+  if (frias.frias == 0) {
+    return CelulaSemaforo(
+      nivel: NivelSemaforo.verde,
+      rotulo: 'Leads a arrefecer',
+      valor: '0',
+      unidade: 'paradas',
+      subtexto: 'Nenhuma parada há mais de ${frias.limiteDias} dias',
+    );
+  }
+  return CelulaSemaforo(
+    nivel: NivelSemaforo.laranja,
+    rotulo: 'Leads a arrefecer',
+    valor: '${frias.frias}',
+    unidade: frias.frias == 1 ? 'parada' : 'paradas',
+    valorEmDestaque: true,
+    // «Registada há», e não «parada há»: a lead não guarda quando foi tocada
+    // pela última vez, guarda quando entrou. Dizer «parada há 40 dias» era
+    // afirmar uma coisa que os dados não sabem.
+    subtexto:
+        'A mais antiga registada há ${frias.diasDaMaisAntiga} dias e ainda em '
+        'aberto · liga antes que esfrie de vez',
+  );
+}
+
+/// **Alertas operacionais** — a faixa que o slide Operacional tinha em baixo.
+///
+/// Não é um número: é o que exige acção hoje, pela ordem em que dói. O
+/// [PulsoOperacional] já sabia dizê-lo e ninguém lho perguntava desde que os
+/// slides desapareceram.
+CelulaSemaforo kpiAlertasOperacionais(OperationsState estado, DateTime now) {
+  final pulso = pulsoOperacional(estado, now);
+  if (pulso.semDados) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Alertas operacionais',
+      texto: 'Sem reservas registadas',
+      subtexto: 'Não há operação para vigiar',
+    );
+  }
+  final alertas = pulso.alertas;
+  if (alertas == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.verde,
+      rotulo: 'Alertas operacionais',
+      texto: 'Nada por fazer em atraso',
+      subtexto: 'Entregas, recolhas e cobranças em dia',
+    );
+  }
+  return CelulaSemaforo(
+    nivel: pulso.recolhasEmAtraso > 0
+        ? NivelSemaforo.vermelho
+        : NivelSemaforo.laranja,
+    rotulo: 'Alertas operacionais',
+    texto: alertas,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Futurologia — como o mês vai fechar se a tendência se mantiver
+// ---------------------------------------------------------------------------
+
+/// **Gastos previstos do mês** — os custos fixos mais o que já se lançou.
+CelulaSemaforo kpiGastosPrevistos(OperationsState estado, DateTime now) {
+  final previsao = previsaoDoMes(estado, now);
+  final saidas = previsao.saidasPrevistasCents;
+  if (saidas == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Gastos previstos do mês',
+      texto: 'Faltam os custos fixos',
+      subtexto: 'Empresa › Custos fixos — sem eles a previsão fica curta',
+    );
+  }
+  return CelulaSemaforo(
+    nivel: NivelSemaforo.laranja,
+    rotulo: 'Gastos previstos do mês',
+    valor: _euros(saidas),
+    unidade: '€ até ao fim do mês',
+    // O que a conta faz mesmo: os custos fixos declarados mais a **média** das
+    // despesas variáveis dos meses de referência que têm registo. Dizia «mais
+    // o que já foi lançado», que é outra conta e não é esta.
+    subtexto:
+        'Custos fixos declarados mais a média das despesas variáveis dos '
+        'meses com registo',
+  );
+}
+
+/// **Saldo previsto do mês** — como o mês fecha se a tendência se mantiver.
+///
+/// É a semente do ecrã de futurologia: entradas previstas menos gastos
+/// previstos, antes de o mês acabar.
+CelulaSemaforo kpiSaldoPrevisto(OperationsState estado, DateTime now) {
+  final previsao = previsaoDoMes(estado, now);
+  final saldo = previsao.saldoPrevistoCents;
+  if (saldo == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Saldo previsto do mês',
+      texto: 'Faltam os custos fixos',
+      subtexto: 'Sem eles não se prevê como o mês fecha',
+    );
+  }
+  return CelulaSemaforo(
+    nivel: saldo >= 0 ? NivelSemaforo.verde : NivelSemaforo.vermelho,
+    rotulo: 'Saldo previsto do mês',
+    valor: '${saldo >= 0 ? '+ ' : '− '}${_euros(saldo.abs())}',
+    unidade: '€ ao fechar',
+    valorEmDestaque: true,
+    subtexto:
+        '${_euros(previsao.entradasPrevistasCents)} € previstos a entrar − '
+        '${_euros(previsao.saidasPrevistasCents!)} € a sair',
+  );
 }
