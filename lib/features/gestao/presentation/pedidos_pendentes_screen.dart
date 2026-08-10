@@ -16,6 +16,12 @@ import '../data/pedidos_service.dart';
 /// Daí as duas hipóteses no diálogo, e daí não haver uma terceira que decida
 /// sozinha. Adivinhar criava duas fichas da mesma pessoa, ambas com custo,
 /// ambas plausíveis, e ninguém dava por isso.
+///
+/// **E daí a segunda lista.** Recusar era uma porta de sentido único: o pedido
+/// ficava `recusado`, e como só há um pedido por pessoa, inscrever-se outra vez
+/// também não era saída. Um toque errado — ou alguém que afinal foi mesmo
+/// contratado — ficava de fora para sempre. Quem foi decidido aparece agora
+/// aqui em baixo, com o caminho de volta à vista.
 class PedidosPendentesScreen extends ConsumerWidget {
   const PedidosPendentesScreen({super.key});
 
@@ -33,21 +39,166 @@ class PedidosPendentesScreen extends ConsumerWidget {
           detalhe: 'Verifique a ligação e volte a tentar.',
           aoTentar: () => ref.invalidate(pedidosPendentesProvider),
         ),
-        data: (lista) => lista.isEmpty
-            ? const _Aviso(
-                icone: Icons.inbox_outlined,
-                titulo: 'Ninguém à espera.',
-                detalhe:
-                    'Quando alguém se inscrever com um convite seu, aparece '
-                    'aqui para autorizar.',
+        data: (lista) => ListView(
+          children: [
+            if (lista.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: _Aviso(
+                  icone: Icons.inbox_outlined,
+                  titulo: 'Ninguém à espera.',
+                  detalhe:
+                      'Quando alguém se inscrever com um convite seu, aparece '
+                      'aqui para autorizar.',
+                ),
               )
-            : ListView.separated(
-                itemCount: lista.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (_, i) => _LinhaDePedido(pedido: lista[i]),
-              ),
+            else
+              for (final pedido in lista) ...[
+                _LinhaDePedido(pedido: pedido),
+                const Divider(height: 1),
+              ],
+            const _JaDecididos(),
+          ],
+        ),
       ),
     );
+  }
+}
+
+/// Quem já teve resposta, e o que ainda se pode fazer sobre isso.
+///
+/// Fica em baixo e recolhido: no dia-a-dia o que interessa é a fila de cima. É
+/// aqui que se corrige um engano — devolver à fila quem foi recusado, tirar o
+/// acesso a quem saiu da empresa.
+class _JaDecididos extends ConsumerWidget {
+  const _JaDecididos();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final decididos = ref.watch(pedidosDecididosProvider);
+
+    return decididos.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (lista) => lista.isEmpty
+          ? const SizedBox.shrink()
+          : ExpansionTile(
+              title: const Text('Já decididos'),
+              subtitle: Text('${lista.length} — para corrigir um engano'),
+              children: [
+                for (final p in lista) _LinhaDecidida(pedido: p),
+              ],
+            ),
+    );
+  }
+}
+
+class _LinhaDecidida extends ConsumerStatefulWidget {
+  const _LinhaDecidida({required this.pedido});
+  final PedidoDecidido pedido;
+
+  @override
+  ConsumerState<_LinhaDecidida> createState() => _LinhaDecididaState();
+}
+
+class _LinhaDecididaState extends ConsumerState<_LinhaDecidida> {
+  bool _ocupado = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.pedido;
+    return ListTile(
+      title: Text(p.comoSeChama),
+      subtitle: Text('${p.email} · ${p.comoSeLe}'),
+      trailing: _ocupado
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : p.estaDeFora
+          // Reabrir devolve à fila de cima — não dá acesso por si só. Quem o
+          // dá é a aprovação que vem a seguir, com a escolha da ficha à frente.
+          ? TextButton(
+              onPressed: () => _correr(
+                (s) => s.reabrir(p.id),
+                'Voltou à lista de espera. Aprove-o em cima.',
+              ),
+              child: const Text('Voltar a considerar'),
+            )
+          : p.temAcesso
+          ? TextButton(
+              onPressed: () => _confirmarRevogacao(p),
+              child: const Text('Retirar acesso'),
+            )
+          : null,
+    );
+  }
+
+  Future<void> _confirmarRevogacao(PedidoDecidido p) async {
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (dialogo) => AlertDialog(
+        title: Text('Retirar o acesso a ${p.comoSeChama}?'),
+        content: const Text(
+          'Deixa de poder entrar na app. A ficha de empregado mantém-se, com '
+          'o que já trabalhou — e o acesso pode ser devolvido aqui mesmo.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogo).pop(false),
+            child: const Text('Não'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogo).pop(true),
+            child: const Text('Retirar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmou == true) {
+      await _correr((s) => s.revogar(p.id), 'Acesso retirado.');
+    }
+  }
+
+  Future<void> _correr(
+    Future<void> Function(PedidosService) accao,
+    String recado,
+  ) async {
+    setState(() => _ocupado = true);
+    try {
+      await accao(ref.read(pedidosServiceProvider));
+      ref
+        ..invalidate(pedidosDecididosProvider)
+        ..invalidate(pedidosPendentesProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(recado)));
+      }
+    } on PostgrestException catch (e) {
+      // O servidor escreve as recusas em português e já pensadas para quem as
+      // lê — mostrá-las é melhor do que traduzir aqui por outras palavras.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.code == 'P0001'
+                  ? e.message
+                  : 'Não consegui. O servidor respondeu: ${e.message}',
+            ),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não consegui falar com o servidor.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _ocupado = false);
+    }
   }
 }
 
@@ -74,7 +225,13 @@ class _LinhaDePedido extends ConsumerWidget {
       context: context,
       builder: (_) => _DialogoDeDecisao(pedido: pedido),
     );
-    if (mudou == true) ref.invalidate(pedidosPendentesProvider);
+    // As duas listas mexem-se ao mesmo tempo: quem sai da fila de cima entra
+    // no arquivo de baixo.
+    if (mudou == true) {
+      ref
+        ..invalidate(pedidosPendentesProvider)
+        ..invalidate(pedidosDecididosProvider);
+    }
   }
 }
 
@@ -146,6 +303,11 @@ class _DialogoDeDecisaoState extends ConsumerState<_DialogoDeDecisao> {
                 initialValue: _colaboradorId,
                 decoration: const InputDecoration(labelText: 'Quem é'),
                 items: [
+                  // `c.id` é o id **local** da ficha, o que a app lhe deu.
+                  // Ia direito a um parâmetro `uuid` e o servidor respondia
+                  // `22P02` — esta hipótese nunca funcionou desde que nasceu.
+                  // Quem traduz o id local para o da tabela é o servidor, que
+                  // é quem tem a fórmula; aqui manda-se o que a app conhece.
                   for (final Collaborator c in porLigar)
                     DropdownMenuItem(value: c.id, child: Text(c.name)),
                 ],
