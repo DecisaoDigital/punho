@@ -694,10 +694,10 @@ PulsoOperacional pulsoOperacional(OperationsState state, DateTime now) {
         booking.status == BookingStatus.completed) {
       continue;
     }
-    final emCurso =
-        booking.status == BookingStatus.confirmed ||
-        booking.status == BookingStatus.rented;
-    if (!emCurso) continue;
+    // Tudo o resto — pedido, proposta, confirmada, alugada — é agenda ocupada:
+    // conta para o pulso do dia mesmo antes de confirmada, porque a máquina já
+    // está prometida. "Alugada" é só o marco de a máquina ter mesmo saído.
+    final entregue = booking.status == BookingStatus.rented;
 
     final inicio = _dia(booking.startsAt);
     final fim = _dia(booking.endsAt);
@@ -709,13 +709,13 @@ PulsoOperacional pulsoOperacional(OperationsState state, DateTime now) {
 
     if (inicio == hoje) {
       entregasHoje++;
-      // Ainda marcada como confirmada no dia em que começa: a máquina não saiu.
-      if (booking.status == BookingStatus.confirmed) entregasPorFazer++;
+      // Só deixa de estar "por fazer" quando a máquina foi mesmo entregue.
+      if (!entregue) entregasPorFazer++;
     }
 
     if (fim.isBefore(hoje)) {
-      // Passou do fim e continua em curso — ninguém deu a máquina por recolhida.
-      if (booking.status == BookingStatus.rented) {
+      // Passou do fim e continua alugada — ninguém deu a máquina por recolhida.
+      if (entregue) {
         recolhasEmAtraso++;
         final dias = hoje.difference(fim).inDays;
         if (maiorAtraso == null || dias > maiorAtraso) maiorAtraso = dias;
@@ -982,18 +982,62 @@ List<MaquinaSemAluguer> maquinasSemAluguerHaMaisDe(
 }
 
 /// Valor médio por reserva não cancelada. `null` sem reservas com valor.
-int? ticketMedioReserva(OperationsState state, {DateTime? desde}) {
-  final valores = state.bookings
-      .where(
-        (b) =>
-            b.status != BookingStatus.cancelled &&
-            (b.expectedValueCents ?? 0) > 0 &&
-            (desde == null || !b.startsAt.isBefore(desde)),
-      )
-      .map((b) => b.expectedValueCents!)
-      .toList();
-  if (valores.isEmpty) return null;
-  return valores.reduce((a, b) => a + b) ~/ valores.length;
+/// O ticket médio do mês, à maneira do Cesar (9 Ago 2026): o **valor total
+/// comprado no mês** a dividir pelo **número de empresas distintas que
+/// compraram** nesse mês. Não é média por reserva — uma empresa com três
+/// reservas conta **uma** vez, e o que pesa é quanto cada cliente vale, não
+/// quantas linhas abriu.
+///
+/// O mês é o de [now], e uma reserva conta no mês em que **começa**
+/// (`startsAt`): é o mês em que a máquina sai, o negócio desse mês. Canceladas e
+/// reservas sem valor ficam de fora — sem valor não há compra que se saiba medir.
+class TicketMedioMes {
+  const TicketMedioMes({
+    required this.porEmpresaCents,
+    required this.empresas,
+    required this.totalCents,
+    required this.transacoes,
+  });
+
+  /// O número grande: total do mês dividido pelas empresas distintas.
+  final int porEmpresaCents;
+
+  /// Quantas empresas distintas compraram no mês — o denominador.
+  final int empresas;
+
+  /// O que foi comprado (previsto) no mês, somadas todas as empresas.
+  final int totalCents;
+
+  /// Quantas transacções (compras/reservas) houve no mês, contando todas — uma
+  /// empresa pode ter várias. É o numerador do número médio de transacções.
+  final int transacoes;
+
+  /// Número médio de transacções por empresa: quantas vezes, em média, cada
+  /// cliente comprou este mês. Pode ser fraccionário (7 compras, 2 empresas →
+  /// 3,5). O Cesar quis este número ao lado do ticket (9 Ago).
+  double get transacoesMediasPorEmpresa => transacoes / empresas;
+}
+
+TicketMedioMes? ticketMedioDoMes(OperationsState state, DateTime now) {
+  var total = 0;
+  var transacoes = 0;
+  final empresas = <String>{};
+  for (final b in state.bookings) {
+    if (b.status == BookingStatus.cancelled) continue;
+    final valor = b.expectedValueCents ?? 0;
+    if (valor <= 0) continue;
+    if (b.startsAt.year != now.year || b.startsAt.month != now.month) continue;
+    total += valor;
+    transacoes++;
+    empresas.add(b.customerId);
+  }
+  if (empresas.isEmpty) return null;
+  return TicketMedioMes(
+    porEmpresaCents: total ~/ empresas.length,
+    empresas: empresas.length,
+    totalCents: total,
+    transacoes: transacoes,
+  );
 }
 
 // ---------------------------------------------------------------------------

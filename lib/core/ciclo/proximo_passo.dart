@@ -94,6 +94,14 @@ String _euros(int cents) => '${textoDeCents(cents)} €';
 /// Quantos dias para diante ainda cabem em "a minha semana".
 const horizonteDaSemana = 7;
 
+/// Regra do Cesar (9 Ago 2026): a **entrega** faz-se sempre às 09:00 e a
+/// **recolha** sempre às 18:00. A hora guardada na reserva não é de confiar —
+/// as manhãs ficam a 00:00/12:00 — por isso a hora que se mostra é esta, fixa,
+/// e aparece logo na reserva agendada, antes de confirmada, para quem tiver de
+/// ir ao terreno saber a que horas.
+const _horaEntrega = '09:00';
+const _horaRecolha = '18:00';
+
 /// A urgência de uma data que devia estar cumprida: passou, é hoje, ou vem aí.
 Urgencia _urgenciaDe(DateTime alvo, DateTime hoje) {
   final dias = _diasAte(alvo, hoje);
@@ -133,8 +141,8 @@ ProximoPasso? proximoPassoDe(
       return ProximoPasso(
         verbo: 'Enviar orçamento',
         porque:
-            'Pedido para ${_quando(trabalho.startsAt, hoje)}, ainda sem '
-            'orçamento.',
+            'Pedido para ${_quando(trabalho.startsAt, hoje)}, entrega prevista '
+            'às $_horaEntrega. Ainda sem orçamento.',
         urgencia: _urgenciaDe(trabalho.startsAt, hoje),
         accao: AccaoDoPasso.avancarEstado,
         estadoSeguinte: BookingStatus.proposalSent,
@@ -144,8 +152,8 @@ ProximoPasso? proximoPassoDe(
       return ProximoPasso(
         verbo: 'Confirmar',
         porque:
-            'Orçamento enviado, resposta por dar. Começa '
-            '${_quando(trabalho.startsAt, hoje)}.',
+            'Orçamento enviado, resposta por dar. Entrega '
+            '${_quando(trabalho.startsAt, hoje)} às $_horaEntrega.',
         urgencia: _urgenciaDe(trabalho.startsAt, hoje),
         accao: AccaoDoPasso.avancarEstado,
         estadoSeguinte: BookingStatus.confirmed,
@@ -154,7 +162,9 @@ ProximoPasso? proximoPassoDe(
     case BookingStatus.confirmed:
       return ProximoPasso(
         verbo: 'Entregar',
-        porque: 'Confirmado. Entrega ${_quando(trabalho.startsAt, hoje)}.',
+        porque:
+            'Confirmado. Entrega ${_quando(trabalho.startsAt, hoje)} às '
+            '$_horaEntrega.',
         urgencia: _urgenciaDe(trabalho.startsAt, hoje),
         accao: AccaoDoPasso.avancarEstado,
         estadoSeguinte: BookingStatus.rented,
@@ -165,7 +175,9 @@ ProximoPasso? proximoPassoDe(
       // trazê-la de volta.
       return ProximoPasso(
         verbo: 'Fechar trabalho',
-        porque: 'Em curso. Devolução ${_quando(trabalho.endsAt, hoje)}.',
+        porque:
+            'Em curso. Recolha ${_quando(trabalho.endsAt, hoje)} às '
+            '$_horaRecolha.',
         urgencia: _urgenciaDe(trabalho.endsAt, hoje),
         accao: AccaoDoPasso.avancarEstado,
         estadoSeguinte: BookingStatus.completed,

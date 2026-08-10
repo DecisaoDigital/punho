@@ -219,6 +219,79 @@ void main() {
     });
   });
 
+  group('reservas agendadas (Pedido) já contam', () {
+    // O Cesar decidiu (9 Ago): uma reserva em Pedido/agendada já é agenda
+    // ocupada — entra nos operacionais antes de ser confirmada. Só cancelada e
+    // concluída é que não geram trabalho.
+    test('um pedido que cobre hoje conta como reserva activa', () {
+      final p = pulsoOperacional(
+        com([
+          reserva(
+            id: 'pedido',
+            comeca: 10,
+            acaba: 20,
+            status: BookingStatus.request,
+          ),
+        ]),
+        agora,
+      );
+
+      expect(p.reservasActivas, 1);
+    });
+
+    test('um pedido que começa hoje é entrega prevista e está por fazer', () {
+      final p = pulsoOperacional(
+        com([
+          reserva(
+            id: 'pedido',
+            comeca: 15,
+            acaba: 18,
+            status: BookingStatus.request,
+          ),
+        ]),
+        agora,
+      );
+
+      expect(p.entregasHoje, 1);
+      expect(p.entregasPorFazer, 1);
+    });
+
+    test('um pedido que acaba hoje é recolha prevista', () {
+      final p = pulsoOperacional(
+        com([
+          reserva(
+            id: 'pedido',
+            comeca: 10,
+            acaba: 15,
+            status: BookingStatus.request,
+          ),
+        ]),
+        agora,
+      );
+
+      expect(p.recolhasHoje, 1);
+    });
+
+    test('um pedido passado nunca é recolha em atraso — nada saiu', () {
+      // Em atraso só a máquina que saiu (alugada). Um pedido que expirou não é
+      // uma recolha por fazer, é uma reserva morta.
+      final p = pulsoOperacional(
+        com([
+          reserva(
+            id: 'pedido-velho',
+            comeca: 1,
+            acaba: 12,
+            status: BookingStatus.request,
+          ),
+        ]),
+        agora,
+      );
+
+      expect(p.recolhasEmAtraso, 0);
+      expect(p.diasDaRecolhaMaisAtrasada, isNull);
+    });
+  });
+
   group('cobranças a vencer', () {
     test('soma o que está por receber dentro de 7 dias', () {
       final p = pulsoOperacional(
