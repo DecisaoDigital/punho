@@ -31,6 +31,14 @@ diferentes, e no meio delas está o smoke no aparelho. Quem anuncia é:
             commit, sem tag, sem push, sem release. O pubspec.yaml é reposto no
             fim. Serve para ver a publicação toda falhar (ou passar) sem deixar
             rasto nenhum.
+
+  --versao-menor
+            Deixa passar uma versão que o `dpkg` lê como inferior à actual.
+            Existe por causa dos remendos de um dígito a mais: a 0.3.61 foi
+            uma correcção da 0.3.6, e para o dpkg 0.3.7 é *menor* do que ela
+            (7 < 61). Não afrouxa nada do que interessa — o build number
+            continua a subir sozinho, e é ele, não o nome, que decide o
+            auto-update nos telemóveis. Tem de ser escrito à mão, de propósito.
 EOF
 }
 
@@ -52,10 +60,12 @@ version="${1#v}"
 shift
 assume_yes=false
 ensaio=false
+versao_menor=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --yes) assume_yes=true ;;
     --ensaio) ensaio=true ;;
+    --versao-menor) versao_menor=true ;;
     *) die "opção desconhecida: $1" ;;
   esac
   shift
@@ -98,8 +108,15 @@ version_line="$(grep -m1 '^version:' pubspec.yaml)"
 current_version="$(sed 's/version:[[:space:]]*//; s/+.*//' <<< "$version_line")"
 current_build="$(sed 's/.*+//' <<< "$version_line")"
 [[ "$current_build" =~ ^[0-9]+$ ]] || die "build atual inválido: $current_build"
-dpkg --compare-versions "$version" gt "$current_version" ||
-  die "a nova versão ($version) tem de ser superior a $current_version"
+if ! dpkg --compare-versions "$version" gt "$current_version"; then
+  [[ "$versao_menor" == true ]] ||
+    die "a nova versão ($version) tem de ser superior a $current_version" \
+        "(se for de propósito, --versao-menor)"
+  [[ "$version" != "$current_version" ]] ||
+    die "a nova versão é igual à actual ($version)"
+  printf 'AVISO: %s é inferior a %s para o dpkg. A subir na mesma (--versao-menor).\n' \
+    "$version" "$current_version"
+fi
 
 new_build=$((current_build + 1))
 ((new_build < 1000)) ||
