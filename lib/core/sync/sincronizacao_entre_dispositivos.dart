@@ -2,7 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/repositories/operation_repository.dart';
+import 'classificacao_de_recusas.dart';
 import 'registo_de_operacoes.dart';
+
+export 'classificacao_de_recusas.dart' show DestinoDaRecusa, classificarFalha;
 
 /// Um lote de operações pronto a aplicar, e o cursor que fica depois dele.
 class LoteDeOperacoes {
@@ -206,6 +209,8 @@ class SincronizacaoEntreDispositivos {
       return const ResultadoDaSincronizacao(enviadas: 0, recebidas: 0);
     }
     _aCorrer = true;
+    // Uma renovação de sessão por ciclo — e um ciclo novo tem direito à sua.
+    _jaRenovouNesteCiclo = false;
     try {
       // A fila é escrita sem ninguém esperar pelo resultado (o repositório
       // chama e segue). Ler `pendentes` antes de as escritas assentarem
@@ -366,32 +371,79 @@ class SincronizacaoEntreDispositivos {
       await _cliente.from(_tabela).upsert(linhas, onConflict: 'id');
       await registo.remover(pendentes.map((o) => o.id).toSet());
       return pendentes.length;
-    } on PostgrestException catch (erro) {
-      if (!ehRecusaDefinitiva(erro.code)) rethrow;
-      // Uma operação inválida no meio do lote fazia falhar o lote inteiro, e
-      // como nada saía da fila, a app reenviava tudo outra vez a cada ciclo —
-      // para sempre, sem ninguém ver o erro. Aqui separa-se o trigo do joio:
-      // vai-se uma a uma, as boas passam, e a má fica de lado identificada.
-      debugPrint(
-        '[Sync] lote recusado (${erro.code}) — a isolar a operação má',
-      );
-      return _enviarUmaAUma(pendentes, linhas);
+    } catch (erro) {
+      switch (classificarFalha(erro)) {
+        // A sessão caducou a meio. Renova-se e tenta-se o lote outra vez, uma
+        // só. Nada sai da fila: um token expirado não diz nada sobre o
+        // conteúdo, e tratá-lo como recusa mandava o dia inteiro de trabalho
+        // para a quarentena de uma vez.
+        case DestinoDaRecusa.sessao:
+          if (!await _renovarSessao()) rethrow;
+          debugPrint('[Sync] sessão renovada — a repetir o lote');
+          return _enviar();
+
+        // Rede, 5xx, esquema por refrescar: fica tudo na fila para a próxima.
+        case DestinoDaRecusa.transitorio:
+          rethrow;
+
+        // Uma operação inválida no meio do lote fazia falhar o lote inteiro, e
+        // como nada saía da fila, a app reenviava tudo outra vez a cada ciclo —
+        // para sempre, sem ninguém ver o erro. Aqui separa-se o trigo do joio:
+        // vai-se uma a uma, as boas passam, e a má fica de lado identificada.
+        case DestinoDaRecusa.definitivo:
+          debugPrint('[Sync] lote recusado — a isolar a operação má: $erro');
+          return _enviarUmaAUma(pendentes, linhas);
+      }
+    }
+  }
+
+  /// Renova a sessão e diz se ficou boa. Isolado num campo pela mesma razão que
+  /// [buscarOperacoes]: para os testes poderem pôr aqui uma renovação de
+  /// mentira e verificar que a fila **não** vai para a quarentena.
+  Future<bool> Function()? renovarSessao;
+
+  /// Uma renovação por ciclo de envio. Sem isto, um servidor que responda
+  /// sempre 401 punha o motor a renovar e a repetir para sempre.
+  bool _jaRenovouNesteCiclo = false;
+
+  Future<bool> _renovarSessao() async {
+    if (_jaRenovouNesteCiclo) return false;
+    _jaRenovouNesteCiclo = true;
+    try {
+      if (renovarSessao != null) return await renovarSessao!();
+      final sessao = await _cliente.auth.refreshSession();
+      return sessao.session != null;
+    } catch (erro) {
+      debugPrint('[Sync] não consegui renovar a sessão: $erro');
+      return false;
     }
   }
 
   /// O servidor recusou por causa do **conteúdo**, e não por causa da ligação.
   ///
-  /// É a distinção que faltava: sem ela, qualquer falha era tratada como "logo
-  /// se tenta outra vez", e um payload que nunca ia ser aceite ficava a bater à
-  /// porta do servidor indefinidamente.
+  /// Isto já foi uma lista de códigos conhecidos. Era o desenho ao contrário:
+  /// o que não estivesse na lista voltava para a fila como se fosse falha de
+  /// rede, e portanto **cada validação nova do servidor trancava as apps já
+  /// instaladas**. Aconteceu duas vezes em três dias. Agora quem decide é a
+  /// natureza do erro — ver `classificacao_de_recusas.dart`, e não voltar a
+  /// pôr aqui uma lista.
+  static bool ehRecusaDefinitiva(Object erro) =>
+      classificarFalha(erro) == DestinoDaRecusa.definitivo;
+
+  /// A sessão caducou: renova-se e repete-se. **Nunca** quarentena — senão o
+  /// trabalho de um dia inteiro ia lá parar de uma assentada.
+  static bool eFalhaDeSessaoNoEnvio(Object erro) =>
+      classificarFalha(erro) == DestinoDaRecusa.sessao;
+
+  /// `23P01`: violação de exclusão — a máquina já estava ocupada naquele
+  /// período. Não é payload inválido: é uma decisão para uma pessoa. Sai da
+  /// fila (senão trancava-a) mas vai para um balde à parte, **visível**.
   ///
-  /// `23514` é o que o trigger `punho_operacoes_payload_coerente` levanta para
-  /// payload incoerente; `23502`/`23503` são campo obrigatório em falta e
-  /// referência inexistente; `22007`/`22P02` são data e número ilegíveis.
-  /// Nenhum destes melhora por se insistir. Tudo o resto — timeout, 5xx, sem
-  /// rede — fica na fila, que é o que a torna útil numa obra sem sinal.
-  static bool ehRecusaDefinitiva(String? codigo) =>
-      const {'23514', '23502', '23503', '22007', '22P02'}.contains(codigo);
+  /// Hoje este balde **fica vazio de propósito**: o servidor trava a
+  /// sobreposição no carimbo, com `23514`, e a decisão é essa mesma — primeiro
+  /// tolerância no cliente, código próprio no servidor só quando o terreno
+  /// estiver actualizado. Fica montado para esse dia.
+  static bool eConflitoDeReserva(String? codigo) => codigo == '23P01';
 
   /// Envia uma a uma para descobrir qual é a inválida.
   ///
@@ -408,19 +460,55 @@ class SincronizacaoEntreDispositivos {
         await _cliente.from(_tabela).upsert([linhas[i]], onConflict: 'id');
         await registo.remover({operacao.id});
         enviadas++;
-      } on PostgrestException catch (erro) {
-        if (!ehRecusaDefinitiva(erro.code)) rethrow;
-        // Sai da fila e vai para a quarentena: se ficasse, voltava a prender
-        // tudo no ciclo seguinte.
-        await registo.porEmQuarentena(
-          operacao,
-          '${erro.code}: ${erro.message}',
-        );
-        await registo.remover({operacao.id});
-        debugPrint(
-          '[Sync] operação ${operacao.entidade}/${operacao.entidadeId} '
-          'recusada em definitivo: ${erro.message}',
-        );
+      } catch (erro) {
+        final codigo = erro is PostgrestException ? erro.code : null;
+        final mensagem = erro is PostgrestException
+            ? erro.message
+            : erro.toString();
+
+        switch (classificarFalha(erro)) {
+          // Sessão: renova e repete **esta**. Se nem assim, pára aqui e deixa
+          // o resto na fila — nada disto é culpa do conteúdo.
+          case DestinoDaRecusa.sessao:
+            if (!await _renovarSessao()) rethrow;
+            debugPrint('[Sync] sessão renovada — a repetir a operação');
+            i--; // repete o mesmo índice, agora com sessão boa
+            continue;
+
+          // Transitório: pára o envio e deixa tudo o que falta na fila.
+          case DestinoDaRecusa.transitorio:
+            rethrow;
+
+          case DestinoDaRecusa.definitivo:
+            if (eConflitoDeReserva(codigo)) {
+              // Sai da fila para não a prender, mas vai para o balde visível,
+              // não para a quarentena. É para uma pessoa resolver.
+              await registo.porEmConflitoDeReserva(
+                operacao,
+                '$codigo: $mensagem',
+              );
+              await registo.remover({operacao.id});
+              debugPrint(
+                '[Sync] operação ${operacao.entidade}/${operacao.entidadeId} '
+                'em conflito de reserva: $mensagem',
+              );
+            } else {
+              // Sai da fila e vai para a quarentena, **com o que o servidor
+              // disse**: é essa frase que a Fase 5 vai mostrar a quem está a
+              // usar a app. Deitá-la fora era deixar a pessoa sem saber porquê.
+              await registo.porEmQuarentena(
+                operacao,
+                '$codigo: $mensagem',
+                codigo: codigo,
+                mensagemDoServidor: mensagem,
+              );
+              await registo.remover({operacao.id});
+              debugPrint(
+                '[Sync] operação ${operacao.entidade}/${operacao.entidadeId} '
+                'recusada em definitivo: $mensagem',
+              );
+            }
+        }
       }
     }
     return enviadas;

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/sync/registo_de_operacoes.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:punho/core/sync/sincronizacao_entre_dispositivos.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -29,54 +30,56 @@ void main() {
   );
 
   group('classificação da recusa', () {
-    test('payload incoerente é definitivo — insistir não adianta', () {
-      // O que o trigger `punho_operacoes_payload_coerente` levanta.
-      expect(
-        SincronizacaoEntreDispositivos.ehRecusaDefinitiva('23514'),
-        isTrue,
-      );
-    });
+    // A classificação por natureza vive em `classificacao_de_recusas.dart` e
+    // tem testes próprios em `classificacao_de_recusas_test.dart`. Aqui fica
+    // só o que o motor promete a quem o usa.
+    PostgrestException erro(String? codigo) =>
+        PostgrestException(message: 'recusado', code: codigo);
 
-    test('campo em falta e referência inexistente são definitivos', () {
-      expect(
-        SincronizacaoEntreDispositivos.ehRecusaDefinitiva('23502'),
-        isTrue,
-      );
-      expect(
-        SincronizacaoEntreDispositivos.ehRecusaDefinitiva('23503'),
-        isTrue,
-      );
-    });
-
-    test('data e número ilegíveis são definitivos', () {
-      expect(
-        SincronizacaoEntreDispositivos.ehRecusaDefinitiva('22007'),
-        isTrue,
-      );
-      expect(
-        SincronizacaoEntreDispositivos.ehRecusaDefinitiva('22P02'),
-        isTrue,
-      );
+    test('o que o servidor recusa pelo conteúdo é definitivo', () {
+      for (final codigo in ['23514', '23502', '23503', '22007', '22P02',
+        '42501', 'P0001']) {
+        expect(
+          SincronizacaoEntreDispositivos.ehRecusaDefinitiva(erro(codigo)),
+          isTrue,
+          reason: '$codigo é uma decisão sobre a linha, não sobre o caminho',
+        );
+      }
     });
 
     test('o que pode melhorar com a rede fica na fila', () {
       // Este é o lado que não pode partir: numa obra sem sinal, a fila é a
       // razão de a app ser utilizável. Nada disto pode ir para quarentena.
-      for (final codigo in ['08006', '57014', '53300', 'PGRST301', null]) {
+      for (final codigo in ['08006', '57014', '53300', null]) {
         expect(
-          SincronizacaoEntreDispositivos.ehRecusaDefinitiva(codigo),
+          SincronizacaoEntreDispositivos.ehRecusaDefinitiva(erro(codigo)),
           isFalse,
           reason: '$codigo tem de continuar a ser tentado',
         );
       }
     });
 
-    test('conflito de reserva não é recusa de payload', () {
-      // `23P01` é o trigger de sobreposição. É um conflito de negócio, para
-      // ser decidido por uma pessoa — não lixo para deitar na quarentena.
+    test('sessão expirada não é recusa de conteúdo nenhuma', () {
+      // Ver `sessao_expirada_nao_e_quarentena_test.dart` para o caminho todo.
       expect(
-        SincronizacaoEntreDispositivos.ehRecusaDefinitiva('23P01'),
+        SincronizacaoEntreDispositivos.ehRecusaDefinitiva(erro('PGRST301')),
         isFalse,
+      );
+      expect(
+        SincronizacaoEntreDispositivos.eFalhaDeSessaoNoEnvio(erro('PGRST301')),
+        isTrue,
+      );
+    });
+
+    test('conflito de reserva tem balde próprio', () {
+      // Não é quarentena (payload inválido) mas também não pode ficar a
+      // trancar a fila: sai dela para um balde visível à parte. Hoje fica
+      // vazio de propósito — o servidor trava a sobreposição com 23514.
+      expect(SincronizacaoEntreDispositivos.eConflitoDeReserva('23P01'), isTrue);
+      expect(
+        SincronizacaoEntreDispositivos.ehRecusaDefinitiva(erro('23P01')),
+        isTrue,
+        reason: 'sai da fila na mesma; o que muda é o balde',
       );
     });
   });
@@ -129,6 +132,34 @@ void main() {
       await registo.limparQuarentena();
 
       expect(registo.quarentena, isEmpty);
+    });
+  });
+
+  group('balde de conflitos de reserva', () {
+    test('guarda o conflito à parte da quarentena', () async {
+      await registo.porEmConflitoDeReserva(op('a'), '23P01: sobreposição');
+
+      expect(registo.conflitosDeReserva, hasLength(1));
+      expect(registo.conflitosDeReserva.single.operacao.id, 'a');
+      expect(registo.conflitosDeReserva.single.motivo, '23P01: sobreposição');
+      // Um conflito de reserva não é lixo de payload: não vai à quarentena.
+      expect(registo.quarentena, isEmpty);
+    });
+
+    test('sobrevive a fechar a app', () async {
+      await registo.porEmConflitoDeReserva(op('a'), 'motivo');
+
+      final outro = RegistoDeOperacoes(await SharedPreferences.getInstance());
+
+      expect(outro.conflitosDeReserva.single.operacao.id, 'a');
+    });
+
+    test('limpa quando o gestor já o resolveu', () async {
+      await registo.porEmConflitoDeReserva(op('a'), 'motivo');
+
+      await registo.limparConflitosDeReserva();
+
+      expect(registo.conflitosDeReserva, isEmpty);
     });
   });
 }

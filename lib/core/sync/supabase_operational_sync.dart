@@ -68,12 +68,20 @@ class SupabaseOperationalSync {
       // já não era a da empresa.
       if (_repository.remoteRevision != remoteRevision) {
         final payload = Map<String, dynamic>.from(remote['payload'] as Map);
-        return _repository.importOperationalPayload(
-              jsonEncode(payload),
-              revision: remoteRevision,
-            )
-            ? SyncStatus.synchronized
-            : SyncStatus.requiresReview;
+        final chegou = _repository.importOperationalPayload(
+          jsonEncode(payload),
+          revision: remoteRevision,
+        );
+        if (!chegou) return SyncStatus.requiresReview;
+        // Quase sempre acaba aqui: o que vinha por subir cedeu ao servidor e
+        // não há mais nada a fazer. A excepção é o painel — a arrumação deste
+        // aparelho sobrevive à importação, e sobe **já**, na mesma passagem.
+        // Deixá-la para o ciclo seguinte era voltar a expô-la à mesma janela
+        // que a fazia desaparecer.
+        if (!_repository.hasPendingRemoteChanges) {
+          return SyncStatus.synchronized;
+        }
+        return _push(client, expectedRevision: remoteRevision);
       }
 
       // Revisões iguais: o que este aparelho tem por subir foi escrito **em

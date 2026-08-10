@@ -55,15 +55,33 @@ class OperacaoRecusada {
     required this.operacao,
     required this.motivo,
     required this.recusadaEm,
+    this.codigo,
+    this.mensagemDoServidor,
   });
 
   final OperacaoPendente operacao;
   final String motivo;
   final DateTime recusadaEm;
 
+  /// O SQLSTATE, quando houve um (`23514`, `42501`, `P0001`…).
+  final String? codigo;
+
+  /// **A frase do servidor, tal como ele a disse.** Guardada à parte para a
+  /// Fase 5 a poder mostrar — as mensagens do Punho estão escritas em português
+  /// e para uma pessoa («Não podes alterar o preço por dia da máquina»), e
+  /// deitá-las fora deixava o utilizador a olhar para um código.
+  ///
+  /// Nulo nas linhas gravadas antes de este campo existir; aí o [motivo] serve.
+  final String? mensagemDoServidor;
+
+  /// O que se mostra a quem está a usar a app.
+  String get paraPessoa => mensagemDoServidor ?? motivo;
+
   Map<String, Object?> paraFila() => {
     'operacao': operacao.paraFila(),
     'motivo': motivo,
+    if (codigo != null) 'codigo': codigo,
+    if (mensagemDoServidor != null) 'mensagem': mensagemDoServidor,
     'recusada_em': recusadaEm.toUtc().toIso8601String(),
   };
 
@@ -73,6 +91,8 @@ class OperacaoRecusada {
           Map<String, dynamic>.from(json['operacao'] as Map),
         ),
         motivo: json['motivo'] as String? ?? 'sem motivo registado',
+        codigo: json['codigo'] as String?,
+        mensagemDoServidor: json['mensagem'] as String?,
         recusadaEm:
             DateTime.tryParse(
               json['recusada_em'] as String? ?? '',
@@ -120,6 +140,7 @@ class RegistoDeOperacoes {
   static const _kDispositivo = 'punho_sync.dispositivo_v1';
   static const _kPerdidas = 'punho_sync.operacoes_perdidas_v1';
   static const _kQuarentena = 'punho_sync.quarentena_v1';
+  static const _kConflitos = 'punho_sync.conflitos_reserva_v1';
 
   /// Limite de segurança da fila.
   ///
@@ -162,7 +183,15 @@ class RegistoDeOperacoes {
     return resultado;
   }
 
-  Future<void> porEmQuarentena(OperacaoPendente operacao, String motivo) {
+  /// [codigo] e [mensagemDoServidor] guardam-se **à parte** do [motivo], que é
+  /// os dois colados. É o que permite mostrar a frase do servidor a quem está a
+  /// usar a app sem lhe pôr um SQLSTATE à frente dos olhos.
+  Future<void> porEmQuarentena(
+    OperacaoPendente operacao,
+    String motivo, {
+    String? codigo,
+    String? mensagemDoServidor,
+  }) {
     _emFila = _emFila.then((_) async {
       final actual = _prefs.getStringList(_kQuarentena) ?? <String>[];
       actual.add(
@@ -170,6 +199,8 @@ class RegistoDeOperacoes {
           OperacaoRecusada(
             operacao: operacao,
             motivo: motivo,
+            codigo: codigo,
+            mensagemDoServidor: mensagemDoServidor,
             recusadaEm: DateTime.now(),
           ).paraFila(),
         ),
@@ -183,6 +214,51 @@ class RegistoDeOperacoes {
   }
 
   Future<void> limparQuarentena() => _prefs.remove(_kQuarentena);
+
+  /// Conflitos de reserva que o servidor barrou (`23P01`): a máquina já estava
+  /// ocupada nesse período. Ao contrário da [quarentena], **não é lixo** — é
+  /// uma decisão de negócio à espera de uma pessoa. Fica à parte, visível, para
+  /// o gestor resolver (remarcar, recusar), e nunca prende a fila enquanto
+  /// espera. Mesmo tecto de 100 e mesma durabilidade da quarentena.
+  List<OperacaoRecusada> get conflitosDeReserva {
+    final cru = _prefs.getStringList(_kConflitos) ?? const [];
+    final resultado = <OperacaoRecusada>[];
+    for (final linha in cru) {
+      try {
+        resultado.add(
+          OperacaoRecusada.daFila(
+            Map<String, dynamic>.from(jsonDecode(linha) as Map),
+          ),
+        );
+      } catch (erro) {
+        debugPrint('[Sync] linha de conflito ilegível, ignorada: $erro');
+      }
+    }
+    return resultado;
+  }
+
+  Future<void> porEmConflitoDeReserva(
+    OperacaoPendente operacao,
+    String motivo,
+  ) {
+    _emFila = _emFila.then((_) async {
+      final actual = _prefs.getStringList(_kConflitos) ?? <String>[];
+      actual.add(
+        jsonEncode(
+          OperacaoRecusada(
+            operacao: operacao,
+            motivo: motivo,
+            recusadaEm: DateTime.now(),
+          ).paraFila(),
+        ),
+      );
+      if (actual.length > 100) actual.removeRange(0, actual.length - 100);
+      await _prefs.setStringList(_kConflitos, actual);
+    });
+    return _emFila;
+  }
+
+  Future<void> limparConflitosDeReserva() => _prefs.remove(_kConflitos);
 
   int get cursor => _prefs.getInt(_kCursor) ?? 0;
   Future<void> guardarCursor(int seq) => _prefs.setInt(_kCursor, seq);
