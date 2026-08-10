@@ -101,6 +101,42 @@ Uma chave `anon`/publishable da aplicação não substitui o PAT da CLI. Uma cha
 7. Só depois, enviar branch/commit para o GitHub.
 8. Numa release, carregar para o GitHub apenas artefactos já compilados no i9.
 
+## Uma sessão por fase
+
+Escrito a 10 de Agosto de 2026, depois de três sessões terem trabalhado em
+paralelo sobre a mesma árvore e nenhuma ter feito commit. O `origin/main`
+ficou oito commits atrás do que existia em disco, dois trabalhos diferentes
+misturaram-se nos mesmos ficheiros, e foi preciso uma sessão inteira só para
+os separar — sem que ninguém já se lembrasse ao certo do que era de quem.
+
+As regras que saíram daí:
+
+1. **Uma sessão por fase, nunca uma sessão para tudo.** Uma fase é uma
+   unidade de trabalho com um fim reconhecível. Quando ela acaba, a sessão
+   acaba — não se aproveita o contexto quente para começar a seguinte.
+
+2. **Cada fase fecha com `docs/HANDOVER_<fase>.md`**, com três partes e as
+   três obrigatórias:
+   - **o que fez** — o que mudou e porquê, ao nível de quem vai continuar;
+   - **o que ficou por fazer** — incluindo o que foi decidido deixar de fora;
+   - **o que descobriu pelo caminho** — o que ninguém sabia quando a fase
+     começou. É esta a parte que mais se perde e a que mais custa redescobrir.
+
+3. **A fase seguinte começa em sessão nova, a partir desse ficheiro.** Se o
+   handover não chega para arrancar, o handover é que está mal escrito — a
+   correcção é melhorá-lo, não recorrer à memória da sessão anterior.
+
+4. **Cada fase fecha com o fluxo percorrido à mão, no telemóvel, nos dois
+   perfis** — gestor e operador. `flutter test` verde não é isto e nunca foi:
+   os testes provam o que a app faz, o percurso à mão mostra o que ela deixa
+   fazer. Um bug encontrado assim vale mais do que dez testes a passar.
+
+5. **Nenhuma fase termina com trabalho por committar.** O trabalho de uma
+   sessão vive no `git`, não na árvore. Commits atómicos por assunto, e a
+   branch empurrada antes de a sessão fechar.
+
+O exemplo está em `docs/HANDOVER_FASE_C.md`.
+
 ## Windows
 
 Para Windows, usar uma VM ou worker Windows alojado no i9. Se não existir,
