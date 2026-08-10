@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../core/operations/painel_controller.dart';
-import '../../../domain/models/arranjo_do_painel.dart';
 import '../../dashboard/presentation/kpi_catalogo.dart';
 import '../../dashboard/presentation/widgets/kpi_grid_2x2.dart';
 
@@ -41,22 +40,28 @@ class KpisPage extends ConsumerWidget {
     final arranjo = ref.watch(painelProvider);
     final now = agora ?? DateTime.now();
 
-    final prontos = <KpiDefinicao>[];
-    final aChegar = <KpiDefinicao>[];
-    final porDefinir = <KpiDefinicao>[];
-    for (final k in catalogoKpis) {
-      switch (k.estado(estado, now)) {
-        case EstadoVerdade.pronto:
-          prontos.add(k);
-        case EstadoVerdade.porVerificar:
-          aChegar.add(k);
-        case EstadoVerdade.porDefinir:
-          porDefinir.add(k);
-      }
-    }
-    // A ordem do gestor manda nos prontos; o que ele nunca arrastou vem a
-    // seguir, na ordem do catálogo.
-    final porId = {for (final k in prontos) k.id: k};
+    // **Uma lista só: o que pode subir ao painel, mais o que já lá está.**
+    //
+    // A bancada teve três grupos — «Prontos», «A chegar» e «Por definir» — e o
+    // César mandou-os embora a 10 de Agosto de 2026. Faziam sentido enquanto
+    // metade do catálogo estava por verificar; com 23 dos 25 assinados, o que
+    // sobrava em baixo era uma lista comprida de coisas que não se podem fazer,
+    // à frente das que se podem.
+    //
+    // O que **não** se pode perder com eles: um KPI que subiu ao painel e
+    // depois perdeu a fonte — as «Entregas hoje» num dia sem entregas — tem de
+    // continuar à vista para poder sair. Sem isto ficava lá preso a dizer
+    // «aguarda» até o dado voltar, que foi um defeito já pago uma vez. Por isso
+    // a lista é «prontos ∪ o que está no painel», e não só os prontos.
+    final mostraveis = [
+      for (final k in catalogoKpis)
+        if (k.estado(estado, now) == EstadoVerdade.pronto ||
+            arranjo.contem(k.id))
+          k,
+    ];
+    // A ordem do gestor manda; o que ele nunca arrastou vem a seguir, na ordem
+    // do catálogo.
+    final porId = {for (final k in mostraveis) k.id: k};
     final arrumados = [
       for (final id in arranjo.arrumar(porId.keys))
         if (porId[id] case final k?) k,
@@ -92,23 +97,25 @@ class KpisPage extends ConsumerWidget {
                 // deitado o cabeçalho comia 133 dp dos 368 do canvas — e nem
                 // três cartões inteiros cabiam. Agora cabem, que é o que o
                 // ecrã existe para fazer.
+                // Uma linha só, e leva o que o cabeçalho do grupo levava: quantos
+                // há, quantos estão no painel e como se ordenam. O cabeçalho
+                // era mais 30 dp para dizer o mesmo.
+                //
+                // Com a lista vazia diz outra coisa: sem os grupos «A chegar» e
+                // «Por definir», uma empresa acabada de abrir ficava com o ecrã
+                // em branco e sem saber porquê. Um ecrã vazio tem de dizer que
+                // está vazio e o que o enche.
                 Text(
-                  'A app cresce contigo: os KPIs vão chegando à medida que '
-                  'preencheres a informação. Arrasta pela pega para ordenar.',
+                  arrumados.isEmpty
+                      ? 'Ainda não há KPIs a dizer verdade. Preenche a ficha da '
+                            'empresa e regista o trabalho — eles aparecem aqui '
+                            'à medida que a informação entra.'
+                      : 'A app cresce contigo: ${arrumados.length} KPIs a dizer '
+                            'verdade. '
+                            '${noPainel == 0 ? 'Marca os que queres no painel — está vazio.' : '$noPainel no painel · arrasta pela pega para ordenar.'}',
                   style: tt.bodySmall,
                 ),
                 const SizedBox(height: 10),
-                if (arrumados.isNotEmpty) ...[
-                  _CabecalhoGrupo(
-                    titulo: 'Prontos',
-                    nota: noPainel == 0
-                        ? 'marca os que queres no painel — está vazio'
-                        : '$noPainel no painel · arrasta pela pega para ordenar',
-                    cor: _corPronto,
-                    contagem: arrumados.length,
-                  ),
-                  const SizedBox(height: 10),
-                ],
               ],
             ),
           ),
@@ -152,96 +159,13 @@ class KpisPage extends ConsumerWidget {
           ),
           SliverPadding(
             padding: margem.copyWith(bottom: MargensDoCanvas.vertical),
-            sliver: SliverList.list(
-              children: [
-                if (arrumados.isNotEmpty) const SizedBox(height: 10),
-                ..._grupo(
-                  context,
-                  titulo: 'A chegar',
-                  nota: 'já têm dados, falta o nosso crivo à fórmula',
-                  cor: _corAChegar,
-                  kpis: aChegar,
-                  arranjo: arranjo,
-                  estado: estado,
-                  now: now,
-                ),
-                ..._grupo(
-                  context,
-                  titulo: 'Por definir',
-                  nota: 'falta a informação que os acende',
-                  cor: Theme.of(context).colorScheme.outline,
-                  kpis: porDefinir,
-                  arranjo: arranjo,
-                  estado: estado,
-                  now: now,
-                  mostrarDesbloqueio: true,
-                ),
-              ],
-            ),
+            sliver: const SliverToBoxAdapter(child: SizedBox()),
           ),
         ],
       ),
     );
   }
 
-  List<Widget> _grupo(
-    BuildContext context, {
-    required String titulo,
-    required String nota,
-    required Color cor,
-    required List<KpiDefinicao> kpis,
-    required ArranjoDoPainel arranjo,
-    required OperationsState estado,
-    required DateTime now,
-    bool mostrarDesbloqueio = false,
-  }) {
-    if (kpis.isEmpty) return const [];
-    final tt = Theme.of(context).textTheme;
-    final cs = Theme.of(context).colorScheme;
-    return [
-      _CabecalhoGrupo(
-        titulo: titulo,
-        nota: nota,
-        cor: cor,
-        contagem: kpis.length,
-      ),
-      const SizedBox(height: 10),
-      for (final k in kpis) ...[
-        // **Aqui a caixa só aparece a quem já está no painel.** Um KPI que
-        // subiu quando tinha dados e os perdeu — as entregas de hoje, num dia
-        // sem entregas — cai deste lado da lista, e continua no painel a dizer
-        // "aguarda". Sem caixa nenhuma ficava lá preso, sem forma de sair, até
-        // o dado voltar. Marcá-lo é que não se pode: promover ao painel é só
-        // dos prontos.
-        _LinhaDeKpi(
-          kpi: k,
-          marcado: arranjo.contem(k.id) ? true : null,
-          estado: estado,
-          now: now,
-        ),
-        if (mostrarDesbloqueio)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              _larguraDaMarca + 8,
-              5,
-              _larguraDaPega + 8,
-              0,
-            ),
-            child: Text(
-              'Desbloqueia com: ${k.desbloqueio}',
-              style: tt.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ),
-        // Sem `SizedBox` a somar-se: a linha já traz o seu próprio ar por
-        // baixo. Somavam-se os dois, e estes grupos ficavam com o dobro do
-        // espaçamento dos "Prontos" — a mesma lista com duas medidas.
-      ],
-      const SizedBox(height: 10),
-    ];
-  }
 }
 
 /// O ar entre o topo do canvas e a primeira linha desta página.
@@ -251,9 +175,6 @@ class KpisPage extends ConsumerWidget {
 /// O que resta para o cabeçalho é meia centena de dp — e o que este ecrã existe
 /// para fazer é mostrar KPIs, não apresentar-se.
 const _arPorCimaDaLista = 8.0;
-
-const _corPronto = Color(0xFF3DC97A);
-const _corAChegar = Color(0xFFFFB246);
 
 /// A coluna da caixa de marcar, à esquerda. É o alvo de toque mínimo do
 /// Material (48 dp) — abaixo disto falha-se a marcação com o dedo.
@@ -364,51 +285,6 @@ class _LinhaDeKpi extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// O cabeçalho de um grupo do estado de verdade: um ponto da cor do grupo, o
-/// nome, a contagem, e uma nota curta a dizer o que o grupo significa.
-class _CabecalhoGrupo extends StatelessWidget {
-  const _CabecalhoGrupo({
-    required this.titulo,
-    required this.nota,
-    required this.cor,
-    required this.contagem,
-  });
-
-  final String titulo;
-  final String nota;
-  final Color cor;
-  final int contagem;
-
-  @override
-  Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Container(
-          width: 9,
-          height: 9,
-          decoration: BoxDecoration(color: cor, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '$titulo · $contagem',
-          style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            nota,
-            style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
     );
   }
 }

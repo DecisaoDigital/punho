@@ -160,7 +160,7 @@ void main() {
       final container = containerCom(estado);
       await montarLandscape(tester, container, KpisPage(agora: agoraFixa));
       expect(
-        find.textContaining('marca os que queres no painel'),
+        find.textContaining('Marca os que queres no painel'),
         findsOneWidget,
       );
 

@@ -3,13 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/operations/operations_controller.dart';
 import 'package:punho/data/repositories/operation_repository.dart';
+import 'package:punho/domain/models/finance.dart';
 import 'package:punho/domain/models/operations.dart';
 import 'package:punho/features/dashboard/presentation/widgets/celula_semaforo.dart';
 import 'package:punho/features/kpis/presentation/kpis_page.dart';
 
 /// A **KPIs (todos)** — a bancada. O que estes testes guardam: a página mostra
-/// o catálogo todo agrupado pelo estado de verdade, diz o que falta para os que
-/// ainda não chegaram, e um KPI **sobe** de grupo quando o dado entra.
+/// os KPIs que já dizem verdade, um KPI **aparece** quando o dado entra, e uma
+/// empresa sem dados nenhuns não fica a olhar para um ecrã em branco.
+///
+/// Os grupos «A chegar» e «Por definir» saíram a 10 de Agosto de 2026, a pedido
+/// do César: com 23 dos 25 do catálogo já verificados, o que sobrava neles era
+/// uma lista comprida de coisas que não se podem fazer, à frente das que se
+/// podem.
 void main() {
   Future<void> abrir(
     WidgetTester tester, {
@@ -29,7 +35,7 @@ void main() {
   testWidgets('diz o que é e a ideia de crescer com o empresário', (
     tester,
   ) async {
-    await abrir(tester);
+    await abrir(tester, repo: _comRecebimento(), agora: DateTime(2026, 8, 9));
 
     // O título saiu da página: a barra lateral já diz o nome do ecrã, e os
     // 24 dp que ele gastava faziam falta ao terceiro cartão. O que fica é a
@@ -45,32 +51,45 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await abrir(tester);
+    // Com um recebimento no mês, a Caixa e a Tendência têm fonte e aparecem.
+    // Sem ele não apareceriam nenhumas: desde que os grupos «A chegar» e «Por
+    // definir» saíram, a bancada só mostra o que já diz verdade.
+    await abrir(tester, repo: _comRecebimento(), agora: DateTime(2026, 8, 9));
 
     expect(find.textContaining('CAIXA'), findsWidgets);
     expect(find.textContaining('TENDÊNCIA DO MÊS'), findsOneWidget);
     expect(find.byType(CelulaSemaforo), findsWidgets);
   });
 
-  testWidgets('empresa vazia: os KPIs estão por definir e dizem o que falta', (
+  testWidgets('empresa vazia: a bancada diz que está vazia e porquê', (
     tester,
   ) async {
-    // Viewport alto para a lista construir tudo — o ListView é preguiçoso e os
-    // itens "por definir" ficam abaixo da dobra num ecrã normal.
     tester.view.physicalSize = const Size(600, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
     await abrir(tester);
 
-    // Sem dados nenhuns, nada está pronto a subir.
-    expect(find.textContaining('Prontos'), findsNothing);
-    // Mas a bancada mostra os que faltam e o que os desbloqueia.
-    expect(find.textContaining('Por definir'), findsOneWidget);
-    expect(find.textContaining('Desbloqueia com:'), findsWidgets);
+    // Os grupos «A chegar» e «Por definir» saíram a pedido do César (10 Ago
+    // 2026): com 23 dos 25 KPIs assinados, o que sobrava em baixo era uma
+    // lista comprida de coisas que não se podem fazer, à frente das que se
+    // podem.
+    //
+    // O que não pode voltar com eles é o ecrã em branco. Sem um único KPI com
+    // fonte, a bancada não mostra cartão nenhum — e tem de dizer isso, senão
+    // uma empresa acabada de abrir fica a olhar para o nada.
+    expect(find.byType(CelulaSemaforo), findsNothing);
+    expect(find.textContaining('Ainda não há KPIs a dizer verdade'), findsOne);
+    expect(find.textContaining('Desbloqueia com:'), findsNothing);
   });
 
-  testWidgets('quando o dado entra, o KPI sobe a "Prontos"', (tester) async {
+  testWidgets('quando o dado entra, o KPI aparece na bancada', (tester) async {
+    // Alto para a lista construir tudo: é preguiçosa, e o ticket médio não é o
+    // primeiro cartão.
+    tester.view.physicalSize = const Size(600, 2600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     // Uma reserva com valor no mês acende o ticket médio (e os operacionais):
     // deixam de estar "por definir" e passam a poder subir ao painel.
     final repo = LocalDemoOperationRepository()
@@ -88,7 +107,8 @@ void main() {
 
     await abrir(tester, repo: repo, agora: DateTime(2026, 8, 9));
 
-    expect(find.textContaining('Prontos'), findsOneWidget);
+    expect(find.textContaining('TICKET MÉDIO'), findsOneWidget);
+    expect(find.textContaining('KPIs a dizer verdade'), findsOneWidget);
   });
 
   testWidgets('cabe no telemóvel deitado sem transbordar', (tester) async {
@@ -104,3 +124,15 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 }
+
+/// Um recebimento no mês chega para a Caixa e a Tendência terem fonte.
+LocalDemoOperationRepository _comRecebimento() => LocalDemoOperationRepository()
+  ..saveReceipt(
+    Receipt(
+      id: 'r1',
+      date: DateTime(2026, 8, 5),
+      amountCents: 120000,
+      customerId: 'c1',
+      method: PaymentMethod.transfer,
+    ),
+  );
