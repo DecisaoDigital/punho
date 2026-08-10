@@ -37,8 +37,15 @@ void main() {
         PostgrestException(message: 'recusado', code: codigo);
 
     test('o que o servidor recusa pelo conteúdo é definitivo', () {
-      for (final codigo in ['23514', '23502', '23503', '22007', '22P02',
-        '42501', 'P0001']) {
+      for (final codigo in [
+        '23514',
+        '23502',
+        '23503',
+        '22007',
+        '22P02',
+        '42501',
+        'P0001',
+      ]) {
         expect(
           SincronizacaoEntreDispositivos.ehRecusaDefinitiva(erro(codigo)),
           isTrue,
@@ -75,7 +82,10 @@ void main() {
       // Não é quarentena (payload inválido) mas também não pode ficar a
       // trancar a fila: sai dela para um balde visível à parte. Hoje fica
       // vazio de propósito — o servidor trava a sobreposição com 23514.
-      expect(SincronizacaoEntreDispositivos.eConflitoDeReserva('23P01'), isTrue);
+      expect(
+        SincronizacaoEntreDispositivos.eConflitoDeReserva('23P01'),
+        isTrue,
+      );
       expect(
         SincronizacaoEntreDispositivos.ehRecusaDefinitiva(erro('23P01')),
         isTrue,
@@ -160,6 +170,27 @@ void main() {
       await registo.limparConflitosDeReserva();
 
       expect(registo.conflitosDeReserva, isEmpty);
+    });
+
+    /// Desde que o cartão tem «Remarcar» e «Recusar», cada decisão apaga a
+    /// linha dela. Sem isto, resolver a primeira fazia desaparecer as outras
+    /// por resolver — e ninguém dava por elas terem existido.
+    test('resolver um conflito não leva os outros à frente', () async {
+      await registo.porEmConflitoDeReserva(op('a'), 'motivo');
+      await registo.porEmConflitoDeReserva(op('b'), 'motivo');
+      await registo.porEmConflitoDeReserva(op('c'), 'motivo');
+
+      await registo.resolverConflitoDeReserva('b');
+
+      expect(registo.conflitosDeReserva.map((c) => c.operacao.id), ['a', 'c']);
+    });
+
+    test('resolver o que já não está lá não mexe em nada', () async {
+      await registo.porEmConflitoDeReserva(op('a'), 'motivo');
+
+      await registo.resolverConflitoDeReserva('nao-existe');
+
+      expect(registo.conflitosDeReserva.single.operacao.id, 'a');
     });
   });
 }

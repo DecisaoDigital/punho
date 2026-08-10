@@ -260,6 +260,34 @@ class RegistoDeOperacoes {
 
   Future<void> limparConflitosDeReserva() => _prefs.remove(_kConflitos);
 
+  /// Tira **um** conflito da lista — o que acabou de ser resolvido.
+  ///
+  /// O [limparConflitosDeReserva] apaga tudo de uma vez, e servia enquanto o
+  /// cartão não tinha botões: quem resolvia resolvia por fora, na cabeça, e
+  /// depois varria a lista. Com «Remarcar» e «Recusar» no próprio cartão, cada
+  /// decisão tem de apagar só a linha dela — senão resolver a primeira fazia
+  /// desaparecer as outras por resolver.
+  ///
+  /// Linhas ilegíveis ficam onde estão: não são esta, e não se deitam fora à
+  /// boleia de uma decisão que era sobre outra coisa.
+  Future<void> resolverConflitoDeReserva(String idDaOperacao) {
+    _emFila = _emFila.then((_) async {
+      final actual = _prefs.getStringList(_kConflitos) ?? <String>[];
+      final ficam = actual.where((linha) {
+        try {
+          final json = Map<String, dynamic>.from(jsonDecode(linha) as Map);
+          final operacao = Map<String, dynamic>.from(json['operacao'] as Map);
+          return operacao['id'] != idDaOperacao;
+        } catch (_) {
+          return true;
+        }
+      }).toList();
+      if (ficam.length == actual.length) return;
+      await _prefs.setStringList(_kConflitos, ficam);
+    });
+    return _emFila;
+  }
+
   int get cursor => _prefs.getInt(_kCursor) ?? 0;
   Future<void> guardarCursor(int seq) => _prefs.setInt(_kCursor, seq);
 

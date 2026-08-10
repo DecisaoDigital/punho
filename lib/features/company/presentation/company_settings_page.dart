@@ -13,7 +13,11 @@ import '../../../core/empresa_sync/ficha_da_empresa.dart';
 import '../../../core/session/demo_session.dart';
 
 /// Formas jurídicas oferecidas. As mesmas do onboarding.
-const _formasJuridicas = ['Empresário em Nome Individual', 'Lda.'];
+///
+/// Pública desde que o Regime também as oferece: é a forma jurídica que decide
+/// o regime fiscal, e duas listas destas a divergir davam duas empresas
+/// diferentes conforme o ecrã por onde se entrasse.
+const formasJuridicas = ['Empresário em Nome Individual', 'Lda.'];
 
 /// Definições da empresa: ver e editar tudo o que o onboarding recolheu.
 ///
@@ -116,9 +120,9 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
           ];
     // Dados antigos podem ter uma forma jurídica que já não está na lista; sem
     // isto o Dropdown rebentava por o valor não ter opção correspondente.
-    _legalForm = _formasJuridicas.contains(dados.legalForm)
+    _legalForm = formasJuridicas.contains(dados.legalForm)
         ? dados.legalForm
-        : (dados.legalForm.isEmpty ? _formasJuridicas.first : dados.legalForm);
+        : (dados.legalForm.isEmpty ? formasJuridicas.first : dados.legalForm);
   }
 
   @override
@@ -283,7 +287,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
             isExpanded: true,
             decoration: const InputDecoration(labelText: 'Forma jurídica'),
             items: [
-              for (final forma in {..._formasJuridicas, _legalForm})
+              for (final forma in {...formasJuridicas, _legalForm})
                 DropdownMenuItem(value: forma, child: Text(forma)),
             ],
             onChanged: (valor) =>
@@ -370,7 +374,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
         icone: Icons.receipt_long_outlined,
         titulo: 'Custos fixos mensais',
         children: [
-          _EditorDeCustosFixos(
+          EditorDeCustosFixos(
             rubricas: _custosFixos,
             aoMudar: (novas) => setState(() => _custosFixos = novas),
             erros: _errosCustos,
@@ -500,8 +504,14 @@ class _CardSeccao extends StatelessWidget {
 /// Substitui um campo único de "Custos fixos mensais (€)". Um total redondo não
 /// se revê nem se corrige — quando a renda sobe, o gestor não sabe que parte do
 /// número mudar, e o painel não consegue dizer onde apertar.
-class _EditorDeCustosFixos extends StatelessWidget {
-  const _EditorDeCustosFixos({
+///
+/// **Público** porque a aba «Custos fixos» de Empresa o usa tal e qual. Essa
+/// aba era só leitura e o único botão dela era «Editar por rubrica em Dados →»
+/// — o César, a 10 de Agosto de 2026: «custos fixos remete para Dados… não
+/// pode». Duas cópias do editor divergiriam; uma cópia em dois sítios, não.
+class EditorDeCustosFixos extends StatelessWidget {
+  const EditorDeCustosFixos({
+    super.key,
     required this.rubricas,
     required this.aoMudar,
     required this.erros,
@@ -645,10 +655,7 @@ class _EditorDeCustosFixos extends StatelessWidget {
                         return; // fica o valor anterior, não um zero
                       }
                       aoMudarErro(rubricas[i].id, null);
-                      _substituir(
-                        i,
-                        rubricas[i].copyWith(valorCents: cents),
-                      );
+                      _substituir(i, rubricas[i].copyWith(valorCents: cents));
                     },
                   ),
                 ),

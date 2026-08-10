@@ -791,6 +791,10 @@ class OperationsController extends Notifier<OperationsState> {
       name: lead.name,
       phone: lead.phone,
       notes: lead.summary,
+      // Cliente novo é hoje, e não o dia em que a lead entrou: a lead pode
+      // andar meses no funil, e quem conta para "clientes novos" é quem
+      // atravessou a porta.
+      createdAt: DateTime.now(),
     );
     _repo.saveCustomer(customer);
     _repo.saveLead(
@@ -952,6 +956,60 @@ class OperationsController extends Notifier<OperationsState> {
     }
     _repo.saveBooking(current.copyWith(status: status));
     _syncMachineCycle(current.machineIds);
+    state = _fromRepo();
+    return null;
+  }
+
+  /// Muda a marcação de dia, **sem lhe mexer na duração**.
+  ///
+  /// É o gesto que faltava para resolver um conflito de reserva: o servidor
+  /// recusou a marcação porque a máquina já estava ocupada, e a única saída no
+  /// ecrã era recusar o trabalho ou apagar a lista e fingir. Mudar de dia é a
+  /// terceira resposta, e a mais provável.
+  ///
+  /// Só se escolhe o **dia novo**: a hora de início e o comprimento vêm da
+  /// marcação como estavam. Meio dia continua meio dia, três dias continuam
+  /// três — deixar remarcar por intervalo transformava, sem aviso, uma manhã
+  /// num dia inteiro.
+  ///
+  /// Devolve o conflito **local** quando o dia novo também está ocupado (por
+  /// outra marcação, não por esta), e nesse caso não grava nada.
+  BookingConflict? remarcarPara(String bookingId, DateTime novoDia) {
+    final atual = state.bookings.where((b) => b.id == bookingId).firstOrNull;
+    if (atual == null) return null;
+    final inicio = DateTime(
+      novoDia.year,
+      novoDia.month,
+      novoDia.day,
+      atual.startsAt.hour,
+      atual.startsAt.minute,
+    );
+    final fim = inicio.add(atual.endsAt.difference(atual.startsAt));
+    final conflito = conflictFor(
+      machineIds: atual.machineIds,
+      startsAt: inicio,
+      endsAt: fim,
+    );
+    // Consigo própria não é conflito: é a marcação que ainda lá está no sítio
+    // antigo, e é justamente essa que se vai mexer.
+    if (conflito != null && conflito.booking.id != bookingId) return conflito;
+    _repo.saveBooking(
+      Booking(
+        id: atual.id,
+        customerId: atual.customerId,
+        machineIds: atual.machineIds,
+        startsAt: inicio,
+        endsAt: fim,
+        status: atual.status,
+        expectedValueCents: atual.expectedValueCents,
+        notes: atual.notes,
+        collaboratorResponsibleId: atual.collaboratorResponsibleId,
+        companyId: atual.companyId,
+        customerNameSnapshot: atual.customerNameSnapshot,
+        collaboratorNameSnapshot: atual.collaboratorNameSnapshot,
+      ),
+    );
+    _syncMachineCycle(atual.machineIds);
     state = _fromRepo();
     return null;
   }

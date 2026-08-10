@@ -673,4 +673,82 @@ void main() {
     expect(maquina.acquiredOn, DateTime(2022, 6, 1));
     expect(maquina.purchasePriceCents, 450000);
   });
+
+  /// **Remarcar** — a terceira saída de um conflito de reserva, e a mais
+  /// provável. Até 10 de Agosto de 2026 o ecrã de conflitos prometia
+  /// «remarcar ou recusar» e não tinha botão nenhum, porque não havia gesto
+  /// nenhum: só se criava e só se mudava de estado.
+  group('remarcarPara', () {
+    OperationsController controlador(ProviderContainer c) =>
+        c.read(operationsProvider.notifier);
+
+    Booking meioDia(String id, DateTime dia) => Booking(
+      id: id,
+      customerId: 'c1',
+      machineIds: const ['m1'],
+      startsAt: DateTime(dia.year, dia.month, dia.day),
+      endsAt: DateTime(dia.year, dia.month, dia.day, 12),
+      status: BookingStatus.confirmed,
+    );
+
+    test('muda o dia e não a duração', () {
+      final c = container();
+      addTearDown(c.dispose);
+      final n = controlador(c);
+      n.addBooking(meioDia('r', DateTime(2026, 10, 10)));
+
+      expect(n.remarcarPara('r', DateTime(2026, 10, 17)), isNull);
+
+      final depois = c
+          .read(operationsProvider)
+          .bookings
+          .firstWhere((b) => b.id == 'r');
+      expect(depois.startsAt, DateTime(2026, 10, 17));
+      // Meia manhã continua meia manhã: remarcar por intervalo transformava-a
+      // num dia inteiro sem ninguém pedir.
+      expect(depois.endsAt, DateTime(2026, 10, 17, 12));
+    });
+
+    test('não é conflito consigo própria', () {
+      final c = container();
+      addTearDown(c.dispose);
+      final n = controlador(c);
+      n.addBooking(meioDia('r', DateTime(2026, 10, 10)));
+
+      // Para o mesmo dia em que já está: a única sobreposição é ela mesma.
+      expect(n.remarcarPara('r', DateTime(2026, 10, 10)), isNull);
+    });
+
+    test('recusa o dia que já está ocupado por outra, e não grava', () {
+      final c = container();
+      addTearDown(c.dispose);
+      final n = controlador(c);
+      n.addBooking(meioDia('r', DateTime(2026, 10, 10)));
+      n.addBooking(meioDia('outra', DateTime(2026, 10, 20)));
+
+      final choque = n.remarcarPara('r', DateTime(2026, 10, 20));
+
+      expect(choque, isNotNull);
+      expect(choque!.booking.id, 'outra');
+      expect(
+        c
+            .read(operationsProvider)
+            .bookings
+            .firstWhere((b) => b.id == 'r')
+            .startsAt,
+        DateTime(2026, 10, 10),
+        reason: 'nada muda quando o dia novo também está ocupado',
+      );
+    });
+
+    test('marcação que já não existe não rebenta', () {
+      final c = container();
+      addTearDown(c.dispose);
+
+      expect(
+        controlador(c).remarcarPara('fantasma', DateTime(2026, 10, 17)),
+        isNull,
+      );
+    });
+  });
 }
