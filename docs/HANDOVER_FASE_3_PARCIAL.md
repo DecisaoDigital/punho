@@ -14,7 +14,7 @@ antes do passo 2 estar feito.
 
 ## O que fez
 
-### `ea3fa21` — lado do servidor: três migrations, **nenhuma aplicada**
+### `ea3fa21` — lado do servidor: três migrations, **aplicadas em produção a 10 Ago**
 
 | Ficheiro | O quê |
 |---|---|
@@ -22,10 +22,24 @@ antes do passo 2 estar feito.
 | `20260810151000_punho_transicao_entidades_do_instantaneo.sql` | passa ao registo as entidades que só existam no instantâneo; coluna `punho_empresas.entidades_migradas_em`; função `punho_migrar_entidades_do_instantaneo(uuid)`; bloco `do $$` que corre para todas as empresas |
 | `20260810152000_punho_instantaneo_deixa_de_projectar_entidades.sql` | cai o gatilho `punho_estado_operacional_projectar` e a `punho_projectar_ficha`; `punho_reprojectar_empresa` passa a reconstruir só do registo |
 
+Mais `20260810153000_punho_transicao_revoke_de_public.sql`, que corrige um erro
+da 151000 — ver «o que descobriu».
+
 Todas reversíveis, com o como-desfazer escrito no topo do próprio ficheiro.
 
-**A ordem de aplicação importa:** 150000 → 151000 → 152000. A transição tem de
-correr antes de o gatilho cair.
+**A ordem de aplicação importa:** 150000 → 151000 → 152000 → 153000. A
+transição tem de correr antes de o gatilho cair.
+
+**Aplicadas em produção a 10 Ago 2026.** Contagens antes e depois, por empresa:
+idênticas em todas as oito entidades e nas operações. A transição criou **zero**
+operações (não havia nada só no instantâneo, como o mapa previa) e marcou as
+duas empresas em `entidades_migradas_em`. Depois disso:
+
+- gatilho `punho_estado_operacional_projectar`: **não existe**;
+- funções `punho_projectar_ficha` e `punho_estado_operacional_projectar`: **não existem**;
+- gatilhos que restam em `punho_estado_operacional`: **zero**;
+- gatilho `punho_operacoes_projectar`: **de pé**, como tem de estar;
+- `punho_painel`: existe, 3 políticas, DELETE revogado, zero linhas.
 
 ### `c963c03` — lado da app (WIP)
 
@@ -129,7 +143,17 @@ Agosto passou despercebida.
    entidades a partir da ficha. O nome enganou-me na primeira leitura e é
    provável que tenha enganado quem lá mexeu antes.
 
-6. **A projecção não tem guarda de ordem em lado nenhum**, nem no canal das
+6. **`revoke ... from authenticated, anon` não revoga nada.** O Postgres dá
+   `EXECUTE` a **PUBLIC** em cada `create function`, e revogar dos dois papéis
+   nominais deixa o de PUBLIC de pé — `authenticated` continua a poder executar
+   por ser membro de PUBLIC. No ACL vê-se como `=X/postgres`: um `=X` sem papel
+   à esquerda é PUBLIC. A `punho_migrar_entidades_do_instantaneo` é `security
+   definer` e recebe `p_empresa` como argumento, portanto qualquer sessão
+   autenticada podia mandá-la correr sobre a empresa de outra pessoa. Corrigido
+   em `20260810153000`. **Correr `get_advisors` a seguir a cada migration que
+   crie funções** — foi o que apanhou isto, minutos depois de aplicar.
+
+7. **A projecção não tem guarda de ordem em lado nenhum**, nem no canal das
    operações. Ali é menos grave porque o carimbo é `feito_em` (o momento do
    facto) e não `now()`, mas uma operação que chegue muito atrasada continua a
    poder reescrever uma entidade mais recente. Fora do âmbito desta fase —
