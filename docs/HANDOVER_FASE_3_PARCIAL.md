@@ -108,10 +108,17 @@ Falta o lado da app. A tabela e a função já existem em `ea3fa21`. É preciso:
   é a palavra do outro canal, e devolviam só a ficha. Os doc-comments das duas
   classes foram reescritos — o da ficha prometia «o estado completo exclusivo
   do gestor», que deixou de ser verdade.
-- **6 — teste de fronteira.** `test/core/sync/fronteira_dos_canais_test.dart`
-  (o nome já está citado no doc-comment de `_payloadDaFicha`). Tem de falhar se
-  um fluxo da ficha invocar importação ou substituição de máquinas, reservas ou
-  finanças.
+- ~~**6 — teste de fronteira.**~~ **feito.**
+  `test/core/sync/fronteira_dos_canais_test.dart`, 7 testes em três grupos: o
+  que sobe (a ficha leva duas chaves e mais nenhuma, com um telemóvel cheio das
+  oito entidades a subir exactamente a mesma ficha), o que desce (nenhuma das
+  oito listas cede a uma ficha que as traga a contradizê-la) e o cruzamento (um
+  fluxo da ficha não regista operação nenhuma — com a sonda inversa a provar
+  que o `aoRegistarOperacao` dispara). **Contraprova feita:** com
+  `'machines'` de volta ao `_payloadDaFicha` e o `if (apenasDadosDaEmpresa)
+  return;` arrombado, falham 4 dos 7. A lista das chaves permitidas vive no
+  ficheiro de teste, de propósito: ir buscá-la ao próprio método era concordar
+  sempre com o que lá estivesse. **1106 passam.**
 - **7 — a perda silenciosa.** `sincronizacao_ficha_empresa.dart`, no ramo em que
   a revisão remota difere: importa e descarta o local sem avisar. O teste
   `o_servidor_manda_test.dart:99-118` consagra isso. Corrigir os dois. No
