@@ -653,7 +653,9 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     _markDirty();
   }
 
-  String exportOperationalPayload() => jsonEncode(_operationalPayload());
+  /// O que sobe ao servidor pelo canal do instantâneo: **só a ficha da
+  /// empresa**. Ver [_payloadDaFicha].
+  String exportOperationalPayload() => jsonEncode(_payloadDaFicha());
 
   /// Traz do servidor o instantâneo do que é **da empresa** — e só isso.
   ///
@@ -683,6 +685,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
       _applyData(
         Map<String, dynamic>.from(jsonDecode(raw) as Map),
         apenasDadosDaEmpresa: true,
+        ignorarPainel: true,
       );
       _remoteRevision = revision;
       // **A arrumação do painel não se perde à passagem.**
@@ -727,7 +730,48 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     _persist();
   }
 
-  Map<String, Object?> _operationalPayload() => <String, Object?>{
+  /// **O que este aparelho grava em disco.** Tudo: a ficha, as entidades e o
+  /// painel.
+  ///
+  /// Não confundir com [_payloadDaFicha], que é o que *sobe ao servidor*. Eram
+  /// o mesmo método, e é daí que vem a avaria que a Fase 3 fechou: as entidades
+  /// tinham de estar aqui — senão a app perdia tudo ao fechar — e por estarem
+  /// aqui subiam também, sem ninguém as ter posto a subir de propósito.
+  Map<String, Object?> _payloadLocal() => <String, Object?>{
+    ..._payloadDaFicha(),
+    'machines': _machines.map(_machineToJson).toList(),
+    'customers': _customers.map(_customerToJson).toList(),
+    'leads': _leads.map(_leadToJson).toList(),
+    'bookings': _bookings.map(_bookingToJson).toList(),
+    'expenses': _expenses.map(_expenseToJson).toList(),
+    'receipts': _receipts.map(_receiptToJson).toList(),
+    'collaborators': _collaborators.map(_collaboratorToJson).toList(),
+    'vehicles': _vehicles.map(_vehicleToJson).toList(),
+    // O painel grava-se aqui, mas sobe por `punho_painel` — não pelo
+    // instantâneo. Ver [SincronizacaoDoPainel].
+    'painel': painel.toJson(),
+  };
+
+  /// **O que sobe ao servidor pelo instantâneo — e só isto.**
+  ///
+  /// A ficha da empresa: o onboarding (com os custos fixos) e o histórico
+  /// mensal. Coisas que só o gestor edita, num sítio só, raramente.
+  ///
+  /// As entidades saíram daqui na Fase 3. Subiam à boleia, ninguém as lia de
+  /// volta — a app ignora-as na descida desde 4 de Agosto — e no servidor um
+  /// gatilho projectava-as para as tabelas com `now()`, sem guarda de ordem.
+  /// Bastava o gestor gravar os custos fixos com a cópia local atrasada para
+  /// uma reserva que o operador acabara de entregar voltar atrás. Sem erro,
+  /// sem aviso.
+  ///
+  /// O painel também saiu: passou a ter tabela própria. Compor um painel são
+  /// cinco a dez gestos, e cada um fazia subir o estado inteiro da empresa.
+  ///
+  /// **Se estiveres a pensar acrescentar uma entidade aqui, não é aqui.** É no
+  /// registo de operações, que é quem tem ordem do servidor e resolve empates.
+  /// Há um teste que falha se isto voltar a crescer:
+  /// `test/core/sync/fronteira_dos_canais_test.dart`.
+  Map<String, Object?> _payloadDaFicha() => <String, Object?>{
     'onboarding': onboarding == null
         ? null
         : {
@@ -753,16 +797,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
                 .map((c) => c.toJson())
                 .toList(),
           },
-    'machines': _machines.map(_machineToJson).toList(),
-    'customers': _customers.map(_customerToJson).toList(),
-    'leads': _leads.map(_leadToJson).toList(),
-    'bookings': _bookings.map(_bookingToJson).toList(),
-    'expenses': _expenses.map(_expenseToJson).toList(),
-    'receipts': _receipts.map(_receiptToJson).toList(),
-    'collaborators': _collaborators.map(_collaboratorToJson).toList(),
-    'vehicles': _vehicles.map(_vehicleToJson).toList(),
     'historicalMonths': _historicalMonths.map(_historicalMonthToJson).toList(),
-    'painel': painel.toJson(),
   };
 
   /// Se este aparelho pode guardar dados da empresa entre arranques.
@@ -800,7 +835,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
 
   void _persist() {
     if (!_guardaNoAparelho) return;
-    final data = _operationalPayload();
+    final data = _payloadLocal();
     data['sync'] = {
       'remoteRevision': _remoteRevision,
       'hasPendingRemoteChanges': _hasPendingRemoteChanges,
@@ -847,9 +882,16 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   /// das operações. Ver [importOperationalPayload], que é quem o usa — a
   /// leitura do que está gravado no telemóvel ([_restore]) tem de aplicar tudo,
   /// senão a app arrancava sem metade do que lá está.
+  ///
+  /// [ignorarPainel] existe pela mesma razão, para o outro lado: o painel
+  /// grava-se em disco mas já não viaja no instantâneo — tem tabela própria.
+  /// Um instantâneo escrito por uma app anterior à Fase 3 ainda traz a chave
+  /// `painel`, e lê-la aqui era deixar um payload velho mandar num canal que
+  /// já não é dele.
   void _applyData(
     Map<String, dynamic> data, {
     bool apenasDadosDaEmpresa = false,
+    bool ignorarPainel = false,
   }) {
     final onboardingJson = _mapOrNull(data['onboarding']);
     if (onboardingJson != null) {
@@ -895,19 +937,19 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
       data['historicalMonths'],
       _historicalMonthFromJson,
     );
-    // O painel também: é arrumação do gestor, não trabalho de terreno. Fica
-    // antes do corte porque tem de chegar pelas duas vias — a leitura do que
-    // está no telemóvel e o instantâneo que vem do servidor.
+    // O painel vem do disco deste aparelho, e só de lá. Do servidor chega pela
+    // sua tabela — ver [SincronizacaoDoPainel] —, não por aqui.
     //
-    // **Ausente não é vazio.** Um instantâneo escrito por uma app que ainda não
-    // sabia do painel não está a dizer "não escolheu nada" — está calada sobre
-    // ele. Ler esse silêncio como painel vazio apagava a arrumação do gestor de
-    // cada vez que um aparelho com a versão antiga sincronizasse, sem erro
-    // nenhum à vista. Esvaziá-lo de propósito continua a passar: aí a chave vem,
-    // com as listas vazias.
-    final painelDoServidor = _mapOrNull(data['painel']);
-    if (painelDoServidor != null) {
-      _painel = ArranjoDoPainel.fromJson(painelDoServidor);
+    // **Ausente não é vazio.** Um payload que não tem a chave `painel` não está
+    // a dizer "não escolheu nada" — está calado sobre ele. Ler esse silêncio
+    // como painel vazio apagava a arrumação do gestor sem erro nenhum à vista.
+    // Esvaziá-lo de propósito continua a passar: aí a chave vem, com as listas
+    // vazias.
+    if (!ignorarPainel) {
+      final painelGravado = _mapOrNull(data['painel']);
+      if (painelGravado != null) {
+        _painel = ArranjoDoPainel.fromJson(painelGravado);
+      }
     }
     if (apenasDadosDaEmpresa) return;
     _replace(_machines, data['machines'], _machineFromJson);
