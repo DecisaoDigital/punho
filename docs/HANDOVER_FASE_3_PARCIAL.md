@@ -1,5 +1,9 @@
 # Handover — Fase 3 (parcial), um só motor de sincronização
 
+> **Substituído por `docs/HANDOVER_FASE_3.md`.** Fica aqui pelo que este não
+> repete: as contagens de produção antes/depois das migrations e o mapa do que
+> se descobriu nos passos 1 e 2.
+
 **Data:** 10 de Agosto de 2026
 **Branch:** `fase3/um-so-sync` (empurrado)
 **Porque é parcial:** a sessão chegou aos 200 K de contexto no fim do passo 1
@@ -119,12 +123,7 @@ Falta o lado da app. A tabela e a função já existem em `ea3fa21`. É preciso:
   return;` arrombado, falham 4 dos 7. A lista das chaves permitidas vive no
   ficheiro de teste, de propósito: ir buscá-la ao próprio método era concordar
   sempre com o que lá estivesse. **1106 passam.**
-- **7 — a perda silenciosa.** `sincronizacao_ficha_empresa.dart`, no ramo em que
-  a revisão remota difere: importa e descarta o local sem avisar. O teste
-  `o_servidor_manda_test.dart:99-118` consagra isso. Corrigir os dois. No
-  mínimo: guardar o payload descartado e dizê-lo ao utilizador — a aba Estado
-  da Empresa já é o sítio onde os conflitos de reserva aparecem (Fase C), e é o
-  sítio natural para isto.
+- ~~**7 — a perda silenciosa.**~~ **feito.** Ver `docs/HANDOVER_FASE_3.md`.
 
 ### A prova final, que é a única que conta
 

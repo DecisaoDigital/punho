@@ -9,6 +9,7 @@ import '../../../core/navigation/app_destination.dart';
 import '../../../core/navigation/navigation_controller.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../core/session/demo_session.dart';
+import '../../../core/sync/fichas_postas_de_lado.dart';
 import '../../../core/theme/punho_theme.dart';
 import '../../../shared/widgets/brand_lockup.dart';
 import '../../../shared/widgets/versao_app.dart';
@@ -455,12 +456,15 @@ class _SidebarItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Duas áreas levam contagem, e só estas — um badge em cada uma deixaria de
-    // chamar a atenção a nada. Tarefas: o que há por fazer. Empresa: conflitos
-    // de reserva que saíram da fila de sync e esperam decisão do gestor (senão
-    // uma marcação recusada some-se sem ninguém dar por ela). Ambos vermelhos:
-    // são coisas a resolver, não meros avisos.
+    // chamar a atenção a nada. Tarefas: o que há por fazer. Empresa: o que a
+    // sincronização não resolveu sozinha e espera decisão do gestor — marcações
+    // que o servidor barrou por sobreposição, e fichas da empresa que este
+    // telemóvel perdeu para o servidor. Sem badge, as duas coisas somem-se sem
+    // ninguém dar por elas, que é exactamente o defeito que se foi corrigir.
+    // Ambos vermelhos: são coisas a resolver, não meros avisos.
     final conflitos = item == AppDestination.empresa
-        ? (ref.watch(conflitosDeReservaProvider).valueOrNull?.length ?? 0)
+        ? (ref.watch(conflitosDeReservaProvider).valueOrNull?.length ?? 0) +
+              (ref.watch(fichasPostasDeLadoProvider).valueOrNull?.length ?? 0)
         : 0;
     final pendentes = item == AppDestination.tasks
         ? ref.watch(contagemTarefasPendentesProvider)

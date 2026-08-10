@@ -23,7 +23,7 @@ regra em `AGENTS.md`, secção «Uma sessão por fase».
 | **2** | Autorização por campo, aplicada à base viva | feito. Matriz, provas, e o 42501 que tranca as apps antigas |
 | **C** | Consolidação — três linhas de trabalho por committar | feito, `v0.3.5`. `docs/HANDOVER_FASE_C.md` |
 | **C3** | As funções deixam de nascer abertas | feito. `docs/HANDOVER_C3.md` |
-| **3** | Um só motor de sincronização | **em curso.** `docs/HANDOVER_FASE_3_PARCIAL.md` |
+| **3** | Um só motor de sincronização | **código feito**, os 7 passos. `docs/HANDOVER_FASE_3.md`. Falta a prova nos dois telemóveis — sem ela não vai para `main` |
 | **5** | Visibilidade | por fazer |
 | **6** | Cifra local | por fazer |
 | **7** | Realtime, docs, gate de release | por fazer |

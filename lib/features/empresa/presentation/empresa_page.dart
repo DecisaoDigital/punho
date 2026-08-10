@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/finance/regime_fiscal.dart';
 import '../../../core/navigation/app_destination.dart';
@@ -10,7 +11,9 @@ import '../../contabilista/presentation/historico_contabilista_page.dart';
 import '../../finance/presentation/financas_page.dart';
 import '../../sync/sync_providers.dart';
 import '../../workforce/presentation/workforce_pages.dart';
+import '../../../core/sync/fichas_postas_de_lado.dart';
 import '../../../core/sync/registo_de_operacoes.dart';
+import '../../dashboard/presentation/widgets/kpi_grid_2x2.dart' show euros;
 
 /// Tudo o que é da empresa, num sítio só (Decisão 2).
 ///
@@ -236,9 +239,10 @@ class _AbaCustosFixos extends ConsumerWidget {
   }
 }
 
-/// Estado da empresa para o gestor. Hoje mostra os **conflitos de reserva a
-/// resolver** — marcações que o servidor barrou por sobreposição (`23P01`) e
-/// que saíram da fila de sync para não a trancar. A timeline de obrigações
+/// Estado da empresa para o gestor. É onde aparece o que a sincronização não
+/// conseguiu resolver sozinha e precisa de olhos: os **conflitos de reserva**
+/// (marcações que o servidor barrou por sobreposição, `23P01`) e as **fichas
+/// que este telemóvel perdeu para o servidor**. A timeline de obrigações
 /// fiscais entra aqui mais tarde.
 class _AbaEstado extends ConsumerWidget {
   const _AbaEstado();
@@ -247,9 +251,45 @@ class _AbaEstado extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final conflitos = ref.watch(conflitosDeReservaProvider);
+    final postasDeLado =
+        ref.watch(fichasPostasDeLadoProvider).valueOrNull ?? const [];
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
+        // Só aparece quando aconteceu. Não leva linha de "tudo em dia": isto
+        // não é um estado por que se espera, é uma coisa que correu mal e que
+        // se resolve escrevendo outra vez.
+        if (postasDeLado.isNotEmpty) ...[
+          Text(
+            'Ficou por enviar',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'A ficha da empresa que este telemóvel tinha para enviar foi '
+            'substituída pela que estava no servidor — alguém gravou primeiro, '
+            'noutro aparelho. Está aqui o que se escreveu aqui, para se voltar '
+            'a escrever.',
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+          ),
+          const SizedBox(height: 12),
+          for (final ficha in postasDeLado) _cartaoPostaDeLado(theme, ficha),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await RegistoDeFichasPostasDeLado(prefs).limpar();
+                ref.invalidate(fichasPostasDeLadoProvider);
+              },
+              icon: const Icon(Icons.check_circle_outline),
+              label: const Text('Já reescrevi — limpar'),
+            ),
+          ),
+          const SizedBox(height: 28),
+        ],
         Text('Conflitos de reserva', style: theme.textTheme.titleMedium),
         const SizedBox(height: 4),
         Text(
@@ -320,6 +360,41 @@ class _AbaEstado extends ConsumerWidget {
       subtitle: Text('Marcação ${c.operacao.entidadeId}'),
     ),
   );
+
+  /// O que ia dentro da ficha, em números. Não é o payload cru: é o que chega
+  /// para o gestor perceber o que tem de voltar a escrever.
+  Widget _cartaoPostaDeLado(ThemeData theme, FichaPostaDeLado ficha) {
+    final resumo = ficha.resumo;
+    final partes = <String>[
+      if (resumo.rubricas > 0)
+        '${resumo.rubricas} '
+            '${resumo.rubricas == 1 ? 'rubrica' : 'rubricas'} de custos fixos '
+            '(${euros(resumo.custosMensaisCents)}/mês)',
+      if (resumo.meses > 0)
+        '${resumo.meses} ${resumo.meses == 1 ? 'mês' : 'meses'} de histórico',
+    ];
+    final quando = ficha.quando.toLocal();
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Icon(Icons.upload_file_outlined, color: theme.colorScheme.error),
+        title: Text(resumo.empresa ?? 'Ficha da empresa'),
+        subtitle: Text(
+          [
+            if (partes.isNotEmpty) partes.join(' · '),
+            '${_doisDigitos(quando.day)}/${_doisDigitos(quando.month)}/'
+                '${quando.year} às ${_doisDigitos(quando.hour)}:'
+                '${_doisDigitos(quando.minute)} — o servidor estava na revisão '
+                '${ficha.revisaoDoServidor}, este telemóvel na '
+                '${ficha.revisaoLocal ?? '—'}.',
+          ].join('\n'),
+        ),
+        isThreeLine: partes.isNotEmpty,
+      ),
+    );
+  }
+
+  static String _doisDigitos(int valor) => valor.toString().padLeft(2, '0');
 
   Widget _placeholderFiscal(ThemeData theme) => Row(
     children: [

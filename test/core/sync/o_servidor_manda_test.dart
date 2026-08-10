@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:punho/core/sync/fichas_postas_de_lado.dart';
+import 'package:punho/core/sync/sincronizacao_ficha_empresa.dart';
 import 'package:punho/data/repositories/operation_repository.dart';
 import 'package:punho/domain/models/historical_month.dart';
 import 'package:punho/domain/models/operations.dart';
@@ -20,6 +22,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// `requiresReview` e a sincronização parava à espera de alguém. Não há
 /// ninguém: o aparelho ficava a mostrar uma ficha que já não era a da empresa,
 /// sem erro nenhum à vista.
+///
+/// **A regra ficou; o silêncio não.** Este ficheiro chegou a consagrar a perda:
+/// dava-a por boa e não perguntava para onde tinha ido o que o gestor escreveu.
+/// Quem perde para o servidor passa a ficar guardado em
+/// `RegistoDeFichasPostasDeLado` e a aparecer na aba Estado da Empresa.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -96,24 +103,74 @@ void main() {
   });
 
   group('quem ganha', () {
-    test('a revisão avança: o aparelho recebe e a ficha local perde', () async {
+    test('a revisão avança: o aparelho recebe, e o que ia subir fica '
+        'guardado', () async {
       final repo = await repositorio();
-      repo.importarFichaDaEmpresa(fichaDoServidor('Terraforte'), revision: 3);
+      final postasDeLado = RegistoDeFichasPostasDeLado(
+        await SharedPreferences.getInstance(),
+      );
+      final canal = SincronizacaoFichaEmpresa(repo, postasDeLado: postasDeLado);
+      await canal.receberDoServidor(fichaDoServidor('Terraforte'), revisao: 3);
 
       // Uma semana sem rede, e o gestor mexeu na ficha neste telemóvel.
       repo.saveOnboarding(fichaCom(repo.onboarding!, colaboradores: 99));
       expect(repo.hasPendingRemoteChanges, isTrue);
 
       // Volta a haver rede e o servidor está na revisão 7. É ele que manda.
-      repo.importarFichaDaEmpresa(
+      await canal.receberDoServidor(
         fichaDoServidor('Terraforte Unipessoal'),
-        revision: 7,
+        revisao: 7,
       );
 
       expect(repo.onboarding?.companyName, 'Terraforte Unipessoal');
       expect(repo.onboarding?.collaborators, 4);
       expect(repo.remoteRevision, 7);
       expect(repo.hasPendingRemoteChanges, isFalse);
+
+      // **E aqui é que este teste mudou.** Consagrava a perda: dava-a por boa e
+      // não perguntava o que tinha acontecido aos 99 colaboradores que o gestor
+      // escreveu. Perder para o servidor continua certo; perdê-los sem deixar
+      // rasto era o defeito.
+      final guardada = postasDeLado.todas.single;
+      expect(guardada.revisaoLocal, 3);
+      expect(guardada.revisaoDoServidor, 7);
+      expect(guardada.payload, contains('"collaborators":99'));
+    });
+
+    test('sem nada por subir não se guarda perda nenhuma', () async {
+      final repo = await repositorio();
+      final postasDeLado = RegistoDeFichasPostasDeLado(
+        await SharedPreferences.getInstance(),
+      );
+      final canal = SincronizacaoFichaEmpresa(repo, postasDeLado: postasDeLado);
+
+      await canal.receberDoServidor(fichaDoServidor('Terraforte'), revisao: 3);
+      await canal.receberDoServidor(fichaDoServidor('Terraforte II'), revisao: 4);
+
+      // Este aparelho nunca escreveu nada por cima: receber a ficha nova é
+      // sincronizar, não é perder. Um balde que enchesse a cada passagem
+      // ensinava o gestor a ignorá-lo.
+      expect(postasDeLado.todas, isEmpty);
+    });
+
+    test('ficha ilegível: ninguém recebe e ninguém perde', () async {
+      final repo = await repositorio();
+      final postasDeLado = RegistoDeFichasPostasDeLado(
+        await SharedPreferences.getInstance(),
+      );
+      final canal = SincronizacaoFichaEmpresa(repo, postasDeLado: postasDeLado);
+      await canal.receberDoServidor(fichaDoServidor('Terraforte'), revisao: 3);
+      repo.saveOnboarding(fichaCom(repo.onboarding!, colaboradores: 99));
+
+      expect(await canal.receberDoServidor('{isto não é json', revisao: 9),
+          isFalse);
+
+      // A ficha local continua inteira e por subir — não foi substituída, logo
+      // não há nada para pôr de lado. Guardar aqui era inventar uma perda.
+      expect(repo.onboarding?.collaborators, 99);
+      expect(repo.hasPendingRemoteChanges, isTrue);
+      expect(repo.remoteRevision, 3);
+      expect(postasDeLado.todas, isEmpty);
     });
 
     test('a alteração feita já com o estado fresco é que sobe', () async {

@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import '../config/supabase_config.dart';
+import '../sync/fichas_postas_de_lado.dart';
 import '../sync/sincronizacao_do_painel.dart';
 import '../sync/sincronizacao_ficha_empresa.dart';
 import '../sync/sync_engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/repositories/operation_repository.dart';
 import 'painel_controller.dart';
@@ -1019,10 +1021,21 @@ class OperationsController extends Notifier<OperationsState> {
       return SyncStatus.synchronized;
     }
     final repo = _repo as PersistentOperationRepository;
-    final result = await SincronizacaoFichaEmpresa(repo).synchronize();
+    final postasDeLado = RegistoDeFichasPostasDeLado(
+      await SharedPreferences.getInstance(),
+    );
+    final result = await SincronizacaoFichaEmpresa(
+      repo,
+      postasDeLado: postasDeLado,
+    ).synchronize();
     if (result == SyncStatus.synchronized) {
       state = _fromRepo();
     }
+    // A ficha que este aparelho tinha por enviar pode ter cedido ao servidor
+    // nesta passagem. Sem isto, o gestor só sabia disso na próxima vez que
+    // abrisse a app — e o objectivo de a guardar era exactamente não o deixar
+    // sem saber.
+    ref.invalidate(fichasPostasDeLadoProvider);
     // **Fora do `if`, e depois.** O painel tem canal próprio desde a Fase 3
     // (`punho_painel`): não depende de o instantâneo ter corrido bem, e ficar
     // pendurado nele era pô-lo a herdar as falhas de um canal que já não é o

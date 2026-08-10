@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/repositories/operation_repository.dart';
 import '../config/supabase_config.dart';
+import 'fichas_postas_de_lado.dart';
 import 'sync_engine.dart';
 
 /// **A ficha da empresa, e mais nada:** o onboarding (com os custos fixos) e o
@@ -31,9 +33,15 @@ import 'sync_engine.dart';
 /// da empresa entre arranques. O trabalho dele sobe e desce pelo canal das
 /// operações, que tem permissões por entidade e por campo.
 class SincronizacaoFichaEmpresa {
-  const SincronizacaoFichaEmpresa(this._repository);
+  const SincronizacaoFichaEmpresa(this._repository, {this.postasDeLado});
 
   final PersistentOperationRepository _repository;
+
+  /// Onde fica o que este aparelho tinha por enviar quando cedeu ao servidor.
+  ///
+  /// Opcional para quem só quer sincronizar sem contar a história — mas a app
+  /// passa-o sempre. Ver [receberDoServidor].
+  final RegistoDeFichasPostasDeLado? postasDeLado;
 
   Future<SyncStatus> synchronize() async {
     if (!SupabaseConfig.enabled) return SyncStatus.synchronized;
@@ -85,22 +93,22 @@ class SincronizacaoFichaEmpresa {
       // ficava encravada até alguém intervir — só que não há ninguém a
       // intervir, e o aparelho ficava indefinidamente a mostrar uma ficha que
       // já não era a da empresa.
+      //
+      // O que **não** se mantém é o silêncio com que isto era feito. Ver
+      // [receberDoServidor].
       if (_repository.remoteRevision != remoteRevision) {
         final payload = Map<String, dynamic>.from(remote['payload'] as Map);
-        final chegou = _repository.importarFichaDaEmpresa(
+        final chegou = await receberDoServidor(
           jsonEncode(payload),
-          revision: remoteRevision,
+          revisao: remoteRevision,
         );
         if (!chegou) return SyncStatus.requiresReview;
-        // Quase sempre acaba aqui: o que vinha por subir cedeu ao servidor e
-        // não há mais nada a fazer. A excepção é o painel — a arrumação deste
-        // aparelho sobrevive à importação, e sobe **já**, na mesma passagem.
-        // Deixá-la para o ciclo seguinte era voltar a expô-la à mesma janela
-        // que a fazia desaparecer.
-        if (!_repository.hasPendingRemoteChanges) {
-          return SyncStatus.synchronized;
-        }
-        return _push(client, expectedRevision: remoteRevision);
+        // Acaba sempre aqui: o que vinha por subir cedeu ao servidor, e a
+        // importação limpa a marca de "por subir". Havia um `_push` a seguir a
+        // isto, para o painel poder subir na mesma passagem — o painel saiu
+        // deste canal na Fase 3 e o `_push` passou a ser código que nunca
+        // corria.
+        return SyncStatus.synchronized;
       }
 
       // Revisões iguais: o que este aparelho tem por subir foi escrito **em
@@ -113,6 +121,50 @@ class SincronizacaoFichaEmpresa {
     } catch (_) {
       return SyncStatus.pendingChanges;
     }
+  }
+
+  /// Recebe a ficha do servidor por cima da local — e **põe de lado** a que ia
+  /// subir, em vez de a deitar fora sem dizer nada.
+  ///
+  /// A regra continua a ser a mesma: velho perde. O que muda é que a perda
+  /// deixa de ser invisível. Enquanto foi, isto acontecia assim: o gestor
+  /// escrevia os custos fixos no telemóvel sem rede; voltava a haver rede; a
+  /// revisão do servidor já era outra porque alguém tinha mexido na ficha
+  /// noutro aparelho; a importação escrevia por cima, punha
+  /// `hasPendingRemoteChanges` a `false` — e as rubricas que ele tinha acabado
+  /// de escrever não estavam em sítio nenhum. Nem no servidor, nem no
+  /// telemóvel, nem num aviso. A app dava a sincronização por boa.
+  ///
+  /// Guarda-se **antes** de importar, porque a importação escreve por cima do
+  /// que se quer guardar, e persiste-se **depois**, só se ela tiver corrido
+  /// bem: uma ficha que não chegou a entrar não deitou nada fora.
+  ///
+  /// Devolve falso se o payload do servidor não deu para ler — aí ninguém
+  /// perdeu nada, e quem chama trata disso.
+  @visibleForTesting
+  Future<bool> receberDoServidor(String payload, {required int revisao}) async {
+    final porSubir = _repository.hasPendingRemoteChanges
+        ? _repository.exportarFichaDaEmpresa()
+        : null;
+    final revisaoLocal = _repository.remoteRevision;
+
+    final chegou = _repository.importarFichaDaEmpresa(
+      payload,
+      revision: revisao,
+    );
+    if (!chegou) return false;
+
+    if (porSubir != null) {
+      await postasDeLado?.guardar(
+        FichaPostaDeLado(
+          quando: DateTime.now().toUtc(),
+          revisaoLocal: revisaoLocal,
+          revisaoDoServidor: revisao,
+          payload: porSubir,
+        ),
+      );
+    }
+    return true;
   }
 
   Future<SyncStatus> _push(
