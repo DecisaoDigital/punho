@@ -22,7 +22,7 @@ class ResultadoDaSincronizacaoDeConflitos {
 }
 
 /// Sincronização do `ConflitoPendente` — mesma família da
-/// `SincronizacaoEntreDispositivos`, mas sem cursor: a tabela é pequena por
+/// `SincronizacaoOperacionalPorOperacoes`, mas sem cursor: a tabela é pequena por
 /// natureza (o número de disputas reais por máquina, não um log de eventos),
 /// por isso cada sincronização traz a tabela inteira da empresa.
 ///

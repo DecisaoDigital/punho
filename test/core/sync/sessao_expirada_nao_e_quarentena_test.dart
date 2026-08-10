@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:punho/core/sync/registo_de_operacoes.dart';
-import 'package:punho/core/sync/sincronizacao_entre_dispositivos.dart';
+import 'package:punho/core/sync/sincronizacao_operacional_por_operacoes.dart';
 import 'package:punho/data/repositories/operation_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -32,7 +32,7 @@ void main() {
 
   Future<
     ({
-      SincronizacaoEntreDispositivos motor,
+      SincronizacaoOperacionalPorOperacoes motor,
       RegistoDeOperacoes registo,
       _ServidorComSessao servidor,
     })
@@ -42,7 +42,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final registo = RegistoDeOperacoes(prefs);
     final servidor = _ServidorComSessao(recusasDeSessao: recusasDeSessao);
-    final motor = SincronizacaoEntreDispositivos(
+    final motor = SincronizacaoOperacionalPorOperacoes(
       repositorio: await PersistentOperationRepository.create(),
       registo: registo,
       cliente: SupabaseClient(

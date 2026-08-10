@@ -1,7 +1,7 @@
 # Dados do funcionário a chegar em tempo real — como se faz a sério
 
 > Estudo, 2 ago 2026. Estado: **proposta, nada implementado.**
-> Sobre o que já existe: `lib/core/sync/sincronizacao_entre_dispositivos.dart`.
+> Sobre o que já existe: `lib/core/sync/sincronizacao_operacional_por_operacoes.dart`.
 
 ## O problema, em concreto
 

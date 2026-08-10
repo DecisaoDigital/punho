@@ -9,7 +9,7 @@ import '../../core/config/supabase_config.dart';
 import '../../core/conflitos/sincronizacao_de_conflitos.dart';
 import '../../core/operations/operations_controller.dart';
 import '../../core/sync/registo_de_operacoes.dart';
-import '../../core/sync/sincronizacao_entre_dispositivos.dart';
+import '../../core/sync/sincronizacao_operacional_por_operacoes.dart';
 import '../../data/repositories/operation_repository.dart';
 import '../auth/acesso_providers.dart';
 import '../conflitos/conflitos_providers.dart';
@@ -38,7 +38,7 @@ class InfoSync {
 /// por um duplo e exercita-se a política (quando sincronizar) sem rede, sem
 /// Supabase e sem disco. Enquanto isto estava dentro do controlador, a política
 /// era intestável — e é ela que tem os erros de ciclo de vida.
-final motorSyncProvider = FutureProvider<SincronizacaoEntreDispositivos?>((
+final motorSyncProvider = FutureProvider<SincronizacaoOperacionalPorOperacoes?>((
   ref,
 ) async {
   if (!SupabaseConfig.enabled) return null;
@@ -50,7 +50,7 @@ final motorSyncProvider = FutureProvider<SincronizacaoEntreDispositivos?>((
   if (repo is! PersistentOperationRepository) return null;
 
   final registo = RegistoDeOperacoes(await SharedPreferences.getInstance());
-  return SincronizacaoEntreDispositivos(
+  return SincronizacaoOperacionalPorOperacoes(
     repositorio: repo,
     registo: registo,
     cliente: Supabase.instance.client,
@@ -80,7 +80,7 @@ final conflitosDeReservaProvider = FutureProvider<List<OperacaoRecusada>>((
 });
 
 class SyncController extends Notifier<InfoSync> {
-  SincronizacaoEntreDispositivos? _motor;
+  SincronizacaoOperacionalPorOperacoes? _motor;
   RegistoDeOperacoes? _registo;
   // Conflitos pendentes (Fase 0, ver plano em curso): sem produtor ainda
   // (nem detecção nem banner), mas já sincroniza no mesmo temporizador em
@@ -140,7 +140,7 @@ class SyncController extends Notifier<InfoSync> {
   }
 
   Future<void> _arrancar(
-    SincronizacaoEntreDispositivos motor,
+    SincronizacaoOperacionalPorOperacoes motor,
     SincronizacaoDeConflitos? motorConflitos,
   ) async {
     try {
@@ -156,7 +156,7 @@ class SyncController extends Notifier<InfoSync> {
   }
 
   Future<void> _montar(
-    SincronizacaoEntreDispositivos motor,
+    SincronizacaoOperacionalPorOperacoes motor,
     SincronizacaoDeConflitos? motorConflitos,
   ) async {
     _motor = motor;

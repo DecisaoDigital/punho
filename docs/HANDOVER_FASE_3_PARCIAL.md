@@ -100,19 +100,20 @@ Falta o lado da app. A tabela e a função já existem em `ea3fa21`. É preciso:
 - **3** — feito no servidor; falta **aplicar** e colar as contagens antes/depois,
   empresa a empresa.
 - **4** — a parte da app está feita (`c963c03`); falta aplicar a migration.
-- **5 — nomes.** `SincronizacaoEntreDispositivos` →
-  `SincronizacaoOperacionalPorOperacoes` (ficheiro
-  `sincronizacao_entre_dispositivos.dart`); `SupabaseOperationalSync` →
-  `SincronizacaoFichaEmpresa` (ficheiro `supabase_operational_sync.dart`).
-  Usos a acertar: `sync_providers.dart` (5×), `operations_controller.dart:1018`,
-  `empresa_sync_controller.dart:14`, `sincronizacao_de_conflitos.dart:25`,
-  `operation_repository.dart:399`, `cursor_na_consulta_test.dart:26`.
+- ~~**5 — nomes.**~~ **feito.** `SincronizacaoEntreDispositivos` →
+  `SincronizacaoOperacionalPorOperacoes` e `SupabaseOperationalSync` →
+  `SincronizacaoFichaEmpresa`, ficheiros incluídos (`git mv`, o histórico
+  segue). Mais `exportOperationalPayload`/`importOperationalPayload` →
+  `exportarFichaDaEmpresa`/`importarFichaDaEmpresa`: diziam *operational*, que
+  é a palavra do outro canal, e devolviam só a ficha. Os doc-comments das duas
+  classes foram reescritos — o da ficha prometia «o estado completo exclusivo
+  do gestor», que deixou de ser verdade.
 - **6 — teste de fronteira.** `test/core/sync/fronteira_dos_canais_test.dart`
   (o nome já está citado no doc-comment de `_payloadDaFicha`). Tem de falhar se
   um fluxo da ficha invocar importação ou substituição de máquinas, reservas ou
   finanças.
-- **7 — a perda silenciosa.** `supabase_operational_sync.dart:69-85`: quando a
-  revisão remota difere, importa e descarta o local sem avisar. O teste
+- **7 — a perda silenciosa.** `sincronizacao_ficha_empresa.dart`, no ramo em que
+  a revisão remota difere: importa e descarta o local sem avisar. O teste
   `o_servidor_manda_test.dart:99-118` consagra isso. Corrigir os dois. No
   mínimo: guardar o payload descartado e dizê-lo ao utilizador — a aba Estado
   da Empresa já é o sítio onde os conflitos de reserva aparecem (Fase C), e é o

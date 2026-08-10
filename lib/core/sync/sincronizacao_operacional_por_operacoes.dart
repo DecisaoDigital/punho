@@ -115,23 +115,30 @@ class ResultadoDaSincronizacao {
   bool get houveMudancas => enviadas > 0 || recebidas > 0;
 }
 
-/// Sincronização entre dispositivos, por operações em vez de instantâneos.
+/// **O trabalho de terreno, uma linha por alteração:** máquinas, clientes,
+/// leads, reservas, despesas, recebimentos, colaboradores e veículos, pelo
+/// registo `punho_operacoes`.
 ///
-/// O que existia empurrava o **estado operacional completo** com uma revisão, e
-/// detectava conflitos em vez de os resolver. Com um gestor no escritório e um
-/// colaborador no terreno — que é o caso de uso da app — um dos dois perdia
-/// sempre o trabalho.
+/// Chamou-se `SincronizacaoEntreDispositivos` até 10 de Agosto de 2026, e o
+/// nome não distinguia nada — os três canais desta app sincronizam entre
+/// dispositivos. O que distingue este é **por operações**: cada alteração é uma
+/// linha só de acrescentar, e a ordem é a do servidor (`seq`).
 ///
-/// Aqui cada alteração é uma linha só de acrescentar. Duas pessoas a mexer em
-/// coisas diferentes não se pisam. Quando é mesmo a mesma entidade, ganha a
-/// última a chegar ao servidor: previsível, e a ordem é a dele (`seq`), não a
-/// dos relógios dos telemóveis, que andam dessincronizados.
+/// O que existia antes empurrava o estado operacional completo com uma revisão,
+/// e detectava conflitos em vez de os resolver. Com um gestor no escritório e
+/// um colaborador no terreno — que é o caso de uso da app — um dos dois perdia
+/// sempre o trabalho. Aqui, duas pessoas a mexer em coisas diferentes não se
+/// pisam. Quando é mesmo a mesma entidade, ganha a última a chegar ao servidor:
+/// previsível, e por `seq`, não pelos relógios dos telemóveis, que andam
+/// dessincronizados.
 ///
-/// **Fica de fora, de propósito:** os dados da empresa (onboarding, custos
-/// fixos, histórico mensal), que continuam pelo caminho antigo. São editados
-/// num sítio só, pelo gestor, e não têm o problema que isto resolve.
-class SincronizacaoEntreDispositivos {
-  SincronizacaoEntreDispositivos({
+/// **Fica de fora, de propósito:** a ficha da empresa (onboarding, custos
+/// fixos, histórico mensal), que vai por [SincronizacaoFichaEmpresa], e o
+/// arranjo do painel, que vai por `SincronizacaoDoPainel`. Nenhum dos dois tem
+/// o problema que isto resolve — são editados num sítio só, pelo gestor — e
+/// pô-los aqui obrigava a inventar entidades para uma disputa que não existe.
+class SincronizacaoOperacionalPorOperacoes {
+  SincronizacaoOperacionalPorOperacoes({
     required this.repositorio,
     required this.registo,
     required SupabaseClient cliente,

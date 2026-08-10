@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/sync/registo_de_operacoes.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:punho/core/sync/sincronizacao_entre_dispositivos.dart';
+import 'package:punho/core/sync/sincronizacao_operacional_por_operacoes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// O que estes testes protegem: **uma operação que o servidor nunca vai
@@ -40,7 +40,7 @@ void main() {
       for (final codigo in ['23514', '23502', '23503', '22007', '22P02',
         '42501', 'P0001']) {
         expect(
-          SincronizacaoEntreDispositivos.ehRecusaDefinitiva(erro(codigo)),
+          SincronizacaoOperacionalPorOperacoes.ehRecusaDefinitiva(erro(codigo)),
           isTrue,
           reason: '$codigo é uma decisão sobre a linha, não sobre o caminho',
         );
@@ -52,7 +52,7 @@ void main() {
       // razão de a app ser utilizável. Nada disto pode ir para quarentena.
       for (final codigo in ['08006', '57014', '53300', null]) {
         expect(
-          SincronizacaoEntreDispositivos.ehRecusaDefinitiva(erro(codigo)),
+          SincronizacaoOperacionalPorOperacoes.ehRecusaDefinitiva(erro(codigo)),
           isFalse,
           reason: '$codigo tem de continuar a ser tentado',
         );
@@ -62,11 +62,11 @@ void main() {
     test('sessão expirada não é recusa de conteúdo nenhuma', () {
       // Ver `sessao_expirada_nao_e_quarentena_test.dart` para o caminho todo.
       expect(
-        SincronizacaoEntreDispositivos.ehRecusaDefinitiva(erro('PGRST301')),
+        SincronizacaoOperacionalPorOperacoes.ehRecusaDefinitiva(erro('PGRST301')),
         isFalse,
       );
       expect(
-        SincronizacaoEntreDispositivos.eFalhaDeSessaoNoEnvio(erro('PGRST301')),
+        SincronizacaoOperacionalPorOperacoes.eFalhaDeSessaoNoEnvio(erro('PGRST301')),
         isTrue,
       );
     });
@@ -75,9 +75,9 @@ void main() {
       // Não é quarentena (payload inválido) mas também não pode ficar a
       // trancar a fila: sai dela para um balde visível à parte. Hoje fica
       // vazio de propósito — o servidor trava a sobreposição com 23514.
-      expect(SincronizacaoEntreDispositivos.eConflitoDeReserva('23P01'), isTrue);
+      expect(SincronizacaoOperacionalPorOperacoes.eConflitoDeReserva('23P01'), isTrue);
       expect(
-        SincronizacaoEntreDispositivos.ehRecusaDefinitiva(erro('23P01')),
+        SincronizacaoOperacionalPorOperacoes.ehRecusaDefinitiva(erro('23P01')),
         isTrue,
         reason: 'sai da fila na mesma; o que muda é o balde',
       );

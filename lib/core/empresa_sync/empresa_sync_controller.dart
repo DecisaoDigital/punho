@@ -11,7 +11,7 @@ import 'ficha_pendente.dart';
 /// A política de "guardar e insistir" para a ficha da empresa — sem Timer,
 /// sem WidgetsBinding, só a lógica de quando algo fica pendente e quando se
 /// dá por entregue. Separado do [EmpresaSyncController] pela mesma razão que
-/// `SincronizacaoEntreDispositivos` está separado do `SyncController` em
+/// `SincronizacaoOperacionalPorOperacoes` está separado do `SyncController` em
 /// `lib/features/sync/sync_providers.dart`: isto testa-se sem Riverpod, sem
 /// relógio a sério e sem widget nenhum.
 class EmpresaSyncEngine {

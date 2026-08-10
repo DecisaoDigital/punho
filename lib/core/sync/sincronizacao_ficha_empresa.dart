@@ -6,13 +6,32 @@ import '../../data/repositories/operation_repository.dart';
 import '../config/supabase_config.dart';
 import 'sync_engine.dart';
 
-/// Sincroniza o estado completo exclusivo do gestor.
+/// **A ficha da empresa, e mais nada:** o onboarding (com os custos fixos) e o
+/// histórico mensal, pelo instantâneo `punho_estado_operacional`.
 ///
-/// O perfil de colaborador não usa esta via, porque o payload contém custos e
-/// finanças. A sincronização granular para colaboradores será feita por tabelas
-/// próprias, com permissões por tipo de registo.
-class SupabaseOperationalSync {
-  const SupabaseOperationalSync(this._repository);
+/// ## Os três canais desta app
+///
+/// | Canal | O quê | Quem ganha |
+/// |---|---|---|
+/// | [SincronizacaoOperacionalPorOperacoes] | máquinas, clientes, leads, reservas, despesas, recebimentos, colaboradores, veículos | a última a chegar ao servidor (`seq`) |
+/// | **este** | onboarding, custos fixos, histórico mensal | o servidor: revisão diferente, o local cede |
+/// | `SincronizacaoDoPainel` | o arranjo do painel do gestor | o carimbo mais recente de quem arrumou |
+///
+/// Cada coisa tem um dono, e é essa a invariante que a Fase 3 veio repor. Este
+/// canal chamava-se `SupabaseOperationalSync` e o nome dizia o contrário do que
+/// ele agora é — «operational» é a palavra do canal de cima. Enquanto o payload
+/// levava as entidades à boleia, era este que mandava nelas, e mandava com
+/// dados velhos: a 4 de Agosto de 2026 um trabalho fechado voltava sozinho a
+/// «em curso» segundos depois, sem erro nenhum a dizê-lo.
+///
+/// ## Porque é que o colaborador não passa por aqui
+///
+/// O payload tem custos e finanças. Quando o perfil não é de gestor, isto
+/// chama `naoGuardarNoAparelho()` e sai: no telemóvel do operador não fica nada
+/// da empresa entre arranques. O trabalho dele sobe e desce pelo canal das
+/// operações, que tem permissões por entidade e por campo.
+class SincronizacaoFichaEmpresa {
+  const SincronizacaoFichaEmpresa(this._repository);
 
   final PersistentOperationRepository _repository;
 
@@ -68,7 +87,7 @@ class SupabaseOperationalSync {
       // já não era a da empresa.
       if (_repository.remoteRevision != remoteRevision) {
         final payload = Map<String, dynamic>.from(remote['payload'] as Map);
-        final chegou = _repository.importOperationalPayload(
+        final chegou = _repository.importarFichaDaEmpresa(
           jsonEncode(payload),
           revision: remoteRevision,
         );
@@ -104,7 +123,7 @@ class SupabaseOperationalSync {
       final revision = await client.rpc(
         'punho_guardar_estado_operacional',
         params: {
-          'novo_payload': jsonDecode(_repository.exportOperationalPayload()),
+          'novo_payload': jsonDecode(_repository.exportarFichaDaEmpresa()),
           'revisao_esperada': expectedRevision,
         },
       );

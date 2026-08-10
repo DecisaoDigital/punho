@@ -399,7 +399,7 @@ para a frente. Decisão do César (9/8): seguir o modelo da app.
   1, zero de tudo; a app só faz *push* para lá, nunca lê de volta), o que
   parecia significar que reinstalar apagava tudo (alarme registado em §3.6).
   Na prática o Punho **re-hidrata do log append-only `punho_operacoes`** num
-  login novo (`lib/core/sync/sincronizacao_entre_dispositivos.dart`, cursor
+  login novo (`lib/core/sync/sincronizacao_operacional_por_operacoes.dart`, cursor
   por `seq` desde 0) — provado: 6 máquinas / 4 clientes / 2 reservas / €2.200
   voltaram sozinhas após login num emulador limpo (§3.14). Só
   `historicalMonths` é puramente local (não vai a log) e perde-se no

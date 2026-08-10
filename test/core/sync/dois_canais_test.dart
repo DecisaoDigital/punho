@@ -75,7 +75,7 @@ void main() {
     // O gestor fechou o trabalho. Isto é o que ficou no telemóvel.
     repo.saveBooking(reserva(BookingStatus.completed));
 
-    repo.importOperationalPayload(instantaneoVelho(), revision: 1);
+    repo.importarFichaDaEmpresa(instantaneoVelho(), revision: 1);
 
     // Antes desta separação vinha `rented`, e o trabalho voltava a aparecer
     // como se nunca tivesse sido fechado.
@@ -104,7 +104,7 @@ void main() {
     );
 
     // O instantâneo traz listas vazias — nele estas coisas nunca existiram.
-    repo.importOperationalPayload(instantaneoVelho(), revision: 1);
+    repo.importarFichaDaEmpresa(instantaneoVelho(), revision: 1);
 
     expect(repo.machines.single.reference, 'GIR-09');
     expect(repo.expenses.single.id, 'd1');
@@ -114,7 +114,7 @@ void main() {
     final repo = await repositorio();
 
     expect(
-      repo.importOperationalPayload(instantaneoVelho(), revision: 1),
+      repo.importarFichaDaEmpresa(instantaneoVelho(), revision: 1),
       isTrue,
     );
 

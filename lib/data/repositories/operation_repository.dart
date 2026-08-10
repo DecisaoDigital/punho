@@ -410,7 +410,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   /// registar. O gestor via os dados no seu aparelho e mais ninguém os via, sem
   /// erro nenhum à vista.
   ///
-  /// Chamado uma vez por empresa (ver `SincronizacaoEntreDispositivos`).
+  /// Chamado uma vez por empresa (ver `SincronizacaoOperacionalPorOperacoes`).
   /// Correr duas vezes não estraga nada: a mesma entidade chega com o mesmo
   /// conteúdo e a última a chegar ganha — mas é desperdício, daí a marca.
   int carregarTudoParaFila() {
@@ -694,12 +694,12 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
 
   /// O que sobe ao servidor pelo canal do instantâneo: **só a ficha da
   /// empresa**. Ver [_payloadDaFicha].
-  String exportOperationalPayload() => jsonEncode(_payloadDaFicha());
+  String exportarFichaDaEmpresa() => jsonEncode(_payloadDaFicha());
 
   /// Traz do servidor o instantâneo do que é **da empresa** — e só isso.
   ///
-  /// **Porque é que isto não traz tudo.** Há dois canais a sincronizar esta
-  /// app, e durante um tempo os dois julgaram-se donos das mesmas coisas:
+  /// **Porque é que isto não traz tudo.** Há **três** canais a sincronizar esta
+  /// app, e durante um tempo dois deles julgaram-se donos das mesmas coisas:
   ///
   /// * o das **operações** (`punho_operacoes`), uma linha por alteração, com a
   ///   ordem do servidor a decidir quem ganha. É ele que carrega máquinas,
@@ -707,7 +707,10 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   ///   veículos — as coisas que duas pessoas mexem ao mesmo tempo;
   /// * este, o do **instantâneo** (`punho_estado_operacional`), que sobe e
   ///   desce o estado inteiro com uma revisão. Serve o que só o gestor edita e
-  ///   não cabe em operações: o onboarding, os custos fixos, o histórico mensal.
+  ///   não cabe em operações: o onboarding, os custos fixos, o histórico mensal;
+  /// * o do **painel** (`punho_painel`), com guarda de ordem por carimbo. Saiu
+  ///   daqui na Fase 3: à boleia deste, marcar uma caixa fazia subir a ficha
+  ///   inteira e avançar a revisão para toda a gente.
   ///
   /// Enquanto este importou o payload completo, era ele quem mandava — e mandava
   /// com dados velhos. A 4 de Agosto de 2026, num Redmi: fechar um trabalho
@@ -718,7 +721,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   /// outra, e quem trabalhava perdia o trabalho em silêncio.
   ///
   /// Cada coisa tem um dono. Este canal deixou de opinar sobre o que não é dele.
-  bool importOperationalPayload(String raw, {required int revision}) {
+  bool importarFichaDaEmpresa(String raw, {required int revision}) {
     try {
       _applyData(
         Map<String, dynamic>.from(jsonDecode(raw) as Map),
@@ -930,7 +933,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   }
 
   /// [apenasDadosDaEmpresa] deixa de fora as entidades que pertencem ao canal
-  /// das operações. Ver [importOperationalPayload], que é quem o usa — a
+  /// das operações. Ver [importarFichaDaEmpresa], que é quem o usa — a
   /// leitura do que está gravado no telemóvel ([_restore]) tem de aplicar tudo,
   /// senão a app arrancava sem metade do que lá está.
   ///

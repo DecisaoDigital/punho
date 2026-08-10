@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:punho/core/sync/registo_de_operacoes.dart';
-import 'package:punho/core/sync/sincronizacao_entre_dispositivos.dart';
+import 'package:punho/core/sync/sincronizacao_operacional_por_operacoes.dart';
 import 'package:punho/data/repositories/operation_repository.dart';
 import 'package:punho/domain/models/operations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,7 +23,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// O que se via no Redmi, a 4 de Agosto de 2026: tocar em *Entregar* punha o
 /// trabalho em curso, a operação subia (o servidor ficou com ela, `seq 234`), e
 /// o ecrã voltava a "Confirmado" e lá ficava, reinícios incluídos. Como
-/// [SincronizacaoEntreDispositivos.sincronizar] recebe antes de enviar, a app
+/// [SincronizacaoOperacionalPorOperacoes.sincronizar] recebe antes de enviar, a app
 /// desfazia localmente o trabalho de quem a usa **e** jurava ao servidor que o
 /// tinha feito. As duas metades mentiam ao mesmo tempo, cada uma para o seu
 /// lado, sem um erro sequer.
@@ -46,7 +46,7 @@ void main() {
   };
 
   late PersistentOperationRepository repo;
-  late SincronizacaoEntreDispositivos sync;
+  late SincronizacaoOperacionalPorOperacoes sync;
   late List<Map<String, dynamic>> servidor;
 
   /// Que cursor foi pedido em cada consulta. É o que estes testes vieram ver.
@@ -59,7 +59,7 @@ void main() {
     servidor = [];
     pedidos = [];
     sync =
-        SincronizacaoEntreDispositivos(
+        SincronizacaoOperacionalPorOperacoes(
             repositorio: repo,
             registo: RegistoDeOperacoes(prefs),
             // Nunca é usado: [buscarOperacoes] substitui a única chamada de
@@ -136,7 +136,7 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
-      sync = SincronizacaoEntreDispositivos(
+      sync = SincronizacaoOperacionalPorOperacoes(
         repositorio: await PersistentOperationRepository.create(),
         registo: RegistoDeOperacoes(prefs),
         cliente: SupabaseClient(

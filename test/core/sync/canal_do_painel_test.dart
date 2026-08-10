@@ -83,7 +83,7 @@ void main() {
       repo.savePainel(arranjo);
 
       final payload =
-          jsonDecode(repo.exportOperationalPayload()) as Map<String, dynamic>;
+          jsonDecode(repo.exportarFichaDaEmpresa()) as Map<String, dynamic>;
 
       expect(
         payload.containsKey('painel'),
@@ -134,7 +134,7 @@ void main() {
       repo.savePainel(arranjo);
       repo.marcarPainelSincronizado();
 
-      repo.importOperationalPayload(
+      repo.importarFichaDaEmpresa(
         jsonEncode({
           'onboarding': {'companyName': 'Terraforte', 'legalForm': 'Lda.'},
           'painel': {
@@ -156,7 +156,7 @@ void main() {
       final repo = await repositorio();
       repo.savePainel(arranjo);
 
-      repo.importOperationalPayload(
+      repo.importarFichaDaEmpresa(
         jsonEncode({
           'onboarding': {'companyName': 'Terraforte', 'legalForm': 'Lda.'},
         }),

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import '../config/supabase_config.dart';
 import '../sync/sincronizacao_do_painel.dart';
-import '../sync/supabase_operational_sync.dart';
+import '../sync/sincronizacao_ficha_empresa.dart';
 import '../sync/sync_engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -1019,7 +1019,7 @@ class OperationsController extends Notifier<OperationsState> {
       return SyncStatus.synchronized;
     }
     final repo = _repo as PersistentOperationRepository;
-    final result = await SupabaseOperationalSync(repo).synchronize();
+    final result = await SincronizacaoFichaEmpresa(repo).synchronize();
     if (result == SyncStatus.synchronized) {
       state = _fromRepo();
     }
@@ -1043,7 +1043,7 @@ class OperationsController extends Notifier<OperationsState> {
     // O painel é do gestor: a RLS de `punho_painel` exige `punho_e_gestor()`
     // nas três políticas. Num telemóvel de operador isto era um 42501 de 20 em
     // 20 minutos, para sempre, sem nada que se pudesse fazer com a resposta. A
-    // marca vem do servidor — foi o `SupabaseOperationalSync` acima que a pôs,
+    // marca vem do servidor — foi o `SincronizacaoFichaEmpresa` acima que a pôs,
     // ao ver o perfil em `punho_membros`.
     if (!repo.guardaNoAparelho) return;
     final cliente = Supabase.instance.client;

@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:punho/core/sync/registo_de_operacoes.dart';
-import 'package:punho/core/sync/sincronizacao_entre_dispositivos.dart';
+import 'package:punho/core/sync/sincronizacao_operacional_por_operacoes.dart';
 import 'package:punho/data/repositories/operation_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -13,7 +13,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///
 /// `quarentena_test.dart` prova a classificação dos códigos e os baldes de
 /// forma isolada — mas salta o motor. Este não o salta: põe o
-/// [SincronizacaoEntreDispositivos] a sincronizar contra um servidor de mentira
+/// [SincronizacaoOperacionalPorOperacoes] a sincronizar contra um servidor de mentira
 /// que recusa uma marcação a meio do lote, e vai ver o que fica.
 ///
 /// Reproduz o que se via na Faixa D: um lote inteiro falhava por causa de uma
@@ -35,7 +35,7 @@ void main() {
   /// Monta motor + registo com um servidor que recusa [idMau] com [codigo].
   Future<
     ({
-      SincronizacaoEntreDispositivos motor,
+      SincronizacaoOperacionalPorOperacoes motor,
       RegistoDeOperacoes registo,
       _ServidorFalso servidor,
     })
@@ -45,7 +45,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final registo = RegistoDeOperacoes(prefs);
     final servidor = _ServidorFalso(recusa: {idMau: codigo});
-    final motor = SincronizacaoEntreDispositivos(
+    final motor = SincronizacaoOperacionalPorOperacoes(
       repositorio: await PersistentOperationRepository.create(),
       registo: registo,
       cliente: SupabaseClient(

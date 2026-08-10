@@ -98,14 +98,14 @@ void main() {
   group('quem ganha', () {
     test('a revisão avança: o aparelho recebe e a ficha local perde', () async {
       final repo = await repositorio();
-      repo.importOperationalPayload(fichaDoServidor('Terraforte'), revision: 3);
+      repo.importarFichaDaEmpresa(fichaDoServidor('Terraforte'), revision: 3);
 
       // Uma semana sem rede, e o gestor mexeu na ficha neste telemóvel.
       repo.saveOnboarding(fichaCom(repo.onboarding!, colaboradores: 99));
       expect(repo.hasPendingRemoteChanges, isTrue);
 
       // Volta a haver rede e o servidor está na revisão 7. É ele que manda.
-      repo.importOperationalPayload(
+      repo.importarFichaDaEmpresa(
         fichaDoServidor('Terraforte Unipessoal'),
         revision: 7,
       );
@@ -118,7 +118,7 @@ void main() {
 
     test('a alteração feita já com o estado fresco é que sobe', () async {
       final repo = await repositorio();
-      repo.importOperationalPayload(fichaDoServidor('Terraforte'), revision: 7);
+      repo.importarFichaDaEmpresa(fichaDoServidor('Terraforte'), revision: 7);
       expect(repo.hasPendingRemoteChanges, isFalse);
 
       // Agora sim: escrita em cima do que o servidor tem.
@@ -128,7 +128,7 @@ void main() {
       expect(repo.remoteRevision, 7);
 
       // É este par — "por subir" com a revisão do servidor — que autoriza o
-      // envio em `SupabaseOperationalSync`. Depois de aceite, fica limpo.
+      // envio em `SincronizacaoFichaEmpresa`. Depois de aceite, fica limpo.
       repo.markRemoteSynchronized(8);
       expect(repo.hasPendingRemoteChanges, isFalse);
       expect(repo.onboarding?.collaborators, 9);
@@ -151,7 +151,7 @@ void main() {
         ),
       );
 
-      // É isto que `SupabaseOperationalSync` chama quando `punho_membros` diz
+      // É isto que `SincronizacaoFichaEmpresa` chama quando `punho_membros` diz
       // que este utilizador não é gestor.
       repo.naoGuardarNoAparelho();
 

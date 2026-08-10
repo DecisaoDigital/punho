@@ -384,7 +384,7 @@ e **Recolhida** é coerente com o que lá está.
 
 **Mas o botão é a parte fácil, e sozinho não funciona.**
 
-Hoje a sincronização (`SupabaseOperationalSync`) empurra o **estado operacional
+Hoje a sincronização (`SincronizacaoFichaEmpresa`) empurra o **estado operacional
 completo** com uma revisão, e detecta conflitos em vez de os fundir. Ou seja:
 
 - o colaborador carrega em "Recolhida" → grava no estado **local dele**
