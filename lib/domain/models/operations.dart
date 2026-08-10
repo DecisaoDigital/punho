@@ -163,10 +163,39 @@ class Customer {
     this.notes = '',
     this.companyId = 'local-company',
     this.archived = false,
+    this.createdAt,
   });
   final String id, name, phone, notes;
   final String companyId;
   final String? taxId, email, address, postalCode, locality;
+
+  /// Quando este cliente entrou na casa.
+  ///
+  /// Existe por causa de um número errado: o "Clientes novos (30d)" contava
+  /// pela data de início da primeira reserva, e dois clientes criados na manhã
+  /// de 10 de Agosto de 2026, com reservas marcadas para dia 11 e 12, davam
+  /// **zero** — só contariam no dia em que a máquina saísse. Um cliente é novo
+  /// no dia em que se regista, não no dia em que a máquina sai.
+  ///
+  /// `null` num registo cujo id também não saiba a data (ver [dataDoId]) — aí
+  /// não se conta como novo, que é diferente de se inventar uma data.
+  final DateTime? createdAt;
+
+  /// A data escondida no id, para os clientes gravados antes de existir
+  /// [createdAt].
+  ///
+  /// Os ids nascem `c<microsegundos>` — é o relógio da app no instante em que o
+  /// cliente foi criado, já lá escrito. Ler daí não é adivinhar: é recuperar o
+  /// que ficou registado. `null` quando o id não é um relógio (as sementes de
+  /// demonstração, `c1`, `c2`) ou quando a data que dele sai é impossível.
+  static DateTime? dataDoId(String id) {
+    final micros = int.tryParse(id.startsWith('c') ? id.substring(1) : id);
+    if (micros == null || micros <= 0) return null;
+    final data = DateTime.fromMicrosecondsSinceEpoch(micros);
+    // O Punho não existia em 2020, e nada foi criado no século que vem.
+    if (data.year < 2020 || data.year > 2100) return null;
+    return data;
+  }
 
   /// Soft-delete, como em [Machine], [Vehicle] e [Collaborator]: um cliente
   /// arquivado sai das listas activas, mas o registo continua a existir —
@@ -195,6 +224,9 @@ class Customer {
     notes: notes ?? this.notes,
     companyId: companyId,
     archived: archived ?? this.archived,
+    // Não é editável: a data de entrada de um cliente não se corrige a partir
+    // de um formulário de edição.
+    createdAt: createdAt,
   );
 }
 

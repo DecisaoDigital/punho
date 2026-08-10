@@ -410,9 +410,9 @@ void main() {
       expect(custoDeAquisicao(estado, agora), isNull);
     });
 
-    test('sem reservas não se sabe quem é novo — e diz-se', () {
+    test('sem clientes não se sabe quem é novo — e diz-se', () {
       // Diferente de «gastou-se e não veio ninguém»: aqui nem sequer há como
-      // contar. A célula pede reservas em vez de pintar um vermelho.
+      // contar. A célula pede clientes em vez de pintar um vermelho.
       final estado = OperationsState(
         onboarded: true,
         expenses: [
@@ -431,9 +431,21 @@ void main() {
     test('divide a publicidade pelos clientes que entraram', () {
       final estado = OperationsState(
         onboarded: true,
-        customers: const [
-          Customer(id: 'c1', name: 'Obra Nova', phone: '910000000'),
-          Customer(id: 'c2', name: 'Terraforte', phone: '910000001'),
+        // Os dois entraram dentro da janela dos 90 dias — e o que os conta é
+        // a data em que foram registados, não a da reserva.
+        customers: [
+          Customer(
+            id: 'c1',
+            name: 'Obra Nova',
+            phone: '910000000',
+            createdAt: DateTime(2026, 7, 18),
+          ),
+          Customer(
+            id: 'c2',
+            name: 'Terraforte',
+            phone: '910000001',
+            createdAt: DateTime(2026, 7, 30),
+          ),
         ],
         bookings: [
           Booking(
@@ -474,9 +486,17 @@ void main() {
       () {
         final estado = OperationsState(
           onboarded: true,
+          // Há clientes com data, portanto há como contar — mas o único que
+          // existe entrou muito antes da janela: ninguém entrou nos 90 dias.
+          customers: [
+            Customer(
+              id: 'c1',
+              name: 'Obra Antiga',
+              phone: '910000000',
+              createdAt: DateTime(2025, 1, 3),
+            ),
+          ],
           bookings: [
-            // Há reservas, portanto há como contar — mas todas de antes da
-            // janela: ninguém entrou nos 90 dias.
             Booking(
               id: 'b1',
               customerId: 'c1',

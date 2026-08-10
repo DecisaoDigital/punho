@@ -8,10 +8,12 @@ import 'fixtura.dart';
 
 /// As quatro células que antes viviam no slide de Procura e vendas.
 ///
-/// A célula "clientes novos" é a única do painel cujo dado não existe no
-/// modelo: `Customer` não guarda data de criação. É inferida da primeira
-/// reserva — e estes testes fixam essa regra, para ninguém a trocar por um
-/// número inventado outra vez.
+/// A célula "clientes novos" conta pela data de registo do cliente
+/// (`Customer.createdAt`). Contou pela primeira reserva até 10 de Agosto de
+/// 2026, e esses testes estão aqui em baixo virados do avesso: com dois
+/// clientes criados nessa manhã e reservas marcadas para dia 11 e 12, o número
+/// dava **zero**, porque a janela olhava para a data de **início** da reserva e
+/// parava em hoje.
 const idsDeProcura = [
   'clientes-novos-30d',
   'leads-pipeline',
@@ -37,8 +39,17 @@ void main() {
   Lead lead(String id, LeadStatus estado, DateTime criada) =>
       Lead(id: id, name: id, phone: '910', status: estado, createdAt: criada);
 
+  Customer cliente(String id, {DateTime? criado, bool arquivado = false}) =>
+      Customer(
+        id: id,
+        name: id,
+        phone: '910',
+        createdAt: criado,
+        archived: arquivado,
+      );
+
   group('clientesNovos', () {
-    test('sem reservas devolve null, não zero', () {
+    test('sem clientes com data devolve null, não zero', () {
       // Zero diria "não angariaste ninguém". A verdade é que não se sabe.
       expect(
         clientesNovos(const OperationsState(onboarded: true), agora),
@@ -46,9 +57,13 @@ void main() {
       );
     });
 
-    test('conta cada cliente uma vez, pela primeira reserva', () {
+    test('conta cada cliente uma vez, pela data de registo', () {
       final estado = OperationsState(
         onboarded: true,
+        customers: [
+          cliente('c1', criado: dia(7, 2)),
+          cliente('c2', criado: dia(7, 5)),
+        ],
         bookings: [
           reserva('a', 'c1', dia(7, 2)),
           reserva('b', 'c1', dia(7, 10)),
@@ -62,8 +77,8 @@ void main() {
     test('cliente antigo com reserva recente não é novo', () {
       final estado = OperationsState(
         onboarded: true,
+        customers: [cliente('c1', criado: dia(1, 10))],
         bookings: [
-          // Primeira reserva em Janeiro: já era cliente muito antes da janela.
           reserva('velha', 'c1', dia(1, 10)),
           reserva('recente', 'c1', dia(7, 10)),
         ],
@@ -72,9 +87,80 @@ void main() {
       expect(clientesNovos(estado, agora), 0);
     });
 
-    test('reservas canceladas não fazem de ninguém cliente', () {
+    /// **O bug de 10 de Agosto de 2026.** Dois clientes criados de manhã, com
+    /// reservas para dia 11 e 12, e o KPI a dizer 0. A janela media a data de
+    /// início da reserva e cortava em hoje: o cliente só contaria como novo no
+    /// dia em que a máquina saísse.
+    test(
+      'cliente registado hoje com reserva para a semana que vem conta já',
+      () {
+        final estado = OperationsState(
+          onboarded: true,
+          customers: [cliente('c1', criado: agora)],
+          bookings: [reserva('futura', 'c1', dia(8, 20))],
+        );
+
+        expect(clientesNovos(estado, agora), 1);
+      },
+    );
+
+    /// O outro furo do mesmo dia: sem uma reserva, o cliente não existia.
+    test('cliente sem reserva nenhuma conta na mesma', () {
       final estado = OperationsState(
         onboarded: true,
+        customers: [cliente('c1', criado: dia(7, 14))],
+      );
+
+      expect(clientesNovos(estado, agora), 1);
+      expect(clientesNovosComReserva(estado, agora), 0);
+    });
+
+    test('clientes arquivados não contam como angariados', () {
+      final estado = OperationsState(
+        onboarded: true,
+        customers: [
+          cliente('c1', criado: dia(7, 14)),
+          cliente('c2', criado: dia(7, 14), arquivado: true),
+        ],
+      );
+
+      expect(clientesNovos(estado, agora), 1);
+    });
+
+    /// Os clientes gravados antes de existir o campo não perdem a data: o id
+    /// é o relógio do instante em que foram criados.
+    test('sem createdAt, a data vem do id', () {
+      final quando = dia(7, 9);
+      final id = 'c${quando.microsecondsSinceEpoch}';
+
+      expect(Customer.dataDoId(id), quando);
+      expect(
+        Customer.dataDoId('c1'),
+        isNull,
+        reason: 'as sementes de demonstração não são um relógio',
+      );
+    });
+  });
+
+  group('clientesNovosComReserva', () {
+    test('conta só quem já tem máquina marcada', () {
+      final estado = OperationsState(
+        onboarded: true,
+        customers: [
+          cliente('c1', criado: dia(7, 10)),
+          cliente('c2', criado: dia(7, 11)),
+        ],
+        bookings: [reserva('ok', 'c1', dia(8, 1))],
+      );
+
+      expect(clientesNovos(estado, agora), 2);
+      expect(clientesNovosComReserva(estado, agora), 1);
+    });
+
+    test('uma reserva cancelada não conta como máquina marcada', () {
+      final estado = OperationsState(
+        onboarded: true,
+        customers: [cliente('c1', criado: dia(7, 10))],
         bookings: [
           Booking(
             id: 'x',
@@ -84,20 +170,10 @@ void main() {
             endsAt: dia(7, 12),
             status: BookingStatus.cancelled,
           ),
-          reserva('ok', 'c2', dia(7, 11)),
         ],
       );
 
-      expect(clientesNovos(estado, agora), 1);
-    });
-
-    test('reserva futura não conta como cliente já angariado', () {
-      final estado = OperationsState(
-        onboarded: true,
-        bookings: [reserva('futura', 'c1', dia(8, 20))],
-      );
-
-      expect(clientesNovos(estado, agora), 0);
+      expect(clientesNovosComReserva(estado, agora), 0);
     });
   });
 
@@ -127,6 +203,10 @@ void main() {
       OperationsState(
         onboarded: true,
         companyName: 'Alugueres Norte',
+        customers: [
+          cliente('c1', criado: dia(7, 1)),
+          cliente('c2', criado: dia(7, 5)),
+        ],
         bookings: [
           reserva('a', 'c1', dia(7, 2), valor: 40000),
           reserva('b', 'c2', dia(7, 6), valor: 44000),
@@ -145,14 +225,71 @@ void main() {
     );
 
     // 2 clientes novos, 1 lead por contactar, ticket médio 420 €, conversão 50%.
-    expect(
-      find.textContaining('2 clientes', findRichText: true),
-      findsOneWidget,
-    );
+    expect(find.text('Todos já com reserva'), findsOneWidget);
     expect(find.textContaining('420 €', findRichText: true), findsOneWidget);
     expect(
       find.textContaining('50 % · 1 de 2', findRichText: true),
       findsOneWidget,
     );
+  });
+
+  /// **Recompras, e não "recorrência".** O César pediu o número de recompras a
+  /// 10 de Agosto de 2026, e não é o mesmo número: recorrência 1×/mês são
+  /// **zero** recompras — cada cliente comprou uma vez e não voltou. Dizer "1"
+  /// deixava por saber se aquilo era uma compra ou uma repetição.
+  group('ticket médio — as recompras', () {
+    Future<void> montarTicket(WidgetTester tester, List<Booking> reservas) =>
+        montarLandscape(
+          tester,
+          containerCom(
+            OperationsState(
+              onboarded: true,
+              companyName: 'Alugueres Norte',
+              bookings: reservas,
+            ),
+          ),
+          PaginaDoPainel(ids: const ['ticket-medio-mes'], agora: agora),
+        );
+
+    testWidgets('uma compra por cliente é ninguém a repetir', (tester) async {
+      await montarTicket(tester, [
+        reserva('a', 'c1', dia(7, 2), valor: 40000),
+        reserva('b', 'c2', dia(7, 6), valor: 44000),
+      ]);
+
+      expect(
+        find.text('Ninguém repetiu este mês · 2 clientes'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('quem volta conta como recompra', (tester) async {
+      // Quatro compras, dois clientes: duas recompras, uma por cliente.
+      await montarTicket(tester, [
+        reserva('a', 'c1', dia(7, 2), valor: 40000),
+        reserva('b', 'c1', dia(7, 9), valor: 40000),
+        reserva('c', 'c2', dia(7, 6), valor: 44000),
+        reserva('d', 'c2', dia(7, 13), valor: 44000),
+      ]);
+
+      expect(
+        find.textContaining('1 recompras por cliente (2 no total)'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('meia recompra escreve-se com vírgula', (tester) async {
+      // Três compras, dois clientes: uma recompra, 0,5 por cliente.
+      await montarTicket(tester, [
+        reserva('a', 'c1', dia(7, 2), valor: 40000),
+        reserva('b', 'c1', dia(7, 9), valor: 40000),
+        reserva('c', 'c2', dia(7, 6), valor: 44000),
+      ]);
+
+      expect(
+        find.textContaining('0,5 recompras por cliente (1 no total)'),
+        findsOneWidget,
+      );
+    });
   });
 }

@@ -182,7 +182,7 @@ const catalogoKpis = <KpiDefinicao>[
     titulo: 'Clientes novos (30d)',
     celula: kpiClientesNovos,
     contaVerificada: true,
-    desbloqueio: 'Primeira reserva de cada cliente',
+    desbloqueio: 'Clientes registados na ficha de clientes',
   ),
   KpiDefinicao(
     id: 'leads-pipeline',
@@ -245,7 +245,7 @@ const catalogoKpis = <KpiDefinicao>[
     titulo: 'Custo de aquisição',
     celula: kpiCustoDeAquisicao,
     contaVerificada: true,
-    desbloqueio: 'Despesas de publicidade + primeira reserva de cada cliente',
+    desbloqueio: 'Despesas de publicidade + clientes registados',
     destino: AppDestination.finances,
   ),
   KpiDefinicao(
@@ -677,15 +677,22 @@ CelulaSemaforo kpiClientesNovos(OperationsState estado, DateTime now) {
       nivel: NivelSemaforo.aguarda,
       rotulo: 'Clientes novos (30d)',
       texto: 'Ainda sem clientes',
-      subtexto: 'Contam pela primeira reserva',
+      subtexto: 'Contam a partir do dia em que os registas',
     );
   }
+  final comReserva = clientesNovosComReserva(estado, now, dias: _janelaDias);
   return CelulaSemaforo(
     nivel: novos == 0 ? NivelSemaforo.laranja : NivelSemaforo.verde,
     rotulo: 'Clientes novos (30d)',
     valor: '$novos',
     unidade: novos == 1 ? 'cliente' : 'clientes',
-    subtexto: 'Contados pela data da primeira reserva',
+    // Angariar e vender são duas coisas, e as duas cabem aqui: quantos
+    // entraram, e quantos desses já têm máquina marcada.
+    subtexto: novos == 0
+        ? 'Ninguém novo nos últimos 30 dias'
+        : comReserva == novos
+        ? 'Todos já com reserva'
+        : '$comReserva de $novos já com reserva',
     valorEmDestaque: novos > 0,
   );
 }
@@ -748,19 +755,26 @@ CelulaSemaforo kpiTicketMedio(OperationsState estado, DateTime now) {
       subtexto: 'Põe valor nas reservas',
     );
   }
-  // O número grande é quanto cada empresa vale em média este mês; o subtexto
-  // leva a recorrência — quantas vezes, em média, cada cliente volta a comprar
-  // no mês — e sobre quantas empresas a média se faz.
+  // O número grande é quanto cada cliente vale em média este mês; o subtexto
+  // leva as **recompras** — quantas vezes, em média, cada cliente voltou a
+  // comprar dentro do mês — e sobre quantos clientes a média se faz.
+  //
+  // Dizia "Recorrência 1×/mês", e o César (10 Ago 2026) pediu o número de
+  // recompras. Não é o mesmo número: recorrência 1 são zero recompras — cada
+  // cliente comprou uma vez e não voltou. Chamar-lhe pelo nome tira a
+  // ambiguidade de saber se o 1 é uma compra ou uma repetição.
   final nEmpresas = ticket.empresas == 1
-      ? '1 empresa'
-      : '${ticket.empresas} empresas';
-  final recorrencia = _recorrencia(ticket.transacoesMediasPorEmpresa);
+      ? '1 cliente'
+      : '${ticket.empresas} clientes';
   return CelulaSemaforo(
     nivel: NivelSemaforo.verde,
     rotulo: 'Ticket médio (mês)',
     valor: '${(ticket.porEmpresaCents / 100).round()}',
     unidade: '€',
-    subtexto: 'Recorrência $recorrencia×/mês · $nEmpresas',
+    subtexto: ticket.recompras == 0
+        ? 'Ninguém repetiu este mês · $nEmpresas'
+        : '${_recorrencia(ticket.recomprasMediasPorEmpresa)} recompras por '
+              'cliente (${ticket.recompras} no total) · $nEmpresas',
     valorEmDestaque: true,
   );
 }

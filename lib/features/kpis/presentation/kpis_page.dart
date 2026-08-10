@@ -159,13 +159,114 @@ class KpisPage extends ConsumerWidget {
           ),
           SliverPadding(
             padding: margem.copyWith(bottom: MargensDoCanvas.vertical),
-            sliver: const SliverToBoxAdapter(child: SizedBox()),
+            sliver: SliverToBoxAdapter(
+              child: _OsQueFaltam(
+                emFalta: [
+                  for (final k in catalogoKpis)
+                    if (!arrumados.contains(k)) k,
+                ],
+                estado: estado,
+                now: now,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+}
 
+/// **O rasto dos que não estão à vista.**
+///
+/// A bancada mostra só o que diz verdade, e isso é a regra certa — mas deixava
+/// o catálogo sem explicação: o César, a 10 de Agosto de 2026, com nove
+/// cartões no ecrã de vinte e cinco que existem, perguntou «só me aparecem 9
+/// KPIs na bancada, não deveriam ser 15?».
+///
+/// Não são quinze, e a resposta não é um número: é **o que falta a cada um**.
+/// Os grupos «A chegar» e «Por definir» diziam-no e foram embora por ocuparem
+/// meio ecrã com coisas que não se podem fazer. Isto é uma linha, fechada, e
+/// quem lhe toca é porque quer a lista.
+class _OsQueFaltam extends StatefulWidget {
+  const _OsQueFaltam({
+    required this.emFalta,
+    required this.estado,
+    required this.now,
+  });
+
+  final List<KpiDefinicao> emFalta;
+  final OperationsState estado;
+  final DateTime now;
+
+  @override
+  State<_OsQueFaltam> createState() => _OsQueFaltamState();
+}
+
+class _OsQueFaltamState extends State<_OsQueFaltam> {
+  var aberto = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.emFalta.isEmpty) return const SizedBox(height: 8);
+    final tt = Theme.of(context).textTheme;
+    final cor = Theme.of(context).colorScheme.outline;
+    final quantos = widget.emFalta.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 4),
+        InkWell(
+          onTap: () => setState(() => aberto = !aberto),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Icon(
+                  aberto ? Icons.expand_less : Icons.expand_more,
+                  size: 18,
+                  color: cor,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    quantos == 1
+                        ? 'Falta 1 KPI — toca para ver o que o acende'
+                        : 'Faltam $quantos KPIs — toca para ver o que os acende',
+                    style: tt.bodySmall?.copyWith(color: cor),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (aberto)
+          for (final kpi in widget.emFalta)
+            Padding(
+              padding: const EdgeInsets.only(left: 24, bottom: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    kpi.titulo,
+                    style: tt.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    // Um KPI com a fonte cheia mas a conta por assinar não
+                    // espera por dados nenhuns — espera por nós, e dizer-lhe
+                    // "preenche isto" seria mandar o gestor fazer trabalho que
+                    // não muda nada.
+                    kpi.estado(widget.estado, widget.now) ==
+                            EstadoVerdade.porVerificar
+                        ? 'Conta por verificar do nosso lado'
+                        : kpi.desbloqueio,
+                    style: tt.bodySmall?.copyWith(color: cor),
+                  ),
+                ],
+              ),
+            ),
+      ],
+    );
+  }
 }
 
 /// O ar entre o topo do canvas e a primeira linha desta página.

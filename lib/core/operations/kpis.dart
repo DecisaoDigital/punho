@@ -519,35 +519,60 @@ FunilProcura funilProcura(OperationsState state, DateTime now, int dias) {
 /// Leads que ninguém tocou, da mais antiga para a mais recente.
 /// Clientes que entraram nos últimos [dias].
 ///
-/// **Inferido da primeira reserva, não de uma data de criação.** O `Customer`
-/// não guarda quando foi criado, e acrescentar o campo agora só serviria para a
-/// frente: todos os clientes já registados ficariam sem data e a métrica nascia
-/// a mentir durante um mês. A data da primeira reserva é o momento em que a
-/// pessoa passou a ser cliente de facto — que é, no fundo, o que a pergunta
-/// quer saber.
+/// **Conta-se pelo registo do cliente.** Contava-se pela data de início da
+/// primeira reserva, e isso tinha dois furos que o César apanhou os dois no
+/// mesmo dia (10 Ago 2026), com dois clientes criados nessa manhã e o KPI a
+/// dizer zero:
 ///
-/// Consequência assumida: um cliente registado mas que ainda não alugou nada
-/// não conta. É defensável — ainda não comprou — e evita inflar a conversão com
-/// contactos que nunca deram dinheiro.
+/// - a data que se olhava era a de **início** da reserva, e a janela ia até
+///   hoje. Uma reserva marcada hoje para dia 12 caía fora: o cliente só
+///   contaria como novo no dia em que a máquina saísse — ou nunca, se a reserva
+///   fosse para depois dos 30 dias;
+/// - um cliente registado sem reserva não existia de todo, e uma empresa com
+///   clientes e sem reservas lia "Ainda sem clientes".
 ///
-/// Devolve `null` quando não há reservas nenhumas: sem elas não há como inferir
-/// data alguma, e `0` diria "não angariaste ninguém" em vez de "não sei".
+/// Um cliente é novo no dia em que se regista. O que ele já comprou é uma
+/// segunda pergunta, e tem a sua própria linha na célula.
+///
+/// Devolve `null` quando não há um único cliente activo com data conhecida —
+/// os clientes das sementes de demonstração não têm data no id. Aí a fonte está
+/// mesmo vazia, e `0` diria "não angariaste ninguém" em vez de "não sei".
 int? clientesNovos(OperationsState state, DateTime now, {int dias = 30}) {
-  if (state.bookings.isEmpty) return null;
+  final comData = state.customers
+      .where((c) => !c.archived && c.createdAt != null)
+      .toList();
+  if (comData.isEmpty) return null;
   final desde = _dia(now).subtract(Duration(days: dias));
-  final primeiraReserva = <String, DateTime>{};
+  return comData.where((c) => !_dia(c.createdAt!).isBefore(desde)).length;
+}
+
+/// Destes clientes novos, quantos já têm pelo menos uma reserva por cancelar.
+///
+/// É a outra metade da pergunta: angariar é uma coisa, pôr a máquina na rua é
+/// outra. Um número grande de novos com zero reservas é um funil a encher e a
+/// não escoar — e isso é uma leitura que se quer ver, não esconder.
+int clientesNovosComReserva(
+  OperationsState state,
+  DateTime now, {
+  int dias = 30,
+}) {
+  final desde = _dia(now).subtract(Duration(days: dias));
+  final novos = state.customers
+      .where(
+        (c) =>
+            !c.archived &&
+            c.createdAt != null &&
+            !_dia(c.createdAt!).isBefore(desde),
+      )
+      .map((c) => c.id)
+      .toSet();
+  if (novos.isEmpty) return 0;
+  final comReserva = <String>{};
   for (final booking in state.bookings) {
     if (booking.status == BookingStatus.cancelled) continue;
-    final actual = primeiraReserva[booking.customerId];
-    if (actual == null || booking.startsAt.isBefore(actual)) {
-      primeiraReserva[booking.customerId] = booking.startsAt;
-    }
+    if (novos.contains(booking.customerId)) comReserva.add(booking.customerId);
   }
-  return primeiraReserva.values
-      .where(
-        (data) => !_dia(data).isBefore(desde) && !_dia(data).isAfter(_dia(now)),
-      )
-      .length;
+  return comReserva.length;
 }
 
 List<Lead> leadsPorContactar(OperationsState state) {
@@ -1016,6 +1041,17 @@ class TicketMedioMes {
   /// cliente comprou este mês. Pode ser fraccionário (7 compras, 2 empresas →
   /// 3,5). O Cesar quis este número ao lado do ticket (9 Ago).
   double get transacoesMediasPorEmpresa => transacoes / empresas;
+
+  /// Quantas compras deste mês foram **repetições**: o total menos a primeira
+  /// de cada cliente.
+  ///
+  /// Uma compra por cliente são zero recompras — ninguém voltou. É este o
+  /// número que o Cesar pediu a 10 de Agosto, e é diferente da recorrência:
+  /// 7 compras de 2 clientes são 3,5 compras cada, mas **5** recompras.
+  int get recompras => transacoes - empresas;
+
+  /// As recompras espalhadas pelos clientes que compraram.
+  double get recomprasMediasPorEmpresa => recompras / empresas;
 }
 
 TicketMedioMes? ticketMedioDoMes(OperationsState state, DateTime now) {

@@ -111,6 +111,49 @@ void main() {
     expect(find.textContaining('KPIs a dizer verdade'), findsOneWidget);
   });
 
+  /// **Os que não estão à vista deixam rasto.** O César, a 10 de Agosto de
+  /// 2026, com nove cartões no ecrã de vinte e cinco que existem: «só me
+  /// aparecem 9 KPIs na bancada, não deveriam ser 15?». A regra de só mostrar
+  /// o que diz verdade é a certa; o que faltava era a resposta à pergunta.
+  group('o rasto dos que faltam', () {
+    testWidgets('diz quantos faltam, fechado', (tester) async {
+      tester.view.physicalSize = const Size(600, 2600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await abrir(tester, repo: _comRecebimento(), agora: DateTime(2026, 8, 9));
+
+      expect(
+        find.textContaining('toca para ver o que os acende'),
+        findsOneWidget,
+      );
+      // Fechado é fechado: a razão de cada um só aparece depois do toque.
+      expect(
+        find.text('Custos fixos declarados em Empresa › Custos fixos'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('aberto, diz o que acende cada um', (tester) async {
+      tester.view.physicalSize = const Size(600, 4000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await abrir(tester, repo: _comRecebimento(), agora: DateTime(2026, 8, 9));
+      await tester.tap(find.textContaining('toca para ver o que os acende'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Gastos previstos do mês'), findsOneWidget);
+      expect(
+        find.text('Custos fixos declarados em Empresa › Custos fixos'),
+        findsWidgets,
+      );
+      // Um KPI com fonte cheia mas conta por assinar não espera por dados
+      // nenhuns — espera por nós, e não se lhe manda preencher nada.
+      expect(find.text('Conta por verificar do nosso lado'), findsWidgets);
+    });
+  });
+
   testWidgets('cabe no telemóvel deitado sem transbordar', (tester) async {
     // O Redmi Note 10 Pro em paisagem, menos a barra lateral: é o formato em
     // que esta app se usa, e é o que costuma cortar o rodapé.
@@ -126,13 +169,13 @@ void main() {
 }
 
 /// Um recebimento no mês chega para a Caixa e a Tendência terem fonte.
-LocalDemoOperationRepository _comRecebimento() => LocalDemoOperationRepository()
-  ..saveReceipt(
-    Receipt(
-      id: 'r1',
-      date: DateTime(2026, 8, 5),
-      amountCents: 120000,
-      customerId: 'c1',
-      method: PaymentMethod.transfer,
-    ),
-  );
+LocalDemoOperationRepository _comRecebimento() =>
+    LocalDemoOperationRepository()..saveReceipt(
+      Receipt(
+        id: 'r1',
+        date: DateTime(2026, 8, 5),
+        amountCents: 120000,
+        customerId: 'c1',
+        method: PaymentMethod.transfer,
+      ),
+    );

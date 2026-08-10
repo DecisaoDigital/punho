@@ -1000,6 +1000,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'notes': item.notes,
     'companyId': item.companyId,
     'archived': item.archived,
+    'createdAt': item.createdAt?.toIso8601String(),
   };
 
   static Customer _customerFromJson(Map<String, dynamic> data) => Customer(
@@ -1016,6 +1017,13 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     // Ausente nas gravações anteriores a este campo: fica false, como nos
     // outros booleanos (`_bool` devolve false quando a chave não existe).
     archived: _bool(data, 'archived'),
+    // Ausente nas gravações anteriores a este campo — e aí a data vem do id,
+    // que é o relógio do instante em que o cliente foi criado. Ver
+    // [Customer.dataDoId]: os clientes que já existem não perdem a data por
+    // termos passado a guardá-la em campo próprio.
+    createdAt: _nullableString(data['createdAt']) == null
+        ? Customer.dataDoId(_string(data, 'id'))
+        : DateTime.parse(_string(data, 'createdAt')),
   );
 
   static Map<String, Object?> _leadToJson(Lead item) => {

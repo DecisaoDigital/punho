@@ -168,8 +168,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Nova marcação / reserva'), findsOneWidget);
 
+      // 'Cliente *': o campo é obrigatório desde que ninguém vem escolhido de
+      // fábrica.
       await tester.tap(
-        find.widgetWithText(DropdownButtonFormField<String>, 'Cliente'),
+        find.widgetWithText(DropdownButtonFormField<String>, 'Cliente *'),
       );
       await tester.pumpAndSettle();
 

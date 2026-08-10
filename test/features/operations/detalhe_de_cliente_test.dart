@@ -178,8 +178,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Editar cliente'), findsOneWidget);
 
+      // 'Telemóvel *': o contacto é obrigatório desde 10 de Agosto de 2026 —
+      // um cliente sem número não se confirma, não se avisa e não se cobra.
       await tester.enterText(
-        find.widgetWithText(TextField, 'Telemóvel'),
+        find.widgetWithText(TextField, 'Telemóvel *'),
         '912 222 222',
       );
       await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
