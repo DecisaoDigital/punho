@@ -20,6 +20,7 @@ import '../../empresa/presentation/empresa_page.dart';
 import '../../kpis/presentation/kpis_page.dart';
 import '../../licenca/presentation/licenca_banner.dart';
 import '../../operations/presentation/operational_pages.dart';
+import '../../sync/sync_providers.dart';
 import '../../tarefas/data/tarefas_service.dart';
 import '../../tarefas/presentation/tarefas_page.dart';
 import '../../workforce/presentation/workforce_pages.dart';
@@ -447,13 +448,20 @@ class _SidebarItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Só Tarefas leva contagem. Um badge em cada área deixaria de chamar a
-    // atenção a nada.
+    // Duas áreas levam contagem, e só estas — um badge em cada uma deixaria de
+    // chamar a atenção a nada. Tarefas: o que há por fazer. Empresa: conflitos
+    // de reserva que saíram da fila de sync e esperam decisão do gestor (senão
+    // uma marcação recusada some-se sem ninguém dar por ela). Ambos vermelhos:
+    // são coisas a resolver, não meros avisos.
+    final conflitos = item == AppDestination.empresa
+        ? (ref.watch(conflitosDeReservaProvider).valueOrNull?.length ?? 0)
+        : 0;
     final pendentes = item == AppDestination.tasks
         ? ref.watch(contagemTarefasPendentesProvider)
-        : 0;
+        : conflitos;
     final urgente =
-        item == AppDestination.tasks && ref.watch(tarefasTemUrgenteProvider);
+        (item == AppDestination.tasks && ref.watch(tarefasTemUrgenteProvider)) ||
+        conflitos > 0;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Material(

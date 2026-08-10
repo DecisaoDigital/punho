@@ -8,7 +8,9 @@ import '../../../domain/models/finance.dart';
 import '../../company/presentation/company_settings_page.dart';
 import '../../contabilista/presentation/historico_contabilista_page.dart';
 import '../../finance/presentation/financas_page.dart';
+import '../../sync/sync_providers.dart';
 import '../../workforce/presentation/workforce_pages.dart';
+import '../../../core/sync/registo_de_operacoes.dart';
 
 /// Tudo o que é da empresa, num sítio só (Decisão 2).
 ///
@@ -234,30 +236,101 @@ class _AbaCustosFixos extends ConsumerWidget {
   }
 }
 
-/// Obrigações fiscais ao longo do ano. Ainda não existe.
-class _AbaEstado extends StatelessWidget {
+/// Estado da empresa para o gestor. Hoje mostra os **conflitos de reserva a
+/// resolver** — marcações que o servidor barrou por sobreposição (`23P01`) e
+/// que saíram da fila de sync para não a trancar. A timeline de obrigações
+/// fiscais entra aqui mais tarde.
+class _AbaEstado extends ConsumerWidget {
   const _AbaEstado();
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.event_note_outlined,
-            size: 48,
-            color: Theme.of(context).hintColor,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Timeline de obrigações fiscais — em preparação.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-        ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final conflitos = ref.watch(conflitosDeReservaProvider);
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Text('Conflitos de reserva', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 4),
+        Text(
+          'Marcações que o servidor barrou por a máquina já estar reservada '
+          'nesse período. Saíram da fila para não a prender — resolve-as aqui '
+          '(remarcar ou recusar).',
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+        ),
+        const SizedBox(height: 12),
+        ...conflitos.when<List<Widget>>(
+          loading: () => const [LinearProgressIndicator()],
+          error: (e, _) => [
+            Text(
+              'Não foi possível ler os conflitos: $e',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+          data: (lista) => lista.isEmpty
+              ? [_linhaTudoEmDia(theme)]
+              : [
+                  for (final c in lista) _cartaoConflito(theme, c),
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        final motor = await ref.read(motorSyncProvider.future);
+                        await motor?.registo.limparConflitosDeReserva();
+                        ref.invalidate(conflitosDeReservaProvider);
+                      },
+                      icon: const Icon(Icons.check_circle_outline),
+                      label: const Text('Já resolvi — limpar a lista'),
+                    ),
+                  ),
+                ],
+        ),
+        const SizedBox(height: 28),
+        _placeholderFiscal(theme),
+      ],
+    );
+  }
+
+  Widget _linhaTudoEmDia(ThemeData theme) => Row(
+    children: [
+      Icon(
+        Icons.check_circle_outline,
+        color: theme.colorScheme.primary,
+        size: 20,
       ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(
+          'Sem conflitos — as marcações não têm sobreposições.',
+          style: theme.textTheme.bodyMedium,
+        ),
+      ),
+    ],
+  );
+
+  Widget _cartaoConflito(ThemeData theme, OperacaoRecusada c) => Card(
+    margin: const EdgeInsets.only(bottom: 8),
+    child: ListTile(
+      leading: Icon(
+        Icons.event_busy_outlined,
+        color: theme.colorScheme.error,
+      ),
+      title: const Text('Máquina já reservada nesse período'),
+      subtitle: Text('Marcação ${c.operacao.entidadeId}'),
     ),
+  );
+
+  Widget _placeholderFiscal(ThemeData theme) => Row(
+    children: [
+      Icon(Icons.event_note_outlined, color: theme.hintColor, size: 20),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(
+          'Timeline de obrigações fiscais — em preparação.',
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+        ),
+      ),
+    ],
   );
 }

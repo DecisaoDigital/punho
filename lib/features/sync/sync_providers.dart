@@ -67,6 +67,18 @@ final syncProvider = NotifierProvider<SyncController, InfoSync>(
   SyncController.new,
 );
 
+/// Conflitos de reserva que o servidor barrou durante a sincronização
+/// (`23P01`): saíram da fila para não a trancar, mas ficam aqui, **à parte da
+/// quarentena**, para o gestor os ver e resolver (remarcar, recusar). Lê do
+/// mesmo registo que o motor usa e é reavaliado a cada sincronização
+/// (`SyncController.sincronizar`).
+final conflitosDeReservaProvider = FutureProvider<List<OperacaoRecusada>>((
+  ref,
+) async {
+  final motor = await ref.watch(motorSyncProvider.future);
+  return motor?.registo.conflitosDeReserva ?? const [];
+});
+
 class SyncController extends Notifier<InfoSync> {
   SincronizacaoEntreDispositivos? _motor;
   RegistoDeOperacoes? _registo;
@@ -304,6 +316,9 @@ class SyncController extends Notifier<InfoSync> {
     // Enviámos alguma coisa → avisar os outros aparelhos, para não esperarem
     // pelo temporizador.
     if (resultado.enviadas > 0) _tocarCampainha();
+    // Um envio pode ter mandado uma reserva em conflito (23P01) para o balde:
+    // reavaliar para a aba Estado do gestor o mostrar sem ter de reabrir a app.
+    ref.invalidate(conflitosDeReservaProvider);
     state = InfoSync(
       estado: resultado.correu ? EstadoSync.emEspera : EstadoSync.falhou,
       pendentes: _registo?.pendentes.length ?? 0,
