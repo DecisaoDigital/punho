@@ -15,6 +15,7 @@ import '../../../shared/widgets/versao_app.dart';
 import '../../ciclo/presentation/minha_semana_page.dart';
 import '../../collaborator/presentation/collaborator_shell.dart';
 import '../../conta/presentation/perfil_popup.dart';
+import '../../contabilista/historico_do_contabilista_provider.dart';
 import '../../dashboard/presentation/dashboard_page.dart';
 import '../../empresa/presentation/empresa_page.dart';
 import '../../kpis/presentation/kpis_page.dart';
@@ -126,6 +127,11 @@ class _AppShellState extends ConsumerState<AppShell> {
       _janela(porBaixoDasBarras: false);
       return const CollaboratorShell();
     }
+
+    // Ponte contabilista → histórico: materializa os meses de faturação
+    // declarados no `historicalMonths` que os KPIs leem. Efeito colateral
+    // silencioso e uma vez só; o valor não interessa aqui, só que corra.
+    ref.watch(historicoDoContabilistaProvider);
 
     final destination = ref.watch(navigationProvider);
     final destinations = visibleOperationalDestinations(operational);

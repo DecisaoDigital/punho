@@ -72,11 +72,7 @@ void main() {
         montarLandscape(
           tester,
           containerCom(estado),
-          SizedBox(
-            height: 165,
-            width: 431,
-            child: CartaoCaixa(agora: agora),
-          ),
+          SizedBox(height: 165, width: 431, child: CartaoCaixa(agora: agora)),
           tamanho: const Size(750, 393),
         );
 

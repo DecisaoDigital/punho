@@ -208,11 +208,11 @@ TesourariaMes tesourariaDoMes(
       mes,
       referencia,
     ),
-    recebidoMesAnteriorCents: receiptTotal(
-      state.receipts,
-      _inicioDoMes(anterior),
-      _fimDoMes(anterior),
-    ),
+    // Mesma rede de segurança que o homólogo: recebimentos reais primeiro, e o
+    // histórico mensal preenchido quando não os há. Sem isto, uma empresa nova
+    // — sem homólogo nenhum — via "sem histórico para comparar" mesmo com o mês
+    // anterior declarado, porque só este ramo é que olhava para os recibos crus.
+    recebidoMesAnteriorCents: _recebidoDoMesComHistorico(state, anterior),
     recebidoMesHomologoCents: _recebidoDoMesComHistorico(state, homologo),
     serieDiariaCents: [
       for (var dia = 1; dia <= diasNoMes; dia++)
@@ -225,17 +225,20 @@ TesourariaMes tesourariaDoMes(
   );
 }
 
-/// Recebido do mês homólogo, com o histórico mensal como rede de segurança.
+/// Recebido de um mês de referência (homólogo **ou** mês anterior), com o
+/// histórico mensal como rede de segurança.
 ///
 /// **Prefere sempre os recebimentos registados.** Só quando não há nenhum é
-/// que cai para o valor que o gestor preencheu à mão no histórico mensal do
-/// ano passado (ecrã de Definições da Empresa) — o mesmo tomba-prioridades já
+/// que cai para o valor que o gestor preencheu à mão no histórico mensal
+/// (ecrã de Definições da Empresa) — o mesmo tomba-prioridades já
 /// usado em `_receitaHomologa`, mais abaixo neste ficheiro, para a
 /// recomendação da semana. Antes desta função, `tesourariaDoMes` só olhava
 /// para os recebimentos e ignorava por completo o histórico mensal: um
 /// gestor que preenchesse o mês
 /// de Agosto do ano passado continuava a ver "Por apurar" no painel, porque a
-/// comparação nunca ia lá buscar o número.
+/// comparação nunca ia lá buscar o número. As **duas** referências da tendência
+/// passam por aqui — homólogo e mês anterior —, senão a empresa nova ficava sem
+/// nenhuma comparação possível.
 ///
 /// **Nunca inventa.** Sem recebimentos e sem histórico preenchido, devolve
 /// zero — e é esse zero que faz `variacaoVsHomologo` sair `null` em vez de uma
