@@ -1,8 +1,11 @@
 import 'dart:async';
 
+import '../config/supabase_config.dart';
+import '../sync/sincronizacao_do_painel.dart';
 import '../sync/supabase_operational_sync.dart';
 import '../sync/sync_engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/repositories/operation_repository.dart';
 import 'painel_controller.dart';
 import '../../domain/models/operations.dart';
@@ -1015,18 +1018,46 @@ class OperationsController extends Notifier<OperationsState> {
     if (_repo is! PersistentOperationRepository) {
       return SyncStatus.synchronized;
     }
-    final result = await SupabaseOperationalSync(
-      _repo as PersistentOperationRepository,
-    ).synchronize();
+    final repo = _repo as PersistentOperationRepository;
+    final result = await SupabaseOperationalSync(repo).synchronize();
     if (result == SyncStatus.synchronized) {
       state = _fromRepo();
-      // O instantâneo também traz o painel, e esse não vive aqui dentro. Sem
-      // isto, o painel composto noutro aparelho chegava ao telemóvel, ficava
-      // gravado — e o ecrã continuava a dizer que estava vazio até a app ser
-      // fechada e reaberta.
+    }
+    // **Fora do `if`, e depois.** O painel tem canal próprio desde a Fase 3
+    // (`punho_painel`): não depende de o instantâneo ter corrido bem, e ficar
+    // pendurado nele era pô-lo a herdar as falhas de um canal que já não é o
+    // dele. Vai a seguir e não antes só para não haver duas idas à rede antes
+    // de a sessão estar provada — o instantâneo é quem confirma que há membro
+    // activo e que este aparelho é de gestor.
+    await _sincronizarPainel(repo);
+    return result;
+  }
+
+  /// Sobe a arrumação do painel, ou traz a que estiver em `punho_painel`.
+  ///
+  /// Nunca lança e nunca mexe no [SyncStatus] que se devolve a quem chamou: um
+  /// painel que não sincronizou não é uma app avariada, é uma preferência
+  /// atrasada. Tenta-se outra vez no ciclo seguinte.
+  Future<void> _sincronizarPainel(PersistentOperationRepository repo) async {
+    if (!SupabaseConfig.enabled) return;
+    // O painel é do gestor: a RLS de `punho_painel` exige `punho_e_gestor()`
+    // nas três políticas. Num telemóvel de operador isto era um 42501 de 20 em
+    // 20 minutos, para sempre, sem nada que se pudesse fazer com a resposta. A
+    // marca vem do servidor — foi o `SupabaseOperationalSync` acima que a pôs,
+    // ao ver o perfil em `punho_membros`.
+    if (!repo.guardaNoAparelho) return;
+    final cliente = Supabase.instance.client;
+    if (cliente.auth.currentUser == null) return;
+    final resultado = await SincronizacaoDoPainel(
+      repositorio: repo,
+      cliente: cliente,
+    ).sincronizar();
+    // Sem isto, o painel arrumado noutro aparelho chegava ao telemóvel, ficava
+    // gravado — e o ecrã continuava a dizer que estava vazio até a app ser
+    // fechada e reaberta.
+    if (resultado.mudouAqui) {
       ref.read(painelProvider.notifier).recarregarDoRepositorio();
     }
-    return result;
   }
 }
 

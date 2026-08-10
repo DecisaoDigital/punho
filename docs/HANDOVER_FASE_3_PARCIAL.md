@@ -57,7 +57,19 @@ duas empresas em `entidades_migradas_em`. Depois disso:
 
 ## O que ficou por fazer
 
-### Passo 2 (a meio) — o canal do painel
+### ~~Passo 2 — o canal do painel~~ **feito**
+
+`lib/core/sync/sincronizacao_do_painel.dart`, ligado em
+`operations_controller.dart` (`_sincronizarPainel`, a seguir ao instantâneo e
+fora do `if` dele). `savePainel` deixou de chamar `_markDirty()`; o painel
+saiu do payload da ficha e o remendo que o repunha na importação desapareceu
+com a razão que o fazia existir. Testes em
+`test/core/sync/canal_do_painel_test.dart` (21), incluindo o que falha se o
+painel voltar ao payload da ficha. **1099 passam, zero vermelhos.**
+
+O que segue está por fazer.
+
+<details><summary>O plano original do passo 2, para memória</summary>
 
 Falta o lado da app. A tabela e a função já existem em `ea3fa21`. É preciso:
 
@@ -80,6 +92,8 @@ Falta o lado da app. A tabela e a função já existem em `ea3fa21`. É preciso:
    sincronizar*; *gravar uma máquina não põe o painel a subir*.
 4. **Teste que falhe se o painel voltar ao payload da ficha** — pedido
    explícito do César no passo 2.
+
+</details>
 
 ### Passos 3 a 7, por tocar
 

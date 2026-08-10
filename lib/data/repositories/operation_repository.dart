@@ -345,19 +345,33 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
 
   /// Este aparelho arrumou o painel e ainda não o entregou ao servidor.
   ///
-  /// Marca à parte do [_hasPendingRemoteChanges], que é do bloco todo. O
-  /// instantâneo tem a regra "o servidor manda": quem chega com uma revisão
-  /// velha deita fora o que tinha por subir — e é essa a regra certa para a
-  /// ficha da empresa, que se edita uma vez por ano num sítio só.
-  ///
-  /// Para o painel não serve. Marca-se uma caixa e a alteração fica à espera
-  /// do próximo ciclo; se nesse intervalo qualquer outro aparelho tocar na
-  /// ficha, a revisão avança e a arrumação desaparecia sem erro nenhum. Esta
-  /// marca diz "isto ainda não teve a sua vez" — e sobrevive à importação.
+  /// Marca à parte do [_hasPendingRemoteChanges] porque **é outro canal**. O
+  /// painel tem tabela própria (`punho_painel`) e sobe por
+  /// `SincronizacaoDoPainel`; o instantâneo leva a ficha da empresa e mais
+  /// nada. Enquanto partilharam canal, arrumar o painel fazia subir a ficha
+  /// inteira e avançar a revisão — e a regra "o servidor manda" mandava os
+  /// outros aparelhos deitar fora o que tivessem por subir, por causa de uma
+  /// caixa marcada.
   bool _painelPorSubir = false;
+
+  /// Quando é que este aparelho arrumou o painel.
+  ///
+  /// Vai no `p_updated_at` de `punho_painel_gravar`, que só aceita a escrita se
+  /// for **igual ou mais recente** do que a que lá está. É o relógio de quem
+  /// arrumou, não o do momento em que a rede apareceu: um telemóvel que esteve
+  /// a manhã toda sem sinal não pode chegar às duas da tarde e desfazer o que
+  /// outra pessoa arrumou ao meio-dia. Era exactamente essa a avaria que o
+  /// instantâneo tinha, e não se traz para aqui.
+  DateTime? _painelArrumadoEm;
 
   int? get remoteRevision => _remoteRevision;
   bool get hasPendingRemoteChanges => _hasPendingRemoteChanges;
+
+  /// Há arrumação do painel à espera de chegar a `punho_painel`.
+  bool get painelPorSubir => _painelPorSubir;
+
+  /// O carimbo a mandar na próxima subida do painel. Ver [_painelArrumadoEm].
+  DateTime? get painelArrumadoEm => _painelArrumadoEm;
 
   static Future<PersistentOperationRepository> create() async {
     final repository = PersistentOperationRepository._(
@@ -637,20 +651,45 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     _markDirty();
   }
 
-  /// O painel sobe pelo canal do instantâneo, com o onboarding e os custos
-  /// fixos — não pela fila de operações.
+  /// O painel sobe pela **sua** tabela, `punho_painel`. Não pela fila de
+  /// operações, e já não pelo instantâneo.
   ///
-  /// É a divisão que [_markDirty] descreve: a fila serve o que duas pessoas
-  /// mexem ao mesmo tempo e precisa de ordem do servidor para não se perder. O
-  /// painel não é isso. É arrumação do gestor, feita num sítio só, e o
-  /// instantâneo já é o dono do que tem esse feitio. Pô-lo na fila obrigava a
-  /// inventar uma entidade nova e a alargar-lhe a lista no servidor, para
-  /// resolver uma disputa que não existe.
+  /// Nem a fila nem o instantâneo lhe serviam. A fila serve o que duas pessoas
+  /// mexem ao mesmo tempo, e obrigava a inventar uma entidade nova para
+  /// resolver uma disputa que não existe. O instantâneo era o vizinho do lado —
+  /// e cobrava caro por o alojar: marcar uma caixa punha a ficha inteira por
+  /// subir, a revisão avançava, e nos outros telemóveis a regra "o servidor
+  /// manda" deitava fora a ficha que tivessem por entregar.
+  ///
+  /// Aqui não se chama [_markDirty]: o instantâneo não tem nada com isto.
+  /// Grava-se em disco — que é onde o painel vive entre arranques — e marca-se
+  /// para o canal dele. Ver `SincronizacaoDoPainel`.
   @override
   void savePainel(ArranjoDoPainel value) {
     super.savePainel(value);
     _painelPorSubir = true;
-    _markDirty();
+    _painelArrumadoEm = DateTime.now().toUtc();
+    _persist();
+  }
+
+  /// O painel tal como está em `punho_painel`. **Não marca nada por subir**:
+  /// isto é o que chegou de lá, não o que este aparelho tem para dizer.
+  ///
+  /// Devolve se alterou alguma coisa, para quem chama só reconstruir o ecrã
+  /// quando há motivo.
+  bool aplicarPainelDoServidor(ArranjoDoPainel valor) {
+    if (painel == valor) return false;
+    _painel = valor;
+    _persist();
+    return true;
+  }
+
+  /// A arrumação chegou a `punho_painel` — ou perdeu para uma mais recente que
+  /// já lá estava, o que dá no mesmo: em nenhum dos casos continua à espera.
+  void marcarPainelSincronizado() {
+    _painelPorSubir = false;
+    _painelArrumadoEm = null;
+    _persist();
   }
 
   /// O que sobe ao servidor pelo canal do instantâneo: **só a ficha da
@@ -681,24 +720,24 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   /// Cada coisa tem um dono. Este canal deixou de opinar sobre o que não é dele.
   bool importOperationalPayload(String raw, {required int revision}) {
     try {
-      final painelDesteAparelho = painel;
       _applyData(
         Map<String, dynamic>.from(jsonDecode(raw) as Map),
         apenasDadosDaEmpresa: true,
         ignorarPainel: true,
       );
       _remoteRevision = revision;
-      // **A arrumação do painel não se perde à passagem.**
+      // **Zero, e não "o que o painel tivesse".**
       //
-      // Tudo o resto que vinha por subir cede ao servidor, e é assim que deve
-      // ser: velho perde. Mas o painel muda-se com um toque, e entre o toque e
-      // o ciclo de sincronização cabe qualquer coisa que outro aparelho faça à
-      // ficha. Aqui fica de pé o que este aparelho arrumou, e sobe já a seguir,
-      // por cima do que o servidor acabou de dizer — ver [_painelPorSubir].
-      if (_painelPorSubir) {
-        _painel = painelDesteAparelho;
-      }
-      _hasPendingRemoteChanges = _painelPorSubir;
+      // Isto foi, durante uma semana, `_hasPendingRemoteChanges =
+      // _painelPorSubir` — e ao lado ia um bloco a repor à mão o painel que a
+      // importação tinha acabado de apagar. Existiam os dois porque o painel
+      // viajava neste canal e a regra dele ("o servidor manda") era larga de
+      // mais para uma preferência que se muda com um toque.
+      //
+      // O painel saiu para a tabela dele. Este canal leva a ficha da empresa,
+      // e sobre a ficha a regra continua a ser a certa: velho perde, sem
+      // ressalvas e sem nada por subir do outro lado.
+      _hasPendingRemoteChanges = false;
       _persist();
       return true;
     } catch (_) {
@@ -709,7 +748,6 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   void markRemoteSynchronized(int revision) {
     _remoteRevision = revision;
     _hasPendingRemoteChanges = false;
-    _painelPorSubir = false;
     _persist();
   }
 
@@ -805,6 +843,12 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   /// Falso no telemóvel do operador. Ver [naoGuardarNoAparelho].
   bool _guardaNoAparelho = true;
 
+  /// Falso a partir do momento em que o servidor disse que este aparelho é de
+  /// operador. Serve de porteiro a quem só tem que fazer no telemóvel do
+  /// gestor — o painel, por exemplo, que a RLS de `punho_painel` só deixa lá
+  /// chegar quem é gestor.
+  bool get guardaNoAparelho => _guardaNoAparelho;
+
   /// **Neste aparelho não fica nada da empresa.**
   ///
   /// Regra do Cesar para o operador: a única coisa gravada no telemóvel dele é
@@ -839,9 +883,12 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     data['sync'] = {
       'remoteRevision': _remoteRevision,
       'hasPendingRemoteChanges': _hasPendingRemoteChanges,
-      // Gravada, e não só em memória: arrumar o painel e fechar a app antes de
-      // haver rede é o caso normal, não a excepção.
+      // Gravadas, e não só em memória: arrumar o painel e fechar a app antes de
+      // haver rede é o caso normal, não a excepção. E o carimbo tem de ir com
+      // ela — é ele que decide a disputa lá no servidor, e reconstruí-lo no
+      // arranque seguinte dava-lhe a hora errada, a do arranque.
       'painelPorSubir': _painelPorSubir,
+      'painelArrumadoEm': _painelArrumadoEm?.toIso8601String(),
     };
     _preferences.setString(_storageKey, jsonEncode(data));
   }
@@ -852,6 +899,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     _remoteRevision = null;
     _hasPendingRemoteChanges = false;
     _painelPorSubir = false;
+    _painelArrumadoEm = null;
     _preferences.remove(_storageKey);
   }
 
@@ -870,6 +918,9 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
       _remoteRevision = _nullableInt(sync?['remoteRevision']);
       _hasPendingRemoteChanges = sync?['hasPendingRemoteChanges'] == true;
       _painelPorSubir = sync?['painelPorSubir'] == true;
+      _painelArrumadoEm = DateTime.tryParse(
+        sync?['painelArrumadoEm'] as String? ?? '',
+      );
       _applyData(data);
     } catch (_) {
       // Uma cache antiga ou inválida não impede a app de arrancar — arranca
