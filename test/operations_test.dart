@@ -34,6 +34,52 @@ void main() {
     expect(bookings.single.status, BookingStatus.confirmed);
   });
 
+  test('definirValorPrevisto grava o valor de uma reserva já criada', () {
+    // O mecanismo que o ecrã do gestor passou a expor: corrigir o valor de uma
+    // reserva depois de criada, sem a apagar e voltar a marcar.
+    final c = container();
+    addTearDown(c.dispose);
+    final controller = c.read(operationsProvider.notifier);
+    controller.addBooking(
+      Booking(
+        id: 'pedido',
+        customerId: 'c1',
+        machineIds: const ['m1'],
+        startsAt: DateTime(2026, 10, 10),
+        endsAt: DateTime(2026, 10, 12),
+        status: BookingStatus.request,
+      ),
+    );
+
+    controller.definirValorPrevisto('pedido', 45000);
+
+    expect(
+      c.read(operationsProvider).bookings.single.expectedValueCents,
+      45000,
+    );
+  });
+
+  test('definirValorPrevisto recusa valor não positivo', () {
+    final c = container();
+    addTearDown(c.dispose);
+    final controller = c.read(operationsProvider.notifier);
+    controller.addBooking(
+      Booking(
+        id: 'pedido',
+        customerId: 'c1',
+        machineIds: const ['m1'],
+        startsAt: DateTime(2026, 10, 10),
+        endsAt: DateTime(2026, 10, 12),
+        status: BookingStatus.request,
+      ),
+    );
+
+    expect(
+      () => controller.definirValorPrevisto('pedido', 0),
+      throwsArgumentError,
+    );
+  });
+
   test('deteta conflito entre reservas confirmadas para a mesma máquina', () {
     final c = container();
     addTearDown(c.dispose);

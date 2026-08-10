@@ -40,7 +40,7 @@ class _CollaboratorShellState extends ConsumerState<CollaboratorShell> {
     return Scaffold(
       appBar: AppBar(title: Text(widget.titulo ?? session.label)),
       body: SafeArea(
-        // ListView e não Column: seis botões de 76 dp não cabem numa janela
+        // ListView e não Column: cinco botões de 76 dp não cabem numa janela
         // baixa (Windows, ou telemóvel em paisagem) e o ecrã aparecia com as
         // barras amarelas e pretas de overflow.
         child: ListView(
@@ -61,11 +61,8 @@ class _CollaboratorShellState extends ConsumerState<CollaboratorShell> {
               Icons.payments,
               () => _receipt(context, ref, id),
             ),
-            _Action(
-              'Registar despesa / fatura',
-              Icons.receipt_long_outlined,
-              () => _expense(context, id),
-            ),
+            // Despesa/fatura não é do operador: o servidor recusa-a (RLS, 42501)
+            // e um botão que o servidor recusa não devia existir. Fica no gestor.
             _Action(
               'Nova lead',
               Icons.person_add_alt_1,
@@ -149,15 +146,6 @@ void _receipt(BuildContext c, WidgetRef ref, String id) {
     c,
     MaterialPageRoute(
       builder: (_) => RegisterReceiptPage(recordedByCollaboratorId: id),
-    ),
-  );
-}
-
-void _expense(BuildContext c, String id) {
-  Navigator.push(
-    c,
-    MaterialPageRoute(
-      builder: (_) => RegisterExpensePage(recordedByCollaboratorId: id),
     ),
   );
 }

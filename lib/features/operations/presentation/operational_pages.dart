@@ -18,6 +18,7 @@ import '../../../core/theme/punho_theme.dart';
 import '../../../core/media/machine_image_store.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../core/orientacao/orientacao_do_contexto.dart';
+import '../../../core/session/demo_session.dart';
 import '../../../data/repositories/operation_repository.dart';
 import '../../../domain/models/operations.dart';
 import '../../../domain/models/historical_month.dart';
@@ -3283,11 +3284,26 @@ Color _bookingColor(BookingStatus status) => switch (status) {
   BookingStatus.cancelled => Colors.red.shade700,
 };
 
+/// Quem pode mexer no **dinheiro** de uma reserva.
+///
+/// «O gestor pode alterar, um funcionário não» — Cesar, 9/8/2026. Com Supabase
+/// ligado vale o papel real do servidor (`perfil == 'gestor'`), para já estar
+/// certo quando houver funcionários com login próprio; sem Supabase, decide o
+/// perfil da sessão de demonstração. Mesmo critério do resto da app
+/// (`company_settings_page._podeEditar`, `conflitos_providers.ehGestor`).
+bool _gestorPodeEditarValor(WidgetRef ref) => SupabaseConfig.enabled
+    ? (ref.read(estadoAcessoProvider).valueOrNull?.eGestor ?? false)
+    : ref.read(demoSessionProvider).isManager;
+
+String _valorPrevistoLabel(int? cents) =>
+    cents == null ? 'Por definir' : '${(cents / 100).toStringAsFixed(2)} €';
+
 Future<void> _bookingStatusDialog(
   BuildContext context,
   WidgetRef ref,
   Booking booking,
 ) async {
+  final podeEditarValor = _gestorPodeEditarValor(ref);
   await showDialog<void>(
     context: context,
     builder: (dialogContext) => AlertDialog(
@@ -3295,6 +3311,24 @@ Future<void> _bookingStatusDialog(
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // O valor previsto do trabalho, editável só pelo gestor. Um
+          // funcionário vê o número, não lhe toca — o ícone de lápis nem
+          // aparece e a linha não responde ao toque.
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.euro_outlined),
+            title: const Text('Valor previsto'),
+            subtitle: Text(_valorPrevistoLabel(booking.expectedValueCents)),
+            trailing: podeEditarValor ? const Icon(Icons.edit_outlined) : null,
+            enabled: podeEditarValor,
+            onTap: podeEditarValor
+                ? () async {
+                    Navigator.pop(dialogContext);
+                    await _editarValorDaReservaDialog(context, ref, booking);
+                  }
+                : null,
+          ),
+          const Divider(height: 8),
           for (final status in BookingStatus.values)
             ListTile(
               title: Text(_bookingStatusLabel(status)),
@@ -3322,6 +3356,68 @@ Future<void> _bookingStatusDialog(
       ),
     ),
   );
+}
+
+/// Edita o **valor previsto** de uma reserva já criada — o mecanismo que
+/// faltava. O controlador já sabia fazê-lo (`definirValorPrevisto`), mas só
+/// **A minha semana** o chamava, ao fechar um trabalho; uma reserva com o valor
+/// errado não tinha por onde ser corrigida. Só chega aqui quem pode
+/// (ver [_gestorPodeEditarValor]); mesmo assim recusa zero ou vazio, como o
+/// próprio controlador exige.
+Future<void> _editarValorDaReservaDialog(
+  BuildContext context,
+  WidgetRef ref,
+  Booking booking,
+) async {
+  final controlador = TextEditingController(
+    text: booking.expectedValueCents == null
+        ? ''
+        : (booking.expectedValueCents! / 100).toStringAsFixed(2),
+  );
+  String? erro;
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (dialogContext, setState) => AlertDialog(
+        title: const Text('Valor previsto da reserva'),
+        content: TextField(
+          controller: controlador,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: 'Valor (€)',
+            helperText: 'O que vai ser facturado ao cliente, IVA incluído.',
+            errorText: erro,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final cents = centsDeTexto(controlador.text);
+              if (cents == null || cents <= 0) {
+                setState(
+                  () => erro = controlador.text.trim().isEmpty
+                      ? 'Indica um valor superior a zero.'
+                      : 'Não consigo ler "${controlador.text.trim()}".',
+                );
+                return;
+              }
+              ref
+                  .read(operationsProvider.notifier)
+                  .definirValorPrevisto(booking.id, cents);
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    ),
+  );
+  controlador.dispose();
 }
 
 /// Mudou-se para o modelo, ao lado de `machineStatusLabel` e `leadSourceLabel`,
