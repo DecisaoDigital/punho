@@ -14,6 +14,7 @@ import '../../auth/acesso_providers.dart';
 import '../../company/presentation/company_settings_page.dart';
 import '../../licenca/presentation/diagnostico_licenca.dart';
 import '../../gestao/presentation/convites_screen.dart';
+import '../../gestao/presentation/dados_pessoais_screen.dart';
 import '../../gestao/presentation/pedidos_pendentes_screen.dart';
 import '../data/sugestoes_service.dart';
 
@@ -158,6 +159,16 @@ class PerfilPopup extends ConsumerWidget {
                     icon: const Icon(Icons.how_to_reg_outlined),
                     label: const Text('Pedidos de acesso'),
                   ),
+                  const SizedBox(height: 8),
+                  // «Apaguem os meus dados» é um pedido com prazo legal e sem
+                  // sítio próprio na app até aqui. Vive no perfil do gestor
+                  // porque é ele quem responde por eles — e porque não é uma
+                  // coisa que se faça no dia-a-dia, ao lado de cobrar.
+                  OutlinedButton.icon(
+                    onPressed: () => _abrirDadosPessoais(context),
+                    icon: const Icon(Icons.privacy_tip_outlined),
+                    label: const Text('Apagar dados de uma pessoa'),
+                  ),
                 ],
                 const SizedBox(height: 8),
               ],
@@ -253,6 +264,14 @@ class PerfilPopup extends ConsumerWidget {
     navegador.pop();
     navegador.push(
       MaterialPageRoute<void>(builder: (_) => const PedidosPendentesScreen()),
+    );
+  }
+
+  void _abrirDadosPessoais(BuildContext context) {
+    final navegador = Navigator.of(context, rootNavigator: true);
+    navegador.pop();
+    navegador.push(
+      MaterialPageRoute<void>(builder: (_) => const DadosPessoaisScreen()),
     );
   }
 
