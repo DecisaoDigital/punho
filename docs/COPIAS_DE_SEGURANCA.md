@@ -1,7 +1,12 @@
 # Cópias de segurança do Punho
 
-**Estado: cadeia ensaiada ponta a ponta, ainda não corrida contra a produção.**
-Falta um passo, e é do César — ver [O que falta](#o-que-falta-a-senha) no fim.
+**Estado: a correr. Cópia da produção tirada, restaurada e usada a 11/8/2026,
+e agendada.** Diária às 04:40, provada ao domingo às 05:20, com registo em
+`~/copias/punho.log`.
+
+O primeiro restauro a sério apanhou um defeito que nenhum ensaio tinha
+apanhado — os gatilhos do `auth.users` — e está descrito em
+[O que o primeiro restauro real ensinou](#o-que-o-primeiro-restauro-real-ensinou).
 
 A auditoria de 11/8/2026 (achados 4.1 e 4.2) encontrou isto: nenhum script de
 `pg_dump`, nenhum agendamento, e nenhum restauro alguma vez feito. O que havia
@@ -128,7 +133,39 @@ PUNHO_DB_UTILIZADOR=postgres.oefqbkhioncakojipqyx \
 Session e **não** Transaction: o `pg_dump` precisa de sessão. O add-on de IPv4
 da Supabase resolveria o mesmo, mas é pago e aqui não é preciso.
 
-## O que falta: a senha
+## O que o primeiro restauro real ensinou
+
+O ensaio corria verde havia dias. O primeiro restauro **da produção a sério**
+falhou em duas coisas que a base de ensaio não tinha forma de mostrar.
+
+**Os gatilhos do `auth.users` perdiam-se sem consequência visível.** São dois —
+`criar_pedido_acesso_novo_utilizador` e `punho_criar_pedido_ao_registar` — e
+vivem no `auth`, mas chamam funções do `public`. Como as contas se restauravam
+primeiro (as chaves estrangeiras do `public` apontam para `auth.users`, portanto
+têm de vir depois), o `public` ainda não existia e o `pg_restore` saltou-os.
+
+O que se via era o pior caso possível: **inventário idêntico linha a linha**, a
+base a responder a tudo, a prova a dar-se por boa. E na base restaurada,
+qualquer pessoa que se registasse nunca mais gerava pedido de acesso — ninguém
+entrava, e nada no restauro dizia porquê.
+
+Três correcções, por ordem de importância:
+
+1. **O inventário passou a contar os gatilhos das contas.** É isto que faz
+   qualquer perda futura ser apanhada pela comparação, em vez de depender de
+   alguém ler os avisos do `pg_restore` às 5h20 de domingo.
+2. **Uma queixa do `pg_restore` reprova a cópia.** Estava a ser impressa por
+   baixo de um visto verde. Uma prova que avisa e aprova não é uma prova.
+3. **Os gatilhos entram depois do `public`**, separados por objecto
+   (`pg_restore -L`) e não por secção. A chave primária do `auth.users` também
+   vive no post-data: partir por secções trocava dois gatilhos perdidos por ~20
+   chaves estrangeiras perdidas.
+
+A lição que fica: um ensaio contra uma base que nós próprios desenhámos só
+encontra os defeitos que soubemos imaginar. A forma real da produção — neste
+caso, gatilhos que atravessam esquemas — traz os outros.
+
+## A senha
 
 Os scripts lêem `~/.punho/copia.env`:
 
@@ -152,30 +189,19 @@ Postgres: as apps falam por PostgREST com a chave anon, as edge functions usam
 a `service_role`, o CLI usa o login. Esta cópia é a primeira coisa a precisar
 dela — e é por isso que a ausência dela não é sinal de nada estar mal.
 
-Onde pode estar: **não no i9**. Procurei aqui (todos os `.env`, o CLI da
-Supabase, um varrimento por connection strings) e não está, mas isso prova
-pouco — nunca tendo havido ligação directa a partir desta máquina, a senha nunca
-teria razão para lá chegar. Os sítios plausíveis são a **máquina Windows**
-(`D:\Seguro\Importantes para claude.txt`, que é onde já vivem as senhas das
-keystores), um **gestor de senhas** ou o **Chrome**. Nenhum deles é alcançável
-daqui: não há montagem de `D:` no i9 (verificado).
+A original perdeu-se — não estava no i9, nem no `D:\Seguro` onde vivem as das
+keystores. Foi reposta a 11/8/2026 em *Project Settings → Database → Reset
+database password*, e a nova está no `D:\Seguro`. Repor não partiu nada, e não
+partiu exactamente pela razão que explicava não a termos: não havia um único
+sítio a usá-la. O reset não toca nas chaves `anon`/`service_role`, no token
+`sbp_` nem no login do CLI.
 
-Se não aparecer em nenhum, a Supabase nunca a volta a mostrar — só deixa gerar
-outra em *Project Settings → Database → Reset database password*. **Gerar outra
-é seguro**, e é seguro exactamente pela mesma razão que explica não a termos:
-não há um único sítio a usá-la para partir. O reset não toca nas chaves
-`anon`/`service_role`, no token `sbp_` nem no login do CLI.
+**O ficheiro não se escreve à mão** — ver a receita acima. E se um dia a
+ligação falhar, ler primeiro o que o `--verificar` diz: ele distingue «não
+cheguei lá» de «cheguei e a senha não serve», e essa distinção poupa a tarde de
+repor uma senha que já estava boa.
 
-Assim que o ficheiro existir:
-
-```bash
-./scripts/copia_de_seguranca.sh --verificar   # só confirma que a senha serve
-./scripts/copia_de_seguranca.sh               # tira a primeira cópia
-./scripts/restaurar_prova.sh                  # prova-a
-```
-
-E **só depois** é que isto vai para o cron. Agendar um backup por provar era só
-mudar de esperança. A entrada será:
+## A correr
 
 ```cron
 # copia da base do Punho — diaria, e provada uma vez por semana
@@ -183,4 +209,14 @@ mudar de esperança. A entrada será:
 20 5 * * 0 /home/cesar/punho/scripts/restaurar_prova.sh   >> /home/cesar/copias/punho.log 2>&1
 ```
 
-Fica às 04:40 por não chocar com o expurgo RGPD, que corre às 04:17.
+Fica às 04:40 por não chocar com o expurgo RGPD, que corre às 04:17. Ambos os
+scripts foram corridos com o ambiente reduzido do cron (`env -i
+PATH=/usr/bin:/bin HOME=/home/cesar`) antes de serem agendados — um `docker`
+fora do `PATH` dava uma falha silenciosa todas as noites, que é precisamente o
+que isto existe para não acontecer. O `restaurar_prova.sh` sem argumento escolhe
+a cópia mais recente.
+
+**O que ainda não está resolvido:** o registo é um ficheiro que ninguém lê. Uma
+cópia que comece a falhar às 04:40 fica a falhar até alguém abrir o
+`~/copias/punho.log`. Falta um aviso activo — e enquanto não existir, isto é
+uma cadeia provada com uma vigia por fazer.

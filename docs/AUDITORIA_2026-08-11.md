@@ -29,18 +29,14 @@ Este ficheiro é a lista viva. Actualiza-se à medida que se fecha.
 | 5.1 | 26 `ListView(` não-lazy | Convertidas as **duas que crescem com o negócio**: o extracto de despesas/recebimentos e a lista de clientes e leads (esta com `SliverList`, por ter dois títulos pelo meio). As outras — máquinas, colaboradores, veículos — não se converteram de propósito: uma lavandaria tem dez máquinas e cinco empregados, e trocar `children` por `builder` aí é ruído sem ganho |
 | 5.2 | 10 `.select()` sem limite | Sete não eram nada: dois eram `select` do Riverpod, o sincronizador de operações já tem cursor e lote, e os catálogos são fechados por desenho. Três levaram tecto — a conversa com o contabilista, a caixa de entrada de leads e a lista de convites — com teste que olha para o **pedido que sai**. O sincronizador de conflitos fica sem tecto de propósito: sem uma coluna que diga quando a linha mudou, um `limit` traz sempre as mesmas N e há conflitos que nunca chegariam. Está escrito no código |
 | — | **Novo: `.order()` sem `ascending` em 8 sítios das 3 apps** | O postgrest-dart ordena **ao contrário** por omissão. O catálogo de rubricas saía do fim para o princípio, as listas de clientes e de organizações saíam de Z a A, e as reservas e cobranças do OP do fim do dia para o princípio. Descoberto porque o teste do tecto da caixa de leads falhou. Todos explícitos agora |
+| 4.1 + 4.2 | Nenhum script de backup, nenhum agendamento, nenhum restauro alguma vez feito | Cópia da produção tirada, restaurada e **usada** a 11/8, e agendada: diária às 04:40, provada ao domingo às 05:20. O primeiro restauro a sério apanhou o que dias de ensaio não tinham apanhado — os dois gatilhos do `auth.users` perdiam-se em silêncio, com inventário a bater certo e a prova a dar-se por boa. Corrigido nos três sítios que interessam: o inventário conta-os, uma queixa do `pg_restore` reprova a cópia, e os gatilhos entram depois do `public`. Ver [COPIAS_DE_SEGURANCA.md](COPIAS_DE_SEGURANCA.md) |
 | 6.1 | Acessibilidade quase inexistente | **Estava mal medido.** Contar `Semantics` é mau indicador: o `InkWell` já anuncia o toque e um filho com texto já traz rótulo. Medido pela lente certa — botões que são *só* um ícone —, o Punho tinha 2 (o contador de mais/menos) e o Control 6, entre eles o olho da palavra-passe repetido em 3 ecrãs. Todos com nome agora. Mais o `Semantics` na linha que se copia no diagnóstico de licença, que só se anunciava por um ícone de 14 px |
 
 ## Aberto
 
 ### Alta
 
-**4.1 + 4.2 — backup provado.** A cadeia está ensaiada ponta a ponta contra uma
-base que faz de produção (`./scripts/ensaio_de_copia.sh`): tira a cópia,
-restaura-a, compara o inventário, usa a base restaurada, e recusa tanto um
-ficheiro rasurado como uma cópia assinada cuja conta não bate. Falta correr o
-mesmo contra a produção, e para isso falta a senha em `~/.punho/copia.env`. Ver
-**[COPIAS_DE_SEGURANCA.md](COPIAS_DE_SEGURANCA.md)**.
+**Nada aberto em Alta.**
 
 ### Média
 
