@@ -25,6 +25,8 @@ Este ficheiro é a lista viva. Actualiza-se à medida que se fecha.
 | 1.2 | Ficheiros nunca importados | `access_profile.dart` removido. `graficos.dart` **fica** — ver abaixo |
 | 1.4 | `flutter_riverpod` declarado e não usado no OP | Removido do pubspec |
 | 1.6 | Assets sem referência | Falso alarme parcial: são originais do gerador de ícones. Não se apagam |
+| 3.7 | Políticas do `storage.objects` nunca verificadas | Verificadas: estão bem. Cada empresa só chega à sua pasta, o comprovativo de despesa só é lido pelo autor ou por um gestor, e as fotografias de máquinas exigem membro activo. O que faltava era o `file_size_limit`, a null — qualquer membro podia enviar 900 MB e encher o plano de 1 GB, levando atrás o balde de onde saem os APKs. Posto a 20 MB |
+| 5.1 | 26 `ListView(` não-lazy | Convertidas as **duas que crescem com o negócio**: o extracto de despesas/recebimentos e a lista de clientes e leads (esta com `SliverList`, por ter dois títulos pelo meio). As outras — máquinas, colaboradores, veículos — não se converteram de propósito: uma lavandaria tem dez máquinas e cinco empregados, e trocar `children` por `builder` aí é ruído sem ganho |
 | 6.1 | Acessibilidade quase inexistente | **Estava mal medido.** Contar `Semantics` é mau indicador: o `InkWell` já anuncia o toque e um filho com texto já traz rótulo. Medido pela lente certa — botões que são *só* um ícone —, o Punho tinha 2 (o contador de mais/menos) e o Control 6, entre eles o olho da palavra-passe repetido em 3 ecrãs. Todos com nome agora. Mais o `Semantics` na linha que se copia no diagnóstico de licença, que só se anunciava por um ícone de 14 px |
 
 ## Aberto
@@ -65,6 +67,19 @@ ficheiros. **6.4** — nenhuma das 3 apps define `darkTheme`.
 
 **6.5** — 549 `Text(` no Punho para 49 `maxLines`/`overflow`.
 **6.6** — 94 alvos de toque abaixo de 48 dp nas três apps.
+
+**Novo, encontrado ao fechar o 3.7 — as fotografias de máquinas não se apagam
+nunca.** Sobem para `<empresa>/machines/<carimbo>.<ext>` e não há política de
+DELETE que lhes chegue (a que existe só cobre os comprovativos registados em
+`punho_documentos`), nem a app tem por onde as apagar. Trocar a fotografia de
+uma máquina deixa a antiga lá para sempre, apagar a máquina também, e o
+`punho_apagar_titular` não toca no storage. Fechar isto é política + o lado da
+app, e é trabalho a sério, não um remendo.
+
+**`allowed_mime_types` continua a null** no `punho-documentos`. Devia aceitar só
+imagens e PDF, mas a verificação é feita contra o `content-type` que o cliente
+declara: se a inferência falhar num caso qualquer, o envio passa a ser recusado
+em produção. Não se mete sem experimentar no aparelho.
 
 ### Baixa
 

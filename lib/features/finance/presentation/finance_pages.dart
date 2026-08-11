@@ -40,28 +40,33 @@ class FinanceListPage extends ConsumerWidget {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 12),
+            // `builder` e não `children`: isto é um extracto, cresce todos os
+            // dias e nunca encolhe. Com `children`, cada abertura constrói
+            // todas as linhas desde o início do negócio para mostrar as sete
+            // que cabem no ecrã.
             Expanded(
-              child: ListView(
-                children: [
-                  for (final item in list)
-                    Card(
-                      child: ListTile(
-                        title: Text(_money(item.amountCents)),
-                        subtitle: Text(
-                          '${item.date.day}/${item.date.month} · ${item.note.isEmpty ? 'Sem nota' : item.note}',
-                        ),
-                        trailing: item is Expense
-                            ? Chip(
-                                label: Text(
-                                  item.status == ExpensePaymentStatus.paid
-                                      ? 'Paga'
-                                      : 'Por pagar',
-                                ),
-                              )
-                            : const Chip(label: Text('Recebido')),
+              child: ListView.builder(
+                itemCount: list.length,
+                itemBuilder: (context, i) {
+                  final item = list[i];
+                  return Card(
+                    child: ListTile(
+                      title: Text(_money(item.amountCents)),
+                      subtitle: Text(
+                        '${item.date.day}/${item.date.month} · ${item.note.isEmpty ? 'Sem nota' : item.note}',
                       ),
+                      trailing: item is Expense
+                          ? Chip(
+                              label: Text(
+                                item.status == ExpensePaymentStatus.paid
+                                    ? 'Paga'
+                                    : 'Por pagar',
+                              ),
+                            )
+                          : const Chip(label: Text('Recebido')),
                     ),
-                ],
+                  );
+                },
               ),
             ),
           ],
@@ -257,9 +262,7 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
                   // para preencher, lixo diz o que não se percebeu.
                   final cents = centsDeTexto(amount.text);
                   if (cents == null || cents <= 0) {
-                    setState(
-                      () => erro = mensagemDeValorInvalido(amount.text),
-                    );
+                    setState(() => erro = mensagemDeValorInvalido(amount.text));
                     return;
                   }
                   setState(() => erro = null);

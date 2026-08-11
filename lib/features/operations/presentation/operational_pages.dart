@@ -2054,6 +2054,11 @@ class ClientsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(operationsProvider);
+    // Um cliente arquivado não serve de nada se continuar na lista — é
+    // exactamente esse o ponto de o arquivar. Ordem alfabética: sem isto saía
+    // pela ordem de chegada da sincronização (achado 20).
+    final clientes = state.customers.where((c) => !c.archived).toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return _PageFrame(
       title: 'Clientes e leads',
       action: Wrap(
@@ -2071,89 +2076,107 @@ class ClientsPage extends ConsumerWidget {
           ),
         ],
       ),
-      child: ListView(
-        children: [
-          const Text('Clientes', style: TextStyle(fontWeight: FontWeight.w800)),
-          // Um cliente arquivado não serve de nada se continuar na lista — é
-          // exactamente esse o ponto de o arquivar. Ordem alfabética: sem
-          // isto saía pela ordem de chegada da sincronização (achado 20).
-          for (final c
-              in state.customers.where((c) => !c.archived).toList()..sort(
-                (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-              ))
-            Card(
-              // Mesmo padrão do cartão de máquina: margem de 3 dp e ListTile
-              // compacto, para caber mais linhas em landscape mobile.
-              margin: const EdgeInsets.symmetric(vertical: 3),
-              child: ListTile(
-                dense: true,
-                visualDensity: VisualDensity.compact,
-                title: Text(c.name),
-                subtitle: Text(
-                  [
-                    c.phone,
-                    [c.postalCode, c.locality]
-                        .whereType<String>()
-                        .where((value) => value.isNotEmpty)
-                        .join(' '),
-                  ].where((value) => value.isNotEmpty).join(' · '),
-                ),
-                // Ecrã de detalhe do cliente: mesmo caminho do de máquina — o
-                // NIF, email, morada e notas que o servidor já traz não tinham
-                // onde aparecer.
-                //
-                // A linha inteira abre a ficha. Só o lápis abria, e o lápis é
-                // um alvo de 48 dp num canto: quem toca numa lista toca no
-                // nome, e ficava com a sensação de que a app não responde
-                // (visto no Redmi, 04-08-2026).
-                onTap: () => _formularioDeCliente(context, ref, c),
-                trailing: Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined),
-                      tooltip: 'Editar cliente',
-                      onPressed: () => _formularioDeCliente(context, ref, c),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Eliminar cliente',
-                      onPressed: () =>
-                          _confirmarEliminarCliente(context, ref, c),
-                    ),
-                  ],
-                ),
-              ),
+      // Duas listas num ecrã, cada uma com o seu título. São `SliverList` e não
+      // um `ListView(children:)` porque ambas crescem com o negócio: com
+      // `children`, abrir o ecrã constrói o cartão de todos os clientes que a
+      // empresa alguma vez teve para mostrar os oito que cabem no ecrã.
+      child: CustomScrollView(
+        slivers: [
+          const SliverToBoxAdapter(
+            child: Text(
+              'Clientes',
+              style: TextStyle(fontWeight: FontWeight.w800),
             ),
-          const Padding(
-            padding: EdgeInsets.only(top: 16),
-            child: Text('Leads', style: TextStyle(fontWeight: FontWeight.w800)),
           ),
-          for (final l in state.leads)
-            Card(
-              child: ListTile(
-                title: Text(l.name),
-                // `l.status.name` punha "newLead" e "proposal" à frente do
-                // utilizador — nomes de programador num ecrã de gestão.
-                subtitle: Text('${l.phone} · ${leadStatusLabel(l.status)}'),
-                trailing: l.status == LeadStatus.converted
-                    ? null
-                    : TextButton(
-                        onPressed: () {
-                          try {
-                            ref
-                                .read(operationsProvider.notifier)
-                                .convertLead(l);
-                          } on StateError catch (error) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(error.message)),
-                            );
-                          }
-                        },
-                        child: const Text('Converter'),
+          SliverList.builder(
+            itemCount: clientes.length,
+            itemBuilder: (context, i) {
+              final c = clientes[i];
+              return Card(
+                // Mesmo padrão do cartão de máquina: margem de 3 dp e ListTile
+                // compacto, para caber mais linhas em landscape mobile.
+                margin: const EdgeInsets.symmetric(vertical: 3),
+                child: ListTile(
+                  dense: true,
+                  visualDensity: VisualDensity.compact,
+                  title: Text(c.name),
+                  subtitle: Text(
+                    [
+                      c.phone,
+                      [c.postalCode, c.locality]
+                          .whereType<String>()
+                          .where((value) => value.isNotEmpty)
+                          .join(' '),
+                    ].where((value) => value.isNotEmpty).join(' · '),
+                  ),
+                  // Ecrã de detalhe do cliente: mesmo caminho do de máquina — o
+                  // NIF, email, morada e notas que o servidor já traz não tinham
+                  // onde aparecer.
+                  //
+                  // A linha inteira abre a ficha. Só o lápis abria, e o lápis é
+                  // um alvo de 48 dp num canto: quem toca numa lista toca no
+                  // nome, e ficava com a sensação de que a app não responde
+                  // (visto no Redmi, 04-08-2026).
+                  onTap: () => _formularioDeCliente(context, ref, c),
+                  trailing: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined),
+                        tooltip: 'Editar cliente',
+                        onPressed: () => _formularioDeCliente(context, ref, c),
                       ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        tooltip: 'Eliminar cliente',
+                        onPressed: () =>
+                            _confirmarEliminarCliente(context, ref, c),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: Text(
+                'Leads',
+                style: TextStyle(fontWeight: FontWeight.w800),
               ),
             ),
+          ),
+          SliverList.builder(
+            itemCount: state.leads.length,
+            itemBuilder: (context, i) {
+              final l = state.leads[i];
+              return Card(
+                child: ListTile(
+                  title: Text(l.name),
+                  // `l.status.name` punha "newLead" e "proposal" à frente do
+                  // utilizador — nomes de programador num ecrã de gestão.
+                  subtitle: Text('${l.phone} · ${leadStatusLabel(l.status)}'),
+                  trailing: l.status == LeadStatus.converted
+                      ? null
+                      : TextButton(
+                          onPressed: () {
+                            try {
+                              ref
+                                  .read(operationsProvider.notifier)
+                                  .convertLead(l);
+                            } on StateError catch (error) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(error.message)),
+                              );
+                            }
+                          },
+                          child: const Text('Converter'),
+                        ),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
