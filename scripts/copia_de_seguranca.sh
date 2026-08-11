@@ -34,6 +34,13 @@
 #
 #   PGPASSWORD=a-senha-da-base
 #
+# Esse ficheiro **não se escreve à mão**: isto é um `source`, e uma senha com
+# `$`, espaço ou aspas chega truncada ou vazia — e depois parece senha errada.
+# A forma segura, que também não deixa a senha no histórico nem no ecrã:
+#
+#   (umask 077; read -rsp 'senha: ' p
+#    printf 'PGPASSWORD=%q\n' "$p" > ~/.punho/copia.env; unset p; echo)
+#
 # É a senha do utilizador `postgres`, escolhida quando o projecto foi criado e
 # mostrada **uma vez**. O painel não a volta a mostrar — só repõe (Project
 # Settings → Database → Reset database password). Repor é seguro: nada liga

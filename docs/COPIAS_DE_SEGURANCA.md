@@ -136,6 +136,16 @@ Os scripts lêem `~/.punho/copia.env`:
 PGPASSWORD=a-senha-da-base
 ```
 
+**Não escrever esse ficheiro à mão.** O script faz `source`, e uma senha com
+`$`, espaço, `'` ou `"` chega truncada ou vazia — o que depois se lê como senha
+errada e manda-se repor uma que já estava boa. Verificado: `PGPASSWORD=ab$c d#e`
+escrito à mão chega como string vazia. Escrever assim, que não põe a senha no
+histórico da shell nem no ecrã e cita-a como deve ser:
+
+```bash
+(umask 077; read -rsp 'senha: ' p; printf 'PGPASSWORD=%q\n' "$p" > ~/.punho/copia.env; unset p; echo)
+```
+
 É a senha do utilizador `postgres`, escolhida quando o projecto foi criado e
 mostrada **uma vez**. Nunca mais foi precisa porque nada liga directamente ao
 Postgres: as apps falam por PostgREST com a chave anon, as edge functions usam
