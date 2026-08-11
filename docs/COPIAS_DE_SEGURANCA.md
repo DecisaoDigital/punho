@@ -105,6 +105,29 @@ IPv6** — daí o `--network host` no docker, porque a rede predefinida dos
 contentores é só IPv4. Não há `pg_dump` instalado no i9 e não faz falta: vem do
 `postgres:17-alpine` (pg_dump 17.10 contra servidor 17.6).
 
+**O i9 chega lá — provado a 11/8, e sem precisar de senha nenhuma.** Ligou-se
+com uma senha errada de propósito e o servidor respondeu `password
+authentication failed`. Isso só se diz depois de haver TCP, TLS e handshake,
+portanto o caminho de rede está fechado ponta a ponta e o único degrau que falta
+é a senha certa. A saída IPv6 do i9 confirma-se com
+`curl -6 https://ifconfig.co`, e o `db.*` resolve só em `AAAA` (não tem `A`).
+
+Numa máquina **sem IPv6** isto falharia a resolver o endereço, o que se lê como
+«a senha está errada» e faz perder a tarde a repor senhas que já estavam boas. O
+`--verificar` sabe distinguir os dois casos e diz qual é. O caminho alternativo,
+se um dia for preciso, é o **Session pooler** (*Project Settings → Database →
+Connection string → Session pooler*), onde o utilizador é
+`postgres.oefqbkhioncakojipqyx` e não `postgres`:
+
+```bash
+PUNHO_DB_ANFITRIAO=<anfitriao-do-pooler> \
+PUNHO_DB_UTILIZADOR=postgres.oefqbkhioncakojipqyx \
+  ./scripts/copia_de_seguranca.sh --verificar
+```
+
+Session e **não** Transaction: o `pg_dump` precisa de sessão. O add-on de IPv4
+da Supabase resolveria o mesmo, mas é pago e aqui não é preciso.
+
 ## O que falta: a senha
 
 Os scripts lêem `~/.punho/copia.env`:
@@ -113,14 +136,25 @@ Os scripts lêem `~/.punho/copia.env`:
 PGPASSWORD=a-senha-da-base
 ```
 
-A senha não está em lado nenhum do disco — procurei em todos os `.env`, no CLI
-da Supabase e num varrimento por connection strings.
+É a senha do utilizador `postgres`, escolhida quando o projecto foi criado e
+mostrada **uma vez**. Nunca mais foi precisa porque nada liga directamente ao
+Postgres: as apps falam por PostgREST com a chave anon, as edge functions usam
+a `service_role`, o CLI usa o login. Esta cópia é a primeira coisa a precisar
+dela — e é por isso que a ausência dela não é sinal de nada estar mal.
 
-Se não estiver guardada em lado nenhum, a Supabase nunca a volta a mostrar: só
-deixa gerar outra em *Project Settings → Database → Reset database password*.
-**Gerar outra aqui é seguro** — nada usa essa senha. As apps usam a chave anon,
-as edge functions usam a `service_role`, e não existe nenhuma connection string
-no disco.
+Onde pode estar: **não no i9**. Procurei aqui (todos os `.env`, o CLI da
+Supabase, um varrimento por connection strings) e não está, mas isso prova
+pouco — nunca tendo havido ligação directa a partir desta máquina, a senha nunca
+teria razão para lá chegar. Os sítios plausíveis são a **máquina Windows**
+(`D:\Seguro\Importantes para claude.txt`, que é onde já vivem as senhas das
+keystores), um **gestor de senhas** ou o **Chrome**. Nenhum deles é alcançável
+daqui: não há montagem de `D:` no i9 (verificado).
+
+Se não aparecer em nenhum, a Supabase nunca a volta a mostrar — só deixa gerar
+outra em *Project Settings → Database → Reset database password*. **Gerar outra
+é seguro**, e é seguro exactamente pela mesma razão que explica não a termos:
+não há um único sítio a usá-la para partir. O reset não toca nas chaves
+`anon`/`service_role`, no token `sbp_` nem no login do CLI.
 
 Assim que o ficheiro existir:
 
