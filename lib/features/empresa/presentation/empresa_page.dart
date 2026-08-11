@@ -298,9 +298,11 @@ class _AbaRegimeFiscalState extends ConsumerState<_AbaRegimeFiscal> {
         .read(operationsProvider.notifier)
         .updateCompanySettings(legalForm: escolhida);
     setState(() => _escolhida = null);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Regime guardado: ${rotuloDeRegime(depois)}.')),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text('Regime guardado: ${rotuloDeRegime(depois)}.')),
+      );
   }
 
   /// Só quando o regime muda mesmo. Trocar "Lda." por "Sociedade por quotas"
@@ -495,11 +497,13 @@ class _AbaCustosFixosState extends ConsumerState<_AbaCustosFixos> {
     // dizer — a mesma mentira do `?? 0`, só mais discreta. Mesma regra dos
     // Dados.
     if (_erros.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Há valores por corrigir. Nada foi guardado.'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Há valores por corrigir. Nada foi guardado.'),
+          ),
+        );
       return;
     }
     ref
@@ -768,14 +772,16 @@ class _CartaoDeConflito extends ConsumerWidget {
     if (choque != null) {
       // Não se tira da lista: o conflito continua por resolver, e dizer o
       // contrário era a mesma mentira noutro sítio.
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${choque.machine.name} também está ocupada nesse dia '
-            '(${choque.booking.customerNameSnapshot}). Nada mudou.',
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              '${choque.machine.name} também está ocupada nesse dia '
+              '(${choque.booking.customerNameSnapshot}). Nada mudou.',
+            ),
           ),
-        ),
-      );
+        );
       return;
     }
     await _resolver(context, ref, aviso: 'Remarcada para ${_data(novoDia)}.');

@@ -229,13 +229,15 @@ class _CartaoDoTrabalho extends ConsumerWidget {
             .updateBookingStatus(item.trabalho.id, seguinte);
         if (!context.mounted) return;
         if (conflito != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '${conflito.machine.name} já está ocupada nestas datas.',
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(
+                  '${conflito.machine.name} já está ocupada nestas datas.',
+                ),
               ),
-            ),
-          );
+            );
           return;
         }
         // **O sucesso era mudo.** Só o conflito falava; quando corria bem, o
@@ -244,17 +246,29 @@ class _CartaoDoTrabalho extends ConsumerWidget {
         // botão "confirmar"». Fazia — mudava o estado — mas não o dizia, e um
         // toque que muda o estado sem o dizer não se distingue de um toque que
         // falhou. Vai com desfazer: é um toque só, e enganar-se é fácil.
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_confirmacaoDe(seguinte)),
-            action: SnackBarAction(
-              label: 'Anular',
-              onPressed: () => ref
-                  .read(operationsProvider.notifier)
-                  .updateBookingStatus(item.trabalho.id, anterior),
+        //
+        // **Uma de cada vez.** O `showSnackBar` põe em fila; a que está no ecrã
+        // fica, e a nova espera pela vez dela. Com a acessibilidade ligada
+        // (`accessibleNavigation`) uma barra *com botão* nunca expira — é regra
+        // do Flutter, para o leitor de ecrã ter tempo de chegar ao «Anular» — e
+        // então a fila não anda: o César, a 11 de Agosto de 2026, viu-a
+        // «perguntar todos os passos para trás e não apenas o último». Eram as
+        // barras de cada passo, empilhadas. Fechar a anterior antes de abrir a
+        // seguinte resolve nos dois mundos: quem anula, anula o último passo,
+        // que é o único que ainda está à mão.
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(_confirmacaoDe(seguinte)),
+              action: SnackBarAction(
+                label: 'Anular',
+                onPressed: () => ref
+                    .read(operationsProvider.notifier)
+                    .updateBookingStatus(item.trabalho.id, anterior),
+              ),
             ),
-          ),
-        );
+          );
       case AccaoDoPasso.declararValor:
         abrirFormulario<void>(
           context,

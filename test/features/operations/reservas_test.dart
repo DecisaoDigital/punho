@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:punho/core/operations/operations_controller.dart';
+import 'package:punho/domain/models/operations.dart';
 import 'package:punho/features/operations/presentation/operational_pages.dart';
 
 import '../dashboard/fixtura.dart';
@@ -174,5 +176,144 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Escolhe uma para marcar'), findsNothing);
+  });
+
+  _todasAsMaquinas();
+}
+
+/// **«Todas as máquinas»** — a vista de entrada do calendário desde 10 de
+/// Agosto de 2026, e durante um dia mostrou um calendário em branco: o filtro
+/// devolvia lista vazia quando não havia máquina escolhida. O César, no
+/// telemóvel: «"Todas as máquinas" não mostra todas as reservas da semana de
+/// todas as máquinas — ou do mês».
+void _todasAsMaquinas() {
+  // Esta semana, para caírem na vista que abre por omissão.
+  final segunda = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+  ).subtract(Duration(days: DateTime.now().weekday - DateTime.monday));
+
+  OperationsState comDuasReservas() => estadoComMovimento().copyWith(
+    bookings: [
+      Booking(
+        id: 'b-m1',
+        customerId: 'c1',
+        customerNameSnapshot: 'Construções Silva',
+        machineIds: const ['m1'],
+        startsAt: segunda.add(const Duration(days: 1)),
+        endsAt: segunda.add(const Duration(days: 2)),
+        status: BookingStatus.confirmed,
+      ),
+      Booking(
+        id: 'b-m2',
+        customerId: 'c2',
+        customerNameSnapshot: 'João Pereira',
+        machineIds: const ['m2'],
+        startsAt: segunda.add(const Duration(days: 3)),
+        endsAt: segunda.add(const Duration(days: 4)),
+        status: BookingStatus.confirmed,
+      ),
+    ],
+  );
+
+  group('Todas as máquinas', () {
+    testWidgets('a semana mostra as reservas de todas as máquinas', (
+      tester,
+    ) async {
+      await montarLandscape(
+        tester,
+        containerCom(comDuasReservas()),
+        const BookingsPage(),
+      );
+
+      // Nenhuma máquina escolhida: é a vista «Todas».
+      expect(find.textContaining('ME-01'), findsWidgets);
+      expect(find.textContaining('PE-02'), findsWidgets);
+      expect(find.textContaining('Construções Silva'), findsWidgets);
+      expect(find.textContaining('João Pereira'), findsWidgets);
+    });
+
+    testWidgets('o mês também', (tester) async {
+      await montarLandscape(
+        tester,
+        containerCom(comDuasReservas()),
+        const BookingsPage(),
+      );
+
+      await tester.tap(find.text('Mês'));
+      await tester.pumpAndSettle();
+
+      // Pelo nome do cliente, e não pela referência da máquina: essa também
+      // vive no selector do topo, e o teste passaria com o calendário vazio.
+      expect(find.textContaining('Construções Silva'), findsWidgets);
+      expect(find.textContaining('João Pereira'), findsWidgets);
+    });
+
+    /// «pelo menos as células deveriam estar de outra cor» — com o parque todo
+    /// à vista, as etiquetas dizem *o quê* mas não dão a leitura de relance de
+    /// *onde há trabalho*.
+    testWidgets('escolher uma máquina volta a mostrar só a dela', (
+      tester,
+    ) async {
+      await montarLandscape(
+        tester,
+        containerCom(comDuasReservas()),
+        const BookingsPage(),
+      );
+
+      await tester.tap(find.byType(DropdownButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('ME-01').last);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('João Pereira'), findsNothing);
+      expect(find.textContaining('Construções Silva'), findsWidgets);
+    });
+  });
+
+  group('a cor da célula', () {
+    const cores = ColorScheme.light();
+
+    test('ocupada distingue-se de vazia', () {
+      expect(
+        corDeCelula(cores: cores, seleccionada: false, ocupada: true),
+        isNot(corDeCelula(cores: cores, seleccionada: false, ocupada: false)),
+      );
+      expect(
+        corDeCelula(cores: cores, seleccionada: false, ocupada: false),
+        isNull,
+        reason: 'a célula livre é o fundo do ecrã, e é isso que a convida',
+      );
+    });
+
+    test('escolher para marcar manda sobre estar ocupada', () {
+      expect(
+        corDeCelula(cores: cores, seleccionada: true, ocupada: true),
+        cores.primaryContainer,
+      );
+    });
+
+    test('fora do mês não se confunde com ocupada', () {
+      expect(
+        corDeCelula(
+          cores: cores,
+          seleccionada: false,
+          ocupada: false,
+          foraDoMes: true,
+        ),
+        cores.surfaceContainerHighest,
+      );
+      expect(
+        corDeCelula(
+          cores: cores,
+          seleccionada: false,
+          ocupada: true,
+          foraDoMes: true,
+        ),
+        cores.surfaceContainerHighest,
+        reason: 'um dia de outro mês é ruído, mesmo com reservas lá dentro',
+      );
+    });
   });
 }

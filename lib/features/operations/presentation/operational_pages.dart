@@ -2956,11 +2956,7 @@ class _WeekBookingsCalendar extends ConsumerWidget {
     final start = _weekStart(focus);
     final days = List.generate(7, (index) => start.add(Duration(days: index)));
     final state = ref.watch(operationsProvider);
-    final machineBookings = machineId == null
-        ? const <Booking>[]
-        : bookings
-              .where((booking) => booking.machineIds.contains(machineId))
-              .toList();
+    final machineBookings = _reservasDe(bookings, machineId);
     // A semana toda de uma vez: sete colunas e as duas metades do dia dentro do
     // que há. Antes forçava 860 dp de largura mínima e envolvia tudo em dois
     // SingleChildScrollView — a Tarde ficava abaixo da dobra e o gestor não via
@@ -3103,7 +3099,11 @@ class _BookingSlotCell extends ConsumerWidget {
       margin: const EdgeInsets.all(3),
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: selected ? Theme.of(context).colorScheme.primaryContainer : null,
+        color: corDeCelula(
+          cores: Theme.of(context).colorScheme,
+          seleccionada: selected,
+          ocupada: bookings.isNotEmpty,
+        ),
         border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(8),
       ),
@@ -3159,11 +3159,7 @@ class _MonthBookingsCalendar extends ConsumerWidget {
     final first = DateTime(focus.year, focus.month);
     final start = _weekStart(first);
     final state = ref.watch(operationsProvider);
-    final machineBookings = machineId == null
-        ? const <Booking>[]
-        : bookings
-              .where((booking) => booking.machineIds.contains(machineId))
-              .toList();
+    final machineBookings = _reservasDe(bookings, machineId);
     return Column(
       children: [
         Row(
@@ -3197,11 +3193,12 @@ class _MonthBookingsCalendar extends ConsumerWidget {
                     margin: const EdgeInsets.all(2),
                     padding: const EdgeInsets.all(5),
                     decoration: BoxDecoration(
-                      color: day.month == focus.month
-                          ? null
-                          : Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
+                      color: corDeCelula(
+                        cores: Theme.of(context).colorScheme,
+                        seleccionada: false,
+                        ocupada: dayBookings.isNotEmpty,
+                        foraDoMes: day.month != focus.month,
+                      ),
                       border: Border.all(color: Theme.of(context).dividerColor),
                       borderRadius: BorderRadius.circular(6),
                     ),
@@ -3274,6 +3271,48 @@ class _BookingEventChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// As reservas que o calendário desenha — **todas**, quando não há máquina
+/// escolhida.
+///
+/// Devolvia lista vazia nesse caso, e a 10 de Agosto de 2026 isso passou de
+/// detalhe a defeito: «Todas as máquinas» tornou-se a vista de entrada, e a
+/// vista de entrada mostrava um mês em branco. O César, no telemóvel: «"Todas
+/// as máquinas" não mostra todas as reservas da semana de todas as máquinas —
+/// ou do mês».
+///
+/// O que torna isto legível com o parque todo dentro da mesma célula já lá
+/// estava: cada etiqueta traz a referência da máquina e o cliente, e a cor
+/// vem do estado da reserva.
+List<Booking> _reservasDe(List<Booking> bookings, String? machineId) =>
+    machineId == null
+    ? List.of(bookings)
+    : bookings
+          .where((booking) => booking.machineIds.contains(machineId))
+          .toList();
+
+/// O fundo de uma célula do calendário.
+///
+/// Três estados e uma regra: quem está a ser escolhido para marcar ganha o
+/// container cheio; quem já tem reservas ganha uma lavagem de cor; o resto fica
+/// como o fundo do ecrã. Fora do mês corrente é a única excepção, e é do
+/// calendário mensal.
+///
+/// A lavagem existe a pedido do César: com o parque todo à vista, as etiquetas
+/// dentro da célula dizem *o quê*, mas não davam a leitura de relance de *onde
+/// há trabalho*. É o mesmo problema que uma folha de ponto resolve com uma
+/// mancha.
+Color? corDeCelula({
+  required ColorScheme cores,
+  required bool seleccionada,
+  required bool ocupada,
+  bool foraDoMes = false,
+}) {
+  if (seleccionada) return cores.primaryContainer;
+  if (foraDoMes) return cores.surfaceContainerHighest;
+  if (ocupada) return cores.primary.withValues(alpha: 0.12);
+  return null;
 }
 
 DateTime _weekStart(DateTime day) {
