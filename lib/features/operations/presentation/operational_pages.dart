@@ -3176,50 +3176,98 @@ class _MonthBookingsCalendar extends ConsumerWidget {
           // para a coluna errada.
           child: Padding(
             padding: const EdgeInsets.only(left: 86),
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 7,
-                childAspectRatio: 0.95,
-              ),
-              itemCount: 42,
-              itemBuilder: (context, index) {
-                final day = start.add(Duration(days: index));
-                final dayBookings = machineBookings
-                    .where((booking) => _overlapsDay(booking, day))
-                    .toList();
-                return InkWell(
-                  onTap: () => onDaySelected(day),
-                  child: Container(
-                    margin: const EdgeInsets.all(2),
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: corDeCelula(
-                        cores: Theme.of(context).colorScheme,
-                        seleccionada: false,
-                        ocupada: dayBookings.isNotEmpty,
-                        foraDoMes: day.month != focus.month,
-                      ),
-                      border: Border.all(color: Theme.of(context).dividerColor),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${day.day}',
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(height: 3),
-                        for (final booking in dayBookings.take(2))
-                          _BookingEventChip(booking: booking, state: state),
-                        if (dayBookings.length > 2)
-                          Text(
-                            '+${dayBookings.length - 2}',
-                            style: Theme.of(context).textTheme.labelSmall,
-                          ),
-                      ],
-                    ),
+            // **O mês cabe no ecrã, ou não é um mês.**
+            //
+            // Com `childAspectRatio: 0.95` cada célula queria ficar quase
+            // quadrada: no Redmi deitado davam 305 px de altura cada, seis
+            // linhas, 1830 px — dentro de 540. A grelha rolava, e a 11 de
+            // Agosto de 2026 o smoke apanhou o resultado: o mês abria no dia
+            // 27 do mês anterior e a semana corrente nem aparecia. Quem quer
+            // ver o mês quer ver **o mês**.
+            //
+            // As seis linhas passam a dividir a altura que houver, como as
+            // duas metades do dia já fazem na vista de semana. Numa célula
+            // baixa não cabem as etiquetas: fica o número do dia e a mancha de
+            // cor, que é o que se lê de relance, com a contagem ao lado.
+            child: LayoutBuilder(
+              builder: (context, limites) {
+                final larguraCelula = limites.maxWidth / 7;
+                final alturaCelula = limites.maxHeight / 6;
+                final cabemEtiquetas = alturaCelula >= 92;
+                return GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
+                    childAspectRatio: larguraCelula / alturaCelula,
                   ),
+                  itemCount: 42,
+                  itemBuilder: (context, index) {
+                    final day = start.add(Duration(days: index));
+                    final dayBookings = machineBookings
+                        .where((booking) => _overlapsDay(booking, day))
+                        .toList();
+                    return InkWell(
+                      onTap: () => onDaySelected(day),
+                      child: Container(
+                        margin: const EdgeInsets.all(2),
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: corDeCelula(
+                            cores: Theme.of(context).colorScheme,
+                            seleccionada: false,
+                            ocupada: dayBookings.isNotEmpty,
+                            foraDoMes: day.month != focus.month,
+                          ),
+                          border: Border.all(
+                            color: Theme.of(context).dividerColor,
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${day.day}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                if (!cabemEtiquetas && dayBookings.isNotEmpty)
+                                  Text(
+                                    '${dayBookings.length}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                  ),
+                              ],
+                            ),
+                            if (cabemEtiquetas) ...[
+                              const SizedBox(height: 3),
+                              for (final booking in dayBookings.take(2))
+                                _BookingEventChip(
+                                  booking: booking,
+                                  state: state,
+                                ),
+                              if (dayBookings.length > 2)
+                                Text(
+                                  '+${dayBookings.length - 2}',
+                                  style: Theme.of(context).textTheme.labelSmall,
+                                ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -3237,15 +3285,21 @@ class _BookingEventChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // **A referência, ou o nome.** Mostrava só a referência, e ela é opcional:
+    // quem regista a máquina e deixa esse campo em branco ficava com uma linha
+    // vazia por cima do cliente. Apanhado a 11 de Agosto de 2026 no telemóvel
+    // do César — «Depiladora1» e «Depiladora laser verde», ambas sem
+    // referência, apareciam como nada. Uma etiqueta que não diz de que máquina
+    // é não serve para nada num calendário de todas as máquinas.
     final machineNames = booking.machineIds
-        .map(
-          (id) =>
-              state.machines
-                  .where((machine) => machine.id == id)
-                  .map((machine) => machine.reference)
-                  .firstOrNull ??
-              'Máquina',
-        )
+        .map((id) {
+          final maquina = state.machines
+              .where((machine) => machine.id == id)
+              .firstOrNull;
+          if (maquina == null) return 'Máquina';
+          final referencia = maquina.reference.trim();
+          return referencia.isEmpty ? maquina.name : referencia;
+        })
         .join(', ');
     final customer = booking.customerNameSnapshot.isEmpty
         ? state.customers
@@ -3261,7 +3315,9 @@ class _BookingEventChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(5),
       ),
       child: Text(
-        '$machineNames\n$customer',
+        // Sem máquina nenhuma não se abre uma linha em branco por cima do
+        // cliente: fica o cliente, e mais nada.
+        machineNames.isEmpty ? customer : '$machineNames\n$customer',
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(

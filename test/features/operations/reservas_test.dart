@@ -272,6 +272,97 @@ void _todasAsMaquinas() {
     });
   });
 
+  /// **A etiqueta tem de dizer de que máquina é.** Mostrava a *referência*, que
+  /// é campo opcional: as duas máquinas do César — «Depiladora1» e «Depiladora
+  /// laser verde» — foram registadas sem ela e apareciam como uma linha em
+  /// branco por cima do cliente. Apanhado no smoke da 0.3.71, no telemóvel.
+  group('a etiqueta da reserva', () {
+    OperationsState comMaquinaSemReferencia() => estadoComMovimento().copyWith(
+      machines: const [
+        Machine(
+          id: 'm1',
+          name: 'Depiladora laser verde',
+          reference: '',
+          category: 'Estética',
+          status: MachineStatus.available,
+        ),
+      ],
+      bookings: [
+        Booking(
+          id: 'b-sem-ref',
+          customerId: 'c1',
+          customerNameSnapshot: 'NaideDepil',
+          machineIds: const ['m1'],
+          startsAt: segunda.add(const Duration(days: 1)),
+          endsAt: segunda.add(const Duration(days: 2)),
+          status: BookingStatus.confirmed,
+        ),
+      ],
+    );
+
+    testWidgets('sem referência, mostra o nome da máquina', (tester) async {
+      await montarLandscape(
+        tester,
+        containerCom(comMaquinaSemReferencia()),
+        const BookingsPage(),
+      );
+
+      expect(
+        find.textContaining('Depiladora laser verde\nNaideDepil'),
+        findsWidgets,
+      );
+    });
+
+    testWidgets('sem máquina nenhuma, mostra só o cliente', (tester) async {
+      final estado = estadoComMovimento().copyWith(
+        bookings: [
+          Booking(
+            id: 'b-sem-maquina',
+            customerId: 'c1',
+            customerNameSnapshot: 'Casa Ferreira',
+            machineIds: const [],
+            startsAt: segunda.add(const Duration(days: 1)),
+            endsAt: segunda.add(const Duration(days: 2)),
+            status: BookingStatus.request,
+          ),
+        ],
+      );
+      await montarLandscape(tester, containerCom(estado), const BookingsPage());
+
+      // Sem a linha em branco à frente: era isso que o `'$machineNames\n$customer'`
+      // deixava quando não havia máquinas.
+      expect(find.text('Casa Ferreira'), findsWidgets);
+    });
+  });
+
+  /// **O mês tem de caber no ecrã.** Com células quase quadradas, as seis
+  /// semanas pediam 1830 px de altura dentro dos 540 que o Redmi deitado tem: a
+  /// grelha rolava e o mês abria no dia 27 do mês anterior — a semana corrente
+  /// nem aparecia. Apanhado no smoke da 0.3.71.
+  testWidgets('o mês inteiro cabe no Redmi deitado, sem rolar', (tester) async {
+    await montarLandscape(
+      tester,
+      containerCom(estadoComMovimento()),
+      const BookingsPage(),
+      tamanho: const Size(2177, 1080),
+    );
+
+    await tester.tap(find.text('Mês'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widgetList(
+        find.descendant(
+          of: find.byType(GridView),
+          matching: find.byType(InkWell),
+        ),
+      ),
+      hasLength(42),
+      reason: 'as seis semanas constroem-se todas: nenhuma fica fora da vista',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   group('a cor da célula', () {
     const cores = ColorScheme.light();
 
