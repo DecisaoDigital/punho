@@ -56,6 +56,23 @@ select 'contas de utilizador',
                         query_to_xml('select count(*) as n from auth.users',
                                      false, true, '')))[1]::text::bigint end
 union all
+-- Os gatilhos do `auth.users` contam-se aqui porque já se perderam uma vez sem
+-- ninguém dar por isso. Vivem no auth, mas chamam funções do public
+-- (`punho_criar_pedido_ao_registar` e companhia): num restauro em que o public
+-- ainda não existe, o pg_restore salta-os e segue. A base fica com todas as
+-- tabelas, todas as linhas e todas as políticas certas — e quem se registar
+-- nela nunca gera pedido de acesso.
+--
+-- Contá-los no inventário faz a comparação apanhar sozinha qualquer perda
+-- futura, em vez de se ficar à espera de que alguém leia os avisos do restauro.
+select 'gatilhos nas contas',
+       case when to_regclass('auth.users') is null then 0
+            else (xpath('/row/n/text()',
+                        query_to_xml('select count(*) as n from pg_trigger t '
+                                     'where t.tgrelid = ''auth.users''::regclass '
+                                     'and not t.tgisinternal',
+                                     false, true, '')))[1]::text::bigint end
+union all
 select 'tarefas agendadas',
        case when to_regclass('cron.job') is null then 0
             else (xpath('/row/n/text()',

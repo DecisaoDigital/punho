@@ -114,11 +114,56 @@ create or replace function auth.jwt() returns jsonb language sql stable as $$
 $$;
 SQL
 
-passo "a restaurar as contas"
-queixas_contas="$(no_contentor pg_restore -U postgres -d "$BASE" /copia/contas.dump 2>&1 || true)"
+# A ordem aqui não é gosto, é dependência cruzada — e custou um restauro
+# silenciosamente incompleto para se ver.
+#
+# As tabelas do `public` têm chaves estrangeiras para `auth.users`, portanto as
+# contas têm de entrar primeiro. Só que o `auth.users` traz dois gatilhos que
+# chamam funções do `public` — `criar_pedido_acesso_novo_utilizador` e
+# `punho_criar_pedido_ao_registar` —, e esses não podem nascer antes dela.
+#
+# Restaurar as contas de uma vez só deixava-os por criar. E o pior é o que se
+# via: o inventário batia certo linha a linha, a base respondia a tudo, a prova
+# dava-se por boa — e quem se registasse nessa base **nunca mais gerava pedido
+# de acesso**. Ninguém entrava, e nada no restauro dizia porquê. Um restauro
+# assim é pior do que não ter cópia, porque não se nota.
+#
+# Daí os três tempos: as contas sem gatilhos, o public inteiro, e só então os
+# gatilhos.
+#
+# A separação é **por objecto** (`pg_restore -L`) e não por secção
+# (`--section`), e isso também se aprendeu a bater com a cabeça: a chave
+# primária do `auth.users` vive no post-data, junto com os gatilhos. Partir por
+# secções deixava as contas sem chave primária na altura em que o public entra,
+# e aí nenhuma das ~20 chaves estrangeiras que apontam para `auth.users(id)`
+# encontrava a que se agarrar. Trocava-se dois gatilhos perdidos por vinte
+# chaves estrangeiras perdidas.
+passo "a separar os gatilhos das contas do resto"
+lista_contas="$(no_contentor pg_restore -l /copia/contas.dump)"
+# `|| true` nos dois greps: uma base cujas contas não tenham gatilhos é
+# legítima — a do ensaio é uma —, e o grep a não encontrar nada sai com erro.
+# Com `pipefail`, isso matava o script a meio de um restauro que estava a
+# correr bem, e a falha aparecia como "a cópia não está provada".
+gatilhos_das_contas="$(grep ' TRIGGER ' <<<"$lista_contas" || true)"
+{ grep -v ' TRIGGER ' <<<"$lista_contas" || true; } \
+  | no_contentor sh -c 'cat > /tmp/sem_gatilhos.lst'
+
+passo "a restaurar as contas (sem os gatilhos)"
+queixas_contas="$(no_contentor pg_restore -U postgres -d "$BASE" \
+  -L /tmp/sem_gatilhos.lst /copia/contas.dump 2>&1 || true)"
 
 passo "a restaurar o public"
 queixas="$(no_contentor pg_restore -U postgres -d "$BASE" /copia/public.dump 2>&1 || true)"
+
+queixas_gatilhos=""
+if [[ -n "$gatilhos_das_contas" ]]; then
+  passo "a pendurar os gatilhos das contas, agora que o public existe"
+  printf '%s\n' "$gatilhos_das_contas" | no_contentor sh -c 'cat > /tmp/so_gatilhos.lst'
+  queixas_gatilhos="$(no_contentor pg_restore -U postgres -d "$BASE" \
+    -L /tmp/so_gatilhos.lst /copia/contas.dump 2>&1 || true)"
+else
+  passo "as contas desta base não têm gatilhos — nada para pendurar"
+fi
 
 passo "a recriar as tarefas agendadas (sem pg_cron, só se lê o ficheiro)"
 # `grep -c` devolve 0 e sai com erro quando não encontra nada. Com `|| echo 0`
@@ -189,14 +234,22 @@ else
   echo "$prova_de_uso" | sed 's/^/   /' | head -10
 fi
 
-if [[ -n "$queixas" || -n "$queixas_contas" ]]; then
+# Uma queixa do pg_restore **reprova a cópia**. Já esteve a ser impressa por
+# baixo de um visto verde, e foi assim que dois gatilhos do auth.users se
+# perderam sem consequência nenhuma: o restauro dizia o que tinha falhado e
+# dava-se por bom à mesma. Uma prova que avisa e aprova não é uma prova, é um
+# aviso que ninguém lê às 5h20 de domingo.
+restauro_limpo=true
+if [[ -n "$queixas" || -n "$queixas_contas" || -n "$queixas_gatilhos" ]]; then
+  restauro_limpo=false
   echo
   echo "── o pg_restore queixou-se ──────────────────────────────────────────"
-  printf '%s\n%s\n' "$queixas_contas" "$queixas" | grep -v '^$' | sed 's/^/   /' | head -30
+  printf '%s\n%s\n%s\n' "$queixas_contas" "$queixas" "$queixas_gatilhos" \
+    | grep -v '^$' | sed 's/^/   /' | head -30
 fi
 
 echo
-if $igual && $usavel && ! grep -q 'NÃO' <<<"$prova_de_uso"; then
+if $igual && $usavel && $restauro_limpo && ! grep -q 'NÃO' <<<"$prova_de_uso"; then
   echo "✓ cópia provada: restaurou inteira e a base restaurada funciona."
   echo "  Contentor destruído. A produção não foi tocada."
   exit 0
