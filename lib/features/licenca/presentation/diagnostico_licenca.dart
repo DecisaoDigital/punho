@@ -146,15 +146,23 @@ class _Linha extends StatelessWidget {
 
     if (!copiavel) return linha;
 
-    return InkWell(
-      onTap: () async {
-        await Clipboard.setData(ClipboardData(text: valorCompleto ?? valor));
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('$rotulo copiada.')));
-      },
-      child: linha,
+    // Que a linha se copia ao toque diz-se por um ícone de 14 px. Quem não o
+    // vê não tem como saber que ali há alguma coisa para fazer — e é
+    // precisamente esta a informação (chave de licença, id do terminal) que
+    // faz falta ditar a alguém ao telefone.
+    return Semantics(
+      button: true,
+      hint: 'Tocar para copiar',
+      child: InkWell(
+        onTap: () async {
+          await Clipboard.setData(ClipboardData(text: valorCompleto ?? valor));
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('$rotulo copiada.')));
+        },
+        child: linha,
+      ),
     );
   }
 }

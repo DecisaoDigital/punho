@@ -6,6 +6,12 @@ backup) · runtime · experiência.
 
 Este ficheiro é a lista viva. Actualiza-se à medida que se fecha.
 
+> **Correcção ao original.** O relatório dizia `flutter analyze` limpo nas três
+> apps. Não está: o Control tem 12 avisos `deprecated_member_use` — `value:` em
+> campos de formulário e `onChanged` em `Radio`, do SDK ter andado para a
+> frente. Confirmado com `git stash`, são anteriores a qualquer coisa feita
+> aqui. Punho e OP esses sim, limpos.
+
 ## Fechado
 
 | # | Achado | Como fechou |
@@ -19,6 +25,7 @@ Este ficheiro é a lista viva. Actualiza-se à medida que se fecha.
 | 1.2 | Ficheiros nunca importados | `access_profile.dart` removido. `graficos.dart` **fica** — ver abaixo |
 | 1.4 | `flutter_riverpod` declarado e não usado no OP | Removido do pubspec |
 | 1.6 | Assets sem referência | Falso alarme parcial: são originais do gerador de ícones. Não se apagam |
+| 6.1 | Acessibilidade quase inexistente | **Estava mal medido.** Contar `Semantics` é mau indicador: o `InkWell` já anuncia o toque e um filho com texto já traz rótulo. Medido pela lente certa — botões que são *só* um ícone —, o Punho tinha 2 (o contador de mais/menos) e o Control 6, entre eles o olho da palavra-passe repetido em 3 ecrãs. Todos com nome agora. Mais o `Semantics` na linha que se copia no diagnóstico de licença, que só se anunciava por um ícone de 14 px |
 
 ## Aberto
 
@@ -27,11 +34,13 @@ Este ficheiro é a lista viva. Actualiza-se à medida que se fecha.
 **4.1 + 4.2 — backup provado.** Cadeia montada e por correr. Falta a senha da
 base em `~/.punho/copia.env`. Ver **[COPIAS_DE_SEGURANCA.md](COPIAS_DE_SEGURANCA.md)**.
 
-**6.1 — acessibilidade.** 3 ocorrências de `Semantics`/`semanticLabel` em 33.910
-linhas do Punho; **0** no OP e **0** no Control. 11 (punho) + 18 (control)
-`GestureDetector`/`InkWell` que um leitor de ecrã não anuncia de todo.
-
 ### Média
+
+**6.1 (resto)** — os 18 `InkWell`/`GestureDetector` do Control não foram
+olhados um a um. Os 11 do Punho foram, e estão bem: o teclado do cadeado já
+tinha tooltip nas duas teclas de ícone, e os restantes têm texto por baixo. O
+que falta do lado do Punho é o estado dos acordeões (aberto/fechado) e uma
+passagem pelo OP.
 
 **3.4** — `punho_leads_entrada` guarda dados de terceiros sem consentimento
 registado no esquema. O expurgo aos 6 meses já lá está; o consentimento não.

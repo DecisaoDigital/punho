@@ -952,14 +952,19 @@ class _NumberChoice extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     children: [
       Expanded(child: Text(label)),
+      // Os dois botões são só um sinal de menos e um de mais: quem ouve o ecrã
+      // ouviria «botão, botão» e não saberia de que conta se trata. O tooltip
+      // é o que lhes dá nome — e serve de legenda a quem carrega com o dedo.
       IconButton(
         onPressed: value > 0 ? () => onChanged(value - 1) : null,
         icon: const Icon(Icons.remove_circle_outline),
+        tooltip: 'Menos ${label.toLowerCase()}',
       ),
-      Text('$value'),
+      Text('$value', semanticsLabel: '$label: $value'),
       IconButton(
         onPressed: () => onChanged(value + 1),
         icon: const Icon(Icons.add_circle_outline),
+        tooltip: 'Mais ${label.toLowerCase()}',
       ),
     ],
   );
