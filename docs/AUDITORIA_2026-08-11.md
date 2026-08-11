@@ -33,8 +33,12 @@ Este ficheiro é a lista viva. Actualiza-se à medida que se fecha.
 
 ### Alta
 
-**4.1 + 4.2 — backup provado.** Cadeia montada e por correr. Falta a senha da
-base em `~/.punho/copia.env`. Ver **[COPIAS_DE_SEGURANCA.md](COPIAS_DE_SEGURANCA.md)**.
+**4.1 + 4.2 — backup provado.** A cadeia está ensaiada ponta a ponta contra uma
+base que faz de produção (`./scripts/ensaio_de_copia.sh`): tira a cópia,
+restaura-a, compara o inventário, usa a base restaurada, e recusa tanto um
+ficheiro rasurado como uma cópia assinada cuja conta não bate. Falta correr o
+mesmo contra a produção, e para isso falta a senha em `~/.punho/copia.env`. Ver
+**[COPIAS_DE_SEGURANCA.md](COPIAS_DE_SEGURANCA.md)**.
 
 ### Média
 

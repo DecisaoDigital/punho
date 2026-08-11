@@ -39,9 +39,8 @@
 set -Eeuo pipefail
 
 readonly PROJECT_REF="oefqbkhioncakojipqyx"
-readonly ANFITRIAO="db.${PROJECT_REF}.supabase.co"
 readonly IMAGEM="postgres:17-alpine"
-readonly CONFIG="${HOME}/.punho/copia.env"
+readonly CONFIG="${PUNHO_COPIA_CONFIG:-${HOME}/.punho/copia.env}"
 readonly RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 DESTINO="${PUNHO_COPIAS:-${HOME}/copias/punho}"
@@ -80,6 +79,12 @@ command -v docker >/dev/null || erro "não há docker — é ele que traz o pg_d
 source "$CONFIG"
 [[ -n "${PGPASSWORD:-}" ]] || erro "$CONFIG existe mas não tem PGPASSWORD"
 
+# Por omissão fala com a produção. O `ensaio_de_copia.sh` aponta isto a um
+# PostgreSQL local para poder correr a cadeia inteira — esta mesma, sem ramo
+# especial — sem tocar na base de ninguém.
+ANFITRIAO="${PUNHO_DB_ANFITRIAO:-db.${PROJECT_REF}.supabase.co}"
+PORTA="${PUNHO_DB_PORTA:-5432}"
+
 docker image inspect "$IMAGEM" >/dev/null 2>&1 || {
   passo "a trazer $IMAGEM"
   docker pull --quiet "$IMAGEM" >/dev/null
@@ -89,7 +94,7 @@ docker image inspect "$IMAGEM" >/dev/null 2>&1 || {
 # morre com o script. Assim não aparece em `docker inspect` nem no ambiente.
 PGPASS_TMP="$(mktemp)"
 chmod 600 "$PGPASS_TMP"
-printf '%s:5432:*:postgres:%s\n' "$ANFITRIAO" "$PGPASSWORD" > "$PGPASS_TMP"
+printf '%s:%s:*:postgres:%s\n' "$ANFITRIAO" "$PORTA" "$PGPASSWORD" > "$PGPASS_TMP"
 trap 'rm -f "$PGPASS_TMP"' EXIT
 
 # --network host porque o db.*.supabase.co só responde em IPv6 e a rede
@@ -104,7 +109,7 @@ psql_na_base() {
 
 passo "a falar com $ANFITRIAO"
 versao="$(psql_na_base "$IMAGEM" \
-  psql -h "$ANFITRIAO" -U postgres -d postgres -At \
+  psql -h "$ANFITRIAO" -p "$PORTA" -U postgres -d postgres -At \
        -c "select current_setting('server_version')" 2>&1)" \
   || erro "não entrou na base: $versao"
 passo "servidor PostgreSQL $versao"
@@ -120,27 +125,25 @@ mkdir -p "$pasta"
 
 passo "esquema public → public.dump"
 psql_na_base -v "$pasta":/saida "$IMAGEM" \
-  pg_dump -h "$ANFITRIAO" -U postgres -d postgres \
+  pg_dump -h "$ANFITRIAO" -p "$PORTA" -U postgres -d postgres \
           --format=custom --compress=9 --schema=public \
           --file=/saida/public.dump
 
 passo "contas → contas.dump"
 psql_na_base -v "$pasta":/saida "$IMAGEM" \
-  pg_dump -h "$ANFITRIAO" -U postgres -d postgres \
+  pg_dump -h "$ANFITRIAO" -p "$PORTA" -U postgres -d postgres \
           --format=custom --compress=9 \
           --table=auth.users --table=auth.identities \
           --file=/saida/contas.dump
 
 passo "tarefas agendadas → agenda.sql"
-psql_na_base -v "$pasta":/saida "$IMAGEM" \
-  psql -h "$ANFITRIAO" -U postgres -d postgres -At -o /saida/agenda.sql \
-    -c "select format(
-          'select cron.schedule(%L, %L, %L);', jobname, schedule, command)
-        from cron.job order by jobid"
+psql_na_base -v "$pasta":/saida -v "${RAIZ}/scripts":/sql:ro "$IMAGEM" \
+  psql -h "$ANFITRIAO" -p "$PORTA" -U postgres -d postgres -Atq \
+       -o /saida/agenda.sql -f /sql/copia_agenda.sql
 
 passo "papéis → papeis.sql"
 psql_na_base -v "$pasta":/saida "$IMAGEM" \
-  psql -h "$ANFITRIAO" -U postgres -d postgres -At -o /saida/papeis.sql \
+  psql -h "$ANFITRIAO" -p "$PORTA" -U postgres -d postgres -At -o /saida/papeis.sql \
     -c "select format(
           'do \$\$ begin if not exists (select 1 from pg_roles where rolname=%L)'
           || ' then create role %I nologin; end if; end \$\$;', rolname, rolname)
@@ -148,7 +151,7 @@ psql_na_base -v "$pasta":/saida "$IMAGEM" \
 
 passo "inventário → manifesto.txt"
 psql_na_base -v "$pasta":/saida -v "${RAIZ}/scripts":/sql:ro "$IMAGEM" \
-  psql -h "$ANFITRIAO" -U postgres -d postgres -At -F '|' \
+  psql -h "$ANFITRIAO" -p "$PORTA" -U postgres -d postgres -At -F '|' \
        -o /saida/manifesto.txt -f /sql/copia_manifesto.sql
 
 ( cd "$pasta" && sha256sum ./* > impressoes.sha256 )

@@ -72,6 +72,11 @@ no_contentor() { docker exec -i "$CONTENTOR" "$@"; }
 sql() { no_contentor psql -U postgres -d "$BASE" -v ON_ERROR_STOP=1 "$@"; }
 
 no_contentor createdb -U postgres "$BASE"
+# O dump traz o `create schema public` lá dentro, e uma base nova já vem com
+# um. Sem tirar este primeiro, o pg_restore queixa-se de um erro que não é
+# erro nenhum — e um restauro que se queixa é um restauro em que ninguém
+# confia, mesmo quando correu bem.
+no_contentor psql -U postgres -d "$BASE" -q -c 'drop schema public cascade;'
 
 passo "a montar o andaime que a Supabase dá e a cópia não traz"
 no_contentor psql -U postgres -d "$BASE" -q -v ON_ERROR_STOP=1 -f /copia/papeis.sql
@@ -116,7 +121,9 @@ passo "a restaurar o public"
 queixas="$(no_contentor pg_restore -U postgres -d "$BASE" /copia/public.dump 2>&1 || true)"
 
 passo "a recriar as tarefas agendadas (sem pg_cron, só se lê o ficheiro)"
-tarefas_no_ficheiro="$(grep -c 'cron.schedule' "$pasta/agenda.sql" 2>/dev/null || echo 0)"
+# `grep -c` devolve 0 e sai com erro quando não encontra nada. Com `|| echo 0`
+# a variável ficava com dois zeros e a linha saía partida a meio.
+tarefas_no_ficheiro="$(grep -c 'cron.schedule' "$pasta/agenda.sql" 2>/dev/null || true)"
 
 echo
 echo "── o restauro trouxe o mesmo que a base tinha? ──────────────────────"
@@ -148,7 +155,9 @@ echo "── e a base restaurada responde a perguntas? ────────�
 # Restaurar tabelas não prova nada se depois não se conseguir usar a base. As
 # vistas do Punho montam-se em cima do log a cada leitura; se o log veio mal,
 # é aqui que se vê.
-prova_de_uso="$(sql -At -F '|' <<'SQL' 2>&1 || true
+usavel=true
+prova_de_uso="$(
+  sql -At -F '|' 2>&1 <<'SQL'
 select 'clientes que a vista monta a partir do log', count(*)::text from punho_clientes
 union all
 select 'operações no log', count(*)::text from punho_operacoes
@@ -168,8 +177,17 @@ select 'linhas de auditoria a apontar para o vazio',
        where a.licenca_id is not null
          and not exists (select 1 from licencas l where l.id = a.licenca_id);
 SQL
-)"
-echo "$prova_de_uso" | awk -F'|' '{ printf "   %-46s %s\n", $1, $2 }'
+)" || usavel=false
+
+if $usavel; then
+  echo "$prova_de_uso" | awk -F'|' '{ printf "   %-46s %s\n", $1, $2 }'
+else
+  # Sem isto, uma consulta que rebenta deixava a saída vazia — e vazia não tem
+  # a palavra NÃO lá dentro, portanto a prova dava-se por boa. Era o pior
+  # defeito possível numa prova: passar por não ter conseguido perguntar.
+  echo "✗ a base restaurada não respondeu:"
+  echo "$prova_de_uso" | sed 's/^/   /' | head -10
+fi
 
 if [[ -n "$queixas" || -n "$queixas_contas" ]]; then
   echo
@@ -178,7 +196,7 @@ if [[ -n "$queixas" || -n "$queixas_contas" ]]; then
 fi
 
 echo
-if $igual && ! grep -q 'NÃO' <<<"$prova_de_uso"; then
+if $igual && $usavel && ! grep -q 'NÃO' <<<"$prova_de_uso"; then
   echo "✓ cópia provada: restaurou inteira e a base restaurada funciona."
   echo "  Contentor destruído. A produção não foi tocada."
   exit 0

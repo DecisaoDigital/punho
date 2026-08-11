@@ -1,7 +1,7 @@
 # Cópias de segurança do Punho
 
-**Estado: montado, por provar.** Falta um passo, e é do César — ver
-[O que falta](#o-que-falta-a-senha) no fim.
+**Estado: cadeia ensaiada ponta a ponta, ainda não corrida contra a produção.**
+Falta um passo, e é do César — ver [O que falta](#o-que-falta-a-senha) no fim.
 
 A auditoria de 11/8/2026 (achados 4.1 e 4.2) encontrou isto: nenhum script de
 `pg_dump`, nenhum agendamento, e nenhum restauro alguma vez feito. O que havia
@@ -36,6 +36,31 @@ o log a cada leitura, e que só responde se o log tiver vindo inteiro —, conta
 
 No fim destrói o contentor. A produção nunca é tocada: lê-se a pasta da cópia,
 escreve-se num contentor que morre.
+
+## O ensaio
+
+```
+./scripts/ensaio_de_copia.sh
+```
+
+Levanta um PostgreSQL 17 com a forma da base do Punho — papéis, esquema `auth`,
+log de operações, vista com `security_invoker`, RLS, gatilho, as funções do
+RGPD — e manda os dois scripts de cima trabalhar contra ele. São os mesmos
+scripts, sem ramo de teste lá dentro: só muda para onde apontam
+(`PUNHO_DB_ANFITRIAO`, `PUNHO_DB_PORTA`, `PUNHO_COPIA_CONFIG`).
+
+No fim faz o que interessa mais: estraga a cópia de duas maneiras e exige que a
+prova recuse ambas — um ficheiro rasurado, que as impressões têm de apanhar, e
+uma cópia **íntegra e assinada** cujo inventário mente numa linha, que só a
+comparação apanha. Sem a segunda, o teste só provava o `sha256`.
+
+Correr o ensaio pela primeira vez encontrou três defeitos reais nos scripts:
+um *here-document* mal fechado, um `grep -c` que devolvia dois zeros e partia
+uma linha ao meio, e um `create schema public` do dump a queixar-se contra a
+base nova — um erro que não era erro, e um restauro que se queixa é um restauro
+em que ninguém confia.
+
+A produção não é tocada em momento nenhum.
 
 ## O que a cópia leva
 
