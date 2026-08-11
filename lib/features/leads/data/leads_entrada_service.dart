@@ -89,12 +89,27 @@ class LeadsEntradaService {
 
   Future<List<LeadEntrada>> porProcessar() async {
     try {
+      // `ascending: true` **explícito**, e é aqui que estava um defeito: o
+      // postgrest-dart ordena ao contrário por omissão, portanto
+      // `.order('recebida_em')` — que se lê como "da mais antiga para a mais
+      // nova" — trazia a caixa de entrada do fim para o princípio. É a mesma
+      // pedra em que a sincronização já tinha tropeçado.
+      //
+      // Sem tecto isso era só uma ordem trocada. Com tecto passava a ser perda:
+      // numa caixa com 300 leads por tratar, as 100 mais antigas ficavam para
+      // sempre fora do ecrã. Da mais antiga para a mais nova, o que fica de
+      // fora volta a aparecer assim que as primeiras saem da fila — e é por
+      // isso que este tecto não esconde nada.
+      //
+      // Sem ele, uma caixa que ninguém esvazia era puxada por inteiro — com o
+      // `payload_bruto` de cada linha atrás — de cada vez que o ecrã abre.
       final linhas = await _cliente
           .from(_tabela)
           .select()
           .isFilter('processada_em', null)
           .neq('classificacao', 'descartada')
-          .order('recebida_em');
+          .order('recebida_em', ascending: true)
+          .limit(200);
       return (linhas as List)
           .map((l) => LeadEntrada.fromJson(Map<String, dynamic>.from(l as Map)))
           .toList();

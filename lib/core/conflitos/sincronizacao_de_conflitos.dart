@@ -71,6 +71,28 @@ class SincronizacaoDeConflitos {
     }
   }
 
+  /// Traz a tabela toda, de propósito — e é o único sítio da app onde isso
+  /// ainda acontece.
+  ///
+  /// A auditoria de 11/8 (achado 5.2) apontou esta consulta por não ter tecto.
+  /// Tem razão, e mesmo assim não se lhe põe um: aqui um `limit` não é lento a
+  /// menos, é errado.
+  ///
+  /// Um conflito tem duas notícias para dar — que existe, e que foi resolvido —
+  /// e ambas têm de chegar aos outros aparelhos. Sem cursor, um `limit` traz
+  /// sempre as mesmas N linhas: se essas N nunca forem resolvidas, as que
+  /// vierem a seguir nunca chegam a ser vistas. Trocava-se «puxa de mais» por
+  /// «há conflitos que este aparelho nunca vai saber que existem».
+  ///
+  /// Fazer isto como deve ser precisa de uma coluna que diga *quando é que esta
+  /// linha mudou pela última vez* — o `criado_em` não serve, porque a resolução
+  /// altera a linha depois de criada. Com ela, isto passava a ser o mesmo
+  /// padrão do [SincronizacaoEntreDispositivos]: cursor, ordem crescente e
+  /// lote. Sem ela, a tabela inteira é a única leitura correcta.
+  ///
+  /// O que o torna suportável é a tabela ser pequena por natureza: um conflito
+  /// é um caso de dois aparelhos a mexerem no mesmo sítio ao mesmo tempo, e
+  /// hoje há zero linhas em produção.
   Future<int> _receber() async {
     final linhas =
         await _cliente.from(_tabela).select().eq('empresa_id', empresaId)

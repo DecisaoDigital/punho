@@ -27,6 +27,8 @@ Este ficheiro é a lista viva. Actualiza-se à medida que se fecha.
 | 1.6 | Assets sem referência | Falso alarme parcial: são originais do gerador de ícones. Não se apagam |
 | 3.7 | Políticas do `storage.objects` nunca verificadas | Verificadas: estão bem. Cada empresa só chega à sua pasta, o comprovativo de despesa só é lido pelo autor ou por um gestor, e as fotografias de máquinas exigem membro activo. O que faltava era o `file_size_limit`, a null — qualquer membro podia enviar 900 MB e encher o plano de 1 GB, levando atrás o balde de onde saem os APKs. Posto a 20 MB |
 | 5.1 | 26 `ListView(` não-lazy | Convertidas as **duas que crescem com o negócio**: o extracto de despesas/recebimentos e a lista de clientes e leads (esta com `SliverList`, por ter dois títulos pelo meio). As outras — máquinas, colaboradores, veículos — não se converteram de propósito: uma lavandaria tem dez máquinas e cinco empregados, e trocar `children` por `builder` aí é ruído sem ganho |
+| 5.2 | 10 `.select()` sem limite | Sete não eram nada: dois eram `select` do Riverpod, o sincronizador de operações já tem cursor e lote, e os catálogos são fechados por desenho. Três levaram tecto — a conversa com o contabilista, a caixa de entrada de leads e a lista de convites — com teste que olha para o **pedido que sai**. O sincronizador de conflitos fica sem tecto de propósito: sem uma coluna que diga quando a linha mudou, um `limit` traz sempre as mesmas N e há conflitos que nunca chegariam. Está escrito no código |
+| — | **Novo: `.order()` sem `ascending` em 8 sítios das 3 apps** | O postgrest-dart ordena **ao contrário** por omissão. O catálogo de rubricas saía do fim para o princípio, as listas de clientes e de organizações saíam de Z a A, e as reservas e cobranças do OP do fim do dia para o princípio. Descoberto porque o teste do tecto da caixa de leads falhou. Todos explícitos agora |
 | 6.1 | Acessibilidade quase inexistente | **Estava mal medido.** Contar `Semantics` é mau indicador: o `InkWell` já anuncia o toque e um filho com texto já traz rótulo. Medido pela lente certa — botões que são *só* um ícone —, o Punho tinha 2 (o contador de mais/menos) e o Control 6, entre eles o olho da palavra-passe repetido em 3 ecrãs. Todos com nome agora. Mais o `Semantics` na linha que se copia no diagnóstico de licença, que só se anunciava por um ícone de 14 px |
 
 ## Aberto
@@ -61,10 +63,6 @@ que é enumerável por quem adivinhe códigos: isso quer limitação de tentativ
 **5.1** — 26 `ListView(` não-lazy contra 1 `ListView.builder`
 (`workforce_pages.dart:114,697`, `finance_pages.dart:44`,
 `operational_pages.dart:1396,2069`, `pedidos_pendentes_screen.dart:42`).
-
-**5.2** — 10 ficheiros com `.select()` sem `limit`/`range`. Cuidado ao fechar:
-pôr limite onde a completude importa é trocar lentidão por perda silenciosa de
-linhas, que já aconteceu aqui antes.
 
 **6.3** — Control sem tema nenhum: 0 `Theme.of(context)` e 285 `Colors.*` em 95
 ficheiros. **6.4** — nenhuma das 3 apps define `darkTheme`.

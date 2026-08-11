@@ -125,7 +125,10 @@ class SupabaseContabilistaService implements ContabilistaService {
           'aceita_anual',
         )
         .eq('activa', true)
-        .order('ordem');
+        // `ascending: true` explícito: o postgrest-dart ordena ao contrário por
+        // omissão. A coluna chama-se `ordem` e servia para nada — o catálogo
+        // saía do fim para o princípio.
+        .order('ordem', ascending: true);
     return linhas
         .map((l) => RubricaContabilista.fromJson(l))
         .toList(growable: false);
@@ -222,10 +225,15 @@ class SupabaseContabilistaService implements ContabilistaService {
   Future<List<MensagemContabilista>> mensagens() async {
     // Sem `empresa_id` no filtro: a RLS já limita à empresa da sessão, e
     // mandá-lo daqui era deixar a app escolher de quem lê as mensagens.
+    // Isto é uma conversa: nunca encolhe. Sem tecto, ao fim de uns anos o ecrã
+    // das mensagens passa a puxar a troca inteira com o contabilista para
+    // mostrar as que cabem. 500 é folgado de mais para o que aqui se troca —
+    // umas dezenas por ano — e é o que impede o pior caso.
     final linhas = await _client
         .from('punho_mensagens_contabilista')
         .select('id, texto, criado_em, lido_em')
-        .order('criado_em', ascending: false);
+        .order('criado_em', ascending: false)
+        .limit(500);
     return linhas
         .map((l) => MensagemContabilista.fromJson(l))
         .toList(growable: false);

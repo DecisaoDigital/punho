@@ -241,10 +241,14 @@ class SupabaseAcessoService implements AcessoService {
 
   @override
   Future<List<Convite>> listarConvites() async {
+    // Os convites usados ficam na lista, portanto ela só cresce. Do mais
+    // recente para o mais antigo e com tecto: quem abre este ecrã quer ver o
+    // que acabou de enviar, não o convite de há três anos.
     final linhas = await _client
         .from('punho_convites')
         .select('codigo, email, perfil, expira_em, usado')
-        .order('criado_em', ascending: false);
+        .order('criado_em', ascending: false)
+        .limit(200);
     return (linhas as List)
         .cast<Map<String, dynamic>>()
         .map(Convite.fromJson)
