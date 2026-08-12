@@ -1980,15 +1980,19 @@ class _FotografiasDaMaquina extends StatelessWidget {
                               for (var i = 0; i < paths.length; i++)
                                 if (i != index) paths[i],
                             ],
-                            // O ícone desenha 14 e o alvo tinha 22. Passa a 36
-                            // sobre uma miniatura de 112 — cabe no canto sem
-                            // tapar a máquina, e deixa de se falhar o toque.
-                            // Aqui isto pesa mais do que noutro botão qualquer:
-                            // desde que a app passou a apagar mesmo o ficheiro
-                            // do arquivo, falhar este toque tem consequência.
+                            // O ícone desenha 14. O alvo tinha 22, passou a 36 —
+                            // e 36 continuava a ser menos do que os 48 que a
+                            // régua impõe em todo o lado (`alvos_de_toque`).
+                            // Passar de 36 a 48 numa miniatura de 112 custa
+                            // canto: o X tapa mais fotografia. Vale a pena na
+                            // mesma, e o argumento contrário — «um alvo maior
+                            // faz-se tocar sem querer, e isto apaga» — não se
+                            // aplica aqui, porque remover só tira da lista.
+                            // Quem apaga o ficheiro é o Guardar, e sair sem
+                            // guardar ainda pergunta.
                             child: const SizedBox(
-                              width: 36,
-                              height: 36,
+                              width: 48,
+                              height: 48,
                               child: Icon(
                                 Icons.close,
                                 size: 14,

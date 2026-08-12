@@ -61,23 +61,32 @@ class _DadosPessoaisScreenState extends ConsumerState<DadosPessoaisScreen> {
             style: textos.bodyMedium,
           ),
           const SizedBox(height: 16),
-          Semantics(
-            textField: true,
-            label: 'Quem procurar',
-            child: TextField(
-              controller: _procura,
-              textInputAction: TextInputAction.search,
-              onSubmitted: (_) => _procurar(),
-              decoration: InputDecoration(
-                labelText: 'Nome, contribuinte, telefone ou email',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  onPressed: _procurar,
-                  icon: const Icon(Icons.search),
-                  tooltip: 'Procurar',
-                  iconSize: 24,
-                  padding: const EdgeInsets.all(12),
-                ),
+          // **Sem `Semantics` à volta.** Estava aqui um `Semantics(textField:
+          // true, label: 'Quem procurar')` a envolver o campo, e era redundante:
+          // o `TextField` já se declara campo de texto e o `labelText` já lhe dá
+          // nome.
+          //
+          // Redundante não é inócuo. Medido na árvore de semântica, produzia
+          // **dois nós encaixados com o mesmo rectângulo** — um a dizer «Quem
+          // procurar» e outro a dizer «Nome, contribuinte, telefone ou email».
+          // Quem ouve o ecrã ouve o campo duas vezes, com nomes diferentes,
+          // e fica sem saber se são um ou dois.
+          //
+          // O rótulo passou a juntar as duas frases, para não se perder a
+          // intenção de quem pôs o `Semantics`.
+          TextField(
+            controller: _procura,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => _procurar(),
+            decoration: InputDecoration(
+              labelText: 'Quem procurar — nome, contribuinte, telefone ou email',
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                onPressed: _procurar,
+                icon: const Icon(Icons.search),
+                tooltip: 'Procurar',
+                iconSize: 24,
+                padding: const EdgeInsets.all(12),
               ),
             ),
           ),
