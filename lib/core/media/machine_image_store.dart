@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
+import 'tipos_aceites.dart';
 
 abstract final class MachineImageStore {
   static const _remotePrefix = 'remote://';
@@ -115,9 +116,14 @@ abstract final class MachineImageStore {
     if (empresaId == null || empresaId.isEmpty) {
       throw StateError('Não foi encontrada uma empresa para esta conta.');
     }
-    final extension = localPath.contains('.')
-        ? localPath.split('.').last
-        : 'jpg';
+    // Decidir o tipo aqui e não deixar o cliente do Supabase adivinhá-lo: ele
+    // adivinha pela extensão e cai em `application/octet-stream` quando não
+    // reconhece, que é o que o balde passou a recusar (achado 4). Recusar aqui
+    // dá uma frase; recusar lá dá um 400 sem explicação.
+    final tipo = tipoDoCaminho(localPath);
+    if (tipo == null) throw StateError(recusaDeTipo(localPath));
+
+    final extension = localPath.split('.').last.toLowerCase();
     final objectPath =
         '$empresaId/machines/${DateTime.now().microsecondsSinceEpoch}.$extension';
     await client.storage
@@ -125,9 +131,10 @@ abstract final class MachineImageStore {
         .upload(
           objectPath,
           File(localPath),
-          fileOptions: const FileOptions(
+          fileOptions: FileOptions(
             cacheControl: '31536000',
             upsert: false,
+            contentType: tipo,
           ),
         );
     return '$_remotePrefix$objectPath';

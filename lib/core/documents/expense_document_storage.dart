@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
+import '../media/tipos_aceites.dart';
 
 /// Arquivo privado da empresa. O ficheiro pertence ao Punho/empresa, não ao
 /// dispositivo nem à conta que o capturou; a autoria fica nos metadados.
@@ -17,9 +18,15 @@ abstract final class ExpenseDocumentStorage {
     if (user == null) return null;
     final empresaId = await client.rpc('punho_empresa_atual') as String?;
     if (empresaId == null || empresaId.isEmpty) return null;
-    final extension = localPath.contains('.')
-        ? localPath.split('.').last
-        : 'jpg';
+    // Pela mesma razão que na fotografia da máquina: o tipo decide-se aqui, e
+    // um ficheiro que não se sabe nomear não chega a criar metadados. Antes
+    // desta ordem, um tipo recusado deixava a linha em `punho_documentos` a
+    // apontar para um ficheiro que nunca subiu — e era o `catch` mais abaixo
+    // que tinha de a ir apagar.
+    final tipo = tipoDoCaminho(localPath);
+    if (tipo == null) throw StateError(recusaDeTipo(localPath));
+
+    final extension = localPath.split('.').last.toLowerCase();
     final objectPath = '$empresaId/$expenseId.$extension';
     // Regista primeiro a propriedade e a autoria. As regras do bucket usam
     // este registo para permitir leitura ao autor e aos gestores da empresa.
@@ -42,9 +49,10 @@ abstract final class ExpenseDocumentStorage {
           .upload(
             objectPath,
             File(localPath),
-            fileOptions: const FileOptions(
+            fileOptions: FileOptions(
               cacheControl: '31536000',
               upsert: false,
+              contentType: tipo,
             ),
           );
     } catch (_) {
