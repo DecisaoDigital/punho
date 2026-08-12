@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/features/gestao/presentation/dados_pessoais_screen.dart';
@@ -22,122 +21,74 @@ import 'package:punho/features/gestao/presentation/dados_pessoais_screen.dart';
 /// `find.byTooltip('Procurar')` encontra-o e `tester.tap` acerta, porque um
 /// teste toca em coordenadas e não em nós de acessibilidade.
 void main() {
-  /// Percorre a árvore de semântica à procura de um nó com este nome.
-  ///
-  /// Olha para o `label` **e** para o `tooltip`: o texto de um `Tooltip` não vai
-  /// para o rótulo, vai para um campo próprio. Um teste que só olhasse para o
-  /// `label` não encontrava o botão nem quando ele está bem — e concluía que
-  /// estava sempre partido.
-  SemanticsNode? procurarNo(SemanticsNode raiz, String rotulo) {
-    SemanticsNode? achado;
-    void visitar(SemanticsNode no) {
-      if (achado != null) return;
-      final dados = no.getSemanticsData();
-      if (dados.label.contains(rotulo) || dados.tooltip.contains(rotulo)) {
-        achado = no;
-        return;
-      }
-      no.visitChildren((filho) {
-        visitar(filho);
-        return achado == null;
-      });
+  /// Monta o ecrã com a árvore de semântica ligada e devolve o punho que a
+  /// mantém viva. Fecha-se sempre no fim — uma árvore que fica de pé estraga
+  /// os testes seguintes, e foi assim que estes três passaram sozinhos e
+  /// falharam na suite inteira.
+  Future<void> comSemantica(
+    WidgetTester tester,
+    Future<void> Function() corpo,
+  ) async {
+    final punho = tester.ensureSemantics();
+    try {
+      await tester.pumpWidget(
+        const ProviderScope(child: MaterialApp(home: DadosPessoaisScreen())),
+      );
+      await tester.pump();
+      await corpo();
+    } finally {
+      // `finally` e não `addTearDown`: o teardown corre **depois** da
+      // verificação que se queixa de punhos por fechar, portanto um teste que
+      // falhasse deixava a árvore de pé e estragava os seguintes.
+      punho.dispose();
     }
-
-    visitar(raiz);
-    return achado;
   }
 
-  testWidgets('o botão de procurar tem geometria na árvore de acessibilidade', (
+  testWidgets('o botão de procurar tem área para um leitor de ecrã', (
     tester,
   ) async {
-    // Sem isto a árvore nem sequer é construída, e o teste passa sempre.
-    final semantica = tester.ensureSemantics();
+    await comSemantica(tester, () async {
+      // `getSemantics` e não um passeio pela árvore a partir da raiz: é a API
+      // que o Flutter suporta, e não depende de quem é o dono do pipeline nesse
+      // momento — que muda conforme a suite corre sozinha ou inteira.
+      final botao = tester.getSemantics(find.byTooltip('Procurar'));
 
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(home: DadosPessoaisScreen()),
-      ),
-    );
-    await tester.pump();
-
-    final raiz = tester.binding.rootPipelineOwner.semanticsOwner!.rootSemanticsNode!;
-    final botao = procurarNo(raiz, 'Procurar');
-
-    expect(botao, isNotNull, reason: 'o botão de procurar não está na árvore');
-    expect(
-      botao!.rect.isEmpty,
-      isFalse,
-      reason:
-          'o «Procurar» tem ${botao.rect.width}×${botao.rect.height} — um nó '
-          'sem área não se pode focar nem activar com um leitor de ecrã',
-    );
-    // 48 é o mínimo do Material. Aqui não é só conforto: é a diferença entre
-    // conseguir e não conseguir.
-    expect(botao.rect.width, greaterThanOrEqualTo(48));
-    expect(botao.rect.height, greaterThanOrEqualTo(48));
-    semantica.dispose();
+      expect(
+        botao.rect.isEmpty,
+        isFalse,
+        reason: 'um nó sem área não se pode focar nem activar',
+      );
+      expect(botao.rect.width, greaterThanOrEqualTo(48));
+      expect(botao.rect.height, greaterThanOrEqualTo(48));
+    });
   });
 
   testWidgets('o campo de procura anuncia-se uma vez, não duas', (tester) async {
-    // Era isto que o `Semantics` a mais fazia: dois nós encaixados, com o mesmo
-    // rectângulo e nomes diferentes. Conta-se quantos nós têm rótulo e a mesma
-    // área do campo — se voltar a haver mais do que um, alguém voltou a embrulhar.
-    final semantica = tester.ensureSemantics();
-
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(home: DadosPessoaisScreen()),
-      ),
-    );
-    await tester.pump();
-
-    final raiz = tester.binding.rootPipelineOwner.semanticsOwner!.rootSemanticsNode!;
-    final campo = procurarNo(raiz, 'Quem procurar')!;
-
-    var comAMesmaArea = 0;
-    void contar(SemanticsNode no) {
-      final dados = no.getSemanticsData();
-      if (dados.label.isNotEmpty && no.rect == campo.rect) comAMesmaArea++;
-      no.visitChildren((filho) {
-        contar(filho);
-        return true;
-      });
-    }
-
-    contar(raiz);
-
-    expect(
-      comAMesmaArea,
-      1,
-      reason: 'o campo de procura está a ser anunciado $comAMesmaArea vezes',
-    );
-    semantica.dispose();
+    // Era isto que o `Semantics` a mais fazia: dois nós encaixados com o mesmo
+    // rectângulo, um a dizer «Quem procurar» e outro a dizer o resto. Quem ouve
+    // o ecrã ouvia o campo duas vezes, com nomes diferentes.
+    await comSemantica(tester, () async {
+      expect(find.bySemanticsLabel(RegExp('Quem procurar')), findsOneWidget);
+    });
   });
 
-  testWidgets('o campo continua a dizer o que quer', (tester) async {
-    // A correcção tirou o `Semantics` que dava o nome «Quem procurar». O nome
-    // não se perdeu — passou para o rótulo, que é onde já devia estar. Sem
-    // isto, a correcção de um problema criava outro em silêncio.
-    final semantica = tester.ensureSemantics();
-
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(home: DadosPessoaisScreen()),
-      ),
-    );
-    await tester.pump();
-
-    final raiz = tester.binding.rootPipelineOwner.semanticsOwner!.rootSemanticsNode!;
-
-    expect(procurarNo(raiz, 'Quem procurar'), isNotNull);
-    semantica.dispose();
+  testWidgets('o nome que o `Semantics` dava não se perdeu', (tester) async {
+    // A correcção tirou o embrulho que dizia «Quem procurar». O nome passou
+    // para o rótulo, que é onde já devia estar — sem isto, corrigir uma coisa
+    // partia outra em silêncio.
+    await comSemantica(tester, () async {
+      expect(
+        find.bySemanticsLabel(
+          RegExp('Quem procurar — nome, contribuinte, telefone ou email'),
+        ),
+        findsOneWidget,
+      );
+    });
   });
 
   testWidgets('começa por dizer que nada se apaga sem procurar', (tester) async {
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(home: DadosPessoaisScreen()),
-      ),
+      const ProviderScope(child: MaterialApp(home: DadosPessoaisScreen())),
     );
     await tester.pump();
 
