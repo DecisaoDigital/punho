@@ -1906,6 +1906,16 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
                 photoPaths: photoPaths.value,
               );
         widget.notifier.saveMachine(machine);
+        // Depois de gravar, e nunca antes: quem tira uma fotografia da lista e
+        // depois carrega em Cancelar tem de a manter. Sem `await` porque o
+        // arquivo não pode atrasar o fecho do diálogo — e se falhar, fica lixo
+        // no balde, que é muito melhor do que o diálogo ficar preso à rede.
+        unawaited(
+          MachineImageStore.apagarAsQueSairam(
+            antes: anterior?.photoPaths ?? const [],
+            depois: machine.photoPaths,
+          ),
+        );
         Navigator.pop(context);
       },
     );
