@@ -52,18 +52,12 @@ que fica de pé».
 
 ### Falta um dedo, e só um dedo
 
-Três coisas estão feitas e provadas contra o servidor, mas nunca foram tocadas
-no Redmi. O aparelho esteve ligado ao princípio da noite e caiu da ligação por
-volta das 7h.
+**Os três primeiros fecharam a 12/8 à noite, no Redmi.** A fotografia entrou no
+balde como `image/jpeg` e voltou a sair — balde a 0 objectos, `photoPaths` vazio;
+o ecrã de RGPD foi tocado a dedo; e o `docs/SMOKE.md` correu inteiro na 0.3.74,
+dez fluxos em dez. O que ficou por fazer está abaixo.
 
-1. **Uma fotografia a sério para dentro do balde**, agora que ele só aceita
-   imagens e PDF. O caminho está provado dos dois lados — 415 para o que não
-   serve, e 15 testes na decisão do tipo — mas o que nenhum deles cobre é o
-   caminho que a câmara do MIUI escreve.
-2. **O ecrã de RGPD**, provado na base viva e em testes de widget.
-3. **O `docs/SMOKE.md`**, que é o que separa publicar de anunciar.
-
-E há um quarto, que é pré-requisito de tudo isto e que só o César desbloqueia:
+E há um quarto, que é pré-requisito de muito e que só o César desbloqueia:
 **as três contas de ensaio já não entram**. `gestor.`, `operador.` e
 `contabilista.nocturno@decisaodigital.pt` devolvem `invalid_credentials` — as
 palavras-passe em `~/.punho/contas_teste.env` deixaram de ser as do servidor
@@ -88,6 +82,25 @@ apareçam em fugas conhecidas, e isso dá atrito imediato com as contas de ensai
 ### Por verificar — nunca foram olhados
 
 Índices contra planos reais.
+
+**A etiqueta da reserva no calendário não respondeu ao toque no Redmi.** É por
+ali que se chega ao diálogo «Atualizar estado da reserva», e é esse diálogo que
+tem o estado **Cancelada** — ou seja, é o único caminho para desfazer uma
+marcação feita por engano. A 12/8 experimentaram-se seis pontos dentro da
+etiqueta e um toque com 140 ms de duração: nenhum abriu o diálogo, enquanto no
+mesmo minuto os outros botões do ecrã respondiam todos.
+
+Não fica marcado como defeito porque a prova não é conclusiva nos dois sentidos:
+uma sonda que reconstrói a forma exacta da célula — `InkWell` sem `onTap` por
+fora, `ListView` no meio, `InkWell` com `onTap` na etiqueta — **entrega o toque
+como devia**. Ou seja, a árvore de widgets está certa e a causa é outra. Falta o
+dedo do César: se abrir com o dedo, o defeito é da injecção de toques do MIUI e
+não da app; se não abrir, é a coisa mais séria desta lista, porque uma reserva
+enganada fica lá para sempre a contar para os KPIs.
+
+Fica no aparelho, propositadamente, uma reserva de teste — **Smoke0374,
+Depiladora2, 12/8 de manhã, 100 €** — que é exactamente a marcação a tentar
+cancelar. O cliente `SemRede0374` do teste sem rede já foi apagado.
 
 ## O que fica de pé
 
