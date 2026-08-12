@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/domain/models/operations.dart';
 import 'package:punho/features/operations/presentation/operational_pages.dart';
 import 'package:punho/features/finance/presentation/finance_pages.dart';
 import 'package:punho/features/workforce/presentation/workforce_pages.dart';
