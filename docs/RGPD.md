@@ -48,6 +48,38 @@ registo, «temos retenção» seria uma afirmação sem prova.
 
 ---
 
+## 2.1 Base legal das leads que chegam de fora
+
+`punho_leads_entrada` é o único sítio onde entram dados de gente que **nunca
+instalou a app e nunca nos disse nada**. Desde 12 Ago 2026 cada linha diz o que
+autoriza guardá-la:
+
+| `base_legal` | Quando | O que fica guardado |
+|---|---|---|
+| `consentimento` | formulário público | o **texto** que a pessoa aceitou, a versão, o endereço da página, e o carimbo de quando nos chegou |
+| `diligencia_pre_contratual` | telefone, WhatsApp, agenda | nada mais — a pessoa procurou o negócio (art. 6.º/1/b) |
+| `nao_registada` | tudo o resto | nada, e diz-se |
+
+Duas regras dão a isto valor de prova:
+
+1. **Não se pode fingir.** Uma restrição `check` exige texto e carimbo para
+   dizer `consentimento`, e proíbe meia prova pendurada noutra base — porque um
+   registo falso passa numa auditoria que um registo em falta não passaria.
+2. **Não se pode reescrever.** O `authenticated` tinha a tabela toda
+   (`arwdDxtm`), o que deixava um gestor carimbar consentimento numa lead que
+   nunca consentiu. Ficou com `select` e `update` de duas colunas —
+   `processada_em` e `lead_local_id` — que é tudo o que a app faz. Provado com o
+   papel trocado dentro da base: 42501 a reescrever a base legal, a forjar a
+   prova e a apagar; passa a marcar como processada e a ler.
+
+E `nao_registada` **não entra sozinha no pipeline**, mesmo classificada de
+`aceite`: fica retida à espera de um toque. Entrar no pipeline é copiar a pessoa
+para dentro do log append-only, onde apagar deixa de ser apagar e passa a ser
+redigir. O contrato do formulário está no cabeçalho de
+`supabase/functions/receber-lead/index.ts`.
+
+---
+
 ## 3. Como se responde a um pedido de apagamento
 
 O log é append-only: não se apagam linhas, **redige-se** o conteúdo. A linha e o

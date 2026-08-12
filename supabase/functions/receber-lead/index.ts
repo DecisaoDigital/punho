@@ -12,8 +12,54 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // fica gravado como `descartada`, porque sem ele não se distingue "a campanha
 // não trouxe nada" de "a campanha trouxe lixo que apagámos" — e essa diferença
 // decide se se volta a pagar pelo canal.
+//
+// Estes são dados de **terceiros**: gente que nunca instalou a app e nunca nos
+// disse nada. Por isso cada linha guarda também o que autoriza guardá-la — ver
+// `base_legal` e a migração 20260812060000. O contrato com quem submete é:
+//
+//   "consentimento": { "aceite": true, "texto": "<o que a pessoa aceitou>",
+//                      "versao": "2026-08", "url": "https://..." }
+//
+// `texto` é o que faz a prova; `versao` e `url` só ajudam a reconstituir a
+// página. Quem não manda nada e vem de um canal onde a pessoa nos procurou
+// (telefone, WhatsApp, agenda) tem base legal própria e não precisa disto.
 
 const ORIGENS = ["landing_page", "whatsapp", "telefone", "agenda", "manual", "outro"];
+
+// Que base legal cada canal traz consigo, quando não vem prova nenhuma agarrada.
+//
+// Quem telefona, manda mensagem ou aparece na agenda **procurou o negócio**. Isso
+// é diligência pré-contratual a pedido do titular (art. 6.º/1/b) e é uma base
+// legal por direito próprio — pedir consentimento a quem acabou de ligar a pedir
+// orçamento seria teatro.
+//
+// Um formulário público é outra coisa: a redacção é nossa, ninguém falou com
+// ninguém, e o que autoriza guardar aquilo é o que a pessoa marcou. Sem prova
+// disso, não há base — e o canal fica de fora deste mapa de propósito.
+const BASE_LEGAL_DO_CANAL: Record<string, string> = {
+  whatsapp: "diligencia_pre_contratual",
+  telefone: "diligencia_pre_contratual",
+  agenda: "diligencia_pre_contratual",
+};
+
+/// O que o formulário diz que a pessoa aceitou.
+///
+/// Duas coisas têm de vir: que aceitou, e **o quê**. Uma caixinha marcada sem o
+/// texto ao lado não é demonstrável seis meses depois, que é precisamente o que
+/// o art. 7.º/1 exige — poder demonstrar. Versão e endereço são bem-vindos e não
+/// obrigatórios: ajudam a reconstituir a página, não fazem a prova.
+function lerConsentimento(bruto: unknown) {
+  if (!bruto || typeof bruto !== "object") return null;
+  const c = bruto as Record<string, unknown>;
+  if (c.aceite !== true) return null;
+  const texto = c.texto ? String(c.texto).trim().slice(0, 2000) : "";
+  if (texto.length === 0) return null;
+  return {
+    texto,
+    versao: c.versao ? String(c.versao).trim().slice(0, 60) : null,
+    url: c.url ? String(c.url).trim().slice(0, 500) : null,
+  };
+}
 
 /// Normaliza para E.164. É a chave de deduplicação: sem ela o mesmo cliente
 /// conta várias vezes e a conversão do painel divide-se pelo número de canais.
@@ -73,6 +119,14 @@ Deno.serve(async (req: Request) => {
   const email = corpo.email ? String(corpo.email).trim().slice(0, 200) : null;
   const mensagem = corpo.mensagem ? String(corpo.mensagem).trim().slice(0, 2000) : null;
   const telefone = normalizarTelefone(telefoneOriginal);
+
+  // A prova, quando vem, vale para qualquer canal — e quando não vem, o canal
+  // responde por si. Um `outro` sem prova fica sem base legal, e é para ficar:
+  // «não sei de onde veio isto» é uma resposta melhor do que inventar uma.
+  const consentimento = lerConsentimento(corpo.consentimento);
+  const baseLegal = consentimento
+    ? "consentimento"
+    : (BASE_LEGAL_DO_CANAL[origem] ?? "nao_registada");
 
   const cliente = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -161,6 +215,19 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // Por último, e de propósito depois da deduplicação: sem base legal registada
+  // a lead **não entra sozinha no pipeline**. Fica retida, que é o estado que
+  // obriga alguém a olhar para ela antes de os dados serem copiados para o log
+  // de operações — onde apagar já não é apagar, é redigir.
+  //
+  // Não se descarta nem se recusa a submissão. A pessoa do outro lado escreveu de
+  // boa fé e não tem culpa de o formulário estar mal feito; e recusar deixava-nos
+  // sem saber que o formulário está mal feito.
+  if (baseLegal === "nao_registada" && classificacao !== "descartada") {
+    classificacao = "retida";
+    motivo = "sem base legal registada";
+  }
+
   const { data: inserida, error } = await cliente
     .from("punho_leads_entrada")
     .insert({
@@ -175,6 +242,13 @@ Deno.serve(async (req: Request) => {
       motivo,
       payload_bruto: corpo,
       ip_origem: ip,
+      base_legal: baseLegal,
+      // O carimbo é nosso, não do formulário: o instante que o lado de lá diz
+      // ter acontecido é forjável, e a diferença entre os dois são segundos.
+      consentimento_texto: consentimento?.texto ?? null,
+      consentimento_versao: consentimento?.versao ?? null,
+      consentimento_url: consentimento?.url ?? null,
+      consentimento_em: consentimento ? new Date().toISOString() : null,
     })
     .select("id")
     .single();

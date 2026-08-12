@@ -18,6 +18,7 @@ class LeadEntrada {
     this.email,
     this.mensagem,
     this.motivo,
+    this.baseLegal = 'nao_registada',
   });
 
   final String id;
@@ -26,7 +27,21 @@ class LeadEntrada {
   final DateTime recebidaEm;
   final String? nome, telefone, email, mensagem, motivo;
 
-  bool get aceite => classificacao == 'aceite';
+  /// O que autoriza guardar estes dados: `consentimento`,
+  /// `diligencia_pre_contratual` ou `nao_registada`. Quem a escreve é o
+  /// servidor, na recepção — a app não tem permissão para lhe tocar.
+  final String baseLegal;
+
+  /// Sem base legal registada não se copia a pessoa para lado nenhum.
+  ///
+  /// O `nao_registada` por omissão não é pessimismo decorativo: uma linha antiga,
+  /// ou um servidor que ainda não tenha a coluna, deve cair do lado seguro. O
+  /// erro caro aqui é o contrário — tratar por consentida uma lead que não é.
+  bool get temBaseLegal => baseLegal != 'nao_registada';
+
+  /// Entra sozinha no pipeline? Só se o servidor a aceitou **e** houver base
+  /// legal. São duas perguntas diferentes e ambas têm de dar que sim.
+  bool get aceite => classificacao == 'aceite' && temBaseLegal;
 
   /// Sem nome, o telefone identifica melhor do que "Lead" — é o que o gestor vê
   /// na lista antes de ligar.
@@ -50,6 +65,7 @@ class LeadEntrada {
     email: json['email'] as String?,
     mensagem: json['mensagem'] as String?,
     motivo: json['motivo'] as String?,
+    baseLegal: (json['base_legal'] as String?) ?? 'nao_registada',
   );
 
   static LeadSource _origem(String? bruto) => switch (bruto) {

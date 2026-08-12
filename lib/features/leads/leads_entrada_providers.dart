@@ -17,6 +17,11 @@ final leadsEntradaServiceProvider = Provider<LeadsEntradaService>(
 /// Só as `retida`. As `aceite` não param aqui — entram no pipeline sozinhas,
 /// que é o ponto: uma caixa de entrada que obriga a aprovar tudo é só outro
 /// sítio para acumular trabalho.
+///
+/// Uma excepção, e é deliberada: sem base legal registada, nada entra sozinho,
+/// mesmo que o servidor tenha dito `aceite`. Entrar no pipeline é copiar uma
+/// pessoa para dentro do log de operações, que é append-only — lá dentro apagar
+/// deixa de ser apagar e passa a ser redigir. Antes disso alguém decide.
 final leadsRetidasProvider =
     NotifierProvider<LeadsEntradaController, List<LeadEntrada>>(
       LeadsEntradaController.new,
@@ -59,6 +64,9 @@ class LeadsEntradaController extends Notifier<List<LeadEntrada>> {
   }
 
   /// O gestor aceitou uma retida na triagem.
+  ///
+  /// Aqui não se verifica a base legal outra vez, e é de propósito: uma pessoa
+  /// carregou no botão. Quem sabe que o cliente telefonou é ela, não a coluna.
   Future<void> aceitar(LeadEntrada entrada) async {
     await _aceitar(entrada);
     state = state.where((e) => e.id != entrada.id).toList();

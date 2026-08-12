@@ -13,6 +13,7 @@ void main() {
     String classificacao = 'aceite',
     String? telefone = '+351912345678',
     String? mensagem,
+    String? baseLegal = 'consentimento',
   }) => {
     'id': 'e1',
     'origem': origem,
@@ -21,6 +22,7 @@ void main() {
     'nome': nome,
     'telefone_e164': telefone,
     'mensagem': mensagem,
+    'base_legal': baseLegal,
   };
 
   group('LeadEntrada', () {
@@ -69,6 +71,50 @@ void main() {
       expect(LeadEntrada.fromJson(linha()).aceite, isTrue);
       expect(
         LeadEntrada.fromJson(linha(classificacao: 'retida')).aceite,
+        isFalse,
+      );
+    });
+  });
+
+  // Achado 3.4. Entrar sozinha no pipeline é copiar uma pessoa para dentro do
+  // log de operações, que é append-only: lá dentro apagar deixa de ser apagar e
+  // passa a ser redigir. Duas perguntas têm de dar que sim — o servidor aceitou,
+  // e há alguma coisa que autorize guardar aquilo.
+  group('base legal', () {
+    test('sem base legal registada não entra sozinha, mesmo dita aceite', () {
+      final semBase = LeadEntrada.fromJson(linha(baseLegal: 'nao_registada'));
+
+      expect(semBase.classificacao, 'aceite');
+      expect(semBase.temBaseLegal, isFalse);
+      expect(semBase.aceite, isFalse);
+    });
+
+    test('quem nos procurou tem base própria e não precisa de consentimento', () {
+      // Ligar a pedir orçamento é diligência pré-contratual a pedido do titular.
+      // Exigir consentimento a quem acabou de telefonar seria teatro.
+      final chamada = LeadEntrada.fromJson(
+        linha(origem: 'telefone', baseLegal: 'diligencia_pre_contratual'),
+      );
+
+      expect(chamada.temBaseLegal, isTrue);
+      expect(chamada.aceite, isTrue);
+    });
+
+    test('uma coluna em falta cai do lado seguro', () {
+      // Um servidor antigo, ou uma linha anterior à migração, não devolve a
+      // coluna. O erro caro é o contrário do que parece: tratar por consentida
+      // uma lead que não é sai muito mais caro do que reter uma que era.
+      final antiga = LeadEntrada.fromJson(linha(baseLegal: null));
+
+      expect(antiga.baseLegal, 'nao_registada');
+      expect(antiga.aceite, isFalse);
+    });
+
+    test('retida sem base legal continua retida — não se soma duas vezes', () {
+      expect(
+        LeadEntrada.fromJson(
+          linha(classificacao: 'retida', baseLegal: 'nao_registada'),
+        ).aceite,
         isFalse,
       );
     });
