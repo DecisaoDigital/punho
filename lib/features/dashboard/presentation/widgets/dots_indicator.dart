@@ -105,14 +105,30 @@ class _Ponto extends StatelessWidget {
     child: InkWell(
       onTap: onTap,
       customBorder: const CircleBorder(),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Container(
-          width: activo ? 18 : 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: activo ? PunhoTheme.orange : const Color(0xFFCFD6DB),
-            borderRadius: BorderRadius.circular(4),
+      // O ponto desenha 8 dp e o alvo tinha 16 — um terço do mínimo de 48.
+      //
+      // A linha já mede 32 dp de altura, imposta pelos botões dos nomes ao
+      // lado, portanto **subir o alvo a 32 não custa um pixel de painel**. Em
+      // largura fica-se por 26: com 5 dp entre pontos, alvos mais largos
+      // sobrepunham-se e passava-se a tocar no ponto errado, que é pior do que
+      // um alvo pequeno.
+      //
+      // Não chega a 48, e é uma escolha e não um esquecimento: 48 obrigava a
+      // engordar a barra ou a afastar os pontos até já não se lerem como um
+      // grupo. O que torna isto aceitável é o ponto ser um atalho — o carrossel
+      // anda a swipe (`PageView`), com setas de teclado, e os nomes dos slides
+      // ao lado são alvos grandes para a mesma acção.
+      child: SizedBox(
+        height: 32,
+        width: activo ? 34 : 26,
+        child: Center(
+          child: Container(
+            width: activo ? 18 : 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: activo ? PunhoTheme.orange : const Color(0xFFCFD6DB),
+              borderRadius: BorderRadius.circular(4),
+            ),
           ),
         ),
       ),
