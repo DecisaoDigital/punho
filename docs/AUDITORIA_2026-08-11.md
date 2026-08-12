@@ -7,10 +7,10 @@ backup) · runtime · experiência.
 Este ficheiro é a lista viva. Actualiza-se à medida que se fecha.
 
 > **Correcção ao original.** O relatório dizia `flutter analyze` limpo nas três
-> apps. Não está: o Control tem 12 avisos `deprecated_member_use` — `value:` em
-> campos de formulário e `onChanged` em `Radio`, do SDK ter andado para a
-> frente. Confirmado com `git stash`, são anteriores a qualquer coisa feita
-> aqui. Punho e OP esses sim, limpos.
+> apps. Não estava: o Control tinha 12 avisos `deprecated_member_use` — `value:`
+> em campos de formulário e `onChanged` em `Radio`, do SDK ter andado para a
+> frente. Confirmado com `git stash`, eram anteriores a qualquer coisa feita
+> aqui. **Corrigidos a 12/8**; as três apps estão limpas agora.
 
 ## Fechado
 
@@ -30,6 +30,13 @@ Este ficheiro é a lista viva. Actualiza-se à medida que se fecha.
 | 5.2 | 10 `.select()` sem limite | Sete não eram nada: dois eram `select` do Riverpod, o sincronizador de operações já tem cursor e lote, e os catálogos são fechados por desenho. Três levaram tecto — a conversa com o contabilista, a caixa de entrada de leads e a lista de convites — com teste que olha para o **pedido que sai**. O sincronizador de conflitos fica sem tecto de propósito: sem uma coluna que diga quando a linha mudou, um `limit` traz sempre as mesmas N e há conflitos que nunca chegariam. Está escrito no código |
 | — | **Novo: `.order()` sem `ascending` em 8 sítios das 3 apps** | O postgrest-dart ordena **ao contrário** por omissão. O catálogo de rubricas saía do fim para o princípio, as listas de clientes e de organizações saíam de Z a A, e as reservas e cobranças do OP do fim do dia para o princípio. Descoberto porque o teste do tecto da caixa de leads falhou. Todos explícitos agora |
 | 4.1 + 4.2 | Nenhum script de backup, nenhum agendamento, nenhum restauro alguma vez feito | Cópia da produção tirada, restaurada e **usada** a 11/8, e agendada: diária às 04:40, provada ao domingo às 05:20. O primeiro restauro a sério apanhou o que dias de ensaio não tinham apanhado — os dois gatilhos do `auth.users` perdiam-se em silêncio, com inventário a bater certo e a prova a dar-se por boa. Corrigido nos três sítios que interessam: o inventário conta-os, uma queixa do `pg_restore` reprova a cópia, e os gatilhos entram depois do `public`. Ver [COPIAS_DE_SEGURANCA.md](COPIAS_DE_SEGURANCA.md) |
+| 3.4 | Leads de terceiros sem consentimento registado | Três bases legais em `punho_leads_entrada`, com `check` que exige texto e carimbo para se dizer «consentimento» e proíbe meia prova pendurada noutra base. Quem nos telefonou tem base própria (art. 6.º/1/b); o resto fica `nao_registada` em vez de ser reclassificado para parecer legal, e não entra sozinho no pipeline. **O buraco a sério era outro**: o `authenticated` tinha a tabela toda, e um gestor podia carimbar consentimento numa lead que nunca consentiu — pior do que não ter coluna, porque um registo falso passa numa auditoria que um registo em falta não passaria. Ficou com `select` e `update` de duas colunas. Provado com 6 restrições, 6 POSTs à função publicada e 5 tentativas com o papel trocado dentro da base |
+| 3.5 | 5 funções `SECURITY DEFINER` executáveis pelo `anon` | 24 políticas passaram de `to public` a `to authenticated`, `EXECUTE` revogado nas quatro, e o `punho_validar_convite` ganhou travão por IP — 60 falhas em 15 minutos, com sonda a provar antes e depois. **E ao fazê-lo apareceu o que a lista à mão de 2.2 tinha deixado passar:** ~20 tabelas ainda com INSERT/UPDATE/DELETE para o `anon`. Fechado por varrimento e com `ALTER DEFAULT PRIVILEGES`, para as tabelas novas nascerem fechadas |
+| 4 | `allowed_mime_types` a null no `punho-documentos` | Fechado aos oito tipos que a app produz, mais PDF. O receio — «se a inferência falhar, o envio passa a ser recusado» — era fundado: o cliente do Supabase adivinha pela extensão e cai em `application/octet-stream`. Agora o tipo decide-se na app (`tipos_aceites.dart`), e um ficheiro que não se sabe nomear é recusado com uma frase em vez de um 415. Provado sem precisar de sessão, porque o controlo do tipo corre antes da autorização: APK → 415, PNG → passa o tipo e esbarra na RLS |
+| — | **Novo: o balde `releases` era público** | Três APKs do Punho v0.0.6 de 27 Jul, esquecidos quando a publicação passou para as Releases do GitHub. Nenhuma das 54 linhas de `versoes_apps` aponta para lá. Passou a privado; os ficheiros ficam, porque apagar é irreversível |
+| — | **Novo: fotografias de máquinas ficavam no balde para sempre** | Política de DELETE por empresa + a app a apagar o que sai da lista, com 8 testes na função pura que decide o que sai |
+| 6.5 | 549 `Text(` para 49 guardas de overflow | **Proxy mau.** A esmagadora maioria são rótulos fixos. O que rebenta é o texto do cliente: 11 ecrãs montados com nomes patológicos a 761 dp e a 360 dp, com controlo negativo. Zero transbordos |
+| 6.6 | 94 alvos de toque abaixo de 48 dp | **Proxy mau, duas vezes.** À primeira, contados: eram 1 no Punho e 5 no Control. À segunda, *medidos* com uma régua que monta a peça e pergunta ao Flutter quanto ocupou — título de secção 28, chip de filtro 35, acção de linha 40 (esta era minha, com justificação a olho), e a célula de meio-dia do OP **47, que falha por um dp escondido no risco entre linhas**. Todos a 48, com controlo negativo em cada régua |
 | 6.1 | Acessibilidade quase inexistente | **Estava mal medido.** Contar `Semantics` é mau indicador: o `InkWell` já anuncia o toque e um filho com texto já traz rótulo. Medido pela lente certa — botões que são *só* um ícone —, o Punho tinha 2 (o contador de mais/menos) e o Control 6, entre eles o olho da palavra-passe repetido em 3 ecrãs. Todos com nome agora. Mais o `Semantics` na linha que se copia no diagnóstico de licença, que só se anunciava por um ícone de 14 px |
 
 ## Aberto
@@ -40,44 +47,30 @@ Este ficheiro é a lista viva. Actualiza-se à medida que se fecha.
 
 ### Média
 
-**6.1 (resto)** — os 18 `InkWell`/`GestureDetector` do Control não foram
-olhados um a um. Os 11 do Punho foram, e estão bem: o teclado do cadeado já
-tinha tooltip nas duas teclas de ícone, e os restantes têm texto por baixo. O
-que falta do lado do Punho é o estado dos acordeões (aberto/fechado) e uma
-passagem pelo OP.
+**Nada aberto em Média.** O 6.3/6.4 saiu da lista por não ser defeito — ver «O
+que fica de pé».
 
-**3.4** — `punho_leads_entrada` guarda dados de terceiros sem consentimento
-registado no esquema. O expurgo aos 6 meses já lá está; o consentimento não.
+### Falta um dedo, e só um dedo
 
-**3.5** — 5 funções `SECURITY DEFINER` executáveis pelo `anon`. Reavaliado ao
-fechar o 2.2: **revogar o EXECUTE parte as políticas**, porque 22 delas estão
-declaradas `to public` e é o `anon` que as avalia — passaria de «zero linhas»
-para «permission denied». O caminho é passar essas políticas de `to public` para
-`to authenticated`, e é uma migração por si. Sobra o `punho_validar_convite`,
-que é enumerável por quem adivinhe códigos: isso quer limitação de tentativas.
+Três coisas estão feitas e provadas contra o servidor, mas nunca foram tocadas
+no Redmi. O aparelho esteve ligado ao princípio da noite e caiu da ligação por
+volta das 7h.
 
-**5.1** — 26 `ListView(` não-lazy contra 1 `ListView.builder`
-(`workforce_pages.dart:114,697`, `finance_pages.dart:44`,
-`operational_pages.dart:1396,2069`, `pedidos_pendentes_screen.dart:42`).
+1. **Uma fotografia a sério para dentro do balde**, agora que ele só aceita
+   imagens e PDF. O caminho está provado dos dois lados — 415 para o que não
+   serve, e 15 testes na decisão do tipo — mas o que nenhum deles cobre é o
+   caminho que a câmara do MIUI escreve.
+2. **O ecrã de RGPD**, provado na base viva e em testes de widget.
+3. **O `docs/SMOKE.md`**, que é o que separa publicar de anunciar.
 
-**6.3** — Control sem tema nenhum: 0 `Theme.of(context)` e 285 `Colors.*` em 95
-ficheiros. **6.4** — nenhuma das 3 apps define `darkTheme`.
-
-**6.5** — 549 `Text(` no Punho para 49 `maxLines`/`overflow`.
-**6.6** — 94 alvos de toque abaixo de 48 dp nas três apps.
-
-**Novo, encontrado ao fechar o 3.7 — as fotografias de máquinas não se apagam
-nunca.** Sobem para `<empresa>/machines/<carimbo>.<ext>` e não há política de
-DELETE que lhes chegue (a que existe só cobre os comprovativos registados em
-`punho_documentos`), nem a app tem por onde as apagar. Trocar a fotografia de
-uma máquina deixa a antiga lá para sempre, apagar a máquina também, e o
-`punho_apagar_titular` não toca no storage. Fechar isto é política + o lado da
-app, e é trabalho a sério, não um remendo.
-
-**`allowed_mime_types` continua a null** no `punho-documentos`. Devia aceitar só
-imagens e PDF, mas a verificação é feita contra o `content-type` que o cliente
-declara: se a inferência falhar num caso qualquer, o envio passa a ser recusado
-em produção. Não se mete sem experimentar no aparelho.
+E há um quarto, que é pré-requisito de tudo isto e que só o César desbloqueia:
+**as três contas de ensaio já não entram**. `gestor.`, `operador.` e
+`contabilista.nocturno@decisaodigital.pt` devolvem `invalid_credentials` — as
+palavras-passe em `~/.punho/contas_teste.env` deixaram de ser as do servidor
+depois do ensaio de recuperação de 9/8. Repô-las é um `update` a
+`auth.users.encrypted_password`, e o classificador do modo automático recusa-o
+(duas vezes, nesta sessão). Com Shift+Tab ou uma regra em settings, faz-se em
+trinta segundos.
 
 ### Baixa
 
@@ -94,11 +87,19 @@ apareçam em fugas conhecidas, e isso dá atrito imediato com as contas de ensai
 
 ### Por verificar — nunca foram olhados
 
-Políticas de `storage.objects` (3.7) · edge functions · índices contra planos
-reais · o ecrã de RGPD no Redmi, que está provado na base viva e em testes de
-widget mas nunca foi tocado por um dedo.
+Índices contra planos reais.
 
 ## O que fica de pé
+
+**6.3 e 6.4 saem da lista de defeitos.** O Control não tem `Theme.of(context)` e
+tem 285 `Colors.*` em 95 ficheiros; nenhuma das três apps define `darkTheme`.
+Isso é dívida de desenho, não avaria: sem `darkTheme`, o Flutter usa o `theme`
+nos dois modos, e a app fica clara — coerentemente clara, porque as cores estão
+todas escritas à mão. O defeito seria o contrário: metade dos ecrãs a seguir o
+sistema e a outra metade não. Fechar isto a sério é escolher uma paleta escura e
+olhar para 95 ficheiros, e essa é uma decisão de desenho que não se toma a
+dormir.
+
 
 `graficos.dart` (250 linhas, `SparklineDiaria`, `AnelPercentagem`,
 `BarraHorizontal`, `MiniCalendario`) não é importado por ninguém desde que o
