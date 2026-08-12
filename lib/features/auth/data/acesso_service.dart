@@ -32,7 +32,12 @@ class Convite {
 }
 
 /// Resultado da validação de um código de convite, antes do registo.
-enum ValidacaoConvite { valido, invalido, expirado, usado }
+///
+/// [bloqueado] vem do travão que o servidor põe a quem tenta muitos códigos
+/// seguidos da mesma origem. Não é um erro de quem está a escrever — é o balde
+/// do sítio inteiro a encher, porque a conta é por endereço de rede e numa
+/// lavandaria todos partilham o mesmo.
+enum ValidacaoConvite { valido, invalido, expirado, usado, bloqueado }
 
 /// Código próprio para "este email já tem conta".
 ///
@@ -68,6 +73,14 @@ extension ValidacaoConviteMensagem on ValidacaoConvite {
       'Este código de convite já foi utilizado. Pede um novo ao gestor.',
     ValidacaoConvite.invalido =>
       'Código de convite inválido, expirado ou já utilizado.',
+    // Diz o que fazer, não o que aconteceu. Quem lê isto quase de certeza não
+    // fez nada de mal: ou está a partilhar a rede com quem também se está a
+    // registar, ou já tentou várias vezes seguidas. "Espera um quarto de hora"
+    // é accionável; "excedeu o limite de tentativas" não é.
+    ValidacaoConvite.bloqueado =>
+      'Já foram tentados muitos códigos a partir desta rede. '
+          'Espera 15 minutos e tenta outra vez, ou pede ao gestor '
+          'que confirme o código.',
   };
 }
 
@@ -170,6 +183,7 @@ class SupabaseAcessoService implements AcessoService {
       'valido' => ValidacaoConvite.valido,
       'expirado' => ValidacaoConvite.expirado,
       'usado' => ValidacaoConvite.usado,
+      'bloqueado' => ValidacaoConvite.bloqueado,
       _ => ValidacaoConvite.invalido,
     };
   }
