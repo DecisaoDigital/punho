@@ -250,6 +250,11 @@ if [[ -d "$DESTINO" ]]; then
 fi
 
 echo
+# Marca de «correu bem», e só aqui — a pasta existir não chega, porque ela é
+# criada no início e uma falha a meio deixava-a lá a fingir que houve cópia.
+# É isto que a vigia lê para saber se ainda há chão. Ver vigia_de_copias.sh.
+printf '%s\n%s\n' "$(date +%s)" "$pasta" > "${DESTINO}/.ultima_copia"
+
 echo "✓ cópia feita: $pasta ($tamanho)"
 echo "  $tabelas tabelas · $linhas linhas · $contas contas"
 (( apagadas > 0 )) && echo "  $apagadas cópias antigas removidas"

@@ -216,7 +216,36 @@ fora do `PATH` dava uma falha silenciosa todas as noites, que é precisamente o
 que isto existe para não acontecer. O `restaurar_prova.sh` sem argumento escolhe
 a cópia mais recente.
 
-**O que ainda não está resolvido:** o registo é um ficheiro que ninguém lê. Uma
-cópia que comece a falhar às 04:40 fica a falhar até alguém abrir o
-`~/copias/punho.log`. Falta um aviso activo — e enquanto não existir, isto é
-uma cadeia provada com uma vigia por fazer.
+## A vigia
+
+Uma cadeia provada e agendada ainda tinha um buraco: o cron escreve para
+`~/copias/punho.log` e **ninguém lê ficheiros de registo**. Uma cópia que
+comece a falhar às 04:40 ficaria a falhar até alguém tropeçar nela — e tropeça
+no dia em que precisa dela.
+
+```
+./scripts/vigia_de_copias.sh            como estão as cópias
+./scripts/vigia_de_copias.sh --banner   só fala se houver problema
+```
+
+**Porque não no Grafana.** O instinto era mandar uma métrica para o Prometheus,
+que está a correr no i9 desde sempre. Fui ver antes de a escrever: **zero
+regras de alerta, e o receptor de notificações é o `empty`**. Uma métrica ali
+seria o mesmo defeito noutro sítio — um painel que ninguém abre em vez de um
+registo que ninguém lê.
+
+O aviso aparece por isso **ao abrir a shell do i9**, que é por onde o César
+passa todos os dias, e só quando há alguma coisa errada — em caixa, para se ver
+de relance, não para se ler. A métrica escreve-se na mesma (`copia_punho.prom`,
+de hora a hora), porque dá história e gráfico no dia em que houver alertas a
+sério; mas quem avisa é o banner.
+
+O que a vigia olha: a idade da última cópia **bem sucedida** (limite 36h — dá
+folga para uma noite falhada, apanha duas seguidas), a idade da última cópia
+**provada** (limite 9 dias — deixa passar um domingo com a máquina desligada,
+não dois), e o disco livre, porque uma cópia diária que enche o disco não falha
+sozinha, leva o resto atrás.
+
+As marcas que ela lê (`.ultima_copia`, `.ultima_prova`) são escritas **só nos
+ramos de sucesso** dos dois scripts. A pasta existir não chega: é criada no
+início, e uma falha a meio deixava-a lá a fingir que houve cópia.

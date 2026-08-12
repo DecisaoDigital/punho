@@ -252,6 +252,11 @@ echo
 if $igual && $usavel && $restauro_limpo && ! grep -q 'NÃO' <<<"$prova_de_uso"; then
   echo "✓ cópia provada: restaurou inteira e a base restaurada funciona."
   echo "  Contentor destruído. A produção não foi tocada."
+  # Marca de «esta cadeia foi provada hoje». Escrita só neste ramo, de propósito:
+  # é o único sítio do script onde já se sabe que o restauro deu o mesmo, que a
+  # base restaurada responde e que o pg_restore não se queixou. Ver
+  # vigia_de_copias.sh.
+  printf '%s\n%s\n' "$(date +%s)" "$pasta" > "${DESTINO}/.ultima_prova"
   exit 0
 fi
 echo "✗ esta cópia NÃO está provada. Ver acima."
