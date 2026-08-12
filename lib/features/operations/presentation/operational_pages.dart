@@ -1968,18 +1968,32 @@ class _FotografiasDaMaquina extends StatelessWidget {
                       child: Material(
                         color: Colors.black54,
                         shape: const CircleBorder(),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () => photoPaths.value = [
-                            for (var i = 0; i < paths.length; i++)
-                              if (i != index) paths[i],
-                          ],
-                          child: const Padding(
-                            padding: EdgeInsets.all(4),
-                            child: Icon(
-                              Icons.close,
-                              size: 14,
-                              color: Colors.white,
+                        child: Tooltip(
+                          // Sem isto o botão não tinha nome nenhum: um leitor
+                          // de ecrã dizia "botão" numa fila de miniaturas
+                          // iguais. O número diz qual, que é a única coisa que
+                          // as distingue quando não se vê a imagem.
+                          message: 'Remover a fotografia ${index + 1}',
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () => photoPaths.value = [
+                              for (var i = 0; i < paths.length; i++)
+                                if (i != index) paths[i],
+                            ],
+                            // O ícone desenha 14 e o alvo tinha 22. Passa a 36
+                            // sobre uma miniatura de 112 — cabe no canto sem
+                            // tapar a máquina, e deixa de se falhar o toque.
+                            // Aqui isto pesa mais do que noutro botão qualquer:
+                            // desde que a app passou a apagar mesmo o ficheiro
+                            // do arquivo, falhar este toque tem consequência.
+                            child: const SizedBox(
+                              width: 36,
+                              height: 36,
+                              child: Icon(
+                                Icons.close,
+                                size: 14,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
