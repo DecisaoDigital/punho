@@ -112,7 +112,12 @@ apareçam em fugas conhecidas, e isso dá atrito imediato com as contas de ensai
 
 ### Por verificar — nunca foram olhados
 
-Índices contra planos reais.
+~~Índices contra planos reais.~~ **Olhados a 14/8** — `docs/PLANOS_REAIS_2026-08-14.md`.
+Nenhuma consulta cai em `Seq Scan` e não falta índice nenhum; largou-se um
+duplicado exacto. O que se encontrou foi outra coisa: o RLS chama
+`punho_perfil_na_empresa` **linha a linha** (3 a 4,5× os buffers), e nenhuma
+consulta ao `punho_operacoes` pode ir a paralelo porque a `auth.uid()` da
+Supabase é `PARALLEL UNSAFE`. Nem um nem outro se corrige com índices.
 
 **Resolvido a 13/8, e ao contrário do que eu tinha escrito.** A 12/8 dei a
 etiqueta da reserva por não responder ao toque, depois de seis pontos e de um
