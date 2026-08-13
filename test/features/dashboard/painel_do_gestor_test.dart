@@ -4,6 +4,7 @@ import 'package:punho/features/dashboard/presentation/dashboard_page.dart';
 import 'package:punho/features/dashboard/presentation/kpi_catalogo.dart';
 import 'package:punho/core/operations/painel_controller.dart';
 import 'package:punho/features/dashboard/presentation/widgets/celula_semaforo.dart';
+import 'package:punho/features/kpis/presentation/cadeia_do_kpi_page.dart';
 
 import 'fixtura.dart';
 
@@ -199,13 +200,38 @@ void main() {
     testWidgets('um KPI sem destino não finge que leva a algum lado', (
       tester,
     ) async {
-      expect(kpiPorId('caixa')?.destino, isNull);
+      // Era a Caixa que servia de exemplo. Deixou de servir a 13 de Agosto de
+      // 2026: com a cadeia, a Caixa passou a ser a raiz de tudo e ganhou filhos
+      // — e um toque nela abre o ecrã de atenção. O caso continua a existir, só
+      // que agora é a satisfação do cliente: não tem destino, e é folha.
+      expect(kpiPorId('satisfacao-cliente')?.destino, isNull);
+      expect(filhosDe('satisfacao-cliente'), isEmpty);
+
+      final container = containerCom(estadoComMovimento());
+      container
+          .read(painelProvider.notifier)
+          .alternar('satisfacao-cliente', escolher: true);
+      await montarLandscape(tester, container, DashboardPage(agora: agoraFixa));
+
+      expect(_celulaTocavel, findsNothing);
+    });
+
+    testWidgets('um KPI com filhos abre a cadeia em vez do destino', (
+      tester,
+    ) async {
+      // A Caixa tem destino **e** filhos. Quem lhe toca quer saber porquê antes
+      // de saber onde — e o ecrã da cadeia acaba com o botão para as Finanças,
+      // portanto não se perde caminho nenhum.
+      expect(filhosDe('caixa'), isNotEmpty);
 
       final container = containerCom(estadoComMovimento());
       container.read(painelProvider.notifier).alternar('caixa', escolher: true);
       await montarLandscape(tester, container, DashboardPage(agora: agoraFixa));
 
-      expect(_celulaTocavel, findsNothing);
+      await tester.tap(_celulaTocavel.first);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CadeiaDoKpiPage), findsOneWidget);
     });
   });
 }

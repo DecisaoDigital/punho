@@ -5,6 +5,7 @@ import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../core/operations/painel_controller.dart';
 import '../../dashboard/presentation/kpi_catalogo.dart';
+import '../../dashboard/presentation/pagina_do_painel.dart';
 import '../../dashboard/presentation/widgets/kpi_grid_2x2.dart';
 
 /// **KPIs (todos)** — a bancada. Todos os indicadores num sítio só, cada um a
@@ -354,7 +355,19 @@ class _LinhaDeKpi extends ConsumerWidget {
             // levantava-o — e o César cortou: «não quero o card todo a ficar
             // activo, deve ser só nos 6 pontinhos e pouco mais». O cartão é
             // para se ler; quem manda nele é a pega, aqui à direita.
-            Expanded(child: kpi.celula(estado, now).deitada()),
+            //
+            // Um toque simples é outra coisa e não colide com nada: abre a
+            // cadeia deste KPI, quando ele tem alguma coisa por baixo. Numa
+            // folha não abre — não há degrau para descer, e um toque que não
+            // faz nada ensina a não tocar.
+            Expanded(
+              child: AbrirDestinoDoKpi(
+                destino: null,
+                cadeia: filhosDe(kpi.id).isEmpty ? null : kpi.id,
+                agora: now,
+                child: kpi.celula(estado, now).deitada(),
+              ),
+            ),
             SizedBox(
               width: _larguraDaPega,
               child: indice == null

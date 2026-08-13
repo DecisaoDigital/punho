@@ -21,6 +21,7 @@ import '../../../core/navigation/app_destination.dart';
 import '../../../core/kpis/apreciacao.dart';
 import '../../../core/operations/caixa.dart';
 import '../../../core/operations/kpis.dart';
+import '../../../core/operations/kpis_da_cadeia.dart';
 import '../../../core/operations/kpis_de_saude.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/arranjo_do_painel.dart';
@@ -56,6 +57,7 @@ class KpiDefinicao {
     required this.contaVerificada,
     required this.desbloqueio,
     this.destino,
+    this.pai,
   });
 
   /// Estável, kebab-case. Serve de chave para a promoção manual ao painel.
@@ -83,6 +85,18 @@ class KpiDefinicao {
   /// não tem de saber para onde ele leva.
   final AppDestination? destino;
 
+  /// O id do KPI que este ajuda a explicar. `null` nos três mestres.
+  ///
+  /// **É a ideia central do plano de KPIs.** Um número mau, sozinho, é uma
+  /// acusação: o Lucro caiu, e depois? Com a cadeia, o Lucro tem filhos —
+  /// Vendas e Estrutura — e a app pode dizer qual deles se mexeu. Sem isto os
+  /// 25 indicadores são uma lista plana onde o gestor tem de adivinhar qual
+  /// olhar a seguir, que é exactamente o trabalho que a app devia poupar-lhe.
+  ///
+  /// A cadeia é uma árvore, e é verificada como tal: ver
+  /// `test/core/kpis/cadeia_test.dart`.
+  final String? pai;
+
   /// Fonte cheia = a célula não está à espera de dados.
   bool fonteCheia(OperationsState s, DateTime now) =>
       celula(s, now).nivel != NivelSemaforo.aguarda;
@@ -99,6 +113,36 @@ class KpiDefinicao {
 // ---------------------------------------------------------------------------
 
 const catalogoKpis = <KpiDefinicao>[
+  // -------------------------------------------------------------------------
+  // Os três mestres da cadeia. Não têm pai: é neles que a leitura começa.
+  // -------------------------------------------------------------------------
+  KpiDefinicao(
+    id: 'vendas-mes',
+    titulo: 'Vendas do mês',
+    celula: kpiVendas,
+    contaVerificada: true,
+    desbloqueio: 'Reservas com valor, terminadas este mês',
+    destino: AppDestination.semana,
+    pai: 'lucro-mes',
+  ),
+  KpiDefinicao(
+    id: 'lucro-mes',
+    titulo: 'Lucro do mês',
+    celula: kpiLucro,
+    contaVerificada: true,
+    desbloqueio: 'Reservas com valor + despesas do mês',
+    destino: AppDestination.finances,
+    pai: 'caixa',
+  ),
+  KpiDefinicao(
+    id: 'estrutura-mes',
+    titulo: 'Estrutura',
+    celula: kpiEstrutura,
+    contaVerificada: true,
+    desbloqueio: 'Despesas do mês que não são de servir o trabalho',
+    destino: AppDestination.finances,
+    pai: 'lucro-mes',
+  ),
   // Fora do carrossel — nascidas já na "KPIs (todos)", hoje (9 Ago 2026).
   KpiDefinicao(
     id: 'caixa',
@@ -106,6 +150,7 @@ const catalogoKpis = <KpiDefinicao>[
     celula: kpiCaixa,
     contaVerificada: true,
     desbloqueio: 'Entradas e saídas registadas este mês',
+    destino: AppDestination.finances,
   ),
   KpiDefinicao(
     id: 'tendencia-mes',
@@ -115,6 +160,8 @@ const catalogoKpis = <KpiDefinicao>[
     desbloqueio:
         'Recebimentos/reservas do mês + o mês passado '
         '(recibos ou histórico do contabilista)',
+    pai: 'caixa',
+    destino: AppDestination.finances,
   ),
   // Slide 1 — Síntese
   KpiDefinicao(
@@ -125,6 +172,7 @@ const catalogoKpis = <KpiDefinicao>[
     desbloqueio: 'Recebimentos registados (ou histórico mensal preenchido)',
     // O valor é do mês, e o toque leva a onde as entradas se vão registando.
     destino: AppDestination.finances,
+    pai: 'caixa',
   ),
   KpiDefinicao(
     id: 'utilizacao-rentabilidade',
@@ -132,6 +180,8 @@ const catalogoKpis = <KpiDefinicao>[
     celula: kpiUtilizacao,
     contaVerificada: true,
     desbloqueio: 'Preço/dia em todas as máquinas + valor de compra em ≥1',
+    pai: 'vendas-mes',
+    destino: AppDestination.machines,
   ),
   KpiDefinicao(
     id: 'encontro-contas',
@@ -139,6 +189,8 @@ const catalogoKpis = <KpiDefinicao>[
     celula: kpiEncontroContas,
     contaVerificada: true,
     desbloqueio: 'Entradas e saídas do mês registadas',
+    pai: 'caixa',
+    destino: AppDestination.finances,
   ),
   KpiDefinicao(
     id: 'recomendacao-dia',
@@ -154,6 +206,8 @@ const catalogoKpis = <KpiDefinicao>[
     celula: kpiReservasActivas,
     contaVerificada: true,
     desbloqueio: 'Reservas na agenda (contam já em Pedido)',
+    pai: 'vendas-mes',
+    destino: AppDestination.bookings,
   ),
   KpiDefinicao(
     id: 'entregas-hoje',
@@ -161,6 +215,8 @@ const catalogoKpis = <KpiDefinicao>[
     celula: kpiEntregasHoje,
     contaVerificada: true,
     desbloqueio: 'Reserva a começar hoje',
+    pai: 'reservas-activas',
+    destino: AppDestination.semana,
   ),
   KpiDefinicao(
     id: 'recolhas-fazer',
@@ -168,6 +224,8 @@ const catalogoKpis = <KpiDefinicao>[
     celula: kpiRecolhas,
     contaVerificada: true,
     desbloqueio: 'Reserva a terminar hoje',
+    pai: 'reservas-activas',
+    destino: AppDestination.semana,
   ),
   KpiDefinicao(
     id: 'cobrancas-7d',
@@ -175,6 +233,8 @@ const catalogoKpis = <KpiDefinicao>[
     celula: kpiCobrancas,
     contaVerificada: true,
     desbloqueio: 'Reservas com valor por liquidar nos próximos 7 dias',
+    pai: 'ciclo-de-tesouraria',
+    destino: AppDestination.semana,
   ),
   // Slide 3 — Procura e vendas
   KpiDefinicao(
@@ -183,6 +243,8 @@ const catalogoKpis = <KpiDefinicao>[
     celula: kpiClientesNovos,
     contaVerificada: true,
     desbloqueio: 'Clientes registados na ficha de clientes',
+    pai: 'vendas-mes',
+    destino: AppDestination.clients,
   ),
   KpiDefinicao(
     id: 'leads-pipeline',
@@ -190,6 +252,8 @@ const catalogoKpis = <KpiDefinicao>[
     celula: kpiLeadsPipeline,
     contaVerificada: true,
     desbloqueio: 'Leads registadas',
+    pai: 'conversao-lead-cliente',
+    destino: AppDestination.clients,
   ),
   KpiDefinicao(
     id: 'ticket-medio-mes',
@@ -197,6 +261,8 @@ const catalogoKpis = <KpiDefinicao>[
     celula: kpiTicketMedio,
     contaVerificada: true,
     desbloqueio: 'Reservas do mês com valor previsto',
+    pai: 'vendas-mes',
+    destino: AppDestination.bookings,
   ),
   KpiDefinicao(
     id: 'conversao-lead-cliente',
@@ -204,6 +270,8 @@ const catalogoKpis = <KpiDefinicao>[
     celula: kpiConversao,
     contaVerificada: true,
     desbloqueio: 'Leads registadas + reservas que delas saíram',
+    pai: 'vendas-mes',
+    destino: AppDestination.clients,
   ),
   // Saúde da empresa — os sete que `docs/AUDITORIA_KPIS_EMPRESA.md` deu como
   // não cobertos. Nascem todos com a conta por verificar: a fórmula é nossa, o
@@ -215,6 +283,7 @@ const catalogoKpis = <KpiDefinicao>[
     contaVerificada: true,
     desbloqueio: 'Entradas e saídas registadas + custos fixos declarados',
     destino: AppDestination.finances,
+    pai: 'caixa',
   ),
   KpiDefinicao(
     id: 'margem-bruta',
@@ -223,6 +292,7 @@ const catalogoKpis = <KpiDefinicao>[
     contaVerificada: true,
     desbloqueio: 'Recebimentos do mês + despesas com categoria',
     destino: AppDestination.finances,
+    pai: 'lucro-mes',
   ),
   KpiDefinicao(
     id: 'ciclo-de-tesouraria',
@@ -231,6 +301,7 @@ const catalogoKpis = <KpiDefinicao>[
     contaVerificada: true,
     desbloqueio: 'Recebimentos em 90 dias + reservas com valor + despesas',
     destino: AppDestination.finances,
+    pai: 'caixa',
   ),
   KpiDefinicao(
     id: 'fluxo-de-caixa-livre',
@@ -239,6 +310,7 @@ const catalogoKpis = <KpiDefinicao>[
     contaVerificada: true,
     desbloqueio: 'Movimentos do mês + valor de compra e data das máquinas',
     destino: AppDestination.finances,
+    pai: 'caixa',
   ),
   KpiDefinicao(
     id: 'custo-de-aquisicao',
@@ -247,6 +319,7 @@ const catalogoKpis = <KpiDefinicao>[
     contaVerificada: true,
     desbloqueio: 'Despesas de publicidade + clientes registados',
     destino: AppDestination.finances,
+    pai: 'lucro-mes',
   ),
   KpiDefinicao(
     id: 'receita-recorrente',
@@ -256,6 +329,7 @@ const catalogoKpis = <KpiDefinicao>[
     desbloqueio:
         'Recebimentos do mês + reservas anteriores dos mesmos clientes',
     destino: AppDestination.clients,
+    pai: 'vendas-mes',
   ),
   KpiDefinicao(
     id: 'satisfacao-cliente',
@@ -265,6 +339,7 @@ const catalogoKpis = <KpiDefinicao>[
     // Não é um dado que falte preencher: é uma pergunta que a app ainda não
     // sabe fazer. Fica dito, em vez de o KPI desaparecer da lista.
     desbloqueio: 'Um inquérito ao cliente no fim da recolha — ainda não existe',
+    pai: 'receita-recorrente',
   ),
   // As duas que se perderam quando o painel deixou de ser slides.
   KpiDefinicao(
@@ -274,6 +349,7 @@ const catalogoKpis = <KpiDefinicao>[
     contaVerificada: true,
     desbloqueio: 'Leads registadas há mais de duas semanas',
     destino: AppDestination.clients,
+    pai: 'leads-pipeline',
   ),
   KpiDefinicao(
     id: 'alertas-operacionais',
@@ -282,6 +358,7 @@ const catalogoKpis = <KpiDefinicao>[
     contaVerificada: true,
     desbloqueio: 'Reservas na agenda',
     destino: AppDestination.semana,
+    pai: 'reservas-activas',
   ),
   // Futurologia — o mês por fechar.
   KpiDefinicao(
@@ -291,6 +368,7 @@ const catalogoKpis = <KpiDefinicao>[
     contaVerificada: true,
     desbloqueio: 'Custos fixos declarados em Empresa › Custos fixos',
     destino: AppDestination.empresa,
+    pai: 'estrutura-mes',
   ),
   KpiDefinicao(
     id: 'saldo-previsto-mes',
@@ -299,6 +377,7 @@ const catalogoKpis = <KpiDefinicao>[
     contaVerificada: true,
     desbloqueio: 'Custos fixos declarados + reservas na agenda',
     destino: AppDestination.finances,
+    pai: 'caixa',
   ),
 ];
 
@@ -310,6 +389,50 @@ KpiDefinicao? kpiPorId(String id) {
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// A cadeia
+// ---------------------------------------------------------------------------
+
+/// Os KPIs que ajudam a explicar [id], pela ordem do catálogo.
+///
+/// Lista vazia é uma resposta legítima: uma folha da árvore não tem por onde se
+/// desdobrar, e é aí que a explicação acaba e começa a acção.
+List<KpiDefinicao> filhosDe(String id) => [
+  for (final k in catalogoKpis)
+    if (k.pai == id) k,
+];
+
+/// O KPI que este ajuda a explicar, ou `null` se for raiz.
+KpiDefinicao? paiDe(String id) {
+  final pai = kpiPorId(id)?.pai;
+  return pai == null ? null : kpiPorId(pai);
+}
+
+/// Do KPI até à raiz, a começar nele. `['vendas-mes','lucro-mes','caixa']`.
+///
+/// Serve a linha de migalhas do ecrã da cadeia: quem desce três níveis tem de
+/// poder ver de onde veio sem carregar em «voltar» às cegas.
+///
+/// **Pára em ciclo.** A árvore é verificada em teste, mas um catálogo mal
+/// ligado numa versão futura não pode pendurar a app: o `visitados` corta.
+List<KpiDefinicao> caminhoAteARaiz(String id) {
+  final caminho = <KpiDefinicao>[];
+  final visitados = <String>{};
+  var actual = kpiPorId(id);
+  while (actual != null && visitados.add(actual.id)) {
+    caminho.add(actual);
+    final pai = actual.pai;
+    actual = pai == null ? null : kpiPorId(pai);
+  }
+  return caminho;
+}
+
+/// As raízes da cadeia — os KPIs por onde a leitura começa.
+List<KpiDefinicao> get raizesDaCadeia => [
+  for (final k in catalogoKpis)
+    if (k.pai == null) k,
+];
+
 /// Os KPIs que o painel mostra, já pela ordem do gestor.
 ///
 /// Um id gravado que esta versão da app já não conhece desaparece daqui sem
@@ -320,6 +443,117 @@ List<KpiDefinicao> kpisEscolhidos(ArranjoDoPainel arranjo) => [
   for (final id in arranjo.noPainel)
     if (kpiPorId(id) case final kpi?) kpi,
 ];
+
+// ---------------------------------------------------------------------------
+// Os três mestres da cadeia
+// ---------------------------------------------------------------------------
+
+/// A sub-linha de comparação de um mestre: homólogo primeiro, mês anterior
+/// como recurso, e o nome do termo **sempre escrito**.
+///
+/// Sem dizer contra o quê, «▲ 12%» não se sabe ler: pode ser um mês bom ou uma
+/// estação a começar. Num negócio com estações o termo certo é o homólogo — só
+/// se cai para o mês anterior quando não há ano passado com que comparar.
+String _comparado(MesComparado m) {
+  final homologa = m.variacaoHomologa;
+  if (homologa != null) {
+    return '${homologa >= 0 ? '▲' : '▼'} ${homologa.abs().round()}% '
+        'face ao mesmo mês do ano passado';
+  }
+  final anterior = m.variacaoMesAnterior;
+  if (anterior != null) {
+    return '${anterior >= 0 ? '▲' : '▼'} ${anterior.abs().round()}% '
+        'face ao mês passado — ainda sem ano passado para comparar';
+  }
+  return 'Primeiro mês com registos — ainda não há com que comparar';
+}
+
+/// Nível pela variação: a descer é laranja, a subir ou a manter é verde.
+NivelSemaforo _nivelPor(MesComparado m) {
+  final v = m.variacaoHomologa ?? m.variacaoMesAnterior;
+  if (v == null) return NivelSemaforo.verde;
+  return v < 0 ? NivelSemaforo.laranja : NivelSemaforo.verde;
+}
+
+/// **Vendas do mês** — o que se vendeu, esteja pago ou não.
+///
+/// Não é o mesmo número que «Dinheiros que entraram», e é de propósito: a
+/// diferença entre os dois é o prazo de recebimento, e uma casa que vende bem e
+/// está sem dinheiro precisa de ver os dois lados para saber onde está o
+/// problema. Ver `lib/core/operations/kpis_da_cadeia.dart`.
+CelulaSemaforo kpiVendas(OperationsState estado, DateTime now) {
+  final mes = vendasDoMes(estado, now);
+  if (mes == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Vendas do mês',
+      texto: 'Sem trabalhos com valor este mês',
+      subtexto: 'Põe preço a uma reserva e as vendas aparecem.',
+    );
+  }
+  return CelulaSemaforo(
+    nivel: _nivelPor(mes),
+    rotulo: 'Vendas do mês',
+    valor: _euros(mes.valorCents),
+    unidade: '€ vendidos',
+    subtexto: _comparado(mes),
+    valorEmDestaque: true,
+  );
+}
+
+/// **Lucro do mês** — vendas menos tudo o que o mês custou.
+///
+/// De competência dos dois lados: as vendas pela data do trabalho, os custos
+/// pela data da despesa, paga ou por pagar. É o único jeito de o Lucro de Abril
+/// falar de Abril.
+CelulaSemaforo kpiLucro(OperationsState estado, DateTime now) {
+  final mes = lucroDoMes(estado, now);
+  if (mes == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Lucro do mês',
+      texto: 'Sem vendas nem despesas este mês',
+      subtexto: 'Regista uma despesa ou põe preço a uma reserva.',
+    );
+  }
+  final margem = margemDoMes(estado, now);
+  final positivo = mes.valorCents >= 0;
+  return CelulaSemaforo(
+    nivel: !positivo ? NivelSemaforo.vermelho : _nivelPor(mes),
+    rotulo: 'Lucro do mês',
+    valor: '${positivo ? '+' : '−'} ${_euros(mes.valorCents.abs())}',
+    unidade: margem == null ? '€' : '€ · margem ${margem.round()}%',
+    subtexto: _comparado(mes),
+    valorEmDestaque: true,
+  );
+}
+
+/// **Estrutura** — o que se paga com a máquina parada: renda, luz, água,
+/// limpeza, salários, seguros, publicidade.
+///
+/// É o filho que explica um lucro que caiu sem as vendas caírem — o caso que o
+/// ecrã de atenção existe para nomear.
+CelulaSemaforo kpiEstrutura(OperationsState estado, DateTime now) {
+  final mes = estruturaDoMes(estado, now);
+  if (mes == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Estrutura',
+      texto: 'Sem despesas este mês',
+      subtexto: 'Regista uma despesa e a estrutura aparece.',
+    );
+  }
+  // Aqui o sinal inverte-se: estrutura a **subir** é a má notícia.
+  final v = mes.variacaoHomologa ?? mes.variacaoMesAnterior;
+  return CelulaSemaforo(
+    nivel: v != null && v > 5 ? NivelSemaforo.laranja : NivelSemaforo.verde,
+    rotulo: 'Estrutura',
+    valor: _euros(mes.valorCents),
+    unidade: '€ para ter a casa aberta',
+    subtexto: _comparado(mes),
+    valorEmDestaque: true,
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Fora do carrossel — Caixa e Tendência do mês (nascem na "KPIs (todos)")
