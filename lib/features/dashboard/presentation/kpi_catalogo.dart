@@ -20,6 +20,8 @@ import '../../../core/guidance/guidance_engine.dart';
 import '../../../core/navigation/app_destination.dart';
 import '../../../core/kpis/apreciacao.dart';
 import '../../../core/kpis/break_even.dart';
+import '../../../core/kpis/dinheiro_por_mexer.dart';
+import '../../../core/kpis/maquina_parada.dart';
 import '../../../core/operations/caixa.dart';
 import '../../../core/operations/kpis.dart';
 import '../../../core/operations/kpis_da_cadeia.dart';
@@ -209,6 +211,18 @@ const catalogoKpis = <KpiDefinicao>[
     pai: 'vendas-mes',
     destino: AppDestination.machines,
   ),
+  // O degrau que faltava: a utilização diz 38%, esta diz **qual** máquina.
+  KpiDefinicao(
+    id: 'maquina-parada',
+    titulo: 'Máquina parada',
+    celula: kpiMaquinaParada,
+    contaVerificada: true,
+    desbloqueio:
+        'Máquinas na frota + reservas (e a data de compra, se nunca '
+        'foi alugada)',
+    pai: 'utilizacao-rentabilidade',
+    destino: AppDestination.machines,
+  ),
   KpiDefinicao(
     id: 'encontro-contas',
     titulo: 'Encontro de contas',
@@ -260,6 +274,17 @@ const catalogoKpis = <KpiDefinicao>[
     contaVerificada: true,
     desbloqueio: 'Reservas com valor por liquidar nos próximos 7 dias',
     pai: 'ciclo-de-tesouraria',
+    destino: AppDestination.semana,
+  ),
+  // O par que faltava às cobranças: aquela olha para a frente e mistura lá
+  // dentro o que já venceu; esta é só o que passou do prazo.
+  KpiDefinicao(
+    id: 'cobrancas-em-atraso',
+    titulo: 'Em atraso',
+    celula: kpiCobrancasEmAtraso,
+    contaVerificada: true,
+    desbloqueio: 'Reservas terminadas com valor ainda por receber',
+    pai: 'cobrancas-7d',
     destino: AppDestination.semana,
   ),
   // Slide 3 — Procura e vendas
@@ -328,6 +353,18 @@ const catalogoKpis = <KpiDefinicao>[
     desbloqueio: 'Recebimentos em 90 dias + reservas com valor + despesas',
     destino: AppDestination.finances,
     pai: 'caixa',
+  ),
+  // A outra ponta do dinheiro por mexer. Filha da Caixa e não da Estrutura: a
+  // despesa já entrou na Estrutura no dia em que foi lançada, paga ou não — o
+  // que falta saber é **quando sai da conta**, e isso é caixa.
+  KpiDefinicao(
+    id: 'contas-a-pagar',
+    titulo: 'Contas a pagar',
+    celula: kpiContasAPagar,
+    contaVerificada: true,
+    desbloqueio: 'Despesas marcadas como por pagar',
+    pai: 'caixa',
+    destino: AppDestination.finances,
   ),
   KpiDefinicao(
     id: 'fluxo-de-caixa-livre',
@@ -862,6 +899,60 @@ CelulaSemaforo kpiUtilizacao(OperationsState estado, DateTime now) {
   );
 }
 
+/// **Máquina parada** — o degrau abaixo da utilização, e o que ela não diz.
+///
+/// «A frota está a 38%» não se telefona a ninguém. O nome da máquina sim: é o
+/// activo dele, comprado e pago, a ocupar espaço sem render. Por isso esta
+/// célula é filha da «Utilização vs Rentabilidade» — mesma pergunta, com nome.
+CelulaSemaforo kpiMaquinaParada(OperationsState estado, DateTime now) {
+  if (!haFrotaParaVigiar(estado)) {
+    return _aguarda(
+      'Máquina parada',
+      'Sem frota em operação',
+      'Vem das máquinas activas e das reservas',
+    );
+  }
+
+  final parada = maquinaMaisParada(estado, now);
+  if (parada == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.verde,
+      rotulo: 'Máquina parada',
+      texto: 'Frota toda a trabalhar',
+      subtexto: 'Nenhuma máquina sem trabalho hoje.',
+    );
+  }
+
+  // Uma informação, e não três: o que muda a leitura é saber se já tem trabalho
+  // marcado. Só quando não tem é que o dinheiro por facturar vale a linha.
+  final volta = parada.voltaASair;
+  final naoFacturado = parada.naoFacturadoCents;
+  final contexto = parada.nuncaAlugada
+      ? 'nunca saiu desde a compra'
+      : volta != null
+      ? 'volta a sair a ${volta.day} de ${_mesesPt[volta.month - 1]}'
+      : naoFacturado != null
+      // Ordem de grandeza, e assumida como tal: pressupõe procura para todos
+      // os dias. Vale por ser conferível de cabeça — dias × preço de tabela.
+      ? '${_euros(naoFacturado)} € por facturar, ao preço de tabela'
+      : 'sem trabalho marcado';
+
+  return CelulaSemaforo(
+    nivel: parada.muitoParada
+        ? NivelSemaforo.vermelho
+        : parada.dias >= diasParaMaquinaParada
+        ? NivelSemaforo.laranja
+        : NivelSemaforo.verde,
+    rotulo: 'Máquina parada',
+    valor: '${parada.dias}',
+    unidade: parada.dias == 1 ? 'dia parada' : 'dias parada',
+    subtexto: parada.outrasParadas == 0
+        ? '${parada.maquina.name} · $contexto'
+        : '${parada.maquina.name} · $contexto · '
+              'e mais ${parada.outrasParadas} parada${parada.outrasParadas == 1 ? '' : 's'}',
+  );
+}
+
 /// O saldo do mês: entradas menos saídas.
 CelulaSemaforo kpiEncontroContas(OperationsState estado, DateTime now) {
   final mes = tesourariaDoMes(estado, now);
@@ -1020,6 +1111,95 @@ CelulaSemaforo kpiCobrancas(OperationsState estado, DateTime now) {
         : p.venceHojeCents > 0
         ? 'Vence hoje: ${(p.venceHojeCents / 100).round()} €'
         : 'Nada vence hoje',
+  );
+}
+
+/// **Em atraso** — o dinheiro que já devia ter entrado e não entrou.
+///
+/// A célula irmã olha para a frente e mistura: «a vencer (7d)» não tem piso
+/// nenhum, portanto a factura de há três meses está lá dentro somada à que vence
+/// na sexta. Um número que junta a conta que se cobra sozinha com a que já
+/// ninguém cobrou não diz o que há a fazer hoje — e o que há a fazer hoje é
+/// telefonar a estes.
+///
+/// Diz **quantos clientes** e não só quanto: 2 000 € de um cliente só é um
+/// telefonema; espalhados por oito é um problema de processo.
+CelulaSemaforo kpiCobrancasEmAtraso(OperationsState estado, DateTime now) {
+  if (!haCobrancasPossiveis(estado)) {
+    return _aguarda(
+      'Em atraso',
+      'Sem valores por receber',
+      'Vem das reservas com valor previsto',
+    );
+  }
+
+  final vencidas = cobrancasVencidas(estado, now);
+  if (vencidas == null) {
+    // Verde e não «aguarda»: não dever nada a ninguém é uma resposta, e das
+    // boas. Ver a célula em `aguarda` seria dizer que a app não sabe.
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.verde,
+      rotulo: 'Em atraso',
+      texto: 'Ninguém em atraso',
+      subtexto: 'Tudo o que já venceu está recebido.',
+    );
+  }
+
+  final dias = vencidas.diasDoMaisAntigo;
+  return CelulaSemaforo(
+    nivel: vencidas.grave ? NivelSemaforo.vermelho : NivelSemaforo.laranja,
+    rotulo: 'Em atraso',
+    valor: _euros(vencidas.totalCents),
+    unidade: vencidas.clientes == 1
+        ? '€ · 1 cliente'
+        : '€ · ${vencidas.clientes} clientes',
+    valorEmDestaque: true,
+    subtexto:
+        'A mais velha é de ${vencidas.maisAntiga.clienteNome}, '
+        'há $dias ${dias == 1 ? 'dia' : 'dias'} · '
+        '${_euros(vencidas.maisAntiga.emDividaCents)} €',
+  );
+}
+
+/// **Contas a pagar** — o que ainda tem de sair da conta.
+///
+/// O outro lado do «Em atraso», e a metade que faltava a quem olha para a
+/// Caixa: um saldo de 3 000 € com 2 800 € por pagar não é o mesmo saldo.
+///
+/// **Conta tudo o que está por pagar, e não só o deste mês.** Uma factura de
+/// Junho não deixou de sair da conta por o calendário ter virado — limitá-la ao
+/// mês corrente fazia a dívida desaparecer do ecrã no dia 1.
+CelulaSemaforo kpiContasAPagar(OperationsState estado, DateTime now) {
+  if (!estado.expenses.any((e) => !e.archived)) {
+    return _aguarda(
+      'Contas a pagar',
+      'Sem despesas registadas',
+      'Vem das despesas marcadas como por pagar',
+    );
+  }
+
+  final contas = contasAPagar(estado, now);
+  if (contas == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.verde,
+      rotulo: 'Contas a pagar',
+      texto: 'Nada por pagar',
+      subtexto: 'Todas as despesas lançadas estão pagas.',
+    );
+  }
+
+  final dias = contas.diasDaMaisAntiga;
+  return CelulaSemaforo(
+    nivel: contas.velha ? NivelSemaforo.vermelho : NivelSemaforo.laranja,
+    rotulo: 'Contas a pagar',
+    valor: _euros(contas.totalCents),
+    unidade: contas.quantas == 1
+        ? '€ · 1 despesa'
+        : '€ · ${contas.quantas} despesas',
+    valorEmDestaque: true,
+    subtexto:
+        'A mais velha é de ${expenseCategoryLabel(contas.maisAntiga.category).toLowerCase()}, '
+        'há $dias ${dias == 1 ? 'dia' : 'dias'}',
   );
 }
 

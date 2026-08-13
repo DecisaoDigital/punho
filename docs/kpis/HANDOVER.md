@@ -272,6 +272,55 @@ que exista. Num negócio com estações, comparar Setembro com Agosto acusa o
 calendário em vez do negócio. Sem termo nenhum, diz-se que não há — nunca uma
 percentagem fabricada.
 
+## 7. Os três buracos do catálogo (13 Ago 2026)
+
+Pergunta dele depois de a cadeia estar fechada: *«há mais kpis importantes para
+aparecerem?»*. Havia três, e todos com os dados já cá dentro.
+
+**7.1 «Em atraso» — `cobrancasVencidas`.** A app sabia dizer o que se vendeu
+(competência) e o que entrou na conta (caixa). Faltava o espaço entre os dois. E
+as «Cobranças a vencer (7d)» não o cobriam: o filtro delas é «vence até daqui a
+7 dias», **sem piso** — a factura de há três meses está lá dentro somada à que
+vence na sexta. Um número que junta a conta que se cobra sozinha com a que já
+ninguém cobrou não diz o que há a fazer hoje.
+
+A fronteira do atraso é o **fim do trabalho**, o mesmo sítio onde a célula irmã
+põe o «vence hoje», e conta-se a partir do dia seguinte. **Não se inventa prazo
+de pagamento**: «30 dias» seria uma condição comercial que a app não guarda em
+lado nenhum. Diz **quantos clientes** e não só quanto — 2 000 € de um cliente é
+um telefonema, espalhados por oito são um processo que não existe.
+
+**7.2 «Contas a pagar» — `contasAPagar`.** O outro lado, e a metade que faltava
+a quem olha para a Caixa: um saldo de 3 000 € com 2 800 € por pagar não é o
+mesmo saldo. Conta **tudo o que está por pagar e não só o deste mês** — uma
+factura de Junho não deixou de sair da conta por o calendário ter virado.
+Pendurada na Caixa e não na Estrutura, de propósito: a despesa já entrou na
+Estrutura no dia em que foi lançada, paga ou não; o que falta saber é quando sai.
+
+**7.3 «Máquina parada» — `maquinaMaisParada`.** «A frota está a 38%» não se
+telefona a ninguém; o nome da máquina sim. É filha da «Utilização vs
+Rentabilidade» — mesma pergunta, um degrau abaixo, que é a cadeia a pagar o que
+promete. A oficina fica de fora (já se sabe porque não rende), a que está
+alugada hoje sai da conta, e a que nunca saiu só entra se souber quando foi
+comprada — sem `acquiredOn` não há data de onde contar, e pintar de vermelho uma
+ficha por preencher ensina a desconfiar do painel. Quando não há trabalho
+marcado, a sub-linha diz quanto não facturou ao preço de tabela: é uma ordem de
+grandeza assumida, e vale por se conferir de cabeça.
+
+**O que estes três dizem hoje na Depilconcept** (base consultada a 13/8/2026):
+
+| KPI | Valor | Porquê |
+| --- | --- | --- |
+| Em atraso | **13 019 € · 13 clientes**, a mais velha há 769 dias | vermelho |
+| Contas a pagar | **Nada por pagar** | verde — a semente marca tudo pago |
+| Máquina parada | **Depiladora2, 1 dia** | verde |
+
+Os dois extremos são **artefactos da semente e estão assinalados como tal**: ela
+não gerou recibo para 123 das 825 reservas (algumas de 2024, daí os 769 dias) e
+marcou todas as despesas como pagas no próprio dia. As contas estão certas; os
+dados de ensaio é que têm estas duas pontas por fechar — a mesma raiz do ponto 3
+de «o que fica por fazer».
+
 ---
 
 ## O que fica por fazer
@@ -294,10 +343,14 @@ despesa lançada, a média dos três meses anteriores e os custos fixos declarad
 — ver 5-bis. Os declarados continuam a servir, mas como rede para quem ainda não
 tem histórico, e não como condição.
 
-**3. O prazo médio de pagamento a fornecedores.** A semente lança todas as
-despesas como `paid` no próprio dia, portanto o DPO é zero e o ciclo de
-tesouraria fica meio. Está assinalado em `MAPA_DADOS.md` §4 em vez de
-disfarçado.
+**3. As duas pontas por fechar da semente.** Ela lança todas as despesas como
+`paid` no próprio dia — portanto o DPO é zero, o ciclo de tesouraria fica meio e
+o novo «Contas a pagar» diz **Nada por pagar**. E do outro lado deixou 123 das
+825 reservas sem recibo, algumas de 2024, o que enche o novo «Em atraso» com
+13 019 € e 769 dias. Nenhum dos dois é um defeito de conta: são dados de ensaio
+com pontas soltas, assinalados aqui e em `MAPA_DADOS.md` §4 em vez de
+disfarçados. Fechá-las é semear recibos para o histórico antigo e marcar uma
+parte das despesas como por pagar — mexe em produção, e não se faz sem ok.
 
 **4. ~~Promoção automática ao painel.~~ Feita, e de propósito não automática.**
 A cadeia era a peça que faltava para a fazer bem — quem sobe é o filho que
@@ -309,5 +362,6 @@ dele. Ver 5-quinquies.
 homólogo saíram na **0.3.75+47**, a 13 de Agosto — e chegaram ao Redmi pela
 auto-actualização da própria app, sem cabo e sem browser (o ponto 11 do
 `SMOKE.md`, que estava por provar desde a 0.3.3). O **break even**, os três meses
-lado a lado e a **sugestão do painel** são posteriores: estão no repositório e
-**não** estão em nenhum APK.
+lado a lado, a **sugestão do painel** e os **três KPIs novos** (Em atraso, Contas a
+pagar, Máquina parada) são posteriores: estão no repositório e **não** estão em
+nenhum APK.

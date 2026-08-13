@@ -33,7 +33,7 @@ void main() {
   );
 
   group('o catálogo está inteiro', () {
-    test('tem os trinta KPIs, com ids únicos e títulos', () {
+    test('tem os trinta e três KPIs, com ids únicos e títulos', () {
       // Doze do painel antigo + a Caixa e a Tendência do mês (nascidas na
       // bancada) + os onze de 10 de Agosto de 2026: os sete que a auditoria
       // (`docs/AUDITORIA_KPIS_EMPRESA.md`) dava como não cobertos, as duas que
@@ -46,12 +46,19 @@ void main() {
       // diz se o mês virou é quanto falta vender para ele se pagar. E o lucro
       // do mês anterior, que é o único mês fechado — a régua com que se lê o
       // mês que está a acontecer.
-      expect(catalogoKpis, hasLength(30));
+      //
+      // E os três de 13 de Agosto de 2026, a fechar buracos que o catálogo
+      // tinha: o dinheiro que já devia ter entrado («Em atraso»), o que ainda
+      // tem de sair («Contas a pagar») e o activo que não está a render
+      // («Máquina parada»). Os dois primeiros são o espaço entre vender e
+      // receber, onde vive a tesouraria de uma casa pequena; o terceiro é o
+      // nome que faltava à percentagem de utilização.
+      expect(catalogoKpis, hasLength(33));
       expect(kpiPorId('caixa'), isNotNull);
       expect(kpiPorId('tendencia-mes'), isNotNull);
 
       final ids = catalogoKpis.map((k) => k.id).toSet();
-      expect(ids, hasLength(30), reason: 'ids têm de ser únicos');
+      expect(ids, hasLength(33), reason: 'ids têm de ser únicos');
 
       for (final k in catalogoKpis) {
         expect(k.id, isNotEmpty);

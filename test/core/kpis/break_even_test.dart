@@ -94,24 +94,25 @@ void main() {
 
   group('de onde vem o alvo', () {
     /// Três meses com 2 000 € de renda e 200 € de consumíveis cada.
-    OperationsState comTresMeses({List<Expense> agosto = const []}) =>
-        OperationsState(
-          bookings: [
-            venda('m', DateTime(2026, 5, 10, 18), 300000),
-            venda('j', DateTime(2026, 6, 10, 18), 300000),
-            venda('l', DateTime(2026, 7, 10, 18), 300000),
-            venda('a', DateTime(2026, 8, 1, 18), 50000),
-          ],
-          expenses: [
-            despesa('m1', DateTime(2026, 5, 3), 200000, ExpenseCategory.rent),
-            despesa('m2', DateTime(2026, 5, 9), 20000, ExpenseCategory.supplies),
-            despesa('j1', DateTime(2026, 6, 3), 200000, ExpenseCategory.rent),
-            despesa('j2', DateTime(2026, 6, 9), 20000, ExpenseCategory.supplies),
-            despesa('l1', DateTime(2026, 7, 3), 200000, ExpenseCategory.rent),
-            despesa('l2', DateTime(2026, 7, 9), 20000, ExpenseCategory.supplies),
-            ...agosto,
-          ],
-        );
+    OperationsState comTresMeses({
+      List<Expense> agosto = const [],
+    }) => OperationsState(
+      bookings: [
+        venda('m', DateTime(2026, 5, 10, 18), 300000),
+        venda('j', DateTime(2026, 6, 10, 18), 300000),
+        venda('l', DateTime(2026, 7, 10, 18), 300000),
+        venda('a', DateTime(2026, 8, 1, 18), 50000),
+      ],
+      expenses: [
+        despesa('m1', DateTime(2026, 5, 3), 200000, ExpenseCategory.rent),
+        despesa('m2', DateTime(2026, 5, 9), 20000, ExpenseCategory.supplies),
+        despesa('j1', DateTime(2026, 6, 3), 200000, ExpenseCategory.rent),
+        despesa('j2', DateTime(2026, 6, 9), 20000, ExpenseCategory.supplies),
+        despesa('l1', DateTime(2026, 7, 3), 200000, ExpenseCategory.rent),
+        despesa('l2', DateTime(2026, 7, 9), 20000, ExpenseCategory.supplies),
+        ...agosto,
+      ],
+    );
 
     test('a renda por lançar não faz o mês parecer barato', () {
       // O defeito que a média corrige: sem ela, a 2 de Agosto o alvo era zero e

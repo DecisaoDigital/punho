@@ -64,6 +64,14 @@ void main() {
       // origem da margem.
       ['vendas-mes', 'lucro-mes', 'estrutura-mes', 'break-even-mes'],
       ['lucro-mes-anterior', 'lucro-mes', 'break-even-mes', 'margem-bruta'],
+      // Os três de 13 de Agosto: o dinheiro que já devia ter entrado, o que
+      // ainda tem de sair, e o activo que não está a render.
+      [
+        'cobrancas-em-atraso',
+        'contas-a-pagar',
+        'maquina-parada',
+        'cobrancas-7d',
+      ],
       [
         'clientes-novos-30d',
         'leads-pipeline',
@@ -196,6 +204,70 @@ void main() {
         tamanho: tamanho,
       );
       expect(find.textContaining('média dos meses anteriores'), findsWidgets);
+    }
+  });
+
+  testWidgets('as sub-linhas do dinheiro por mexer cabem no Redmi', (
+    tester,
+  ) async {
+    // O pior caso das três células novas, montado de propósito: um cliente com
+    // nome de firma inteira em atraso, uma máquina de nome comprido parada há
+    // meses e sem trabalho marcado (a sub-linha ganha o valor por facturar), e
+    // uma factura por pagar de uma rubrica com nome grande.
+    //
+    // Estas três sub-linhas são compostas por partes — nome · contexto · «e
+    // mais N paradas» — e é o género de texto que só se mede no dia em que ele
+    // abre a app e vê a faixa amarela do overflow.
+    final estado = estadoComMovimento().copyWith(
+      machines: [
+        const Machine(
+          id: 'mp',
+          name: 'Plataforma elevatória articulada',
+          reference: 'PEA-01',
+          category: 'Elevação',
+          status: MachineStatus.available,
+          dailyRateCents: 18500,
+        ),
+      ],
+      bookings: [
+        Booking(
+          id: 'atrasada',
+          customerId: 'c9',
+          customerNameSnapshot: 'Construções Irmãos Vale & Filhos, Lda.',
+          machineIds: const ['mp'],
+          startsAt: DateTime(2026, 2, 10, 9),
+          endsAt: DateTime(2026, 2, 12, 18),
+          status: BookingStatus.completed,
+          expectedValueCents: 128000,
+        ),
+      ],
+      expenses: [
+        Expense(
+          id: 'porpagar',
+          date: DateTime(2026, 3, 5),
+          amountCents: 240000,
+          category: ExpenseCategory.vehicleInsurance,
+          status: ExpensePaymentStatus.unpaid,
+        ),
+      ],
+    );
+
+    for (final tamanho in const [redmiDeitado, pequenoDeitado]) {
+      await montarLandscape(
+        tester,
+        containerCom(estado),
+        PaginaDoPainel(
+          ids: const [
+            'cobrancas-em-atraso',
+            'contas-a-pagar',
+            'maquina-parada',
+            'utilizacao-rentabilidade',
+          ],
+          agora: agoraFixa,
+        ),
+        tamanho: tamanho,
+      );
+      expect(find.textContaining('ao preço de tabela'), findsWidgets);
     }
   });
 

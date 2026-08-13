@@ -12,14 +12,17 @@ import 'package:punho/core/kpis/apreciacao.dart';
 void main() {
   String euros(num cents) => '${(cents / 100).toStringAsFixed(2)} €';
 
-  ApreciacaoDoKpi caso(num? valor, num? referencia, {bool maisEMelhor = true}) =>
-      apreciar(
-        valor: valor,
-        referencia: referencia,
-        nomeDaReferencia: 'a tua média',
-        formatar: euros,
-        maisEMelhor: maisEMelhor,
-      );
+  ApreciacaoDoKpi caso(
+    num? valor,
+    num? referencia, {
+    bool maisEMelhor = true,
+  }) => apreciar(
+    valor: valor,
+    referencia: referencia,
+    nomeDaReferencia: 'a tua média',
+    formatar: euros,
+    maisEMelhor: maisEMelhor,
+  );
 
   group('acima e abaixo', () {
     test('acima da média diz quanto, e diz que é acima', () {
@@ -84,11 +87,14 @@ void main() {
       expect(a.frase, isNot(contains('%')));
     });
 
-    test('dois meses negativos comparam-se na mesma — perder menos é melhor', () {
-      final a = caso(-200, -500);
+    test(
+      'dois meses negativos comparam-se na mesma — perder menos é melhor',
+      () {
+        final a = caso(-200, -500);
 
-      expect(a.tom, TomDaApreciacao.acima);
-      expect(a.frase, 'Estás acima da tua média em 60%.');
-    });
+        expect(a.tom, TomDaApreciacao.acima);
+        expect(a.frase, 'Estás acima da tua média em 60%.');
+      },
+    );
   });
 }
