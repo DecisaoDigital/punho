@@ -100,6 +100,48 @@ void main() {
     });
   });
 
+  group('os três meses lado a lado', () {
+    testWidgets('o mês anterior aparece em euros, não só em percentagem', (
+      tester,
+    ) async {
+      // Pedido do César (13 Ago 2026): «na realidade eu ali gostava de ver o
+      // lucro do mês anterior». A célula só tem espaço para um termo, e escolhe
+      // o homólogo — o mês passado, que é o que ele tem fresco na cabeça, não
+      // aparecia em lado nenhum.
+      await abrir(tester, 'lucro-mes');
+
+      expect(find.text('Este mês'), findsOneWidget);
+      expect(find.text('Mês passado'), findsOneWidget);
+      // Março: 3379 € de vendas − 2326 € de despesas.
+      expect(find.text('1053 €'), findsOneWidget);
+    });
+
+    testWidgets('um mês sem uma linha diz "sem registos", não 0 €', (
+      tester,
+    ) async {
+      // 2025 não existe nesta fixtura. Escrever 0 € era dizer que o ano passado
+      // correu mal, quando o que houve foi não haver ano passado.
+      await abrir(tester, 'lucro-mes');
+
+      expect(find.text('Mesmo mês do ano passado'), findsOneWidget);
+      expect(find.text('sem registos'), findsOneWidget);
+    });
+  });
+
+  group('o break even do mês', () {
+    testWidgets('pendura-se no Lucro e diz se o mês já se paga', (
+      tester,
+    ) async {
+      // Abril vendeu 3402 € com 3234 € de estrutura e nenhum custo directo: o
+      // mês pagou-se a 15, no dia da única venda.
+      await abrir(tester, 'lucro-mes');
+
+      expect(find.textContaining('BREAK EVEN DO MÊS'), findsWidgets);
+      expect(find.textContaining('O mês já se paga'), findsOneWidget);
+      expect(find.textContaining('Passou a 15 de Abril'), findsOneWidget);
+    });
+  });
+
   group('as migalhas', () {
     testWidgets('mostram o caminho todo até à raiz', (tester) async {
       await abrir(tester, 'vendas-mes');

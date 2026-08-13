@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/kpis/atencao.dart';
 import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/navigation/navigation_controller.dart';
+import '../../../core/operations/kpis_da_cadeia.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../dashboard/presentation/kpi_catalogo.dart';
 import '../../dashboard/presentation/widgets/kpi_grid_2x2.dart';
@@ -82,6 +83,7 @@ class CadeiaDoKpiPage extends ConsumerWidget {
               child: kpi.celula(estado, now).deitada(),
             ),
             const SizedBox(height: 16),
+            _Comparacao(kpiId: kpi.id, estado: estado, now: now),
             if (kpi.id == 'lucro-mes')
               _Explicacao(estado: estado, now: now, agora: agora),
             if (filhos.isNotEmpty) ...[
@@ -154,6 +156,69 @@ class _Migalhas extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Os três meses lado a lado: este, o passado, e o mesmo do ano passado.
+///
+/// Pedido do César (13 Ago 2026): *«na realidade eu ali gostava de ver o lucro
+/// do mês anterior»*. A célula só cabe com **um** termo de comparação — e
+/// escolhe o homólogo, que num negócio com estações é o que diz mais. Só que
+/// assim o mês passado, que é o que ele tem fresco na cabeça, não aparecia em
+/// lado nenhum. Aqui há espaço para os três, e ver os três juntos é o que
+/// distingue uma queda sazonal de uma queda a sério.
+///
+/// Um mês sem uma única linha escreve-se «sem registos» — não 0 €, que era
+/// dizer que o mês correu mal quando o que houve foi não haver mês.
+class _Comparacao extends StatelessWidget {
+  const _Comparacao({
+    required this.kpiId,
+    required this.estado,
+    required this.now,
+  });
+
+  final String kpiId;
+  final OperationsState estado;
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = comparadoDoKpi(kpiId, estado, now);
+    if (m == null) return const SizedBox.shrink();
+    final tt = Theme.of(context).textTheme;
+
+    Widget linha(String rotulo, int? cents, {bool destaque = false}) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(child: Text(rotulo, style: tt.bodySmall)),
+          Text(
+            cents == null ? 'sem registos' : '${_euros(cents)} €',
+            style: destaque
+                ? tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600)
+                : tt.bodySmall,
+          ),
+        ],
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          linha('Este mês', m.valorCents, destaque: true),
+          linha('Mês passado', m.mesAnteriorCents),
+          linha('Mesmo mês do ano passado', m.homologoCents),
+        ],
+      ),
+    );
+  }
+}
+
+/// Euros inteiros, com o menos tipográfico quando o mês deu prejuízo.
+String _euros(int cents) {
+  final valor = (cents / 100).round();
+  return valor < 0 ? '− ${valor.abs()}' : '$valor';
 }
 
 /// A frase que nomeia o culpado, com as parcelas por baixo.

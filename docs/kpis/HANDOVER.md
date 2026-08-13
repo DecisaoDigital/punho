@@ -21,8 +21,7 @@ indicadores eram uma lista plana, sem pai nem filhos. E é aí que estava o valo
 inteiro da ideia — um número mau tem de ter um filho que o explique.
 
 Fases 1 a 4 do plano: substituídas por «encadear o que existe».
-Fases 5 e 7: construídas.
-Fase 6 (break even): **não feita** — ver «O que fica por fazer».
+Fases 5, 6 e 7: construídas.
 
 ---
 
@@ -114,6 +113,76 @@ explicação para dar, e abrir uma página que só repetisse a célula era um to
 mais para chegar ao mesmo sítio. O ecrã da cadeia acaba sempre com o botão para
 o destino operacional — não se perde caminho nenhum, ganha-se uma explicação.
 
+## 5-bis. O break even do mês (Fase 6) — `lib/core/kpis/break_even.dart`
+
+Nasceu de uma frase dele, a 13 de Agosto, a olhar para um Lucro de 322 € a meio
+do mês que eu queria «corrigir» por comparar 13 dias com um mês inteiro:
+
+> não faz mal, porque é o previsto até hoje. poderia ser negativo ainda não se
+> ter feito o break even do mês
+
+A conta não estava errada — faltava-lhe o par. A meio do mês a estrutura já
+entrou toda (renda e salários caem nos primeiros dias) e as vendas ainda vão a
+meio: **um lucro em baixo a dia 13 é um mês que ainda não virou, não um mês
+mau**. O que responde a isso é quanto falta vender:
+
+```
+  margem de contribuição = (vendas − custos directos) / vendas
+  vendas necessárias     = estrutura / margem de contribuição
+```
+
+A hipótese está escrita no ficheiro: os custos directos acompanham as vendas na
+proporção do que já aconteceu este mês. A conta é exacta nesse pressuposto —
+vendendo as necessárias, o lucro dá zero, e o teste prova-o.
+
+Três decisões que valem mais do que a fórmula:
+
+- **No dia 2 não há margem deste mês** (a renda está lançada, não acabou
+  trabalho nenhum). Em vez de calar o indicador no dia em que ele é mais útil,
+  empresta-se a margem dos três meses anteriores — agregada, não média de
+  percentagens — e **diz-se que é emprestada**.
+- **Margem negativa não é um break even grande, é a ausência dele.** Se servir
+  os trabalhos custa mais do que eles rendem, não há volume que pague o mês:
+  a célula diz «vender mais não paga o mês» em vez de um número que mandava o
+  gestor perder mais depressa.
+- **O dia em que passou é exacto** (contado venda a venda, por ordem de fim);
+  o dia previsto é uma projecção pelo ritmo, e **desaparece** quando ao ritmo
+  actual não chega ao fim do mês, em vez de apontar para um dia que não existe.
+
+Em produção, Agosto de 2026 da Depilconcept: estrutura 2 111 €, margem de
+contribuição 92%, break even nos **2 293 €** — passou a 6 de Agosto. Por isso
+os 322 € de lucro que ele leu no telemóvel são um mês já pago, e não um susto.
+
+## 5-ter. Duas células do lucro, e porque são duas
+
+Pedido dele, 13 de Agosto: *«quero um Kpi do lucro do mes anterior e um kpi com
+o lucro até ao momento do mes, lucro ou prejuiso»*.
+
+Não é o mesmo número duas vezes. O **mês a decorrer** tem a estrutura toda
+lançada nos primeiros dias e as vendas a meio — a dia 13 lê-se mal se não se
+disser que é dia 13. O **mês anterior** é o único mês inteiro, e por isso o
+único que se compara sem ressalvas: é a régua.
+
+- `lucro-mes` passou a escrever a palavra: **«322 € de lucro até hoje»**,
+  **«1 811 € de prejuízo até hoje»**. O sinal sozinho passa ao lado; a palavra
+  não. A margem desceu para a sub-linha, e não se perdeu.
+- `lucro-mes-anterior` é novo, e fica **fora da cadeia** de propósito — como
+  filho do Lucro do mês apareceria na lista do «o que está por trás deste
+  número», e o mês passado não está por trás de nada: está ao lado.
+
+## 5-quater. Os três meses lado a lado
+
+Também dele, no mesmo dia: *«na realidade eu ali gostava de ver o lucro do mês
+anterior»*. A célula só tem espaço para um termo de comparação e escolhe o
+homólogo — que num negócio com estações é o que diz mais, mas deixava de fora o
+mês passado, que é o que ele tem fresco na cabeça.
+
+Duas correcções: a sub-linha da célula passou a trazer **o valor em euros** ao
+lado da percentagem (`▼ 80% face a 1585 € do ano passado` — uma percentagem
+grande sobre um mês pequeno assusta sem motivo), e o ecrã da cadeia ganhou os
+três meses em coluna. Um mês sem uma única linha escreve-se «sem registos», não
+0 € — 0 € era dizer que o mês correu mal quando o que houve foi não haver mês.
+
 ## 6. O homólogo (Fase 7)
 
 `MesComparado` traz o mês anterior **e** o homólogo, e o homólogo ganha sempre
@@ -125,15 +194,20 @@ percentagem fabricada.
 
 ## O que fica por fazer
 
-**1. O crivo humano das três contas novas.** As Vendas, o Lucro e a Estrutura
-nasceram com `contaVerificada: true` porque a conta foi conferida contra a base
-(query em `MAPA_DADOS.md` §7) — mas isso é a conta bater, não é o César ter
-olhado para o ecrã e concordado com o que ele diz. **Falta o passo a pé, no
-telemóvel**, com os dados da Depilconcept.
+**1. O crivo humano das contas novas.** O **Lucro do mês passou** — a 13 de
+Agosto, no Redmi, com a app actualizada por ela própria à 0.3.75: o ecrã disse
+322 € e a base dizia 322 €. Faltam as **Vendas**, a **Estrutura** e o **break
+even**, que nasceram todos com `contaVerificada: true` porque a conta foi
+conferida contra a base (query em `MAPA_DADOS.md` §7) — e isso é a conta bater,
+não é ele ter olhado e concordado.
 
-**2. Fase 6 — break even.** Não foi feita. Precisa de separar custo fixo de
-custo variável, e a app hoje só tem `custosFixos` declarados à mão, que nem
-todas as empresas preenchem. É a fase que arrisca mais inventar.
+**2. O break even com custos fixos declarados.** O que está feito usa a
+estrutura **lançada** no mês. Uma empresa que ainda não lançou a renda deste mês
+tem um break even mais baixo do que o real, e só o vê subir quando a despesa
+entrar. Os `custosFixos` de Empresa › Custos fixos resolviam-no — é o que o
+`gastos-previstos-mes` já usa — mas nem todas as empresas os preenchem, e
+misturar declarado com lançado sem o dizer dava dois números diferentes para a
+mesma pergunta. Fica em aberto, de propósito.
 
 **3. O prazo médio de pagamento a fornecedores.** A semente lança todas as
 despesas como `paid` no próprio dia, portanto o DPO é zero e o ciclo de
@@ -145,5 +219,9 @@ cadeia é a peça que faltava para a poder fazer bem — quem sobe ao painel dev
 ser o filho que explica o número que está mau —, mas isso mexe no painel dele
 sem lhe perguntar, e não se faz sem ok.
 
-**5. Nada disto está publicado.** O código está no repositório e por commitar.
-O telemóvel tem uma build local rotulada 0.3.74 que **não** leva a cadeia.
+**5. O que está publicado, e o que não está.** A cadeia, o ecrã de atenção e o
+homólogo saíram na **0.3.75+47**, a 13 de Agosto — e chegaram ao Redmi pela
+auto-actualização da própria app, sem cabo e sem browser (o ponto 11 do
+`SMOKE.md`, que estava por provar desde a 0.3.3). O **break even** e os três
+meses lado a lado são posteriores: estão no repositório e **não** estão em
+nenhum APK.

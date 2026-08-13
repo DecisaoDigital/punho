@@ -81,10 +81,19 @@ void main() {
       ]);
     });
 
-    test('quase nada fica solto — só a Recomendação do dia', () {
+    test('quase nada fica solto — e o que fica, fica por bom motivo', () {
       // A recomendação não explica nenhum número: lê todos e sugere um passo.
       // Pendurá-la num pai era mentir sobre o que ela faz.
-      expect(raizesDaCadeia.map((k) => k.id), ['caixa', 'recomendacao-dia']);
+      //
+      // O lucro do mês anterior fica solto pela razão simétrica: não é uma
+      // parcela do mês corrente, é a régua com que se lê. Como filho do Lucro
+      // do mês apareceria na lista do «o que está por trás deste número», e o
+      // mês passado não está por trás de nada — está ao lado.
+      expect(raizesDaCadeia.map((k) => k.id), [
+        'lucro-mes-anterior',
+        'caixa',
+        'recomendacao-dia',
+      ]);
     });
 
     test('a Estrutura desdobra-se no que ainda falta pagar este mês', () {

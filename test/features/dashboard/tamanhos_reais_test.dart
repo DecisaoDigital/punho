@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:punho/domain/models/finance.dart';
+import 'package:punho/domain/models/operations.dart';
 import 'package:punho/features/dashboard/presentation/pagina_do_painel.dart';
 import 'package:punho/features/operations/presentation/operational_pages.dart';
 import 'package:punho/features/tarefas/presentation/tarefas_page.dart';
@@ -56,6 +58,12 @@ void main() {
         'recomendacao-dia',
       ],
       ['reservas-activas', 'entregas-hoje', 'recolhas-fazer', 'cobrancas-7d'],
+      // Os mestres da cadeia e o break even (13 Ago 2026). Entram nesta lista
+      // porque as sub-linhas deles são as mais compridas do catálogo — trazem o
+      // termo da comparação em euros e, no break even, ainda o dia previsto e a
+      // origem da margem.
+      ['vendas-mes', 'lucro-mes', 'estrutura-mes', 'break-even-mes'],
+      ['lucro-mes-anterior', 'lucro-mes', 'break-even-mes', 'margem-bruta'],
       [
         'clientes-novos-30d',
         'leads-pipeline',
@@ -135,6 +143,66 @@ void main() {
           );
         }
       });
+    }
+  });
+
+  testWidgets('a sub-linha mais comprida do break even cabe no Redmi', (
+    tester,
+  ) async {
+    // O pior caso da célula, montado de propósito: um mês sem vendas ainda
+    // (margem emprestada dos anteriores, que se **tem** de dizer), com um alvo
+    // de seis dígitos e o aviso de que ao ritmo actual não chega. Dá
+    // "O mês paga-se com 156250 € · ao ritmo de hoje não chega este mês ·
+    // margem dos meses anteriores" — a sub-linha mais comprida do catálogo.
+    //
+    // Sem isto, o texto só era medido no dia em que ele abrisse a app e visse
+    // a faixa amarela do overflow.
+    final estado = estadoComMovimento().copyWith(
+      bookings: [
+        Booking(
+          id: 'v-anterior',
+          customerId: 'c1',
+          machineIds: const ['m1'],
+          startsAt: DateTime(2026, 6, 10, 9),
+          endsAt: DateTime(2026, 6, 10, 18),
+          status: BookingStatus.completed,
+          expectedValueCents: 100000,
+        ),
+      ],
+      expenses: [
+        Expense(
+          id: 'd-anterior',
+          date: DateTime(2026, 6, 5),
+          amountCents: 20000,
+          category: ExpenseCategory.supplies,
+          status: ExpensePaymentStatus.paid,
+        ),
+        Expense(
+          id: 'e-julho',
+          date: DateTime(2026, 7, 2),
+          amountCents: 12500000,
+          category: ExpenseCategory.rent,
+          status: ExpensePaymentStatus.unpaid,
+        ),
+      ],
+    );
+
+    for (final tamanho in const [redmiDeitado, pequenoDeitado]) {
+      await montarLandscape(
+        tester,
+        containerCom(estado),
+        PaginaDoPainel(
+          ids: const [
+            'break-even-mes',
+            'lucro-mes',
+            'vendas-mes',
+            'estrutura-mes',
+          ],
+          agora: agoraFixa,
+        ),
+        tamanho: tamanho,
+      );
+      expect(find.textContaining('margem dos meses anteriores'), findsWidgets);
     }
   });
 

@@ -19,6 +19,7 @@ library;
 import '../../../core/guidance/guidance_engine.dart';
 import '../../../core/navigation/app_destination.dart';
 import '../../../core/kpis/apreciacao.dart';
+import '../../../core/kpis/break_even.dart';
 import '../../../core/operations/caixa.dart';
 import '../../../core/operations/kpis.dart';
 import '../../../core/operations/kpis_da_cadeia.dart';
@@ -140,6 +141,31 @@ const catalogoKpis = <KpiDefinicao>[
     celula: kpiEstrutura,
     contaVerificada: true,
     desbloqueio: 'Despesas do mês que não são de servir o trabalho',
+    destino: AppDestination.finances,
+    pai: 'lucro-mes',
+  ),
+  // Fora da cadeia, e de propósito: o mês passado não explica o mês corrente,
+  // é a régua com que se lê. Pendurá-lo no Lucro do mês punha-o na lista do
+  // «o que está por trás deste número», que é dizer o que ele não é.
+  KpiDefinicao(
+    id: 'lucro-mes-anterior',
+    titulo: 'Lucro do mês anterior',
+    celula: kpiLucroMesAnterior,
+    contaVerificada: true,
+    desbloqueio: 'Reservas com valor + despesas do mês passado',
+    destino: AppDestination.finances,
+  ),
+  KpiDefinicao(
+    id: 'break-even-mes',
+    titulo: 'Break even do mês',
+    celula: kpiBreakEven,
+    // Como os três mestres: a conta foi conferida contra os números que estão
+    // em produção (`test/core/kpis/break_even_test.dart` fixa Agosto de 2026 da
+    // Depilconcept, o mesmo mês que ele leu no telemóvel). O crivo humano dele
+    // continua por dar, e está assinalado no `docs/kpis/HANDOVER.md` — a conta
+    // bater não é ele ter olhado e concordado.
+    contaVerificada: true,
+    desbloqueio: 'Despesas de estrutura + vendas (deste mês ou dos anteriores)',
     destino: AppDestination.finances,
     pai: 'lucro-mes',
   ),
@@ -454,19 +480,32 @@ List<KpiDefinicao> kpisEscolhidos(ArranjoDoPainel arranjo) => [
 /// Sem dizer contra o quê, «▲ 12%» não se sabe ler: pode ser um mês bom ou uma
 /// estação a começar. Num negócio com estações o termo certo é o homólogo — só
 /// se cai para o mês anterior quando não há ano passado com que comparar.
+/// O termo escreve-se **com o seu valor em euros**, e não só em percentagem.
+///
+/// Pedido do César (13 Ago 2026), a olhar para a célula do Lucro: *«na
+/// realidade eu ali gostava de ver o lucro do mês anterior»*. E tem razão —
+/// «▼ 80%» obriga a fazer a conta de cabeça para saber de onde é que se caiu, e
+/// uma percentagem grande sobre um mês pequeno assusta sem motivo. O número ao
+/// lado da percentagem é o que a torna verificável.
 String _comparado(MesComparado m) {
   final homologa = m.variacaoHomologa;
   if (homologa != null) {
     return '${homologa >= 0 ? '▲' : '▼'} ${homologa.abs().round()}% '
-        'face ao mesmo mês do ano passado';
+        'face a ${_comSinal(m.homologoCents!)} € do ano passado';
   }
   final anterior = m.variacaoMesAnterior;
   if (anterior != null) {
     return '${anterior >= 0 ? '▲' : '▼'} ${anterior.abs().round()}% '
-        'face ao mês passado — ainda sem ano passado para comparar';
+        'face a ${_comSinal(m.mesAnteriorCents!)} € do mês passado';
   }
   return 'Primeiro mês com registos — ainda não há com que comparar';
 }
+
+/// Euros com o sinal à frente quando são negativos. O menos é o tipográfico
+/// (−), o mesmo que a célula do Lucro usa: o hífen do teclado lê-se como
+/// separador e não como sinal.
+String _comSinal(int cents) =>
+    cents < 0 ? '− ${_euros(cents.abs())}' : _euros(cents);
 
 /// Nível pela variação: a descer é laranja, a subir ou a manter é verde.
 NivelSemaforo _nivelPor(MesComparado m) {
@@ -522,7 +561,42 @@ CelulaSemaforo kpiLucro(OperationsState estado, DateTime now) {
     nivel: !positivo ? NivelSemaforo.vermelho : _nivelPor(mes),
     rotulo: 'Lucro do mês',
     valor: '${positivo ? '+' : '−'} ${_euros(mes.valorCents.abs())}',
-    unidade: margem == null ? '€' : '€ · margem ${margem.round()}%',
+    // **Lucro ou prejuízo, e até quando** — pedido do César (13 Ago 2026).
+    // «+ 322 €» sozinho não diz se é um mês inteiro ou treze dias dele, e a
+    // dia 13 a estrutura já entrou toda: o mesmo número lê-se de duas maneiras
+    // conforme se saiba isso ou não. A palavra escrita poupa a pergunta.
+    unidade: '€ de ${positivo ? 'lucro' : 'prejuízo'} até hoje',
+    subtexto: margem == null
+        ? _comparado(mes)
+        : 'Margem ${margem.round()}% · ${_comparado(mes)}',
+    valorEmDestaque: true,
+  );
+}
+
+/// **Lucro do mês anterior** — o último mês inteiro.
+///
+/// Também dele, no mesmo dia. É o par do de cima e não um duplicado: o mês a
+/// decorrer tem a estrutura toda lançada e as vendas a meio, e por isso não se
+/// compara com nada sem ressalvas. O mês fechado compara-se.
+CelulaSemaforo kpiLucroMesAnterior(OperationsState estado, DateTime now) {
+  // Janeiro dá a volta ao ano: `now.month + 10` em vez de `now.month - 2`, para
+  // Dezembro não sair de um índice negativo.
+  final nome = _mesesPt[(now.month + 10) % 12];
+  final mes = lucroDoMesAnterior(estado, now);
+  if (mes == null) {
+    return CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Lucro do mês anterior',
+      texto: 'Sem registos em $nome',
+      subtexto: 'Nem vendas nem despesas — não há mês para fechar.',
+    );
+  }
+  final positivo = mes.valorCents >= 0;
+  return CelulaSemaforo(
+    nivel: !positivo ? NivelSemaforo.vermelho : _nivelPor(mes),
+    rotulo: 'Lucro do mês anterior',
+    valor: '${positivo ? '+' : '−'} ${_euros(mes.valorCents.abs())}',
+    unidade: '€ de ${positivo ? 'lucro' : 'prejuízo'} em $nome',
     subtexto: _comparado(mes),
     valorEmDestaque: true,
   );
@@ -552,6 +626,66 @@ CelulaSemaforo kpiEstrutura(OperationsState estado, DateTime now) {
     unidade: '€ para ter a casa aberta',
     subtexto: _comparado(mes),
     valorEmDestaque: true,
+  );
+}
+
+/// **Break even do mês** — quanto falta vender para o mês se pagar.
+///
+/// É o par do Lucro, e existe porque um lucro em baixo a meio do mês não é uma
+/// má notícia: a estrutura entrou toda nos primeiros dias e as vendas ainda vão
+/// a meio. Este número transforma «o lucro caiu» em «faltam 400 € para o mês se
+/// pagar», que é uma frase sobre a qual se pode agir hoje.
+CelulaSemaforo kpiBreakEven(OperationsState estado, DateTime now) {
+  final be = breakEvenDoMes(estado, now);
+  if (be == null) {
+    return CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Break even do mês',
+      texto: motivoSemBreakEven(estado, now) ?? 'Por apurar',
+      subtexto: 'Diz quanto falta vender para o mês se pagar a si próprio.',
+    );
+  }
+
+  final alvo = be.vendasNecessariasCents;
+  if (alvo == null) {
+    // Margem de contribuição nula ou negativa: servir os trabalhos come mais do
+    // que eles rendem. Mandar vender mais aqui era mandar perder mais.
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.vermelho,
+      rotulo: 'Break even do mês',
+      texto: 'Vender mais não paga o mês',
+      subtexto: 'Os trabalhos custam mais a servir do que rendem — '
+          'o problema não é o volume.',
+    );
+  }
+
+  final mes = _mesesPt[now.month - 1];
+  // A margem emprestada dos meses anteriores diz-se sempre. Um número
+  // aproximado vale mais do que um vazio, mas a fingir de exacto não vale nada.
+  final origem = be.margemDoProprioMes ? '' : ' · margem dos meses anteriores';
+
+  if (be.atingido) {
+    final dia = be.diaEmQuePassou;
+    return CelulaSemaforo(
+      nivel: NivelSemaforo.verde,
+      rotulo: 'Break even do mês',
+      texto: 'O mês já se paga',
+      subtexto: dia == null
+          ? 'Bastavam ${_euros(alvo)} € e vais em ${_euros(be.vendasCents)} €$origem'
+          : 'Passou a $dia de $mes, nos ${_euros(alvo)} € vendidos$origem',
+    );
+  }
+
+  final previsto = be.diaPrevisto;
+  return CelulaSemaforo(
+    nivel: NivelSemaforo.laranja,
+    rotulo: 'Break even do mês',
+    valor: _euros(be.faltaCents!),
+    unidade: '€ ainda por vender',
+    valorEmDestaque: true,
+    subtexto:
+        'O mês paga-se com ${_euros(alvo)} € · '
+        '${previsto == null ? 'ao ritmo de hoje não chega este mês' : 'ao ritmo de hoje chega a $previsto de $mes'}$origem',
   );
 }
 

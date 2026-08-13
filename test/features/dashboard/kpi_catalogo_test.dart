@@ -33,7 +33,7 @@ void main() {
   );
 
   group('o catálogo está inteiro', () {
-    test('tem os vinte e oito KPIs, com ids únicos e títulos', () {
+    test('tem os trinta KPIs, com ids únicos e títulos', () {
       // Doze do painel antigo + a Caixa e a Tendência do mês (nascidas na
       // bancada) + os onze de 10 de Agosto de 2026: os sete que a auditoria
       // (`docs/AUDITORIA_KPIS_EMPRESA.md`) dava como não cobertos, as duas que
@@ -41,13 +41,17 @@ void main() {
       // futurologia. Mais os três mestres da cadeia (13 Ago 2026): as Vendas do
       // mês, o Lucro do mês e a Estrutura, que o diagrama do plano de KPIs põe
       // no topo e que não existiam — havia contas de caixa, não havia vendas
-      // nem lucro.
-      expect(catalogoKpis, hasLength(28));
+      // nem lucro. E o break even do mês (13 Ago 2026), que é o par do Lucro:
+      // a meio do mês a estrutura já entrou toda e o lucro parece mau — o que
+      // diz se o mês virou é quanto falta vender para ele se pagar. E o lucro
+      // do mês anterior, que é o único mês fechado — a régua com que se lê o
+      // mês que está a acontecer.
+      expect(catalogoKpis, hasLength(30));
       expect(kpiPorId('caixa'), isNotNull);
       expect(kpiPorId('tendencia-mes'), isNotNull);
 
       final ids = catalogoKpis.map((k) => k.id).toSet();
-      expect(ids, hasLength(28), reason: 'ids têm de ser únicos');
+      expect(ids, hasLength(30), reason: 'ids têm de ser únicos');
 
       for (final k in catalogoKpis) {
         expect(k.id, isNotEmpty);

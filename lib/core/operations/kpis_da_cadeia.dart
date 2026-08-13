@@ -207,6 +207,31 @@ MesComparado? lucroDoMes(OperationsState s, DateTime now) {
   );
 }
 
+/// **O lucro do mês passado** — o último mês inteiro, com o seu próprio mês
+/// anterior e o seu homólogo ao lado.
+///
+/// Pedido do César (13 Ago 2026). Não é um duplicado do [lucroDoMes]: aquele é
+/// o mês a decorrer, que a dia 13 tem a estrutura toda lá dentro e as vendas a
+/// meio. Este é o **único mês fechado**, e por isso o único que se compara sem
+/// ressalvas — é a régua contra a qual se lê o mês que está a acontecer.
+MesComparado? lucroDoMesAnterior(OperationsState s, DateTime now) =>
+    lucroDoMes(s, DateTime(now.year, now.month - 1));
+
+/// A leitura mensal de um dos três mestres, pelo id do catálogo. `null` para
+/// qualquer outro KPI.
+///
+/// Existe para o ecrã da cadeia poder mostrar os termos da comparação sem
+/// repetir o mapa de ids em mais um sítio. Os ids vivem no catálogo, mas já são
+/// referidos aqui ao lado, em `atencao.dart`, quando uma parcela diz a que KPI
+/// corresponde — e duas listas do mesmo mapa desalinham-se à primeira mudança.
+MesComparado? comparadoDoKpi(String kpiId, OperationsState s, DateTime now) =>
+    switch (kpiId) {
+      'vendas-mes' => vendasDoMes(s, now),
+      'lucro-mes' => lucroDoMes(s, now),
+      'estrutura-mes' => estruturaDoMes(s, now),
+      _ => null,
+    };
+
 /// Margem do mês em percentagem das vendas. `null` sem vendas — sem
 /// denominador não há percentagem, e 0% seria uma boa notícia falsa.
 double? margemDoMes(OperationsState s, DateTime now) {
