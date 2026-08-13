@@ -11,7 +11,8 @@ apanhado — os gatilhos do `auth.users` — e está descrito em
 A auditoria de 11/8/2026 (achados 4.1 e 4.2) encontrou isto: nenhum script de
 `pg_dump`, nenhum agendamento, e nenhum restauro alguma vez feito. O que havia
 eram os backups automáticos do plano Supabase — que ninguém nunca abriu — e sete
-tabelas `punho_*_copia_2026_08_09`, todas vazias.
+tabelas `punho_*_copia_2026_08_09`, todas vazias (largadas a 14/8/2026: sete
+moldes com zero linhas não são cópia de nada).
 
 Um backup que nunca foi restaurado não é um backup, é uma esperança.
 

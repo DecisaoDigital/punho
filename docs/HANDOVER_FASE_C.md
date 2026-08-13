@@ -16,7 +16,7 @@ funciona; se não, é este ficheiro que tem de melhorar.
 A Fase C não escreveu lógica de negócio nenhuma. Arrumou o que já existia em
 disco e não estava em lado nenhum.
 
-### Linha B — backend (worktree `~/punho-backend`)
+### Linha B — backend (worktree `~/punho-backend`, removido a 14/8/2026)
 
 Cinco commits que já existiam, empurrados e integrados em `main` por merge
 commit (`4b761c5`). Nenhum ficheiro Dart:

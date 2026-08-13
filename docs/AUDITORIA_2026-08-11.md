@@ -70,23 +70,41 @@ balde como `image/jpeg` e voltou a sair — balde a 0 objectos, `photoPaths` vaz
 o ecrã de RGPD foi tocado a dedo; e o `docs/SMOKE.md` correu inteiro na 0.3.74,
 dez fluxos em dez. O que ficou por fazer está abaixo.
 
-E há um quarto, que é pré-requisito de muito e que só o César desbloqueia:
-**as três contas de ensaio já não entram**. `gestor.`, `operador.` e
-`contabilista.nocturno@decisaodigital.pt` devolvem `invalid_credentials` — as
-palavras-passe em `~/.punho/contas_teste.env` deixaram de ser as do servidor
-depois do ensaio de recuperação de 9/8. Repô-las é um `update` a
-`auth.users.encrypted_password`, e o classificador do modo automático recusa-o
-(duas vezes, nesta sessão). Com Shift+Tab ou uma regra em settings, faz-se em
-trinta segundos.
+E havia um quarto, que era pré-requisito de muito: **as três contas de ensaio já
+não entravam**. ~~`gestor.`, `operador.` e `contabilista.nocturno` devolvem
+`invalid_credentials`.~~ **Resolvido a 14/8.**
+
+As senhas do `gestor.` e do `operador.` foram rodadas e provadas por REST — as
+duas dão sessão, e os 30 testes do `punho_campos_do_colaborador_rest.sh` voltaram
+a passar. Fez-se **sem a senha passar pelo transcript**: gera-se localmente,
+grava-se no ficheiro, e só o hash bcrypt (`$2a$`, como o `gen_salt('bf')` do
+Postgres) vai no `update`. Sem `psql`, sem service_role, e sem pedir ao
+classificador nada que ele recuse.
+
+O `contabilista.nocturno@decisaodigital.pt` **não era senha errada: era conta que
+nunca existiu** — não há uma única linha em `auth.users` com `contabil` no email,
+nem nunca houve. O contabilista entra pelo portal por token de convite, sem se
+registar (`punho_convites_contabilista` + a edge function `portal-contabilista`).
+As linhas `C_EMAIL`/`C_SENHA` foram tiradas do ficheiro em vez de «arranjadas»:
+apontavam para nada.
 
 ### Baixa
 
-**1.3** — 7 tabelas `punho_*_copia_2026_08_09` vivas em produção, todas com 0
-linhas, mais 7 políticas RLS por manter. Apagar é destrutivo: fica à decisão.
+**1.3** — ~~7 tabelas `punho_*_copia_2026_08_09` vivas em produção.~~ **Largadas a
+14/8, com o ok dele.** Conferido antes: 0 linhas em todas as sete, contra 23
+clientes, 194 despesas, 298 leads e 773 recebimentos nas vivas — nunca foram
+cópia de nada, foram moldes que ficaram. Sem chaves estrangeiras a apontar-lhes
+e sem vistas dependentes (`pg_constraint` e `pg_depend`). As 7 políticas RLS
+foram com elas. Ficou registado como migração `largar_copias_vazias_2026_08_09`.
 
-**1.5** — `~/punho-backend` é uma cópia completa do repo (254 ficheiros dart)
-parada no branch `hardening/backend` desde 10/8. Risco de editar o sítio errado.
-Apagar é destrutivo: fica à decisão.
+**1.5** — ~~`~/punho-backend` é uma cópia completa do repo.~~ **Removido a 14/8 —
+e a descrição aqui estava errada.** Não era cópia: era um **worktree** do próprio
+`~/punho`, com o `.git` a apontar para `~/punho/.git/worktrees/`. Um `rm -rf`
+teria deixado o registo pendurado no repositório principal. Saiu com
+`git worktree remove`, depois de se confirmar que `main..hardening/backend`
+estava vazio e que o 9c1cb6a já está contido no `origin/main` — nem uma linha se
+perdeu. O `git worktree prune` levou de caminho dois registos de `/tmp` cujas
+pastas já não existiam.
 
 **3.6** — *leaked password protection* desligada na autenticação. É um interruptor
 (`password_hibp_enabled`). Não se ligou porque rejeita palavras-passe que
