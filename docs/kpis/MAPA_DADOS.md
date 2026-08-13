@@ -19,14 +19,20 @@ ordenação, e o tipo de retorno com estado explícito de indisponibilidade.
 Construir `lib/kpis/` ao lado disso é um segundo motor a competir com o que
 está a correr no telemóvel dele.
 
-**2. A Depilconcept não tem dados para dois dos três mestres.** Zero
+**2. A Depilconcept não tinha dados para dois dos três mestres.** Zero
 recebimentos, zero despesas, zero leads, zero veículos, e a ficha da empresa
-sem facturação e sem custos fixos. O **Lucro** e o **Fluxo de Caixa** não têm
-uma linha de origem. As fórmulas existem; os dados não.
+sem facturação e sem custos fixos. O **Lucro** e o **Fluxo de Caixa** não
+tinham uma linha de origem. As fórmulas existem; os dados não existiam.
 
 O portão da Fase 0 — «o mapa lista pelo menos os três indicadores mestres como
 calculáveis, com origem confirmada por query corrida contra a base real» —
-**não passa**. Um dos três passa. Está tudo abaixo, com o output colado.
+**não passava**. Um dos três passava.
+
+**3. Semeou-se a história que faltava, e o portão passa.** Autorização do
+César, 13 de Agosto de 2026: «todas as empresas em punho são de teste e podem
+perfeitamente ser alteradas ou enriquecidas com dados». A secção 3-bis tem o
+que foi semeado, como, e os números mês a mês. Os três mestres passam a ser
+calculáveis a partir de registo real na base.
 
 ---
 
@@ -94,7 +100,7 @@ como o plano exige. **Não há um único campo monetário em vírgula flutuante.
 
 ---
 
-## 3. Densidade real — Depilconcept, 13 Ago 2026
+## 3. Densidade real — Depilconcept, 13 Ago 2026, **antes da semente**
 
 Query corrida contra `oefqbkhioncakojipqyx`, output colado:
 
@@ -133,6 +139,86 @@ Depilconcept tem operações de `booking`, `customer` e `machine` — **nenhuma 
 
 ---
 
+## 3-bis. A semente — o que passou a haver
+
+`scripts/semear_historico_kpis.sql`, corrido a 13 de Agosto de 2026 contra
+produção. Escreve **só** em `punho_operacoes`, que é de onde a app lê; as
+tabelas projectadas vêm atrás pelo gatilho `punho_operacoes_projectar`.
+É idempotente: apaga o que ele próprio semeou (`por_dispositivo =
+'semente-kpis'`) e volta a semear. Não toca em nada que tenha vindo da app.
+
+**1995 operações, 26 meses** — Julho de 2024 a Agosto de 2026.
+
+| entidade | no registo | projectado |
+|---|---:|---:|
+| reservas | 825 | 825 |
+| recebimentos | 675 | 675 |
+| leads | 295 | 295 |
+| despesas | 191 | 191 |
+| clientes | 16 | 16 |
+
+A projecção acompanhou linha a linha — não é o caso de
+`reference_projeccao-punho-perde-linhas-em-silencio`, e não foi preciso
+`punho_reprojectar_empresa`.
+
+### Três coisas que se aprenderam a semear
+
+**O carimbo não deixa escrever no passado.** `punho_operacoes_carimbar` é um
+`BEFORE INSERT` que atira para `now()` qualquer `feito_em` com mais de 7 dias.
+É uma boa defesa — impede um telemóvel com o relógio trocado de reescrever a
+história — e por isso não se mexeu nela. A semente insere, deixa-se carimbar, e
+**depois** corrige o `feito_em` com um `UPDATE`, que o carimbo não intercepta.
+
+**Nada com data no futuro.** Os dias espalham-se pelo mês inteiro, e no mês
+corrente isso punha reservas a 27 marcadas «concluída» a 13 — trabalho dado por
+feito antes de acontecer, a somar receita que ainda não existe. O mês corrente
+semeia-se só até hoje.
+
+**26 meses e não 15.** O homólogo precisa do mesmo mês do ano passado. Com 15
+meses só Junho, Julho e Agosto de 2026 tinham com que comparar: o KPI existia e
+não tinha o que dizer em 12 dos 15 ecrãs. Com 26, todo o último ano tem
+homólogo.
+
+### A economia semeada
+
+Um estúdio de depilação em Braga: sessão entre 70 € e 150 €, pico de Maio a
+Agosto, Inverno mais fraco mas não deficitário. Estrutura recorrente mês a mês
+— renda, electricidade, água, limpeza, salários, consumíveis, publicidade — e
+manutenção de máquina de três em três meses. 12% das reservas ficam por
+receber; as pagas levam de 3 a 38 dias, para haver prazo médio de recebimento
+e buraco de tesouraria a sério.
+
+**O mês mau é Abril de 2026, de propósito**, e é o caso que a Fase 5 tem de
+saber explicar:
+
+| mês | sessões | vendas | gastos | estrutura | lucro | margem |
+|---|---:|---:|---:|---:|---:|---:|
+| 2026-03 | 31 | 3 379 € | 2 326 € | 2 326 € | **1 053 €** | 31% |
+| **2026-04** | 31 | **3 402 €** | 3 450 € | **3 234 €** | **−48 €** | **−1%** |
+| 2026-05 | 37 | 4 020 € | 2 357 € | 2 357 € | 1 663 € | 41% |
+| *2025-04 (homólogo)* | 31 | 3 366 € | 2 731 € | 2 406 € | *635 €* | *19%* |
+
+As vendas **subiram** 0,7% e o lucro caiu 1 101 €. O culpado é a Estrutura, que
+saltou de 2 326 € para 3 234 € (renda 450 → 620 €, salários 1 350 → 2 100 €).
+Escolheu-se Abril e não um mês de pico precisamente para isto: num mês de pico
+as vendas subiriam ao mesmo tempo e a queda do lucro ficaria ambígua.
+
+O mês corrente (Agosto de 2026, a 13) aparece a −553 €, e está certo: a
+estrutura inteira é lançada ao dia 4 e só houve 16 sessões. É o problema do
+mês a meio, e é honesto que apareça.
+
+### O portão, revisto
+
+| mestre | antes | agora |
+|---|---|---|
+| Vendas | calculável | calculável, 26 meses |
+| **Lucro** | **sem origem** | **calculável** — 191 despesas |
+| **Fluxo de Caixa** | **sem origem** | **calculável** — 675 recebimentos com atraso real |
+
+**O portão da Fase 0 passa.**
+
+---
+
 ## 4. Os 12 indicadores do diagrama
 
 `OK` = calculável hoje com dados reais da Depilconcept. `motor` = a conta já
@@ -154,12 +240,34 @@ indisponível, porque a fonte está vazia.
 | 11 | prazos (pagamento/stock/recebimento) | ❌ sem dados | `kpis_de_saude.dart` (`cicloDeTesouraria`) | precisa das duas tabelas vazias |
 | 12 | buraco de tesouraria | ❌ sem dados | `cicloDeTesouraria` devolve-o | idem |
 
-**Um em doze é calculável, e mal** — o «Vendas» da Depilconcept são três
-reservas de dois dias.
+**Um em doze era calculável, e mal** — o «Vendas» da Depilconcept eram três
+reservas de dois dias. Depois da semente (secção 3-bis) a coluna «Estado»
+lê-se assim:
+
+| # | Indicador | Depois da semente |
+|---|---|---|
+| 1 | Vendas | ✅ 825 reservas, 26 meses |
+| 2 | Lucro | ✅ 191 despesas classificadas |
+| 3 | Fluxo de caixa | ✅ 675 recebimentos com data de pagamento |
+| 4 | nº de contactos | ✅ 295 leads |
+| 5 | taxa de conversão | ✅ ~1/3 convertidas, com cliente apontado |
+| 6 | CAC | ✅ despesa `advertising` mensal + clientes novos |
+| 7 | nº médio transacções/cliente | ✅ 825 reservas sobre 16 clientes |
+| 8 | valor médio de transacção | ✅ |
+| 9 | margem bruta | ✅ |
+| 10 | Estrutura Compactada | ✅ 7 rubricas recorrentes mês a mês |
+| 11 | prazos | ⚠️ recebimento sim (3 a 38 dias); pagamento a fornecedores não — as despesas nascem `paid` |
+| 12 | buraco de tesouraria | ✅ sai do prazo de recebimento vs prazo de pagamento |
+
+O nº 11 fica meio: o prazo médio de **recebimento** tem 675 pares
+reserva→recebimento com atraso real, mas o prazo médio de **pagamento a
+fornecedores** exige despesas que nasçam por pagar e sejam pagas mais tarde, e
+a semente lança-as todas como `paid` no dia. Fica assinalado em vez de
+inventado — é a regra do plano: dado em falta dá indisponível com razão, nunca
+um zero silencioso.
 
 Nota sobre o nº 11: a Depilconcept não tem stock, e o plano já previa que o
-prazo médio de stock fosse zero. Não é o problema. O problema são os outros
-dois prazos, que dependem de facturas que não existem no sistema.
+prazo médio de stock fosse zero. Não é o problema.
 
 ---
 
@@ -202,18 +310,17 @@ deixa de ser um motor novo e passa a ser o campo `pai` no `KpiDefinicao` mais
 a navegação por toque. É a ideia do plano — a cadeia — aplicada ao que já
 corre. Poupa as Fases 1 a 4 quase inteiras e não deita nada fora.
 
-**b) Antes de qualquer KPI de dinheiro, resolver a entrada de dados.** Nenhuma
-conta de Lucro, Margem, Estrutura ou Tesouraria pode ser conferida contra a
-Depilconcept enquanto ela não tiver uma despesa e um recebimento registados. O
-portão de cada uma dessas fases — «conferido à mão contra a contabilidade» — é
-inatingível hoje. **A pergunta a fazer-lhe é se a Depilconcept vai passar a
-registar despesas e recebimentos no Punho, ou se esses números vêm de fora.**
-A resposta decide se as Fases 3 e 6 existem.
+**b) Antes de qualquer KPI de dinheiro, resolver a entrada de dados.**
+*Resolvido a 13/8/2026 — ver secção 3-bis.* Nenhuma conta de Lucro, Margem,
+Estrutura ou Tesouraria podia ser conferida contra a Depilconcept enquanto ela
+não tivesse uma despesa e um recebimento registados. A semente pôs 26 meses de
+operação real na base, com a autorização dele, e o portão de cada uma dessas
+fases — «conferido à mão contra a contabilidade» — passa a ser atingível.
 
-**c) Manter a Lavandaria Nocturna como banco de ensaio.** É a única empresa com
-despesas (6), recebimentos (3) e ficha completa. Serve para provar as contas
-enquanto a Depilconcept não tiver dados — sem inventar seeds na empresa real,
-que é regra dele.
+**c) A Depilconcept passa a ser o banco de ensaio.** Era a Lavandaria
+Nocturna, por ser a única com ficha completa; com 191 despesas e 675
+recebimentos semeados, a Depilconcept tem agora mais e melhor — e é onde
+o César olha.
 
 ---
 
@@ -243,3 +350,27 @@ select nome, dados->>'facturacao_este_ano_centavos',
        dados->>'custos_fixos_mensais_centavos' from punho_empresas;
 -- → Depilconcept: null, null
 ```
+
+### Depois da semente — a conferência mês a mês
+
+```sql
+with op as (
+  select entidade, payload from punho_operacoes
+   where empresa_id='3d9d0b65-16a1-4078-8b30-9f5659a9baac'
+     and por_dispositivo='semente-kpis'),
+res as (select to_char((payload->>'startsAt')::date,'YYYY-MM') mes,
+        sum((payload->>'expectedValueCents')::int) v, count(*) n
+        from op where entidade='booking' and payload->>'status'='completed'
+        group by 1),
+des as (select to_char((payload->>'date')::date,'YYYY-MM') mes,
+        sum((payload->>'amountCents')::int) g
+        from op where entidade='expense' group by 1)
+select coalesce(res.mes,des.mes) mes, res.n sessoes,
+       round(res.v/100.0) vendas, round(des.g/100.0) gastos,
+       round((res.v-des.g)/100.0) lucro
+  from res full join des on des.mes=res.mes order by 1;
+-- → 26 linhas, 2024-07 a 2026-08; 2026-04 dá lucro -48 com vendas a subir
+```
+
+É esta a query que se volta a correr sempre que se duvidar de um número do
+painel: o que a app mostra tem de bater com o que ela dá.
