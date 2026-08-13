@@ -66,9 +66,12 @@ void main() {
             estado: BookingStatus.request,
             valorCents: 40000,
           ),
+          // Orçamento enviado e sem resposta desde ontem: continua a pedir
+          // alguma coisa a alguém, ao contrário da entrega — essa é do
+          // relógio desde 13/8/2026.
           trabalho(
-            id: 'entrega-atrasada',
-            estado: BookingStatus.confirmed,
+            id: 'resposta-atrasada',
+            estado: BookingStatus.proposalSent,
             comecaDaquiA: -1,
             acabaDaquiA: 2,
           ),
@@ -78,7 +81,7 @@ void main() {
     );
 
     expect(find.text('Enviar orçamento'), findsOneWidget);
-    expect(find.text('Entregar'), findsOneWidget);
+    expect(find.text('Confirmar'), findsOneWidget);
     expect(find.text('2 por fazer'), findsOneWidget);
     expect(find.text('1 atrasado'), findsOneWidget);
     // A máquina identifica a linha tão bem como o cliente: o mesmo cliente
@@ -118,26 +121,40 @@ void main() {
     // Aqui o controller tem de ser o verdadeiro: com o estado fixo dos outros
     // testes o botão parecia funcionar e não mudava nada — que é exactamente o
     // defeito que este teste existe para apanhar.
+    //
+    // O passo passou a ser um dos comerciais: «Entregar» deixou de ser botão a
+    // 13/8/2026, porque quem entrega é o relógio.
     final repo = _RepoCom([
-      trabalho(id: 'b1', estado: BookingStatus.confirmed, comecaDaquiA: 0),
+      trabalho(
+        id: 'b1',
+        estado: BookingStatus.proposalSent,
+        comecaDaquiA: 3,
+      ),
     ]);
     final container = ProviderContainer(
-      overrides: [operationRepositoryProvider.overrideWithValue(repo)],
+      overrides: [
+        operationRepositoryProvider.overrideWithValue(repo),
+        // O relógio da suite é fixo: senão o controlador avança as marcações
+        // com a data real da máquina e o teste muda de resultado conforme o
+        // dia em que corre.
+        relogioProvider.overrideWithValue(() => hoje),
+      ],
     );
     addTearDown(container.dispose);
 
     await montarLandscape(tester, container, MinhaSemanaPage(agora: hoje));
 
-    expect(find.text('Entregar'), findsOneWidget);
-    await tester.tap(find.text('Entregar'));
+    expect(find.text('Confirmar'), findsOneWidget);
+    await tester.tap(find.text('Confirmar'));
     await tester.pumpAndSettle();
 
     expect(
       container.read(operationsProvider).bookings.single.status,
-      BookingStatus.rented,
+      BookingStatus.confirmed,
     );
-    // E o ecrã acompanha: o passo seguinte de um trabalho entregue é fechá-lo.
-    expect(find.text('Fechar trabalho'), findsOneWidget);
+    // E o ecrã acompanha: confirmado deixa de pedir seja o que for — o dia
+    // dele é que manda.
+    expect(find.text('Nada por fazer.'), findsOneWidget);
   });
 
   testWidgets(

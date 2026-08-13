@@ -3628,27 +3628,52 @@ Future<void> _bookingStatusDialog(
                 : null,
           ),
           const Divider(height: 8),
-          for (final status in BookingStatus.values)
+          // **O estado lê-se, não se escolhe.** Era uma lista de seis para
+          // carregar; agora é o relógio que manda a partir do dia de entrega —
+          // ver `estadoPeloRelogio`. Fica à vista porque continua a ser a
+          // primeira coisa que se quer saber.
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              Icons.schedule_outlined,
+              color: _bookingColor(booking.status),
+            ),
+            title: Text(_bookingStatusLabel(booking.status)),
+            subtitle: Text(
+              booking.status == BookingStatus.cancelled
+                  ? 'Cancelada — o tempo não a desfaz.'
+                  : 'Entrega-se no dia de início e conclui-se no fim, '
+                        'sozinha. Só o cancelamento é que é decidido.',
+            ),
+          ),
+          const Divider(height: 8),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.event_repeat_outlined),
+            title: const Text('Mudar de dia'),
+            subtitle: const Text('A duração vai atrás, tal como está.'),
+            onTap: () async {
+              Navigator.pop(dialogContext);
+              await _remarcarReservaDialog(context, ref, booking);
+            },
+          ),
+          if (booking.status != BookingStatus.cancelled)
             ListTile(
-              title: Text(_bookingStatusLabel(status)),
-              trailing: status == booking.status
-                  ? const Icon(Icons.check_circle, color: Colors.green)
-                  : null,
-              onTap: () {
-                final conflict = ref
-                    .read(operationsProvider.notifier)
-                    .updateBookingStatus(booking.id, status);
-                if (conflict != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Conflito: ${conflict.machine.name} está ocupada.',
-                      ),
-                    ),
-                  );
-                  return;
-                }
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.event_busy_outlined,
+                color: Theme.of(dialogContext).colorScheme.error,
+              ),
+              title: Text(
+                'Cancelar reserva',
+                style: TextStyle(
+                  color: Theme.of(dialogContext).colorScheme.error,
+                ),
+              ),
+              subtitle: const Text('A máquina volta a ficar livre no período.'),
+              onTap: () async {
                 Navigator.pop(dialogContext);
+                await _cancelarReservaDialog(context, ref, booking, estado);
               },
             ),
         ],
@@ -3724,6 +3749,77 @@ Future<void> _editarValorDaReservaDialog(
 /// quando **A minha semana** precisou das mesmas seis palavras: duas cópias do
 /// vocabulário é como se começa a ter três.
 const _bookingStatusLabel = bookingStatusLabel;
+
+/// Cancelar é a única coisa que uma pessoa decide sobre o estado de uma
+/// marcação — e por isso pergunta-se antes, com o nome de quem fica sem ela.
+Future<void> _cancelarReservaDialog(
+  BuildContext context,
+  WidgetRef ref,
+  Booking booking,
+  OperationsState estado,
+) async {
+  final certo = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Cancelar a reserva?'),
+      content: Text(
+        '${_maquinasDaReserva(booking, estado)} · '
+        '${_clienteDaReserva(booking, estado)}.\n\n'
+        'A máquina volta a ficar livre nesse período e a reserva deixa de '
+        'contar para as contas. Avisar o cliente é contigo.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Voltar atrás'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Cancelar reserva'),
+        ),
+      ],
+    ),
+  );
+  if (certo != true) return;
+  ref
+      .read(operationsProvider.notifier)
+      .updateBookingStatus(booking.id, BookingStatus.cancelled);
+}
+
+/// Só o dia de início se escolhe: a duração vem como está. Ver
+/// [OperationsController.remarcarPara].
+Future<void> _remarcarReservaDialog(
+  BuildContext context,
+  WidgetRef ref,
+  Booking booking,
+) async {
+  final hoje = DateTime.now();
+  final primeiro = DateTime(hoje.year - 1);
+  final novoDia = await showDatePicker(
+    context: context,
+    initialDate: booking.startsAt.isBefore(primeiro)
+        ? primeiro
+        : booking.startsAt,
+    firstDate: primeiro,
+    lastDate: DateTime(hoje.year + 2, 12, 31),
+    helpText: 'Novo dia de início',
+  );
+  if (novoDia == null || !context.mounted) return;
+  final choque = ref
+      .read(operationsProvider.notifier)
+      .remarcarPara(booking.id, novoDia);
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        choque == null
+            ? 'Reserva mudada para ${novoDia.day}/${novoDia.month}.'
+            : '${choque.machine.name} já está ocupada nesse dia. '
+                  'Não se mudou nada.',
+      ),
+    ),
+  );
+}
 
 /// Valor sentinela do dropdown de cliente: abre o formulário de novo cliente
 /// em vez de escolher um existente.

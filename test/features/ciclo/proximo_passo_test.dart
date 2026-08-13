@@ -90,18 +90,16 @@ void main() {
       expect(passo.estadoSeguinte, BookingStatus.confirmed);
     });
 
-    test('um trabalho confirmado pede a entrega', () {
-      final passo = passoDe(trabalho(estado: BookingStatus.confirmed))!;
-
-      expect(passo.verbo, 'Entregar');
-      expect(passo.estadoSeguinte, BookingStatus.rented);
+    // **A entrega e a recolha saíram desta lista a 13/8/2026.** Passaram a ser
+    // do relógio: a marcação entrega-se sozinha no dia de início e fecha-se
+    // sozinha no fim (`estadoPeloRelogio`). «A minha semana» é o que falta
+    // fazer, e nenhuma destas duas falta fazer a ninguém.
+    test('um trabalho confirmado não pede nada — o dia dele é que manda', () {
+      expect(passoDe(trabalho(estado: BookingStatus.confirmed)), isNull);
     });
 
-    test('um trabalho em curso pede o fecho', () {
-      final passo = passoDe(trabalho(estado: BookingStatus.rented))!;
-
-      expect(passo.verbo, 'Fechar trabalho');
-      expect(passo.estadoSeguinte, BookingStatus.completed);
+    test('um trabalho em curso não pede nada — fecha-se sozinho', () {
+      expect(passoDe(trabalho(estado: BookingStatus.rented)), isNull);
     });
 
     test('um trabalho cancelado não pede nada', () {
@@ -228,17 +226,19 @@ void main() {
   });
 
   group('a urgência lê-se na data que interessa', () {
-    test('a entrega mede-se pelo início', () {
+    // Desde 13/8/2026 os passos que sobraram medem-se todos pelo início: são
+    // os comerciais, que acontecem antes de a máquina sair. A entrega e a
+    // recolha deixaram de ser passos — são do relógio.
+    test('o orçamento mede-se pelo início', () {
       expect(
-        passoDe(
-          trabalho(estado: BookingStatus.confirmed, comecaDaquiA: 0),
-        )!.urgencia,
+        passoDe(trabalho(estado: BookingStatus.request, comecaDaquiA: 0))!
+            .urgencia,
         Urgencia.hoje,
       );
       expect(
         passoDe(
           trabalho(
-            estado: BookingStatus.confirmed,
+            estado: BookingStatus.proposalSent,
             comecaDaquiA: -1,
             acabaDaquiA: 2,
           ),
@@ -247,25 +247,25 @@ void main() {
       );
     });
 
-    test('a devolução mede-se pelo fim', () {
-      // Começou há uma semana — mas o que falta é trazer a máquina, e isso era
-      // para ontem.
+    test('o recebimento mede-se pelo fim', () {
+      // Fechado há dias e ainda por receber: o relógio dele é o do fim.
       final passo = passoDe(
         trabalho(
-          estado: BookingStatus.rented,
+          estado: BookingStatus.completed,
           comecaDaquiA: -7,
           acabaDaquiA: -1,
+          valorCents: 50000,
         ),
       )!;
 
-      expect(passo.urgencia, Urgencia.atrasado);
-      expect(passo.porque, contains('ontem'));
+      expect(passo.verbo, 'Registar recebimento');
+      expect(passo.urgencia, Urgencia.hoje);
     });
 
     test('a hora do dia não muda nada', () {
       final aoFimDoDia = DateTime(2026, 8, 4, 23, 50);
       final passo = proximoPassoDe(
-        trabalho(estado: BookingStatus.confirmed, comecaDaquiA: 0),
+        trabalho(estado: BookingStatus.proposalSent, comecaDaquiA: 0),
         hoje: aoFimDoDia,
         recebimentos: const [],
       )!;
@@ -281,10 +281,10 @@ void main() {
     test('o atrasado vem primeiro, mesmo sendo o mais antigo', () {
       final lista = aMinhaSemana(
         estadoCom([
-          trabalho(id: 'daqui-a-dias', estado: BookingStatus.confirmed),
+          trabalho(id: 'daqui-a-dias', estado: BookingStatus.proposalSent),
           trabalho(
             id: 'devia-ter-voltado',
-            estado: BookingStatus.rented,
+            estado: BookingStatus.proposalSent,
             comecaDaquiA: -6,
             acabaDaquiA: -2,
           ),
@@ -303,12 +303,12 @@ void main() {
         estadoCom([
           trabalho(
             id: 'quinta',
-            estado: BookingStatus.confirmed,
+            estado: BookingStatus.proposalSent,
             comecaDaquiA: 3,
           ),
           trabalho(
             id: 'quarta',
-            estado: BookingStatus.confirmed,
+            estado: BookingStatus.proposalSent,
             comecaDaquiA: 2,
           ),
         ]),
@@ -318,7 +318,11 @@ void main() {
       expect(lista.map((x) => x.trabalho.id), ['quarta', 'quinta']);
     });
 
-    test('o que está confirmado para lá da semana não enche a lista', () {
+    test('um trabalho confirmado não enche a lista, perto ou longe', () {
+      // Era o «horizonte de uma semana»: um trabalho confirmado para lá de
+      // sete dias ficava de fora para a lista não encher. Deixou de ser
+      // preciso — confirmado não pede nada, esteja para amanhã ou para o mês
+      // que vem, porque quem o entrega é o relógio.
       final lista = aMinhaSemana(
         estadoCom([
           trabalho(
@@ -326,6 +330,11 @@ void main() {
             estado: BookingStatus.confirmed,
             comecaDaquiA: 20,
             acabaDaquiA: 23,
+          ),
+          trabalho(
+            id: 'para-amanha',
+            estado: BookingStatus.confirmed,
+            comecaDaquiA: 1,
           ),
         ]),
         hoje,
@@ -353,31 +362,43 @@ void main() {
       expect(lista.single.trabalho.id, 'pedido-longe');
     });
 
-    test(
-      'o que está em curso entra sempre, esteja a acabar quando estiver',
-      () {
-        final lista = aMinhaSemana(
-          estadoCom([
-            trabalho(
-              id: 'aluguer-longo',
-              estado: BookingStatus.rented,
-              comecaDaquiA: -2,
-              acabaDaquiA: 40,
-            ),
-          ]),
-          hoje,
-        );
+    test('o que está em curso não enche a lista — não falta fazer nada', () {
+      // Era o contrário até 13/8/2026: uma máquina na rua ficava sempre à
+      // vista porque alguém tinha de carregar em «Fechar trabalho». Agora o
+      // relógio fecha-o no fim do período, e a lista é só do que falta fazer.
+      final lista = aMinhaSemana(
+        estadoCom([
+          trabalho(
+            id: 'aluguer-longo',
+            estado: BookingStatus.rented,
+            comecaDaquiA: -2,
+            acabaDaquiA: 40,
+          ),
+        ]),
+        hoje,
+      );
 
-        // Há uma máquina fora de casa: nunca sai de vista.
-        expect(lista.single.trabalho.id, 'aluguer-longo');
-      },
-    );
+      expect(lista, isEmpty);
+    });
 
     test('o contador de atrasados é o que vai ao emblema', () {
       final estado = estadoCom([
-        trabalho(id: 'a', estado: BookingStatus.rented, acabaDaquiA: -1),
-        trabalho(id: 'b', estado: BookingStatus.confirmed, comecaDaquiA: -2),
-        trabalho(id: 'c', estado: BookingStatus.confirmed, comecaDaquiA: 2),
+        trabalho(
+          id: 'a',
+          estado: BookingStatus.request,
+          comecaDaquiA: -1,
+          valorCents: 30000,
+        ),
+        trabalho(
+          id: 'b',
+          estado: BookingStatus.proposalSent,
+          comecaDaquiA: -2,
+        ),
+        trabalho(
+          id: 'c',
+          estado: BookingStatus.proposalSent,
+          comecaDaquiA: 2,
+        ),
       ]);
 
       expect(atrasadosNaSemana(estado, hoje), 2);

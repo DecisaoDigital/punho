@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../ciclo/relogio_da_reserva.dart';
 import '../sync/supabase_operational_sync.dart';
 import '../sync/sync_engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,13 @@ import '../../domain/models/historical_month.dart';
 final operationRepositoryProvider = Provider<OperationRepository>(
   (ref) => LocalDemoOperationRepository(),
 );
+/// O relógio que decide o estado das marcações.
+///
+/// Existe para ser trocado nos testes. Sem ele, qualquer teste com datas fixas
+/// via as suas marcações avançadas pelo relógio da máquina onde a suite corre —
+/// e uma suite que muda de resultado conforme o dia não é uma suite.
+final relogioProvider = Provider<DateTime Function()>((_) => DateTime.now);
+
 final operationsProvider =
     NotifierProvider<OperationsController, OperationsState>(
       OperationsController.new,
@@ -258,7 +266,7 @@ class OperationsController extends Notifier<OperationsState> {
       machines: _repo.machines,
       customers: _repo.customers,
       leads: _repo.leads,
-      bookings: _repo.bookings,
+      bookings: _bookingsComORelogio(),
       expenses: _repo.expenses,
       receipts: _repo.receipts,
       collaborators: _repo.collaborators,
@@ -266,11 +274,30 @@ class OperationsController extends Notifier<OperationsState> {
     );
   }
 
+  /// Põe o relógio a mandar antes de qualquer leitura.
+  ///
+  /// Uma marcação entregue passa a «Em aluguer» no dia de início e a
+  /// «Concluída» no fim, sozinha — ver [estadoPeloRelogio]. Grava-se: o estado
+  /// é um facto do negócio, tem de chegar aos outros aparelhos e ao Control, e
+  /// não pode existir só no ecrã de quem abriu a app.
+  ///
+  /// Não escreve nada quando não há nada a mexer, que é o caso comum.
+  List<Booking> _bookingsComORelogio() {
+    final doRepo = _repo.bookings;
+    final mexidas = reservasAAvancar(doRepo, ref.read(relogioProvider)());
+    if (mexidas.isEmpty) return doRepo;
+    for (final reserva in mexidas) {
+      _repo.saveBooking(reserva);
+    }
+    _syncMachineCycle(mexidas.expand((r) => r.machineIds).toSet().toList());
+    return _repo.bookings;
+  }
+
   OperationsState _fromRepo() => state.copyWith(
     machines: _repo.machines,
     customers: _repo.customers,
     leads: _repo.leads,
-    bookings: _repo.bookings,
+    bookings: _bookingsComORelogio(),
     expenses: _repo.expenses,
     receipts: _repo.receipts,
     collaborators: _repo.collaborators,

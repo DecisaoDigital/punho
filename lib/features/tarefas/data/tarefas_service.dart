@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/guidance/guidance_engine.dart';
 import '../../../core/operations/kpis.dart';
 import '../../../core/operations/operations_controller.dart';
+import '../../../domain/models/operations.dart';
 import '../../../domain/models/workforce.dart';
 import '../../auth/acesso_providers.dart';
 import '../../auth/data/acesso_service.dart';
@@ -317,6 +318,47 @@ List<Tarefa> tarefasPendentes(
         ),
       );
     }
+  }
+
+  // 7.5 Marcações sem preço.
+  //
+  // **O relógio deixou de esperar por ninguém**: uma reserva entrega-se no dia
+  // de início e conclui-se no fim, tenha ou não valor. Sem esta tarefa, uma
+  // reserva criada à pressa sem preço passava a concluída sozinha e ninguém
+  // voltava a olhar para ela — trabalho feito e nunca facturado, que é o
+  // buraco mais caro que a app tem.
+  //
+  // Urgente quando o trabalho já começou: aí o dinheiro já foi ganho e o que
+  // falta é cobrá-lo. Antes disso é só um orçamento por fazer.
+  for (final reserva in state.bookings) {
+    if (reserva.status == BookingStatus.cancelled) continue;
+    final valor = reserva.expectedValueCents;
+    if (valor != null && valor > 0) continue;
+    final comecou = !now.isBefore(reserva.startsAt);
+    final cliente = reserva.customerNameSnapshot.isEmpty
+        ? state.customers
+                  .where((c) => c.id == reserva.customerId)
+                  .map((c) => c.name)
+                  .firstOrNull ??
+              'cliente'
+        : reserva.customerNameSnapshot;
+    tarefas.add(
+      Tarefa(
+        id: 'reserva-sem-valor-${reserva.id}',
+        severidade: comecou
+            ? SeveridadeTarefa.urgente
+            : SeveridadeTarefa.aCompletar,
+        titulo: 'Pôr preço à reserva de $cliente',
+        subtitulo: comecou
+            ? 'Começou a ${_data(reserva.startsAt)} e continua sem valor — '
+                  'trabalho feito que ninguém vai cobrar'
+            : 'Entrega a ${_data(reserva.startsAt)}. Sem valor não há '
+                  'orçamento a enviar',
+        cta: 'Ver reservas',
+        destino: DestinoTarefa.reservas,
+        referencia: reserva.id,
+      ),
+    );
   }
 
   // 8. Recomendações adiadas que já voltaram a estar dentro do prazo ficam no

@@ -108,25 +108,42 @@ void main() {
     expect(find.text('ME-01 · Construções Silva'), findsOneWidget);
   });
 
-  testWidgets('Cancelada continua alcançável — é o desfazer', (tester) async {
+  testWidgets('a caixa só deixa cancelar e editar', (tester) async {
     await abrirCalendario(tester);
     await carregarNaPrimeira(tester);
 
-    // Seis estados mais o valor mais as vizinhas não cabem em 393 dp de ecrã
-    // deitado. Se a caixa não rolar, «Cancelada» — o único caminho para
-    // desfazer uma marcação enganada — fica fora dela e não há como lá chegar.
+    // Desde 13/8/2026 o estado não se escolhe: lê-se. Os seis estados que
+    // estavam aqui para carregar passaram a ser do relógio.
+    expect(find.text('Proposta enviada'), findsNothing);
+    expect(find.text('Em aluguer'), findsNothing);
+    expect(find.text('Concluída'), findsNothing);
+
+    expect(find.text('Mudar de dia'), findsOneWidget);
+    expect(find.text('Cancelar reserva'), findsOneWidget);
+  });
+
+  testWidgets('e cancelar pergunta antes, e cancela mesmo', (tester) async {
+    await abrirCalendario(tester);
+    await carregarNaPrimeira(tester);
+
+    // A caixa não cabe deitada — o rolo é que faz «Cancelar reserva» existir.
     final rolo = find.descendant(
       of: find.byType(AlertDialog),
       matching: find.byType(Scrollable),
     );
     expect(rolo, findsOneWidget, reason: 'sem rolo, o que não cabe perde-se');
-
-    expect(find.text('Cancelada'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Cancelada'), 120, scrollable: rolo);
-    await tester.tap(find.text('Cancelada'));
+    await tester.scrollUntilVisible(
+      find.text('Cancelar reserva'),
+      120,
+      scrollable: rolo,
+    );
+    await tester.tap(find.text('Cancelar reserva'));
     await tester.pumpAndSettle();
 
-    // Carregar em «Cancelada» fecha a caixa: a marcação foi desfeita.
+    expect(find.text('Cancelar a reserva?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Cancelar reserva'));
+    await tester.pumpAndSettle();
+
     expect(find.byType(AlertDialog), findsNothing);
   });
 }

@@ -56,6 +56,9 @@ void main() {
       // alterar a ficha da empresa.
       overrides: [
         operationRepositoryProvider.overrideWithValue(repo),
+        // Relógio preso: o controlador avança as marcações sozinho desde
+        // 13/8/2026, e estes testes usam datas fixas de Agosto de 2026.
+        relogioProvider.overrideWithValue(() => DateTime(2026, 8, 1, 9)),
         // Sem Supabase configurado o motor de sync é nulo e o balde vem sempre
         // vazio; para ver o cartão, entrega-se a lista à mão.
         if (conflitos.isNotEmpty)

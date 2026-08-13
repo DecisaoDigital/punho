@@ -6,7 +6,17 @@ import 'package:punho/domain/models/historical_month.dart';
 import 'package:punho/domain/models/workforce.dart';
 
 void main() {
-  ProviderContainer container() => ProviderContainer();
+  /// O relógio fica preso a 1 de Agosto de 2026.
+  ///
+  /// Desde 13/8/2026 o controlador avança sozinho as marcações — entrega no dia
+  /// de início, fecho no fim (`estadoPeloRelogio`). Com o relógio da máquina, as
+  /// datas fixas destes testes iam ficando para trás e as marcações chegavam
+  /// «Concluídas» a testes escritos para as apanhar por confirmar.
+  ProviderContainer container() => ProviderContainer(
+    overrides: [
+      relogioProvider.overrideWithValue(() => DateTime(2026, 8, 1, 9)),
+    ],
+  );
 
   test('updates a booking status without duplicating it', () {
     final c = container();

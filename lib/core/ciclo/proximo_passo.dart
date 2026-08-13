@@ -91,16 +91,15 @@ int _diasAte(DateTime alvo, DateTime hoje) =>
 
 String _euros(int cents) => '${textoDeCents(cents)} €';
 
-/// Quantos dias para diante ainda cabem em "a minha semana".
-const horizonteDaSemana = 7;
-
 /// Regra do Cesar (9 Ago 2026): a **entrega** faz-se sempre às 09:00 e a
 /// **recolha** sempre às 18:00. A hora guardada na reserva não é de confiar —
 /// as manhãs ficam a 00:00/12:00 — por isso a hora que se mostra é esta, fixa,
 /// e aparece logo na reserva agendada, antes de confirmada, para quem tiver de
 /// ir ao terreno saber a que horas.
 const _horaEntrega = '09:00';
-const _horaRecolha = '18:00';
+// A hora da recolha deixou de se escrever aqui: o passo «Fechar trabalho» saiu
+// desta lista quando o relógio passou a fechar os trabalhos sozinho. Continua a
+// valer como regra — 18:00 — e vive agora só onde ainda se mostra.
 
 /// A urgência de uma data que devia estar cumprida: passou, é hoje, ou vem aí.
 Urgencia _urgenciaDe(DateTime alvo, DateTime hoje) {
@@ -175,29 +174,20 @@ ProximoPasso? proximoPassoDe(
         estadoSeguinte: BookingStatus.confirmed,
       );
 
+    // **A entrega e a recolha deixaram de ser botões.** O César, a 13 de Agosto
+    // de 2026: «o tempo actual é que diz e assume o estado da encomenda (…) só
+    // pode ter sido concluída quando foi instalada e recolhida, isso é
+    // automático». O relógio passa a marcação a «Em aluguer» no dia de início e
+    // a «Concluída» no fim — ver `estadoPeloRelogio`.
+    //
+    // Nada a fazer, portanto nada nesta lista: «A minha semana» é o que falta
+    // fazer, e um trabalho confirmado à espera do dia dele, ou uma máquina que
+    // está na rua, não pedem nada a ninguém. Deixar cá o botão era pôr dois
+    // donos no mesmo estado — e o que a pessoa carregasse ganhava ao relógio,
+    // dando por entregue o que ainda lá não tinha chegado.
     case BookingStatus.confirmed:
-      return ProximoPasso(
-        verbo: 'Entregar',
-        porque:
-            'Confirmado. Entrega ${_quando(trabalho.startsAt, hoje)} às '
-            '$_horaEntrega.',
-        urgencia: _urgenciaDe(trabalho.startsAt, hoje),
-        accao: AccaoDoPasso.avancarEstado,
-        estadoSeguinte: BookingStatus.rented,
-      );
-
     case BookingStatus.rented:
-      // Aqui a data que manda é a do fim: a máquina está fora, e o que falta é
-      // trazê-la de volta.
-      return ProximoPasso(
-        verbo: 'Fechar trabalho',
-        porque:
-            'Em curso. Recolha ${_quando(trabalho.endsAt, hoje)} às '
-            '$_horaRecolha.',
-        urgencia: _urgenciaDe(trabalho.endsAt, hoje),
-        accao: AccaoDoPasso.avancarEstado,
-        estadoSeguinte: BookingStatus.completed,
-      );
+      return null;
 
     case BookingStatus.completed:
       final esperado = trabalho.expectedValueCents;
@@ -255,10 +245,12 @@ List<TrabalhoComPasso> aMinhaSemana(OperationsState state, DateTime hoje) {
       BookingStatus.rented || BookingStatus.completed => trabalho.endsAt,
       _ => trabalho.startsAt,
     };
-    final foraDoHorizonte =
-        trabalho.status == BookingStatus.confirmed &&
-        _diasAte(trabalho.startsAt, hoje) > horizonteDaSemana;
-    if (foraDoHorizonte) continue;
+    // O horizonte de uma semana saiu a 13/8/2026 com a entrega manual. Só
+    // filtrava trabalhos **confirmados** longe da data — e um trabalho
+    // confirmado deixou de pedir seja o que for, porque é o relógio que o
+    // entrega. O que sobra nesta lista é o comercial e a cobrança, e nenhum
+    // deles espera pela data do trabalho: um orçamento por enviar é para
+    // enviar hoje, seja o trabalho para quando for.
     lista.add(TrabalhoComPasso(trabalho, passo, dataRelevante));
   }
   lista.sort((a, b) {
