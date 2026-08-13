@@ -1,4 +1,5 @@
-/// **O break even do mês** — quanto é preciso vender para o mês se pagar.
+/// **O break even do mês** — quanto é preciso vender para manter a casa a
+/// andar.
 ///
 /// É a Fase 6 do plano de KPIs, e nasceu de uma frase do César (13 Ago 2026),
 /// a propósito de o lucro de um mês a meio aparecer em baixo: *«não faz mal,
@@ -15,94 +16,110 @@
 /// ## A conta
 ///
 /// ```
-///   margem de contribuição = (vendas − custos directos) / vendas
-///   vendas necessárias     = estrutura / margem de contribuição
+///   alvo             = o que a casa gasta num mês
+///   vendas em falta  = alvo − o que já se vendeu
 /// ```
 ///
-/// A **estrutura** é o que se paga com a máquina parada; os **custos directos**
-/// são os de servir o trabalho e sobem com ele. A margem de contribuição é o
-/// que sobra de cada euro vendido para pagar a estrutura.
+/// E é só isto. **A despesa é a despesa** — a definição é dele, a 13 de Agosto,
+/// a corrigir uma primeira versão em que eu separava custos de estrutura de
+/// custos de servir o trabalho e dividia o alvo por uma margem de contribuição:
 ///
-/// **A hipótese, escrita:** os custos directos acompanham as vendas na mesma
-/// proporção do que já aconteceu este mês. É a única forma de projectar sem
-/// inventar uma curva, e é exacta na conta — vendendo exactamente
-/// `vendasNecessariasCents`, o lucro do mês dá zero.
+/// > como assim, a despeza é a despesa. daí a media de gastos dos meses
+/// > anteriores. entre a renda fixa e a media de electicidade variavel e agua
+/// > variavel e outros consumos e despesas, fazem parte das despesas do mes, é
+/// > natural que todos os custos se repitam em media durantes todos os meses no
+/// > futuro e presente. o breack even é o valor para manter a empresa em
+/// > operaçao. temos de contabilizar todas as tabelas
 ///
-/// ## Quando ainda não há vendas
+/// A separação entre fixo e variável tinha uma vantagem teórica — vender mais
+/// também custa mais a servir — e três defeitos práticos: obrigava a classificar
+/// bem cada despesa, dava um número que ninguém consegue conferir de cabeça, e
+/// respondia a uma pergunta que ele não fez. A pergunta é **«quanto tenho de
+/// vender este mês para não estar a perder dinheiro?»**, e a resposta é o que a
+/// casa gasta. A luz e a água variam, mas variam à volta de uma média — e é
+/// essa média que se paga todos os meses.
 ///
-/// No dia 2 do mês a renda já está lançada e ainda não acabou trabalho nenhum:
-/// não há margem deste mês para dividir. Em vez de calar o indicador
-/// justamente no dia em que ele é mais útil, usa-se a margem dos meses
-/// anteriores e **diz-se que é essa** ([BreakEvenDoMes.margemDoProprioMes]).
-/// Um número aproximado e rotulado vale mais do que um vazio; o que não se pode
-/// é apresentá-lo como se fosse deste mês.
+/// ## De onde vem o alvo
+///
+/// O maior de três, porque nenhum deles sozinho serve o mês todo:
+///
+/// 1. **A despesa já lançada este mês.** Exacta, mas a dia 2 ainda é quase nada.
+/// 2. **A média dos três meses anteriores.** É a ideia dele: os custos repetem-se
+///    em média, portanto o que se gastou é a melhor previsão do que se vai
+///    gastar.
+/// 3. **Os custos fixos declarados** em Empresa › Custos fixos, para quem os
+///    preencheu e ainda não tem histórico que chegue.
+///
+/// O maior dos três, e não uma soma: são três respostas à **mesma** pergunta, e
+/// somá-las era contar a renda três vezes. Nunca abaixo do que já está lançado —
+/// um mês com uma despesa extraordinária já registada não se lê pela média dos
+/// meses normais.
 library;
 
 import '../../domain/models/finance.dart';
 import '../../domain/models/operations.dart';
-import '../operations/kpis_da_cadeia.dart' show eEstrutura;
 import '../operations/operations_controller.dart';
 
-/// Quantos meses para trás se vai buscar a margem, quando o mês corrente ainda
-/// não tem vendas. Três chegam para diluir um mês estranho sem ir buscar uma
-/// realidade que já não é a da casa.
+/// Quantos meses para trás entram na média. Três chegam para diluir um mês
+/// estranho sem ir buscar uma realidade que já não é a da casa.
 const _mesesDeRecurso = 3;
+
+/// De onde saiu o alvo — o que a célula tem de dizer para o número não parecer
+/// mais exacto do que é.
+enum OrigemDoAlvo {
+  /// Do que já está lançado neste mês. É o único que não é estimativa.
+  lancado,
+
+  /// Da média dos meses anteriores.
+  media,
+
+  /// Dos custos fixos declarados pelo gestor, por não haver histórico maior.
+  declarado,
+}
 
 /// O mês a pagar-se a si próprio.
 class BreakEvenDoMes {
   const BreakEvenDoMes({
-    required this.estruturaCents,
+    required this.alvoCents,
+    required this.despesaLancadaCents,
+    required this.origem,
     required this.vendasCents,
-    required this.vendasNecessariasCents,
-    required this.margemDeContribuicao,
-    required this.margemDoProprioMes,
     required this.diaEmQuePassou,
     required this.diaPrevisto,
   });
 
-  /// O que este mês custa ter a casa aberta — o alvo a cobrir.
-  final int estruturaCents;
+  /// Quanto é preciso vender este mês para a casa se pagar.
+  final int alvoCents;
+
+  /// O que **já** está lançado este mês, sem estimativa nenhuma. Fica à mão
+  /// para se poder mostrar a distância entre o que se sabe e o que se prevê.
+  final int despesaLancadaCents;
+
+  final OrigemDoAlvo origem;
 
   /// O que já se vendeu este mês, pela data do trabalho.
   final int vendasCents;
 
-  /// Quanto tem de ser vendido no mês para o lucro dar zero.
-  ///
-  /// `null` quando a margem de contribuição é nula ou negativa: aí cada
-  /// trabalho a mais afunda mais o mês, e **não há** volume de vendas que o
-  /// pague. Dizer «faltam X €» nesse caso era mandar o gestor trabalhar mais
-  /// para perder mais.
-  final int? vendasNecessariasCents;
-
-  /// Quanto sobra de cada euro vendido para pagar a estrutura, entre 0 e 1.
-  final double margemDeContribuicao;
-
-  /// A margem é deste mês (`true`) ou emprestada dos meses anteriores.
-  final bool margemDoProprioMes;
-
-  /// O dia em que as vendas acumuladas passaram o break even — exacto, contado
-  /// venda a venda. `null` enquanto não passou.
+  /// O dia em que as vendas acumuladas passaram o alvo — exacto, contado venda
+  /// a venda. `null` enquanto não passou.
   final int? diaEmQuePassou;
 
-  /// Ao ritmo de vendas deste mês, o dia em que o break even chega. `null` se
-  /// já passou, ou se ao ritmo actual **não chega até ao fim do mês** — e essa
-  /// é a notícia que interessa dar.
+  /// Ao ritmo de vendas deste mês, o dia em que o alvo chega. `null` se já
+  /// passou, ou se ao ritmo actual **não chega até ao fim do mês** — e essa é a
+  /// notícia que interessa dar.
   final int? diaPrevisto;
 
-  /// Quanto falta vender. Negativo depois de passar; `null` sem break even
-  /// alcançável.
-  int? get faltaCents => vendasNecessariasCents == null
-      ? null
-      : vendasNecessariasCents! - vendasCents;
+  /// Quanto falta vender. Negativo depois de passar.
+  int get faltaCents => alvoCents - vendasCents;
 
-  bool get atingido => (faltaCents ?? 1) <= 0;
+  bool get atingido => faltaCents <= 0;
 
-  /// Parte do caminho já andado, em percentagem. `null` quando não há alvo.
-  double? get percorrido {
-    final alvo = vendasNecessariasCents;
-    if (alvo == null || alvo <= 0) return null;
-    return vendasCents / alvo * 100;
-  }
+  /// O alvo é uma previsão, e não o que já está lançado.
+  bool get estimado => origem != OrigemDoAlvo.lancado;
+
+  /// Parte do caminho já andado, em percentagem.
+  double? get percorrido =>
+      alvoCents <= 0 ? null : vendasCents / alvoCents * 100;
 }
 
 DateTime _inicioDoMes(DateTime d) => DateTime(d.year, d.month);
@@ -122,6 +139,11 @@ Iterable<Booking> _vendasDoMes(OperationsState s, DateTime mes) {
 int _vendasCents(OperationsState s, DateTime mes) =>
     _vendasDoMes(s, mes).fold(0, (t, b) => t + b.expectedValueCents!);
 
+/// **Todas as despesas do mês, sem excepção de categoria.**
+///
+/// Pagas e por pagar, porque é de competência: uma despesa lançada em Abril e
+/// paga em Junho é um custo de Abril. Arquivadas fora — arquivar é a forma de
+/// dizer que aquilo não conta.
 Iterable<Expense> _despesasDoMes(OperationsState s, DateTime mes) {
   final inicio = _inicioDoMes(mes);
   final fim = _fimDoMes(mes);
@@ -130,42 +152,24 @@ Iterable<Expense> _despesasDoMes(OperationsState s, DateTime mes) {
   );
 }
 
-int _estruturaCents(OperationsState s, DateTime mes) => _despesasDoMes(s, mes)
-    .where((e) => eEstrutura(e.category))
-    .fold(0, (t, e) => t + e.amountCents);
+int _despesaCents(OperationsState s, DateTime mes) =>
+    _despesasDoMes(s, mes).fold(0, (t, e) => t + e.amountCents);
 
-int _directosCents(OperationsState s, DateTime mes) => _despesasDoMes(s, mes)
-    .where((e) => !eEstrutura(e.category))
-    .fold(0, (t, e) => t + e.amountCents);
-
-/// A margem de contribuição de um mês, ou `null` se esse mês não vendeu nada.
+/// A média da despesa dos meses anteriores que têm registo.
 ///
-/// Pode vir **negativa**: um mês com poucas vendas e uma compra grande de
-/// consumíveis gasta mais a servir do que recebe. Não se trunca a zero — é uma
-/// notícia, e quem a lê tem de a poder distinguir de uma margem apertada.
-double? _margemDe(OperationsState s, DateTime mes) {
-  final vendas = _vendasCents(s, mes);
-  if (vendas <= 0) return null;
-  return (vendas - _directosCents(s, mes)) / vendas;
-}
-
-/// A margem dos meses anteriores, agregada — soma de vendas e soma de custos
-/// directos, não uma média de percentagens (que daria peso igual a um mês de
-/// 300 € e a um de 4 000 €).
-double? _margemDosMesesAnteriores(OperationsState s, DateTime now) {
-  var vendas = 0;
-  var directos = 0;
+/// Só entram meses **com** despesas: um mês em branco no meio do histórico não
+/// é um mês de 0 € de renda, é um mês por preencher, e metê-lo na média puxava
+/// o alvo para baixo em silêncio.
+int? _mediaDaDespesa(OperationsState s, DateTime now) {
+  var total = 0;
   var meses = 0;
   for (var atras = 1; atras <= 12 && meses < _mesesDeRecurso; atras++) {
     final mes = DateTime(now.year, now.month - atras);
-    final v = _vendasCents(s, mes);
-    if (v <= 0) continue;
-    vendas += v;
-    directos += _directosCents(s, mes);
+    if (_despesasDoMes(s, mes).isEmpty) continue;
+    total += _despesaCents(s, mes);
     meses++;
   }
-  if (vendas <= 0) return null;
-  return (vendas - directos) / vendas;
+  return meses == 0 ? null : total ~/ meses;
 }
 
 /// O dia do mês em que as vendas acumuladas passaram [alvoCents], contado pela
@@ -186,50 +190,54 @@ int? _diaEmQuePassou(OperationsState s, DateTime now, int alvoCents) {
 ///
 /// Vive aqui, ao lado da conta, e não no catálogo: quem decide que faltam dados
 /// é quem os foi buscar. Devolve `null` quando **há** break even.
-String? motivoSemBreakEven(OperationsState s, DateTime now) {
-  if (breakEvenDoMes(s, now) != null) return null;
-  if (_estruturaCents(s, now) <= 0) {
-    return 'Sem despesas de estrutura lançadas este mês';
-  }
-  return 'Ainda não há vendas — deste mês nem dos anteriores';
-}
+String? motivoSemBreakEven(OperationsState s, DateTime now) =>
+    breakEvenDoMes(s, now) == null
+    ? 'Sem despesas registadas — neste mês nem nos anteriores'
+    : null;
 
 /// Quanto falta vender para o mês se pagar.
 ///
-/// `null` quando não há estrutura lançada este mês (não há alvo a cobrir) ou
-/// quando não há margem conhecida — nem deste mês nem dos anteriores. Nunca um
-/// zero silencioso: sem uma das duas pontas a célula diz o que falta.
+/// `null` só quando não há de onde tirar o que a casa custa: nem despesas neste
+/// mês, nem nos anteriores, nem custos fixos declarados. Nunca um zero
+/// silencioso — sem saber o custo, a célula diz o que falta preencher.
 BreakEvenDoMes? breakEvenDoMes(OperationsState s, DateTime now) {
-  final estrutura = _estruturaCents(s, now);
-  if (estrutura <= 0) return null;
+  final lancada = _despesaCents(s, now);
+  final media = _mediaDaDespesa(s, now);
+  final declarado = s.custoFixoMensalCents;
 
-  final margemDoMes = _margemDe(s, now);
-  final margem = margemDoMes ?? _margemDosMesesAnteriores(s, now);
-  if (margem == null) return null;
+  // O maior de três respostas à mesma pergunta. Somá-las era contar a renda
+  // três vezes; ficar pela primeira era dizer, a dia 2, que o mês não custa
+  // nada.
+  var alvo = lancada;
+  var origem = OrigemDoAlvo.lancado;
+  if (media != null && media > alvo) {
+    alvo = media;
+    origem = OrigemDoAlvo.media;
+  }
+  if (declarado != null && declarado > alvo) {
+    alvo = declarado;
+    origem = OrigemDoAlvo.declarado;
+  }
+  if (alvo <= 0) return null;
 
   final vendas = _vendasCents(s, now);
-  final necessarias = margem <= 0 ? null : (estrutura / margem).round();
+  final passou = _diaEmQuePassou(s, now, alvo);
 
   int? previsto;
-  int? passou;
-  if (necessarias != null) {
-    passou = _diaEmQuePassou(s, now, necessarias);
-    if (passou == null && vendas > 0) {
-      // Ao ritmo do que já se vendeu: quantos dias mais são precisos. É uma
-      // projecção e não uma promessa — por isso desaparece quando não chega ao
-      // fim do mês, em vez de apontar para um dia que não existe.
-      final ritmoDiario = vendas / now.day;
-      final dia = (necessarias / ritmoDiario).ceil();
-      if (dia <= _fimDoMes(now).day) previsto = dia;
-    }
+  if (passou == null && vendas > 0) {
+    // Ao ritmo do que já se vendeu: quantos dias mais são precisos. É uma
+    // projecção e não uma promessa — por isso desaparece quando não chega ao
+    // fim do mês, em vez de apontar para um dia que não existe.
+    final ritmoDiario = vendas / now.day;
+    final dia = (alvo / ritmoDiario).ceil();
+    if (dia <= _fimDoMes(now).day) previsto = dia;
   }
 
   return BreakEvenDoMes(
-    estruturaCents: estrutura,
+    alvoCents: alvo,
+    despesaLancadaCents: lancada,
+    origem: origem,
     vendasCents: vendas,
-    vendasNecessariasCents: necessarias,
-    margemDeContribuicao: margem,
-    margemDoProprioMes: margemDoMes != null,
     diaEmQuePassou: passou,
     diaPrevisto: previsto,
   );

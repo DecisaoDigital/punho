@@ -149,11 +149,11 @@ void main() {
   testWidgets('a sub-linha mais comprida do break even cabe no Redmi', (
     tester,
   ) async {
-    // O pior caso da célula, montado de propósito: um mês sem vendas ainda
-    // (margem emprestada dos anteriores, que se **tem** de dizer), com um alvo
-    // de seis dígitos e o aviso de que ao ritmo actual não chega. Dá
-    // "O mês paga-se com 156250 € · ao ritmo de hoje não chega este mês ·
-    // margem dos meses anteriores" — a sub-linha mais comprida do catálogo.
+    // O pior caso da célula, montado de propósito: Julho ainda sem uma despesa
+    // lançada nem uma venda, e Junho com 125 000 € — o alvo vem da média (que
+    // se **tem** de dizer), tem seis dígitos, e ao ritmo de hoje não chega.
+    // Dá "O mês paga-se com 125000 € · ao ritmo de hoje não chega este mês ·
+    // média dos meses anteriores", a sub-linha mais comprida do catálogo.
     //
     // Sem isto, o texto só era medido no dia em que ele abrisse a app e visse
     // a faixa amarela do overflow.
@@ -171,15 +171,8 @@ void main() {
       ],
       expenses: [
         Expense(
-          id: 'd-anterior',
+          id: 'e-junho',
           date: DateTime(2026, 6, 5),
-          amountCents: 20000,
-          category: ExpenseCategory.supplies,
-          status: ExpensePaymentStatus.paid,
-        ),
-        Expense(
-          id: 'e-julho',
-          date: DateTime(2026, 7, 2),
           amountCents: 12500000,
           category: ExpenseCategory.rent,
           status: ExpensePaymentStatus.unpaid,
@@ -202,7 +195,7 @@ void main() {
         ),
         tamanho: tamanho,
       );
-      expect(find.textContaining('margem dos meses anteriores'), findsWidgets);
+      expect(find.textContaining('média dos meses anteriores'), findsWidgets);
     }
   });
 

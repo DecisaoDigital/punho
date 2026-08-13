@@ -646,23 +646,15 @@ CelulaSemaforo kpiBreakEven(OperationsState estado, DateTime now) {
     );
   }
 
-  final alvo = be.vendasNecessariasCents;
-  if (alvo == null) {
-    // Margem de contribuição nula ou negativa: servir os trabalhos come mais do
-    // que eles rendem. Mandar vender mais aqui era mandar perder mais.
-    return const CelulaSemaforo(
-      nivel: NivelSemaforo.vermelho,
-      rotulo: 'Break even do mês',
-      texto: 'Vender mais não paga o mês',
-      subtexto: 'Os trabalhos custam mais a servir do que rendem — '
-          'o problema não é o volume.',
-    );
-  }
-
   final mes = _mesesPt[now.month - 1];
-  // A margem emprestada dos meses anteriores diz-se sempre. Um número
-  // aproximado vale mais do que um vazio, mas a fingir de exacto não vale nada.
-  final origem = be.margemDoProprioMes ? '' : ' · margem dos meses anteriores';
+  // De onde veio o alvo, dito sempre que não for o que já está lançado. Um
+  // número aproximado vale mais do que um vazio, mas a fingir de exacto não
+  // vale nada.
+  final origem = switch (be.origem) {
+    OrigemDoAlvo.lancado => '',
+    OrigemDoAlvo.media => ' · média dos meses anteriores',
+    OrigemDoAlvo.declarado => ' · pelos custos fixos declarados',
+  };
 
   if (be.atingido) {
     final dia = be.diaEmQuePassou;
@@ -671,8 +663,8 @@ CelulaSemaforo kpiBreakEven(OperationsState estado, DateTime now) {
       rotulo: 'Break even do mês',
       texto: 'O mês já se paga',
       subtexto: dia == null
-          ? 'Bastavam ${_euros(alvo)} € e vais em ${_euros(be.vendasCents)} €$origem'
-          : 'Passou a $dia de $mes, nos ${_euros(alvo)} € vendidos$origem',
+          ? 'Bastavam ${_euros(be.alvoCents)} € e vais em ${_euros(be.vendasCents)} €$origem'
+          : 'Passou a $dia de $mes, nos ${_euros(be.alvoCents)} € vendidos$origem',
     );
   }
 
@@ -680,11 +672,11 @@ CelulaSemaforo kpiBreakEven(OperationsState estado, DateTime now) {
   return CelulaSemaforo(
     nivel: NivelSemaforo.laranja,
     rotulo: 'Break even do mês',
-    valor: _euros(be.faltaCents!),
+    valor: _euros(be.faltaCents),
     unidade: '€ ainda por vender',
     valorEmDestaque: true,
     subtexto:
-        'O mês paga-se com ${_euros(alvo)} € · '
+        'O mês paga-se com ${_euros(be.alvoCents)} € · '
         '${previsto == null ? 'ao ritmo de hoje não chega este mês' : 'ao ritmo de hoje chega a $previsto de $mes'}$origem',
   );
 }
