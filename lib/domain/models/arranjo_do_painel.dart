@@ -56,6 +56,33 @@ class ArranjoDoPainel {
     );
   }
 
+  /// Marca [id] e põe-no **logo a seguir** a [depoisDe] na arrumação.
+  ///
+  /// É o gesto da sugestão do painel: quem sobe é o filho que explica um número
+  /// que está mau, e a explicação tem de ficar ao lado do número que explica.
+  /// Com o [comEscolha] normal ia para o fim da fila — noutra página do painel,
+  /// a quatro células de distância do que o motivou, e o gestor tinha de ir
+  /// arrastá-lo até lá para ver os dois juntos.
+  ///
+  /// Se [depoisDe] não estiver na arrumação, vai para o fim: é o mesmo que
+  /// [comEscolha] faria, e não se inventa um lugar a partir de uma âncora que
+  /// não existe.
+  ArranjoDoPainel comEscolhaJuntoDe(String id, {required String depoisDe}) {
+    // Tira-se primeiro para o caso de já lá estar noutro sítio — senão ficava
+    // duas vezes na arrumação, e a segunda mandava na ordem.
+    final nova = [
+      for (final x in ordem)
+        if (x != id) x,
+    ];
+    final ancora = nova.indexOf(depoisDe);
+    if (ancora < 0) {
+      nova.add(id);
+    } else {
+      nova.insert(ancora + 1, id);
+    }
+    return ArranjoDoPainel(ordem: nova, escolhidos: {...escolhidos, id});
+  }
+
   /// A nova arrumação, tal como a lista ficou depois do arrasto.
   ///
   /// **O que não vem em [nova] fica ancorado a quem tinha à frente.** São KPIs

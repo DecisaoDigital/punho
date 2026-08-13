@@ -7,6 +7,7 @@ import '../../../core/operations/painel_controller.dart';
 import '../../dashboard/presentation/kpi_catalogo.dart';
 import '../../dashboard/presentation/pagina_do_painel.dart';
 import '../../dashboard/presentation/widgets/kpi_grid_2x2.dart';
+import '../domain/sugestao_do_painel.dart';
 
 /// **KPIs (todos)** — a bancada. Todos os indicadores num sítio só, cada um a
 /// dizer em que ponto de verdade está, e daqui é que se monta o painel.
@@ -116,6 +117,8 @@ class KpisPage extends ConsumerWidget {
                             '${noPainel == 0 ? 'Marca os que queres no painel — está vazio.' : '$noPainel no painel · arrasta pela pega para ordenar.'}',
                   style: tt.bodySmall,
                 ),
+                if (sugestaoDoPainel(estado, arranjo, now) case final s?)
+                  _Sugestao(sugestao: s),
                 const SizedBox(height: 10),
               ],
             ),
@@ -170,6 +173,53 @@ class KpisPage extends ConsumerWidget {
                 now: now,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// **A app diz quem devia subir; quem sobe é ele.**
+///
+/// Uma linha, com o motivo e um botão. É o que restou da «promoção automática»
+/// do plano de KPIs — a parte automática não se fez de propósito, e está
+/// explicada em `features/kpis/domain/sugestao_do_painel.dart`.
+///
+/// **Sem botão de dispensar, e é uma escolha.** Um «agora não» que voltasse a
+/// aparecer na visita seguinte era uma promessa a fingir; guardá-lo a sério
+/// obrigava a gravar dispensas no repositório e a decidir quando é que uma
+/// dispensa caduca — trabalho a mais para calar uma linha que se cala sozinha.
+/// A sugestão desaparece quando ele a aceita, quando tira o pai do painel, ou
+/// quando o número deixa de estar mau. É este ecrã que existe para montar o
+/// painel: aqui, a proposta está em casa.
+class _Sugestao extends ConsumerWidget {
+  const _Sugestao({required this.sugestao});
+
+  final SugestaoDoPainel sugestao;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tt = Theme.of(context).textTheme;
+    final cores = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          // A seta de descer um degrau: é literalmente o que a cadeia faz, e
+          // uma lâmpada de «dica» prometia um conselho em vez de uma conta.
+          Icon(Icons.subdirectory_arrow_right, size: 18, color: cores.primary),
+          const SizedBox(width: 6),
+          Expanded(child: Text(sugestao.motivo, style: tt.bodySmall)),
+          const SizedBox(width: 8),
+          TextButton(
+            // Sobe **ao lado do pai**, e não para o fim da fila: a explicação
+            // longe do número que explica obriga a mudar de página do painel
+            // para os ver aos dois.
+            onPressed: () => ref
+                .read(painelProvider.notifier)
+                .porNoPainelJuntoDe(sugestao.kpi.id, depoisDe: sugestao.pai.id),
+            child: const Text('Pôr no painel'),
           ),
         ],
       ),

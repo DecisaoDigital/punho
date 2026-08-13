@@ -25,6 +25,11 @@ class PainelController extends Notifier<ArranjoDoPainel> {
 
   void reordenar(Iterable<String> ordem) => _guardar(_actual.comOrdem(ordem));
 
+  /// Aceita a sugestão da bancada: [id] sobe ao painel e fica ao lado do
+  /// número que o motivou. Ver `features/kpis/domain/sugestao_do_painel.dart`.
+  void porNoPainelJuntoDe(String id, {required String depoisDe}) =>
+      _guardar(_actual.comEscolhaJuntoDe(id, depoisDe: depoisDe));
+
   /// O que está **gravado**, e não o que este controlador tem em memória.
   ///
   /// A diferença não é teórica: o instantâneo do servidor escreve o painel

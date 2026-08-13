@@ -21,7 +21,9 @@ indicadores eram uma lista plana, sem pai nem filhos. E é aí que estava o valo
 inteiro da ideia — um número mau tem de ter um filho que o explique.
 
 Fases 1 a 4 do plano: substituídas por «encadear o que existe».
-Fases 5, 6 e 7: construídas.
+Fases 5, 6 e 7: construídas. A promoção ao painel, que o plano punha no fim e
+queria automática, ficou **proposta** — a app diz quem devia subir e porquê, e
+quem carrega no botão é ele.
 
 ---
 
@@ -224,6 +226,45 @@ grande sobre um mês pequeno assusta sem motivo), e o ecrã da cadeia ganhou os
 três meses em coluna. Um mês sem uma única linha escreve-se «sem registos», não
 0 € — 0 € era dizer que o mês correu mal quando o que houve foi não haver mês.
 
+## 5-quinquies. A sugestão do painel — `lib/features/kpis/domain/sugestao_do_painel.dart`
+
+O plano previa **promoção automática ao painel**, e é a última peça que faltava.
+A palavra que não se cumpriu foi *automática*: o painel é dele, montado à mão
+caixa a caixa na bancada, e uma app que lhe troca as células enquanto ele não
+olha tira-lhe exactamente o que a bancada lhe deu. O que se construiu é **uma
+frase e um botão**, no topo da «KPIs (todos)»:
+
+> ↳ O lucro caiu 683 € e o que mais pesou foi a estrutura. **[Pôr no painel]**
+
+Propõe-se o **filho que explica um número que está mau e já está no painel** —
+que é a cadeia a servir para o que foi feita. Três condições, e todas contam:
+
+1. **O pai está no painel e está mau.** Um KPI que ele não escolheu ver não
+   autoriza a app a propor-lhe mais nada; um número que está bem não precisa de
+   explicação. `aguarda` não conta como mau: é um número por começar, e propor
+   um filho para o explicar era responder a uma pergunta que ninguém fez.
+2. **O filho está pronto** — fonte cheia e conta verificada. A mesma regra das
+   caixas de marcar: não se promove o que nós próprios ainda não assinámos.
+3. **O filho está mau também** — excepto no Lucro, onde não se adivinha: a
+   decomposição do ecrã de atenção sabe ao cêntimo qual das parcelas pesou mais,
+   e é essa que sobe, esteja a célula dela verde ou laranja. **É a conta que
+   manda, não a cor.** Fora do Lucro não há decomposição exacta, e por isso
+   exige-se mais.
+
+Quando nenhum filho serve, **não se diz nada** — silêncio é uma resposta
+legítima, e uma proposta de cada vez porque duas já são um painel escolhido por
+outra pessoa.
+
+Duas decisões pequenas que se pagam:
+
+- **Quem sobe fica ao lado do pai** (`ArranjoDoPainel.comEscolhaJuntoDe`), e não
+  no fim da fila. O painel mostra quatro por página: no fim, a explicação caía na
+  página seguinte e vê-los juntos passava a exigir um arrasto.
+- **Não há botão de dispensar.** Um «agora não» que voltasse na visita seguinte
+  era uma promessa a fingir, e guardá-lo a sério obrigava a gravar dispensas e a
+  decidir quando caducam. A linha cala-se sozinha: quando ele aceita, quando tira
+  o pai do painel, ou quando o número deixa de estar mau.
+
 ## 6. O homólogo (Fase 7)
 
 `MesComparado` traz o mês anterior **e** o homólogo, e o homólogo ganha sempre
@@ -258,14 +299,15 @@ despesas como `paid` no próprio dia, portanto o DPO é zero e o ciclo de
 tesouraria fica meio. Está assinalado em `MAPA_DADOS.md` §4 em vez de
 disfarçado.
 
-**4. Promoção automática ao painel.** O plano previa-a; continua tudo manual. A
-cadeia é a peça que faltava para a poder fazer bem — quem sobe ao painel devia
-ser o filho que explica o número que está mau —, mas isso mexe no painel dele
-sem lhe perguntar, e não se faz sem ok.
+**4. ~~Promoção automática ao painel.~~ Feita, e de propósito não automática.**
+A cadeia era a peça que faltava para a fazer bem — quem sobe é o filho que
+explica o número que está mau —, e o que travava era mexer no painel dele sem
+lhe perguntar. Resolveu-se perguntando: a bancada propõe numa linha e o botão é
+dele. Ver 5-quinquies.
 
 **5. O que está publicado, e o que não está.** A cadeia, o ecrã de atenção e o
 homólogo saíram na **0.3.75+47**, a 13 de Agosto — e chegaram ao Redmi pela
 auto-actualização da própria app, sem cabo e sem browser (o ponto 11 do
-`SMOKE.md`, que estava por provar desde a 0.3.3). O **break even** e os três
-meses lado a lado são posteriores: estão no repositório e **não** estão em
-nenhum APK.
+`SMOKE.md`, que estava por provar desde a 0.3.3). O **break even**, os três meses
+lado a lado e a **sugestão do painel** são posteriores: estão no repositório e
+**não** estão em nenhum APK.
