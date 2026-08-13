@@ -52,7 +52,7 @@ class _DefinicoesCadeadoPageState extends ConsumerState<DefinicoesCadeadoPage> {
   Future<void> _definirOuMudarPin() async {
     final eraNovo = !_temPin;
     final novo = await Navigator.of(context).push<String?>(
-      MaterialPageRoute(builder: (_) => const _DefinirPinScreen()),
+      MaterialPageRoute(builder: (_) => const DefinirPinScreen()),
     );
     if (novo == null || novo.isEmpty) return;
     await ref.read(cadeadoServiceProvider).guardarPin(novo);
@@ -230,13 +230,19 @@ class _DefinicoesCadeadoPageState extends ConsumerState<DefinicoesCadeadoPage> {
   );
 }
 
-class _DefinirPinScreen extends StatefulWidget {
-  const _DefinirPinScreen();
+/// O ecrã que pede o PIN duas vezes.
+///
+/// Público só para se poder medir: não depende do serviço nem de nada que
+/// precise de mocks — devolve o PIN pelo `pop` e mais nada. O teste em
+/// `test/core/cadeado/definir_pin_cabe_no_ecra_test.dart` monta-o directamente
+/// com o teclado aberto e às medidas do Redmi deitado.
+class DefinirPinScreen extends StatefulWidget {
+  const DefinirPinScreen({super.key});
   @override
-  State<_DefinirPinScreen> createState() => _DefinirPinScreenState();
+  State<DefinirPinScreen> createState() => _DefinirPinScreenState();
 }
 
-class _DefinirPinScreenState extends State<_DefinirPinScreen> {
+class _DefinirPinScreenState extends State<DefinirPinScreen> {
   final _pin1 = TextEditingController();
   final _pin2 = TextEditingController();
   String? _erro;
@@ -262,31 +268,69 @@ class _DefinirPinScreenState extends State<_DefinirPinScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Definir PIN')),
-    body: Padding(
+    // **O «Guardar» vive na barra**, como em todos os outros formulários da app
+    // (`EcraDeFormulario.rotuloGuardar`). Em baixo ficava debaixo do teclado, e
+    // um botão que só se alcança rolando é um botão que metade das pessoas não
+    // encontra. Na barra está sempre à vista, seja qual for a altura do teclado.
+    appBar: AppBar(
+      title: const Text('Definir PIN'),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: FilledButton(
+            onPressed: _validar,
+            child: const Text('Guardar'),
+          ),
+        ),
+      ],
+    ),
+    // **Rola.** O primeiro campo tem `autofocus`, portanto o teclado abre
+    // sozinho ao entrar neste ecrã — e deitado o teclado come 200 dos 393 dp
+    // que o Redmi tem de altura. Sem isto, o campo de repetir e o «Guardar»
+    // ficavam 143 dp abaixo do fundo, sem nada que os fosse buscar: deitado,
+    // o cadeado não se conseguia activar de todo.
+    body: SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         24,
         24,
         24,
         MediaQuery.viewInsetsOf(context).bottom + 24,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('4 a 6 dígitos. Só vive neste dispositivo.'),
-          const SizedBox(height: 16),
-          _campoPin(_pin1, 'PIN', autofocus: true),
-          const SizedBox(height: 12),
-          _campoPin(_pin2, 'Repetir PIN'),
-          if (_erro != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(_erro!, style: const TextStyle(color: Colors.red)),
-            ),
-          const SizedBox(height: 24),
-          FilledButton(onPressed: _validar, child: const Text('Guardar')),
-        ],
+      child: LayoutBuilder(
+        builder: (context, restricoes) {
+          // Deitado sobram 790 dp de largura e faltam-lhe 143 de altura. Os
+          // dois campos passam a lado a lado, que é como o resto da app paga
+          // a altura em paisagem — ver `EcraDeFormulario`. Poupa 97 dp e faz
+          // caber quase tudo sem rolar; o `SingleChildScrollView` fica de
+          // rede, para o teclado que for mais alto do que este.
+          final lado = restricoes.maxWidth >= 480;
+          final pin = _campoPin(_pin1, 'PIN', autofocus: true);
+          final repetir = _campoPin(_pin2, 'Repetir PIN');
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('4 a 6 dígitos. Só vive neste dispositivo.'),
+              const SizedBox(height: 16),
+              if (lado)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: pin),
+                    const SizedBox(width: 16),
+                    Expanded(child: repetir),
+                  ],
+                )
+              else ...[pin, const SizedBox(height: 12), repetir],
+              if (_erro != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Text(_erro!, style: const TextStyle(color: Colors.red)),
+                ),
+            ],
+          );
+        },
       ),
     ),
   );

@@ -3182,7 +3182,14 @@ class _BookingSlotCell extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: InkWell(
-                      onTap: () => _bookingStatusDialog(context, ref, booking),
+                      onTap: () => _bookingStatusDialog(
+                        context,
+                        ref,
+                        booking,
+                        naCelula: bookings,
+                        quando: _quandoDaCelula(day, slot),
+                        state: state,
+                      ),
                       child: _BookingEventChip(booking: booking, state: state),
                     ),
                   ),
@@ -3334,6 +3341,37 @@ class _MonthBookingsCalendar extends ConsumerWidget {
   }
 }
 
+/// **A referência, ou o nome.** Mostrava só a referência, e ela é opcional:
+/// quem regista a máquina e deixa esse campo em branco ficava com uma linha
+/// vazia por cima do cliente. Apanhado a 11 de Agosto de 2026 no telemóvel do
+/// César — «Depiladora1» e «Depiladora laser verde», ambas sem referência,
+/// apareciam como nada. Uma etiqueta que não diz de que máquina é não serve
+/// para nada num calendário de todas as máquinas.
+///
+/// Vive aqui fora porque a etiqueta do calendário e o diálogo de estado têm de
+/// dizer **as mesmas palavras**: quem carrega numa etiqueta tem de reconhecer,
+/// na caixa que abre, a reserva em que carregou.
+String _maquinasDaReserva(Booking booking, OperationsState state) => booking
+    .machineIds
+    .map((id) {
+      final maquina = state.machines
+          .where((machine) => machine.id == id)
+          .firstOrNull;
+      if (maquina == null) return 'Máquina';
+      final referencia = maquina.reference.trim();
+      return referencia.isEmpty ? maquina.name : referencia;
+    })
+    .join(', ');
+
+String _clienteDaReserva(Booking booking, OperationsState state) =>
+    booking.customerNameSnapshot.isEmpty
+    ? state.customers
+              .where((item) => item.id == booking.customerId)
+              .map((item) => item.name)
+              .firstOrNull ??
+          'Cliente'
+    : booking.customerNameSnapshot;
+
 class _BookingEventChip extends StatelessWidget {
   const _BookingEventChip({required this.booking, required this.state});
   final Booking booking;
@@ -3341,29 +3379,8 @@ class _BookingEventChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // **A referência, ou o nome.** Mostrava só a referência, e ela é opcional:
-    // quem regista a máquina e deixa esse campo em branco ficava com uma linha
-    // vazia por cima do cliente. Apanhado a 11 de Agosto de 2026 no telemóvel
-    // do César — «Depiladora1» e «Depiladora laser verde», ambas sem
-    // referência, apareciam como nada. Uma etiqueta que não diz de que máquina
-    // é não serve para nada num calendário de todas as máquinas.
-    final machineNames = booking.machineIds
-        .map((id) {
-          final maquina = state.machines
-              .where((machine) => machine.id == id)
-              .firstOrNull;
-          if (maquina == null) return 'Máquina';
-          final referencia = maquina.reference.trim();
-          return referencia.isEmpty ? maquina.name : referencia;
-        })
-        .join(', ');
-    final customer = booking.customerNameSnapshot.isEmpty
-        ? state.customers
-                  .where((item) => item.id == booking.customerId)
-                  .map((item) => item.name)
-                  .firstOrNull ??
-              'Cliente'
-        : booking.customerNameSnapshot;
+    final machineNames = _maquinasDaReserva(booking, state);
+    final customer = _clienteDaReserva(booking, state);
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -3441,6 +3458,16 @@ bool _overlapsDay(Booking booking, DateTime day) {
   return booking.startsAt.isBefore(end) && booking.endsAt.isAfter(start);
 }
 
+/// «Qua, 12/8 · Manhã» — o meio-dia em que se carregou, por palavras.
+///
+/// A caixa de estado abre por cima do calendário e tapa-o: sem esta linha, quem
+/// a abre deixa de ver em que dia estava.
+String _quandoDaCelula(DateTime day, _HalfDay slot) {
+  const dias = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+  final meioDia = slot == _HalfDay.morning ? 'Manhã' : 'Tarde';
+  return '${dias[day.weekday - 1]}, ${day.day}/${day.month} · $meioDia';
+}
+
 bool _overlapsSlot(Booking booking, DateTime day, _HalfDay slot) {
   final start = _slotStartsAt(day, slot);
   final end = start.add(const Duration(hours: 12));
@@ -3496,19 +3523,93 @@ bool _gestorPodeEditarValor(WidgetRef ref) => SupabaseConfig.enabled
 String _valorPrevistoLabel(int? cents) =>
     cents == null ? 'Por definir' : '${(cents / 100).toStringAsFixed(2)} €';
 
+/// A caixa que abre quando se carrega numa etiqueta do calendário.
+///
+/// **Dizia «Atualizar estado da reserva» e mais nada.** Numa célula de meio-dia
+/// com duas reservas — máquinas diferentes, clientes diferentes — não havia
+/// como saber em qual delas se tinha carregado, nem sequer que existia uma
+/// segunda: a célula tem 44 dp de altura e a segunda etiqueta fica cortada por
+/// baixo. Carregava-se às cegas e mudava-se o estado de uma reserva sem saber
+/// de quem era. O César, a 13 de Agosto de 2026, no telemóvel dele.
+///
+/// Agora a caixa diz de quem é ([naCelula] traz o resto da célula) e deixa
+/// saltar para a outra sem fechar nada.
 Future<void> _bookingStatusDialog(
   BuildContext context,
   WidgetRef ref,
-  Booking booking,
-) async {
+  Booking booking, {
+  required OperationsState state,
+  List<Booking> naCelula = const [],
+  String? quando,
+}) async {
   final podeEditarValor = _gestorPodeEditarValor(ref);
+  final estado = state;
+  final vizinhas = naCelula
+      .where((outra) => outra.id != booking.id)
+      .toList(growable: false);
   await showDialog<void>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('Atualizar estado da reserva'),
-      content: Column(
+      // O título passa a ser a identidade da reserva. O verbo — o que se vem
+      // aqui fazer — já está na lista de estados logo abaixo.
+      title: Text(
+        '${_maquinasDaReserva(booking, estado)} · '
+        '${_clienteDaReserva(booking, estado)}',
+      ),
+      // **Rola.** São seis estados mais o valor: 400 dp de conteúdo numa caixa
+      // que, com o telemóvel deitado, tem 393 dp de ecrã inteiro. Sem isto os
+      // últimos estados — «Concluída» e «Cancelada» — ficavam fora da caixa, e
+      // «Cancelada» é o único caminho para desfazer uma marcação enganada.
+      content: SingleChildScrollView(
+        child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (quando != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                quando,
+                style: Theme.of(dialogContext).textTheme.bodyMedium,
+              ),
+            ),
+          // As outras reservas da mesma célula. Sem esta lista, a segunda
+          // reserva de um meio-dia era invisível: não cabe na célula e nada
+          // dizia que existia.
+          if (vizinhas.isNotEmpty) ...[
+            Text(
+              vizinhas.length == 1
+                  ? 'Este meio-dia tem mais uma reserva:'
+                  : 'Este meio-dia tem mais ${vizinhas.length} reservas:',
+              style: Theme.of(dialogContext).textTheme.labelLarge,
+            ),
+            for (final outra in vizinhas)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.event_outlined,
+                  color: _bookingColor(outra.status),
+                ),
+                title: Text(
+                  '${_maquinasDaReserva(outra, estado)} · '
+                  '${_clienteDaReserva(outra, estado)}',
+                ),
+                subtitle: Text(_bookingStatusLabel(outra.status)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () async {
+                  Navigator.pop(dialogContext);
+                  await _bookingStatusDialog(
+                    context,
+                    ref,
+                    outra,
+                    naCelula: naCelula,
+                    quando: quando,
+                    state: state,
+                  );
+                },
+              ),
+            const Divider(height: 8),
+          ],
           // O valor previsto do trabalho, editável só pelo gestor. Um
           // funcionário vê o número, não lhe toca — o ícone de lápis nem
           // aparece e a linha não responde ao toque.
@@ -3551,6 +3652,7 @@ Future<void> _bookingStatusDialog(
               },
             ),
         ],
+        ),
       ),
     ),
   );

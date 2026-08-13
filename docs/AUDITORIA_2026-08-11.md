@@ -43,7 +43,20 @@ Este ficheiro é a lista viva. Actualiza-se à medida que se fecha.
 
 ### Alta
 
-**Nada aberto em Alta.**
+**Nada aberto em Alta.** Fechou a 13/8 o que aqui esteve umas horas: **o
+cadeado não se conseguia activar com o telemóvel deitado**. O primeiro campo do
+«Definir PIN» tem `autofocus`, portanto o teclado abre sozinho e come 200 dos
+393 dp de altura; o conteúdo mede 336 e não havia nada para rolar, por isso o
+campo de repetir e o «Guardar» ficavam 143 dp abaixo do fundo do ecrã. A app
+oferecia um cadeado que não se podia fechar. Os campos passam a lado a lado em
+paisagem, o «Guardar» foi para a barra — como em todos os outros formulários —
+e o corpo rola. Cinco testes em
+`test/core/cadeado/definir_pin_cabe_no_ecra_test.dart`, com controlo de pé.
+
+Passou-me ao lado no smoke da véspera **porque eu conduzi a app por `adb`**:
+para chegar ao segundo campo carreguei em «voltar atrás» para esconder o
+teclado, uma manobra que ninguém faz com o dedo, e registei-a como esquisitice
+do `uiautomator` em vez de a ler pelo que era.
 
 ### Média
 
@@ -83,24 +96,20 @@ apareçam em fugas conhecidas, e isso dá atrito imediato com as contas de ensai
 
 Índices contra planos reais.
 
-**A etiqueta da reserva no calendário não respondeu ao toque no Redmi.** É por
-ali que se chega ao diálogo «Atualizar estado da reserva», e é esse diálogo que
-tem o estado **Cancelada** — ou seja, é o único caminho para desfazer uma
-marcação feita por engano. A 12/8 experimentaram-se seis pontos dentro da
-etiqueta e um toque com 140 ms de duração: nenhum abriu o diálogo, enquanto no
-mesmo minuto os outros botões do ecrã respondiam todos.
+**Resolvido a 13/8, e ao contrário do que eu tinha escrito.** A 12/8 dei a
+etiqueta da reserva por não responder ao toque, depois de seis pontos e de um
+toque de 140 ms injectados por `adb`. **Com o dedo dele abre à primeira** — o
+que não respondia era a injecção, não a app. A sonda tinha razão e eu li-a mal:
+ela dizia que a árvore estava certa, e estava.
 
-Não fica marcado como defeito porque a prova não é conclusiva nos dois sentidos:
-uma sonda que reconstrói a forma exacta da célula — `InkWell` sem `onTap` por
-fora, `ListView` no meio, `InkWell` com `onTap` na etiqueta — **entrega o toque
-como devia**. Ou seja, a árvore de widgets está certa e a causa é outra. Falta o
-dedo do César: se abrir com o dedo, o defeito é da injecção de toques do MIUI e
-não da app; se não abrir, é a coisa mais séria desta lista, porque uma reserva
-enganada fica lá para sempre a contar para os KPIs.
-
-Fica no aparelho, propositadamente, uma reserva de teste — **Smoke0374,
-Depiladora2, 12/8 de manhã, 100 €** — que é exactamente a marcação a tentar
-cancelar. O cliente `SemRede0374` do teste sem rede já foi apagado.
+O que o dedo dele encontrou foi outra coisa, mais real: **a caixa que abre não
+dizia de que reserva era.** Título «Atualizar estado da reserva» e mais nada —
+nem máquina, nem cliente, nem dia. E numa célula de meio-dia com duas reservas,
+a segunda era invisível: a célula tem 44 dp e a etiqueta de baixo fica cortada.
+Mudava-se o estado às cegas. Além disso, os seis estados não cabiam na caixa
+deitado, e **«Cancelada» — o desfazer — era o primeiro a ficar de fora.**
+Fechado com identidade no título, a lista das vizinhas com salto directo, e a
+caixa a rolar. Cinco testes em `test/features/operations/celula_com_duas_reservas_test.dart`.
 
 ## O que fica de pé
 
