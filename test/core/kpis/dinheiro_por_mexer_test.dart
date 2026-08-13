@@ -154,6 +154,83 @@ void main() {
     });
   });
 
+  group('a régua é o costume da casa', () {
+    /// Oito trabalhos pagos ao fim de 21 dias — o que a Depilconcept faz
+    /// mesmo, medido na base a 13/8/2026 (mediana 21, média 21, máximo 38).
+    List<Booking> oitoPagosA21() => [
+      for (var i = 1; i <= 8; i++)
+        trabalho('h$i', DateTime(2025, 6, i, 18), 10000, cliente: 'c$i'),
+    ];
+    List<Receipt> osOitoRecibos() => [
+      for (var i = 1; i <= 8; i++)
+        Receipt(
+          id: 'rh$i',
+          date: DateTime(2025, 6, i + 21),
+          amountCents: 10000,
+          customerId: 'c$i',
+          method: PaymentMethod.transfer,
+          bookingId: 'h$i',
+        ),
+    ];
+
+    test('mede-se nos recibos que já lá estão', () {
+      final estado = OperationsState(
+        bookings: oitoPagosA21(),
+        receipts: osOitoRecibos(),
+      );
+      expect(costumeDeRecebimento(estado), 21);
+    });
+
+    test('dentro do costume é dinheiro a caminho, não dívida', () {
+      // **O defeito que os dados revelaram.** Com a fronteira no dia seguinte ao
+      // fim do trabalho, esta cobrança de 10 dias entrava — e o KPI ficava
+      // sempre aceso com o que é normal. Um número sempre aceso não se lê.
+      final estado = OperationsState(
+        bookings: [
+          ...oitoPagosA21(),
+          trabalho('nova', DateTime(2026, 8, 3, 18), 50000),
+        ],
+        receipts: osOitoRecibos(),
+      );
+
+      expect(cobrancasVencidas(estado, hoje), isNull);
+      expect(kpiCobrancasEmAtraso(estado, hoje).nivel, NivelSemaforo.verde);
+    });
+
+    test('passado o costume, entra — e a célula diz a régua que usou', () {
+      final estado = OperationsState(
+        bookings: [
+          ...oitoPagosA21(),
+          trabalho('velha', DateTime(2026, 7, 4, 18), 50000),
+        ],
+        receipts: osOitoRecibos(),
+      );
+      final v = cobrancasVencidas(estado, hoje)!;
+
+      expect(v.totalCents, 50000);
+      expect(v.costumeDias, 21);
+      expect(
+        kpiCobrancasEmAtraso(estado, hoje).subtexto,
+        'Além dos 21 dias do costume · Herdade do Vale, há 40 dias',
+      );
+    });
+
+    test('quatro recibos não são um costume, são uma coincidência', () {
+      final estado = OperationsState(
+        bookings: [
+          ...oitoPagosA21().take(4),
+          trabalho('nova', DateTime(2026, 8, 3, 18), 50000),
+        ],
+        receipts: osOitoRecibos().take(4).toList(),
+      );
+
+      expect(costumeDeRecebimento(estado), isNull);
+      // E sem régua medida volta-se ao dia seguinte ao fim do trabalho, que é
+      // onde o modelo do Punho põe o vencimento.
+      expect(cobrancasVencidas(estado, hoje)!.costumeDias, isNull);
+    });
+  });
+
   group('contas a pagar', () {
     test('conta as de meses anteriores — a dívida não vira com o calendário', () {
       // Era o defeito a evitar: limitar ao mês corrente fazia a factura de Junho

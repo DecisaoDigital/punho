@@ -307,19 +307,39 @@ ficha por preencher ensina a desconfiar do painel. Quando não há trabalho
 marcado, a sub-linha diz quanto não facturou ao preço de tabela: é uma ordem de
 grandeza assumida, e vale por se conferir de cabeça.
 
-**O que estes três dizem hoje na Depilconcept** (base consultada a 13/8/2026):
+## 7.4 As pontas da semente, e o defeito que elas taparam
+
+Os dois primeiros nasceram a mostrar números do gerador e não do negócio: **Em
+atraso 13 019 € com 769 dias** (a semente deixa 12% das reservas por pagar *para
+sempre* — uma casa a funcionar recebe ou dá por perdido) e **Contas a pagar
+«Nada por pagar»** (a semente marca tudo `paid` no próprio dia, e é a mesma raiz
+do DPO a zero). Ele mandou fechar: `scripts/fechar_pontas_da_semente.sql`,
+corrido contra produção a 13 de Agosto. Cobrou-se o que tinha mais de 45 dias —
+93 recibos, 9 854 € — e marcaram-se por pagar quatro facturas de fornecedor.
+
+**E foi aí que o KPI mostrou o próprio defeito.** Com as pontas arrumadas
+sobravam 3 165 € «em atraso», ainda mais de um mês de facturação. Não era dívida:
+os clientes desta casa pagam com uma mediana de **21 dias** — medida nos recibos
+que já lá estavam — e a fronteira que eu tinha posto no dia seguinte ao fim do
+trabalho chamava atraso ao que era normal. **Um número sempre aceso não se lê**,
+que é o mesmo defeito do painel de empresa nova com onze laranjas.
+
+A régua passou a ser o costume da própria casa: a mediana do tempo entre acabar
+o trabalho e o dinheiro entrar, com um mínimo de oito recibos para haver
+costume (abaixo disso é coincidência) e um tecto de 45 dias (uma casa que recebe
+a seis meses precisa de saber quem lhe deve). **A célula diz a régua** — «Além
+dos 21 dias do costume» —, porque uma fronteira que não se vê não se pode
+contestar. É a mesma ideia da apreciação da caixa: o padrão é o da empresa, não
+o do manual. Sem recibos que cheguem, volta ao dia seguinte ao fim do trabalho,
+que é onde o modelo do Punho põe o vencimento.
+
+**O que os três dizem hoje na Depilconcept**, já com tudo arrumado:
 
 | KPI | Valor | Porquê |
 | --- | --- | --- |
-| Em atraso | **13 019 € · 13 clientes**, a mais velha há 769 dias | vermelho |
-| Contas a pagar | **Nada por pagar** | verde — a semente marca tudo pago |
+| Em atraso | **1 085 € · 8 clientes**, a mais velha há 39 dias | laranja — dos 3 165 € por receber, 2 080 € ainda estão a horas |
+| Contas a pagar | **549 € · 4 despesas**, a mais velha há 25 dias | laranja |
 | Máquina parada | **Depiladora2, 1 dia** | verde |
-
-Os dois extremos são **artefactos da semente e estão assinalados como tal**: ela
-não gerou recibo para 123 das 825 reservas (algumas de 2024, daí os 769 dias) e
-marcou todas as despesas como pagas no próprio dia. As contas estão certas; os
-dados de ensaio é que têm estas duas pontas por fechar — a mesma raiz do ponto 3
-de «o que fica por fazer».
 
 ---
 
@@ -343,14 +363,9 @@ despesa lançada, a média dos três meses anteriores e os custos fixos declarad
 — ver 5-bis. Os declarados continuam a servir, mas como rede para quem ainda não
 tem histórico, e não como condição.
 
-**3. As duas pontas por fechar da semente.** Ela lança todas as despesas como
-`paid` no próprio dia — portanto o DPO é zero, o ciclo de tesouraria fica meio e
-o novo «Contas a pagar» diz **Nada por pagar**. E do outro lado deixou 123 das
-825 reservas sem recibo, algumas de 2024, o que enche o novo «Em atraso» com
-13 019 € e 769 dias. Nenhum dos dois é um defeito de conta: são dados de ensaio
-com pontas soltas, assinalados aqui e em `MAPA_DADOS.md` §4 em vez de
-disfarçados. Fechá-las é semear recibos para o histórico antigo e marcar uma
-parte das despesas como por pagar — mexe em produção, e não se faz sem ok.
+**3. ~~As duas pontas por fechar da semente.~~ Fechadas a 13 de Agosto**, com o
+ok dele — `scripts/fechar_pontas_da_semente.sql`, corrido contra produção. Ver
+7.4.
 
 **4. ~~Promoção automática ao painel.~~ Feita, e de propósito não automática.**
 A cadeia era a peça que faltava para a fazer bem — quem sobe é o filho que

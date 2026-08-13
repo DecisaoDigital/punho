@@ -1146,6 +1146,7 @@ CelulaSemaforo kpiCobrancasEmAtraso(OperationsState estado, DateTime now) {
   }
 
   final dias = vencidas.diasDoMaisAntigo;
+  final costume = vencidas.costumeDias;
   return CelulaSemaforo(
     nivel: vencidas.grave ? NivelSemaforo.vermelho : NivelSemaforo.laranja,
     rotulo: 'Em atraso',
@@ -1154,10 +1155,16 @@ CelulaSemaforo kpiCobrancasEmAtraso(OperationsState estado, DateTime now) {
         ? '€ · 1 cliente'
         : '€ · ${vencidas.clientes} clientes',
     valorEmDestaque: true,
-    subtexto:
-        'A mais velha é de ${vencidas.maisAntiga.clienteNome}, '
-        'há $dias ${dias == 1 ? 'dia' : 'dias'} · '
-        '${_euros(vencidas.maisAntiga.emDividaCents)} €',
+    // **A régua diz-se.** Uma fronteira que não se vê não se pode contestar — e
+    // esta não é um prazo do manual, é o que os clientes desta casa costumam
+    // demorar. Sem recibos que cheguem para a medir, não se escreve régua
+    // nenhuma: seria uma que não existe.
+    subtexto: costume == null
+        ? 'A mais velha é de ${vencidas.maisAntiga.clienteNome}, '
+              'há $dias ${dias == 1 ? 'dia' : 'dias'} · '
+              '${_euros(vencidas.maisAntiga.emDividaCents)} €'
+        : 'Além dos $costume dias do costume · '
+              '${vencidas.maisAntiga.clienteNome}, há $dias dias',
   );
 }
 
