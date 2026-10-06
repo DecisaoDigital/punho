@@ -39,7 +39,7 @@ class SupabaseSubscricaoService implements SubscricaoService {
     } catch (erro) {
       // Falha de rede não pode travar a criação de colaboradores — quem
       // chama fica com o valor local. Ver a mesma regra em
-      // `PunhoLicencaService.validar`.
+      // `FistLicencaService.validar`.
       debugPrint('limiteColaboradoresAtivos falhou: $erro');
       return null;
     }

@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/finance/regime_fiscal.dart';
-import 'package:punho/core/operations/kpis.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/domain/models/finance.dart';
-import 'package:punho/domain/models/workforce.dart';
-import 'package:punho/features/dashboard/presentation/pagina_do_painel.dart';
+import 'package:fist/core/finance/regime_fiscal.dart';
+import 'package:fist/core/operations/kpis.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/domain/models/finance.dart';
+import 'package:fist/domain/models/workforce.dart';
+import 'package:fist/features/dashboard/presentation/pagina_do_painel.dart';
 
 import 'fixtura.dart';
 

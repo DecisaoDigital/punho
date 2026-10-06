@@ -1,14 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/domain/models/arranjo_do_painel.dart';
-import 'package:punho/domain/models/operations.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/domain/models/arranjo_do_painel.dart';
+import 'package:fist/domain/models/operations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// **O painel do gestor não fica no telemóvel dele.**
 ///
-/// Quem troca de aparelho — ou reinstala, que no Punho é coisa segura — tem de
+/// Quem troca de aparelho — ou reinstala, que no Fist é coisa segura — tem de
 /// encontrar o painel como o deixou. Uma preferência só local dava um painel
 /// por telemóvel, e a arrumação que ele fez uma tarde desaparecia na primeira
 /// vez que instalasse a app noutro sítio.

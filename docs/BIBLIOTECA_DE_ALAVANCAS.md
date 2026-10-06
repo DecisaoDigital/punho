@@ -1,11 +1,11 @@
-# Biblioteca de Alavancas Punho
+# Biblioteca de Alavancas Fist
 
-Esta biblioteca é uma fonte de princípios para o motor de orientação do Punho.
+Esta biblioteca é uma fonte de princípios para o motor de orientação do Fist.
 Não é uma colecção de citações motivacionais nem uma associação comercial a autores, livros ou empresas.
 
 ## Regra editorial e jurídica
 
-- O texto mostrado ao empresário é sempre redigido pelo Punho e aplicado aos seus próprios dados.
+- O texto mostrado ao empresário é sempre redigido pelo Fist e aplicado aos seus próprios dados.
 - Não atribuir frases a autores sem fonte verificável e autorização quando necessária.
 - Em Portugal, a protecção patrimonial de uma obra dura, em regra, 70 anos após a morte do autor. A morte do autor, por si só, não torna um livro livre para reutilização.
 - Uma tradução pode ter direitos autónomos, mesmo quando o original esteja em domínio público.
@@ -13,7 +13,7 @@ Não é uma colecção de citações motivacionais nem uma associação comercia
 
 ## Princípios e aplicação prática
 
-| Princípio | Base de investigação | Aplicação no Punho |
+| Princípio | Base de investigação | Aplicação no Fist |
 |---|---|---|
 | Medir antes de corrigir | Frederick W. Taylor, *The Principles of Scientific Management* (1911) | Não recomendar cortar custos ou fazer promoções sem dados mínimos. Mostrar "por apurar" e pedir o registo que falta. |
 | Especializar e simplificar | Adam Smith, *The Wealth of Nations* (1776) | Separar tarefas repetidas: reserva, entrega, recolha, recebimento, manutenção. Criar listas de verificação curtas. |
@@ -25,7 +25,7 @@ Não é uma colecção de citações motivacionais nem uma associação comercia
 | Proteger a tesouraria | Prática moderna de gestão financeira | Separar facturado, recebido, por receber, por pagar e caixa previsto. Crescimento sem caixa não é sucesso. |
 | Atacar a restrição principal | Teoria das restrições, aplicada sem citação | Identificar aquilo que hoje limita o negócio: falta de leads, máquinas paradas, atraso de cobrança, manutenção ou capacidade de equipa. |
 
-## As cinco alavancas do Punho
+## As cinco alavancas do Fist
 
 1. **Procura e vendas** — leads válidas, taxa de conversão, preço e campanhas de dias fracos.
 2. **Tesouraria** — por receber, por pagar, compromissos e previsão de curto prazo.
@@ -33,7 +33,7 @@ Não é uma colecção de citações motivacionais nem uma associação comercia
 4. **Utilização da frota** — máquinas identificadas, alugadas, paradas, manutenção e retorno por activo.
 5. **Equipa e processo** — responsabilidades, horário/actividade, qualidade de registos e processos repetíveis.
 
-## Forma de uma recomendação Punho
+## Forma de uma recomendação Fist
 
 Cada recomendação deve conter:
 

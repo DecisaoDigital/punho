@@ -1,7 +1,7 @@
 <!-- Placeholder da marca: quadrado laranja + mão aberta, igual ao BrandLockup
      da app (lib/shared/widgets/brand_lockup.dart). Substituir pelo logótipo
      final quando existir — ver assets/brand/README.md. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Punho">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Fist">
   <rect width="48" height="48" rx="12" fill="#F2A23A"/>
   <g fill="none" stroke="#10283A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
     <path d="M17 24V14.5a2 2 0 0 1 4 0V23"/>

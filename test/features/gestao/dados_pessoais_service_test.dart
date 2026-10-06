@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:punho/features/gestao/data/dados_pessoais_service.dart';
+import 'package:fist/features/gestao/data/dados_pessoais_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// **Um apagamento tem de apagar mesmo — e não pode aceitar de onde.**

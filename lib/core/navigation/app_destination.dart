@@ -69,7 +69,7 @@ enum AbaDaEmpresa {
   dados('Dados', Icons.badge_outlined),
   regime('Regime', Icons.account_balance_outlined),
 
-  /// O que a empresa fez antes de instalar o Punho — e que só o contabilista
+  /// O que a empresa fez antes de instalar o Fist — e que só o contabilista
   /// tem escrito. Fica ao lado do Regime porque é a mesma conversa: as duas
   /// perguntas que a app não consegue responder sozinha e que ele responde em
   /// cinco minutos.

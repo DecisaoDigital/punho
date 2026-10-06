@@ -1,16 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:punho/core/updates/update_service.dart';
+import 'package:fist/core/updates/update_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Os testes usam `PunhoUpdateService.comInvocador`, que não tem cliente
+/// Os testes usam `FistUpdateService.comInvocador`, que não tem cliente
 /// Supabase — logo não tem sessão. É de propósito: o cenário a proteger é o do
 /// utilizador que nunca entrou (preso no login) ou que está bloqueado no gate.
 void main() {
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     PackageInfo.setMockInitialValues(
-      appName: 'Punho',
+      appName: 'Fist',
       packageName: 'pt.decisaodigital.punho',
       version: '0.0.2',
       buildNumber: '2',
@@ -20,7 +20,7 @@ void main() {
 
   group('check() sem sessão', () {
     test('devolve o update quando o servidor diz que há versão nova', () async {
-      final servico = PunhoUpdateService.comInvocador(
+      final servico = FistUpdateService.comInvocador(
         (corpo, cabecalhos) async => const FunctionResponse(
           status: 200,
           data: {
@@ -48,7 +48,7 @@ void main() {
       // envia. Mandar um `Bearer null` era como o antigo código se enganava.
       Map<String, String>? recebidos = {'ainda': 'nao chamado'};
       Map<String, dynamic>? corpoRecebido;
-      final servico = PunhoUpdateService.comInvocador((
+      final servico = FistUpdateService.comInvocador((
         corpo,
         cabecalhos,
       ) async {
@@ -68,7 +68,7 @@ void main() {
     });
 
     test('devolve null quando o servidor diz que não há update', () async {
-      final servico = PunhoUpdateService.comInvocador(
+      final servico = FistUpdateService.comInvocador(
         (corpo, cabecalhos) async => const FunctionResponse(
           status: 200,
           data: {'actualizacao_disponivel': false},
@@ -79,7 +79,7 @@ void main() {
     });
 
     test('devolve null e cala-se quando a chamada rebenta', () async {
-      final servico = PunhoUpdateService.comInvocador(
+      final servico = FistUpdateService.comInvocador(
         (corpo, cabecalhos) async => throw Exception('sem rede'),
       );
 
@@ -87,7 +87,7 @@ void main() {
     });
 
     test('devolve null quando a resposta não é um mapa', () async {
-      final servico = PunhoUpdateService.comInvocador(
+      final servico = FistUpdateService.comInvocador(
         (corpo, cabecalhos) async =>
             const FunctionResponse(status: 500, data: 'Internal Server Error'),
       );
@@ -96,7 +96,7 @@ void main() {
     });
 
     test('update obrigatório chega marcado como obrigatório', () async {
-      final servico = PunhoUpdateService.comInvocador(
+      final servico = FistUpdateService.comInvocador(
         (corpo, cabecalhos) async => const FunctionResponse(
           status: 200,
           data: {

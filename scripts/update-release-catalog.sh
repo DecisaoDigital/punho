@@ -64,7 +64,7 @@ anon_key="$(
 api="${SUPABASE_URL}/rest/v1/versoes_apps"
 android_url="https://github.com/${REPOSITORY}/releases/download/${tag}/${android_asset}"
 
-# O instalador automático do Punho (descarregarAgora) só corre com um sha256
+# O instalador automático do Fist (descarregarAgora) só corre com um sha256
 # publicado — sem ele o botão "Atualizar" cai sempre para o browser. Calcula-se
 # aqui, uma única vez, a partir do próprio asset da release.
 android_apk_tmp="$(mktemp)"
@@ -157,7 +157,7 @@ upsert_version() {
 upsert_version \
   "android" \
   "$android_url" \
-  "Nova versão Android do Punho." \
+  "Nova versão Android do Fist." \
   "$android_sha256"
 
 check_update() {

@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:punho/features/auth/data/acesso_service.dart';
-import 'package:punho/features/contabilista/data/contabilista_service.dart';
-import 'package:punho/features/leads/data/leads_entrada_service.dart';
+import 'package:fist/features/auth/data/acesso_service.dart';
+import 'package:fist/features/contabilista/data/contabilista_service.dart';
+import 'package:fist/features/leads/data/leads_entrada_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// **As leituras que crescem com o cliente levam tecto — e prova-se no pedido.**

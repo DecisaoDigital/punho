@@ -188,7 +188,7 @@ Por ordem de custo para quem preenche a sério:
 Duas saídas, e as duas já existem no projecto:
 
 - **Notificação push** — a Edge Function `enviar-push` já está montada e a
-  funcionar para o Punho.
+  funcionar para o Fist.
 - **Tarefas** — o `tarefas_service` já gera trabalho por fazer a partir do
   estado. Uma lead por contactar é exactamente isso.
 

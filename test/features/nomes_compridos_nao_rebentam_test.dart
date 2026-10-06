@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/features/operations/presentation/operational_pages.dart';
-import 'package:punho/features/finance/presentation/finance_pages.dart';
-import 'package:punho/features/workforce/presentation/workforce_pages.dart';
-import 'package:punho/features/dashboard/presentation/dashboard_page.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/features/operations/presentation/operational_pages.dart';
+import 'package:fist/features/finance/presentation/finance_pages.dart';
+import 'package:fist/features/workforce/presentation/workforce_pages.dart';
+import 'package:fist/features/dashboard/presentation/dashboard_page.dart';
 
 import 'dashboard/fixtura.dart';
 
 /// **O que acontece quando o nome não cabe.**
 ///
-/// Achado 6.5: 549 `Text(` no Punho para 49 guardas de `maxLines`/`overflow`.
+/// Achado 6.5: 549 `Text(` no Fist para 49 guardas de `maxLines`/`overflow`.
 /// O número é um proxy mau — a esmagadora maioria desses `Text` são rótulos
 /// fixos que nunca vão crescer, ou vivem em colunas onde nada os aperta.
 ///

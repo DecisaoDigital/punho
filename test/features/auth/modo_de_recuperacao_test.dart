@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/auth/domain/modo_de_recuperacao.dart';
+import 'package:fist/features/auth/domain/modo_de_recuperacao.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// O trinco que impede um link de email de dar entrada silenciosa na app.

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/auth/acesso_providers.dart';
-import 'package:punho/features/auth/data/acesso_service.dart';
-import 'package:punho/features/gestao/presentation/convites_screen.dart';
+import 'package:fist/features/auth/acesso_providers.dart';
+import 'package:fist/features/auth/data/acesso_service.dart';
+import 'package:fist/features/gestao/presentation/convites_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'fake_acesso_service.dart';

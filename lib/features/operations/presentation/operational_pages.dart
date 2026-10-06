@@ -222,7 +222,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
   ///
   /// «quando eu fiz log in já foi pedido isto, se já foi perguntado e já
   /// respondi, não tem de me fazer mais estas perguntas» — César, 5/8/2026.
-  /// Tinha acabado de ser aprovado como Alfredo/DepilConcept e o Punho abriu em
+  /// Tinha acabado de ser aprovado como Alfredo/DepilConcept e o Fist abriu em
   /// «Como te chamas?». Trazer a resposta já escrita no campo não chegava: a
   /// pergunta continuava lá, e uma pergunta já respondida não é para fazer.
   ///
@@ -401,7 +401,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
     // Critério dos sub-textos, depois do smoke da v0.0.5: só existe se **ajudar
     // a preencher aquele campo** — formato esperado, o que conta, o que
     // acontece se ficar vazio. Filosofia do produto, missão e "no próximo ecrã
-    // vamos…" saem. O Cesar leu o antigo primeiro sub-texto ("O Punho orienta a
+    // vamos…" saem. O Cesar leu o antigo primeiro sub-texto ("O Fist orienta a
     // pessoa responsável por decidir e agir na empresa") a seguir a "Como te
     // chamas?" e a reacção foi: "que raio de frase é aquela?". Era o pitch, não
     // era ajuda.
@@ -1046,7 +1046,7 @@ class _InitialDataTasksPageState extends ConsumerState<InitialDataTasksPage> {
           padding: const EdgeInsets.all(24),
           children: [
             Text(
-              'Sem estes dados, o Punho não deve tirar conclusões definitivas. Pode preencher por etapas e guardar quando quiser.',
+              'Sem estes dados, o Fist não deve tirar conclusões definitivas. Pode preencher por etapas e guardar quando quiser.',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             if (pending.isNotEmpty) ...[
@@ -1217,7 +1217,7 @@ class _HistoricalDataPageState extends ConsumerState<HistoricalDataPage> {
           padding: const EdgeInsets.all(24),
           children: [
             Text(
-              'Preenche o histórico aos poucos. O Punho só mostra comparações homólogas quando existe um mês real para comparar.',
+              'Preenche o histórico aos poucos. O Fist só mostra comparações homólogas quando existe um mês real para comparar.',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 18),
@@ -2892,7 +2892,7 @@ class _EscolhaDeMaquina extends StatelessWidget {
       // todo, e estava a ler-se como legenda ao lado da data.
       style: Theme.of(
         context,
-      ).textTheme.titleSmall?.copyWith(fontSize: 15, color: PunhoTheme.navy),
+      ).textTheme.titleSmall?.copyWith(fontSize: 15, color: FistTheme.navy),
       onChanged: aoEscolher,
       items: [
         const DropdownMenuItem(

@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/auth/domain/estado_acesso.dart';
+import 'package:fist/features/auth/domain/estado_acesso.dart';
 
 /// **O onboarding não pergunta o que o servidor já sabe.**
 ///
 /// Quem pede acesso escreve o nome e a empresa no pedido; o Control aprova-os.
 /// A 5 de Agosto de 2026 o César foi aprovado como Alfredo / DepilConcept e o
-/// Punho abriu-lhe «Como te chamas?» à mesma — os dados estavam no servidor e
+/// Fist abriu-lhe «Como te chamas?» à mesma — os dados estavam no servidor e
 /// `punho_meu_acesso` só devolvia o estado, portanto a app não tinha por onde
 /// os ver.
 ///

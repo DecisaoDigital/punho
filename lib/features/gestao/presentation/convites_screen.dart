@@ -9,17 +9,17 @@ import '../../../core/theme/punho_theme.dart';
 import '../../auth/acesso_providers.dart';
 import '../../auth/data/acesso_service.dart';
 
-/// Base da landing pública do Punho (pasta `web/` deste repositório, servida
+/// Base da landing pública do Fist (pasta `web/` deste repositório, servida
 /// pela Vercel). É a única constante a mudar se o domínio mudar.
-const kBaseLandingPunho = 'https://punho.decisaodigital.pt';
+const kBaseLandingFist = 'https://punho.decisaodigital.pt';
 
 /// Link único do convite. Abre a landing que valida o código e cria a conta,
 /// sem o convidado ter de instalar nada primeiro nem copiar códigos à mão.
-String linkConvite(String codigo) => '$kBaseLandingPunho/convite/$codigo';
+String linkConvite(String codigo) => '$kBaseLandingFist/convite/$codigo';
 
 /// Página de descarga da app. Redirecciona para o GitHub Releases mais recente
 /// (ver `web/vercel.json`), para o link partilhado nunca envelhecer.
-const kUrlDescargaPunho = '$kBaseLandingPunho/download';
+const kUrlDescargaFist = '$kBaseLandingFist/download';
 
 /// Constrói a mensagem completa a partilhar — link único primeiro, código como
 /// recurso. É função de topo para os testes a poderem asserter sem montar o
@@ -30,11 +30,11 @@ const kUrlDescargaPunho = '$kBaseLandingPunho/download';
 /// landing pode não abrir (sem rede, DNS por propagar, link cortado por um
 /// cliente de mensagens) e nesse caso a app aceita-o à mão.
 String mensagemConvite(Convite convite) {
-  return 'Olá! Foste convidado(a) para trabalhar com o Punho.\n\n'
+  return 'Olá! Foste convidado(a) para trabalhar com o Fist.\n\n'
       'Abre este link no telemóvel para criares conta:\n'
       '${linkConvite(convite.codigo)}\n\n'
       'Se o link não funcionar, instala a app em\n'
-      '$kUrlDescargaPunho\n'
+      '$kUrlDescargaFist\n'
       'e usa este código de convite: ${convite.codigo}\n\n'
       'Usa o email onde recebeste este convite — o código está preso a ele.\n'
       'Código válido durante 14 dias e de uma só utilização.';
@@ -269,7 +269,7 @@ class _LinhaConvite extends StatelessWidget {
       shape: destacado
           ? RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
-              side: const BorderSide(color: PunhoTheme.orange),
+              side: const BorderSide(color: FistTheme.orange),
             )
           : null,
       title: Text(convite.email),

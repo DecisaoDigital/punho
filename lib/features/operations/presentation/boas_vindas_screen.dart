@@ -10,8 +10,8 @@ import 'ecra_de_contexto.dart';
 /// que está feito, avisa que "por apurar" é normal no início, e avisa que o
 /// ecrã vai rodar.
 ///
-/// **Já não apresenta a app.** Chamava-se "Bem-vindo à Punho." e explicava o
-/// que a Punho é — o que fazia sentido enquanto era o único ecrã a fazê-lo.
+/// **Já não apresenta a app.** Chamava-se "Bem-vindo à Fist." e explicava o
+/// que a Fist é — o que fazia sentido enquanto era o único ecrã a fazê-lo.
 /// Desde 5/8/2026 quem entra por pedido aprovado é recebido logo à entrada
 /// pelo [BemVindoScreen], com o texto do Cesar; ele percorreu o onboarding
 /// todo e deu por si a ser recebido outra vez, no fim — «cheguei ao menu Bem
@@ -20,7 +20,7 @@ import 'ecra_de_contexto.dart';
 /// dentro. Ficou-lhe o trabalho que só ele pode fazer: fechar.
 ///
 /// **A rotação é da app, não do gestor.** O ecrã abre em portrait — como todo o
-/// onboarding — e é o botão "Entrar na Punho" que pede landscape, antes de
+/// onboarding — e é o botão "Entrar na Fist" que pede landscape, antes de
 /// entrar.
 ///
 /// Na sprint 1 este ecrã não mexia na orientação de propósito: a ideia era que o
@@ -63,7 +63,7 @@ class _BoasVindasScreenState extends State<BoasVindasScreen> {
   Widget build(BuildContext context) {
     final cores = Theme.of(context).colorScheme;
     return EcraDeContexto(
-      // A mão do Punho é do ecrã de entrada. Aqui o que se diz é "está feito".
+      // A mão do Fist é do ecrã de entrada. Aqui o que se diz é "está feito".
       icone: Icons.check_circle_outline,
       titulo: 'Está tudo pronto.',
       paragrafos: const [
@@ -86,7 +86,7 @@ class _BoasVindasScreenState extends State<BoasVindasScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'A partir daqui a Punho vai passar a modo horizontal — o teu '
+                'A partir daqui a Fist vai passar a modo horizontal — o teu '
                 'ecrã vai rodar sozinho.',
                 style: TextStyle(color: cores.onPrimaryContainer),
               ),
@@ -94,7 +94,7 @@ class _BoasVindasScreenState extends State<BoasVindasScreen> {
           ],
         ),
       ),
-      rotuloDoBotao: 'Entrar na Punho →',
+      rotuloDoBotao: 'Entrar na Fist →',
       aoAvancar: _entrar,
       aoVoltar: widget.aoVoltar,
     );

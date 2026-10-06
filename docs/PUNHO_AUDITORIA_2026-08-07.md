@@ -1,4 +1,4 @@
-# Auditoria ao backend do Punho — 7 de Agosto de 2026
+# Auditoria ao backend do Fist — 7 de Agosto de 2026
 
 Auditoria de `0.3.2+37` (commit `0cf10f8`) verificada contra o projecto Supabase
 real `oefqbkhioncakojipqyx`. Este documento existe porque a migration

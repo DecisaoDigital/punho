@@ -33,7 +33,7 @@
 /// seriam uma condição comercial que a app não guarda em lado nenhum. A mediana
 /// não é uma condição: é o que aconteceu. Sem recibos que cheguem para a medir,
 /// a fronteira volta ao dia seguinte ao fim do trabalho — e aí é o modelo do
-/// Punho que manda, onde a cobrança vence quando o trabalho acaba.
+/// Fist que manda, onde a cobrança vence quando o trabalho acaba.
 library;
 
 import '../../domain/models/finance.dart';
@@ -108,7 +108,7 @@ class CobrancasVencidas {
 CobrancasVencidas? cobrancasVencidas(OperationsState estado, DateTime now) {
   final costume = costumeDeRecebimento(estado);
   // Sem costume medido, a fronteira é o dia seguinte ao fim do trabalho — no
-  // modelo do Punho é aí que a cobrança vence. Com costume, é ele que manda:
+  // modelo do Fist é aí que a cobrança vence. Com costume, é ele que manda:
   // o que ainda está dentro do prazo habitual não é uma cobrança falhada.
   final piso = costume == null ? 1 : costume.clamp(0, tectoDoCostume) + 1;
   final vencidas = cobrancasPorReceber(estado, now, minimoDiasAtraso: piso);

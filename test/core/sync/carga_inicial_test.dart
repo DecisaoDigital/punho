@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/domain/models/operations.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/domain/models/operations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// REGRESSÃO — o que já estava no aparelho nunca subia.

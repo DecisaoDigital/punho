@@ -8,7 +8,7 @@ import 'update_info.dart';
 
 /// Assinatura da chamada à Edge Function `versao-mais-recente`. Existe para os
 /// testes poderem substituir a rede sem precisar de um package de mocking — o
-/// mesmo padrão do `PunhoLicencaService`.
+/// mesmo padrão do `FistLicencaService`.
 typedef InvocarVersao =
     Future<FunctionResponse> Function(
       Map<String, dynamic> corpo,
@@ -28,8 +28,8 @@ const _timeout = Duration(seconds: 10);
 /// Isto é o que permite avisar de updates a quem está preso no ecrã de login ou
 /// bloqueado no `AcessoGate` com o pedido pendente ou recusado — a maioria dos
 /// utilizadores nesta fase da app.
-class PunhoUpdateService {
-  PunhoUpdateService(SupabaseClient client)
+class FistUpdateService {
+  FistUpdateService(SupabaseClient client)
     : _client = client,
       _invocar = ((corpo, cabecalhos) => client.functions
           .invoke('versao-mais-recente', body: corpo, headers: cabecalhos)
@@ -37,7 +37,7 @@ class PunhoUpdateService {
 
   /// Para testes: substitui a rede. Sem cliente, portanto sem sessão — é
   /// exactamente o cenário do utilizador que nunca chegou a entrar.
-  PunhoUpdateService.comInvocador(this._invocar) : _client = null;
+  FistUpdateService.comInvocador(this._invocar) : _client = null;
 
   final SupabaseClient? _client;
   final InvocarVersao _invocar;
@@ -45,7 +45,7 @@ class PunhoUpdateService {
   /// Devolve o update a anunciar, ou `null` se não houver — ou se não for
   /// possível saber. Falha em silêncio: um erro de rede no arranque não pode
   /// aparecer ao utilizador.
-  Future<PunhoUpdateInfo?> check() async {
+  Future<FistUpdateInfo?> check() async {
     try {
       final info = await PackageInfo.fromPlatform();
       final build = int.tryParse(info.buildNumber) ?? 0;
@@ -62,7 +62,7 @@ class PunhoUpdateService {
       if (dados is! Map || dados['actualizacao_disponivel'] != true) {
         return null;
       }
-      return PunhoUpdateInfo.fromJson(Map<String, dynamic>.from(dados));
+      return FistUpdateInfo.fromJson(Map<String, dynamic>.from(dados));
     } catch (erro) {
       // Continua a devolver `null` — um erro de rede no arranque não pode
       // aparecer ao utilizador, e essa parte estava certa.
@@ -71,7 +71,7 @@ class PunhoUpdateService {
       // versões que a app do Cesar tinha sido compilada sem os `--dart-define`
       // do Supabase: o serviço falhava a cada arranque e ninguém sabia. Falha
       // silenciosa em cima de falha silenciosa não se diagnostica.
-      debugPrint('[PunhoUpdate] check falhou: ${erro.runtimeType} · $erro');
+      debugPrint('[FistUpdate] check falhou: ${erro.runtimeType} · $erro');
       return null;
     }
   }

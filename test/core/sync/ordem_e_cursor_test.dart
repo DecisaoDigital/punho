@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/sync/sincronizacao_entre_dispositivos.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/domain/models/operations.dart';
+import 'package:fist/core/sync/sincronizacao_entre_dispositivos.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/domain/models/operations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// **A ordem por que as operações se aplicam, e até onde se leu.**

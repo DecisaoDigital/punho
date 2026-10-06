@@ -15,8 +15,8 @@ import '../../core/updates/update_service.dart';
 /// Alinhado com o padrão do licenciamento (`intervaloRevalidacaoLicenca`).
 const intervaloVerificacaoUpdate = Duration(hours: 24);
 
-final punhoUpdateServiceProvider = Provider<PunhoUpdateService>(
-  (ref) => PunhoUpdateService(Supabase.instance.client),
+final punhoUpdateServiceProvider = Provider<FistUpdateService>(
+  (ref) => FistUpdateService(Supabase.instance.client),
 );
 
 /// Estado global do auto-update. `null` significa "nada a anunciar" — ou porque
@@ -26,8 +26,8 @@ final punhoUpdateServiceProvider = Provider<PunhoUpdateService>(
 /// e a quem está bloqueado no `AcessoGate`, não só a quem chega ao dashboard.
 /// Por isso a verificação não depende de estado de autenticação nenhum.
 final punhoUpdateProvider =
-    NotifierProvider<PunhoUpdateController, PunhoUpdateInfo?>(
-      PunhoUpdateController.new,
+    NotifierProvider<FistUpdateController, FistUpdateInfo?>(
+      FistUpdateController.new,
     );
 
 /// O build que o gestor dispensou no X do banner — só esse, e só nesta
@@ -38,7 +38,7 @@ final punhoUpdateProvider =
 /// nada a persistir.
 final updateDispensadoProvider = StateProvider<int?>((_) => null);
 
-class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
+class FistUpdateController extends Notifier<FistUpdateInfo?> {
   StreamSubscription<AuthState>? _subscricaoAuth;
   Timer? _timer;
   _ObservadorDeRegresso? _observador;
@@ -46,7 +46,7 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
   String? _ultimoUtilizador;
 
   @override
-  PunhoUpdateInfo? build() {
+  FistUpdateInfo? build() {
     ref.onDispose(() {
       _vivo = false;
       _subscricaoAuth?.cancel();
@@ -60,7 +60,7 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
     // consultar — e `Supabase.instance` rebentaria por não estar inicializado.
     if (!SupabaseConfig.enabled) {
       debugPrint(
-        '[PunhoUpdate] Supabase desactivado (defines em falta) — sem verificação',
+        '[FistUpdate] Supabase desactivado (defines em falta) — sem verificação',
       );
       return null;
     }
@@ -119,7 +119,7 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
         await sp.remove(_kCache);
         return;
       }
-      final cached = PunhoUpdateInfo.fromJson(
+      final cached = FistUpdateInfo.fromJson(
         Map<String, dynamic>.from(envelope['info'] as Map),
       );
       // Só mostra o cache se o build actual da app ainda for inferior — se ja
@@ -137,14 +137,14 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
       if (state != null) return;
       state = cached.semBloqueio();
       debugPrint(
-        '[PunhoUpdate] cache: v${cached.version} apresentado imediatamente',
+        '[FistUpdate] cache: v${cached.version} apresentado imediatamente',
       );
     } catch (e) {
-      debugPrint('[PunhoUpdate] cache load falhou: $e');
+      debugPrint('[FistUpdate] cache load falhou: $e');
     }
   }
 
-  Future<void> _guardarCache(PunhoUpdateInfo info) async {
+  Future<void> _guardarCache(FistUpdateInfo info) async {
     try {
       final sp = await SharedPreferences.getInstance();
       await sp.setString(
@@ -155,7 +155,7 @@ class PunhoUpdateController extends Notifier<PunhoUpdateInfo?> {
         }),
       );
     } catch (e) {
-      debugPrint('[PunhoUpdate] cache save falhou: $e');
+      debugPrint('[FistUpdate] cache save falhou: $e');
     }
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/domain/models/conflito_pendente.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/domain/models/conflito_pendente.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// O caso que isto protege é concreto: dois colaboradores sem rede, cada um a

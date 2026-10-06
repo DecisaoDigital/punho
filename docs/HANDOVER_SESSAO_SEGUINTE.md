@@ -1,4 +1,4 @@
-# Handover — próxima sessão Cowork · Punho
+# Handover — próxima sessão Cowork · Fist
 
 **Data do handover:** 3 de Agosto de 2026 (actualização parcial — ver nota
 abaixo)
@@ -98,7 +98,7 @@ d46065c docs(auditoria): o que a app entrega a um empresario que responde a tudo
 8d84d6d test(dados): empresa de teste com dados inventados a serio
 f90a576 feat(onboarding): a app comeca vazia, sem fichas a fingir
 5a2d41b fix(empresa): o empresario deixa de poder apagar os dados da app
-ce85079 docs(push): porque e que a notificacao de instalacao do Punho nao se percebia
+ce85079 docs(push): porque e que a notificacao de instalacao do Fist nao se percebia
 59fb98c feat(colaboradores): o limite autoriza o acesso, nao trava o cadastro
 091d5d8 feat(onboarding): a frota declarada aparece, e a facturacao enche o historico
 de11645 feat(clientes): ficha do cliente abre para leitura e edicao
@@ -140,7 +140,7 @@ antes de julgar o que quer que seja, e commitar por ficheiro.
 
 1. **Migração da notificação de instalação.** `CREATE OR REPLACE` da função
    `notificar_novo_terminal`, só muda o texto. SQL pronto na adenda de
-   `docs/PLANO_PUSH_INSTALACAO_PUNHO.md`. Foi-me recusada a escrita na base de
+   `docs/PLANO_PUSH_INSTALACAO_FIST.md`. Foi-me recusada a escrita na base de
    dados de produção pelo classificador de permissões — não contornar; pedir.
 2. **Aplicar o seed** `supabase/seeds/mare_alta.sql` (ver
    `docs/DADOS_DE_TESTE.md`). Idempotente, com bloco de limpeza.
@@ -175,17 +175,17 @@ ver a secção seguinte.
 
 ---
 
-## Control — menus do Punho, proposta em aberto
+## Control — menus do Fist, proposta em aberto
 
 O Cesar quer comandar os colaboradores a partir do Control. Hoje existe lá um
-único ecrã, "Pedidos Punho" (5.º separador, só admin), com aprovar/recusar/
+único ecrã, "Pedidos Fist" (5.º separador, só admin), com aprovar/recusar/
 revogar via RPC `punho_decidir_pedido`. O limite só se escreve **na criação da
 empresa**, num campo do modal de decisão; depois disso é SQL à mão. Não há ecrã
 de empresa, nem badge, nem alerta.
 
 Proposta apresentada, por ordem de valor:
 
-1. **Ecrã "Empresas Punho"** — lista com `ativos / limite` e marca quando o
+1. **Ecrã "Empresas Fist"** — lista com `ativos / limite` e marca quando o
    declarado passa o autorizado.
 2. **Editar o limite fora da criação** — RPC nova `punho_definir_limite`
    com `is_admin()`, a par do `punho_decidir_pedido`. É a peça mais pequena e a
@@ -206,14 +206,14 @@ Por decidir com ele: se o aviso chega dentro do Control (badge) ou se quer push.
 
 ## Notificações de instalação — o que já se sabe
 
-A cadeia **existe e dispara para o Punho**: `registar-terminal` insere em
+A cadeia **existe e dispara para o Fist**: `registar-terminal` insere em
 `licencas` → `trg_notificar_novo_terminal` → `notificar_novo_terminal()` →
-`enviar-push` → FCM. Não filtra por app. Duas instalações Punho passaram por lá
+`enviar-push` → FCM. Não filtra por app. Duas instalações Fist passaram por lá
 (Redmi a 1 de Agosto às 15:21, emulador a 2 de Agosto às 00:42), ambas com
 `http_post` disparado.
 
 O que falhava era o **texto**: o corpo lê `info_host->>'hostname'`, chave que só
-o POS escreve — o Punho escreve `host`, `fabricante`, `versao_app` — e o título
+o POS escreve — o Fist escreve `host`, `fabricante`, `versao_app` — e o título
 nunca diz de que app se trata. O Cesar recebia «Novo terminal registado —
 (máquina sem nome) — 339ed162…». Som: não há canal Android custom nenhum, tudo
 cai no canal por omissão, que toca; só é silencioso com o Control em primeiro
@@ -247,7 +247,7 @@ César), ver `docs/PLANO_DE_TESTES_2026-08-02.md` linhas ~499-548 e commit
 `55e66d7`:
 
 - ~~Cabeçalho do login/registo com `SafeArea` — era achado P0.~~ **Confirmado:**
-  bloco "Punho / Agarra o comando." completo, sem corte, em login e ecrã de PIN.
+  bloco "Fist / Agarra o comando." completo, sem corte, em login e ecrã de PIN.
 - ~~Aviso de recusa visível com teclado aberto em landscape.~~ **Confirmado**
   (achado 17b): aviso vermelho visível com o teclado numérico aberto.
 - ~~Gravar cliente duplicado sem ecrã vermelho.~~ **Confirmado** (achado 17):

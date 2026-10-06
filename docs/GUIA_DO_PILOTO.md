@@ -1,4 +1,4 @@
-# Guia do piloto Punho
+# Guia do piloto Fist
 
 Estado atual: demonstração local. Os dados não sincronizam entre dispositivos.
 

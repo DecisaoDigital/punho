@@ -25,7 +25,7 @@ e tem exactamente uma linha: tu.
 
 ---
 
-## O que um colaborador do Punho consegue hoje
+## O que um colaborador do Fist consegue hoje
 
 Encarnado um membro activo com perfil **`colaborador`** — não gestor, o perfil
 mais baixo que existe — dentro do Postgres:
@@ -62,7 +62,7 @@ all_clientes [ALL -> public] using (auth.role() = 'authenticated') check (—)
 `using` também para escrever. Qualquer autenticado lê, insere e altera tudo.
 
 **Quem a usa mesmo:** só o **Control**, em
-`lib/repositories/clientes_repository.dart` (lê, insere, actualiza). O Punho
+`lib/repositories/clientes_repository.dart` (lê, insere, actualiza). O Fist
 não lhe toca — a ocorrência que aparecia numa busca é a palavra «clientes»
 como etiqueta de ecrã em `procura_slide.dart`. Não há caminho anónimo.
 
@@ -73,7 +73,7 @@ como etiqueta de ecrã em `procura_slide.dart`. Não há caminho anónimo.
 insert_pings [INSERT -> public] check (true)
 select_pings [SELECT -> public] using (auth.role() = 'authenticated')
 ```
-**Quem a usa mesmo:** o **Punho escreve** (`lib/core/telemetria/pings.dart`) e
+**Quem a usa mesmo:** o **Fist escreve** (`lib/core/telemetria/pings.dart`) e
 o **POS escreve** — os dois sem sessão iniciada, e é por isso que o `INSERT`
 está aberto ao anónimo. O **Control lê** (`pings_repository.dart`).
 
@@ -91,7 +91,7 @@ anónimo é o terminal a pedir renovação sem sessão.
 
 **Devia ser:** `INSERT` fica; leitura e `UPDATE` só com `is_admin()`. O
 `UPDATE` é o que decide se um pedido foi atendido — hoje qualquer colaborador
-do Punho o marca como tratado.
+do Fist o marca como tratado.
 
 ### `aceites_termos`
 ```
@@ -138,7 +138,7 @@ A resposta é que **não pode**, e não é opinião:
 4. **O Control continua igual.** Lê como `authenticated` **e** é admin. Todos
    os predicados propostos passam para ele.
 
-Quem perde acesso é exactamente uma população: as 3 contas do Punho. Que é o
+Quem perde acesso é exactamente uma população: as 3 contas do Fist. Que é o
 objectivo.
 
 ## O que não verifiquei
@@ -148,6 +148,6 @@ objectivo.
   `sincronizar-empresa-punho`, `receber-lead`, `enviar-sugestao`). Não li o
   código delas. O argumento 3 acima cobre-as em teoria — nenhuma pode estar a
   ler estas tabelas como anónimo, porque não funcionaria —, mas se alguma lê
-  com o JWT de um utilizador do Punho, deixa de ler. Só isso.
+  com o JWT de um utilizador do Fist, deixa de ler. Só isso.
 - **O POS em si não está nesta máquina.** Tudo o que digo sobre ele vem do que
   está no servidor (contas, políticas, funções), não do código dele.

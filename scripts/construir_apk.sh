@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Constrói o APK de release do Punho com os `--dart-define` e **confirma** que
+# Constrói o APK de release do Fist com os `--dart-define` e **confirma** que
 # eles lá ficaram.
 #
 # Porquê: sem os defines a app não estoira nem se queixa — arranca em modo
@@ -42,8 +42,8 @@ esac
 # aprova APKs de builds antigas que ninguém pediu, e um ficheiro velho a passar
 # no teste é exactamente a falha que este script existe para apanhar.
 rm -f build/app/outputs/flutter-apk/app*-release.apk \
-      build/app/outputs/flutter-apk/Punho_v*.apk \
-      build/app/outputs/apk/release/Punho_v*.apk
+      build/app/outputs/flutter-apk/Fist_v*.apk \
+      build/app/outputs/apk/release/Fist_v*.apk
 
 flutter build apk --release "${destino[@]}" \
   --dart-define=SUPABASE_URL="$SUPABASE_URL" \

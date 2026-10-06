@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/kpis.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/domain/models/finance.dart';
-import 'package:punho/domain/models/operations.dart';
+import 'package:fist/core/operations/kpis.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/domain/models/finance.dart';
+import 'package:fist/domain/models/operations.dart';
 
 /// KPIs do slide 2 · o pulso do dia.
 ///

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/domain/models/historical_month.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/domain/models/historical_month.dart';
 
 void main() {
   group('Onboarding escreve o histórico a partir da faturação declarada', () {

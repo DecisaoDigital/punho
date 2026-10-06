@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/auth/auth_rules.dart';
-import 'package:punho/core/updates/update_service.dart';
-import 'package:punho/features/auth/data/acesso_service.dart';
-import 'package:punho/features/auth/presentation/registo_screen.dart';
+import 'package:fist/core/auth/auth_rules.dart';
+import 'package:fist/core/updates/update_service.dart';
+import 'package:fist/features/auth/data/acesso_service.dart';
+import 'package:fist/features/auth/presentation/registo_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'fake_acesso_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:punho/features/auth/acesso_providers.dart';
+import 'package:fist/features/auth/acesso_providers.dart';
 
 /// Os três buracos que prendiam quem tentava criar conta.
 void main() {
@@ -196,14 +196,14 @@ void main() {
     });
   });
 
-  group('PunhoUpdateService deixa rasto ao falhar', () {
+  group('FistUpdateService deixa rasto ao falhar', () {
     test('erro na chamada devolve null mas escreve nos logs', () async {
       final linhas = <String>[];
       final originalDebugPrint = debugPrint;
       debugPrint = (mensagem, {wrapWidth}) => linhas.add(mensagem ?? '');
       addTearDown(() => debugPrint = originalDebugPrint);
 
-      final servico = PunhoUpdateService.comInvocador(
+      final servico = FistUpdateService.comInvocador(
         (corpo, headers) async => throw StateError('rede em baixo'),
       );
 
@@ -212,7 +212,7 @@ void main() {
       // O que muda é haver rasto — sem isto, a app do Cesar falhou em cada
       // arranque durante duas versões sem ninguém saber.
       final registo = linhas.firstWhere(
-        (l) => l.contains('[PunhoUpdate] check falhou'),
+        (l) => l.contains('[FistUpdate] check falhou'),
         orElse: () => '',
       );
       expect(registo, isNotEmpty);

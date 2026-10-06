@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/licenca/licenca_info.dart';
-import 'package:punho/core/licenca/licenca_provider.dart';
-import 'package:punho/features/licenca/presentation/diagnostico_licenca.dart';
+import 'package:fist/core/licenca/licenca_info.dart';
+import 'package:fist/core/licenca/licenca_provider.dart';
+import 'package:fist/features/licenca/presentation/diagnostico_licenca.dart';
 
 /// O bloco "Esta instalação", no popup de perfil. Existe para responder, sem
 /// adivinhar, às perguntas que aparecem quando algo não bate certo: de que

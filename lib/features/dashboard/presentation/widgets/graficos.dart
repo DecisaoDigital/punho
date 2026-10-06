@@ -60,7 +60,7 @@ class _SparklinePainter extends CustomPainter {
         Paint()
           ..color = valores[i] == 0
               ? _borda
-              : (destacado ? PunhoTheme.orange : cor),
+              : (destacado ? FistTheme.orange : cor),
       );
     }
   }
@@ -100,7 +100,7 @@ class AnelPercentagem extends StatelessWidget {
           style: TextStyle(
             fontSize: tamanho * 0.21,
             fontWeight: FontWeight.w800,
-            color: PunhoTheme.navy,
+            color: FistTheme.navy,
           ),
         ),
       ],

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/guidance/guidance_engine.dart';
-import 'package:punho/domain/models/operations.dart';
+import 'package:fist/core/guidance/guidance_engine.dart';
+import 'package:fist/domain/models/operations.dart';
 
 void main() {
   final now = DateTime(2026, 7, 30);

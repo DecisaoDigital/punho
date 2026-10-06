@@ -1,10 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/domain/models/operations.dart';
-import 'package:punho/domain/models/historical_month.dart';
-import 'package:punho/domain/models/workforce.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/domain/models/operations.dart';
+import 'package:fist/domain/models/historical_month.dart';
+import 'package:fist/domain/models/workforce.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

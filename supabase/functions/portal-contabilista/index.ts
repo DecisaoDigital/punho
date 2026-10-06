@@ -1,6 +1,6 @@
 // O portal do contabilista.
 //
-// Uma página, um link, um token. Quem a abre não tem conta no Punho, não vê o
+// Uma página, um link, um token. Quem a abre não tem conta no Fist, não vê o
 // painel e não fala com a base de dados: fala com esta função, que valida o
 // token e escreve com `service_role`.
 //
@@ -108,7 +108,7 @@ function paginaDeErro(
   return new Response(
     `<!doctype html><html lang="pt"><head><meta charset="utf-8">
      <meta name="viewport" content="width=device-width,initial-scale=1">
-     <title>Punho</title>
+     <title>Fist</title>
      <style>
        body{font:16px/1.6 system-ui,sans-serif;margin:0;display:grid;
             place-items:center;min-height:100vh;background:#f6f7f9;color:#1a1c1e}
@@ -322,7 +322,7 @@ async function desenharPagina(
         </table>
       </div>
       <p class="nota">
-        O total do ano só é usado nos meses que ficarem por preencher, e o Punho
+        O total do ano só é usado nos meses que ficarem por preencher, e o Fist
         assinala esses meses como estimativa. Cada mês que escrever aqui em cima
         passa a valer por si — e corrige também a estimativa dos vizinhos.
       </p>
@@ -354,7 +354,7 @@ async function desenharPagina(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Punho — dados de ${escapar(empresa)}</title>
+<title>Fist — dados de ${escapar(empresa)}</title>
 <style>
   :root{
     --margem-pagina:2rem; --margem-seccao:1.5rem; --margem-campo:.75rem;
@@ -454,7 +454,7 @@ async function desenharPagina(
 <section class="porque">
   <h2>Porque é que lhe pedimos isto</h2>
   <p>
-    ${escapar(empresa)} começou a usar o Punho, uma aplicação de gestão que
+    ${escapar(empresa)} começou a usar o Fist, uma aplicação de gestão que
     mostra ao empresário como está o negócio mês a mês — quanto entrou, quanto
     custou, e se está melhor ou pior do que no ano passado.
   </p>

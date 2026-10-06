@@ -64,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // `SafeArea`: este ecrã é montado directamente pelo `AuthGate`, antes de
   // qualquer `AppShell` — não há moldura nenhuma por cima a descontar a
   // barra de estado (Decisão 8 do padrão visual). Sem isto, o topo do
-  // `BrandLockup` («Punho / Agarra o comando.») ficava por baixo da barra de
+  // `BrandLockup` («Fist / Agarra o comando.») ficava por baixo da barra de
   // estado do Android (visto no Redmi Note 10 Pro, Android 13, retrato).
   Widget build(BuildContext context) => Scaffold(
     body: SafeArea(

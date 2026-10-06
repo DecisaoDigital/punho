@@ -15,9 +15,9 @@ Até aqui, o aviso de nova versão só chegava a **um** tipo de utilizador: gest
 com adesão activa em `punho_membros`, com o dashboard aberto. Duas razões, ambas
 independentes:
 
-1. `PunhoUpdateService.check()` começava com `if (session == null) return null;`
+1. `FistUpdateService.check()` começava com `if (session == null) return null;`
    — quem estava preso no ecrã de login nunca chegava a perguntar nada.
-2. O `PunhoUpdateBanner` estava montado num único sítio: `dashboard_page.dart`.
+2. O `FistUpdateBanner` estava montado num único sítio: `dashboard_page.dart`.
    Quem tem sessão mas está bloqueado no `AcessoGate` ("Pedido em análise",
    "Acesso indisponível") nunca chega ao dashboard.
 
@@ -26,7 +26,7 @@ recusado, ou sem sequer conseguir entrar — eram exactamente os três que não
 recebiam aviso de update. E são esses os utilizadores a quem mais interessa
 receber uma versão nova: é provável que a correcção que esperam venha nela.
 
-O Punho não tem FCM, portanto não há canal de push. O único canal é a app
+O Fist não tem FCM, portanto não há canal de push. O único canal é a app
 perguntar ao servidor no arranque — e era isso que a guarda de sessão matava.
 
 ## O que mudou
@@ -40,7 +40,7 @@ que exige uma **chave válida** no header `Authorization`, não um utilizador
 autenticado. Sem sessão, o `supabase_flutter` põe lá a chave pública do
 projecto e o gateway aceita-a — verificado empiricamente contra o projecto real
 em Julho 2026 (ver `LICENCIAMENTO.md`, secção "Porque é que funciona sem
-sessão"). O `PunhoLicencaService` já vivia disto desde a v0.0.2; o auto-update
+sessão"). O `FistLicencaService` já vivia disto desde a v0.0.2; o auto-update
 era o único sítio que ainda replicava a guarda por engano.
 
 Com sessão continua a mandar-se o token, para a função poder registar quem
@@ -50,7 +50,7 @@ o cliente pôr a chave pública.
 A Edge Function **não** foi tocada.
 
 Aproveitou-se para dar ao serviço o mesmo `typedef` de invocação que o
-`PunhoLicencaService` já tinha (`PunhoUpdateService.comInvocador`). É o que
+`FistLicencaService` já tinha (`FistUpdateService.comInvocador`). É o que
 permite testar a resposta do servidor sem rede e sem package de mocking — o
 repositório não tem `mockito` de propósito, e `http` não é dependência directa.
 
@@ -59,8 +59,8 @@ repositório não tem `mockito` de propósito, e `http` não é dependência dir
 `lib/features/updates/update_providers.dart` (novo)
 
 O `punhoUpdateProvider` era um `FutureProvider` declarado dentro do ficheiro do
-banner. Passou a ser um `NotifierProvider<PunhoUpdateController,
-PunhoUpdateInfo?>`, que dispara a verificação:
+banner. Passou a ser um `NotifierProvider<FistUpdateController,
+FistUpdateInfo?>`, que dispara a verificação:
 
 - uma vez quando é observado pela primeira vez — que é logo no arranque, porque
   o wrapper é a raiz da app depois do `Supabase.initialize`;
@@ -83,7 +83,7 @@ estava à vista.
 main()
   └── Supabase.initialize
       └── MaterialApp
-          └── PunhoUpdateBannerWrapper          ← lê punhoUpdateProvider
+          └── FistUpdateBannerWrapper          ← lê punhoUpdateProvider
               └── AuthGate                       (ou AppShell sem Supabase)
                   ├── ecrã de login              ← aviso chega aqui
                   └── AcessoGate
@@ -108,7 +108,7 @@ se vê por baixo: o aviso é ortogonal, não é bypass. Os testes verificam
 explicitamente que com aviso à vista o `AppShell` continua a não aparecer a
 quem tem o pedido pendente.
 
-O `PunhoUpdateBanner` saiu do `dashboard_page.dart`.
+O `FistUpdateBanner` saiu do `dashboard_page.dart`.
 
 ### Column para o opcional, Stack para o obrigatório
 

@@ -1,5 +1,5 @@
-// WashInvoice + Punho — validar_licenca (multi-app)
-// Chamada pelo POS/Punho ao arranque para validar a sua licença. Corre com
+// WashInvoice + Fist — validar_licenca (multi-app)
+// Chamada pelo POS/Fist ao arranque para validar a sua licença. Corre com
 // service_role (contorna RLS).
 //
 // Multi-app: `body.app` é OBRIGATÓRIO (rompe compat com clientes que não o
@@ -12,7 +12,7 @@
 // chave anon é um JWT válido do projecto e passa o portão da plataforma.
 //
 // Continua assim, e tem de continuar: o POS não tem uma única conta em
-// `auth.users` e o Punho valida a licença no arranque, antes do login. Sem esta
+// `auth.users` e o Fist valida a licença no arranque, antes do login. Sem esta
 // porta aberta as duas apps não sabem se podem arrancar.
 //
 // O que saiu foi a `chave_mestre`. É a metade "empresa" do par que identifica
@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
   //  * `new Date('2026-08-10')` é `2026-08-10T00:00:00Z`, e subtrair-lhe o
   //    instante actual perdia sempre a fracção no `Math.floor`. Uma licença
   //    válida até 10 de Agosto anunciava "1 dia" a 8 de Agosto, não 2. Era o
-  //    número que o banner do Punho mostrava, e estava errado por um dia
+  //    número que o banner do Fist mostrava, e estava errado por um dia
   //    inteiro em todas as licenças, sempre.
   //  * pior: no próprio dia da validade, `validade < agora` passava a verdade
   //    à meia-noite UTC — 01:00 em Lisboa no Verão — e a licença dava-se por
@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
   else estado = 'activa';
 
   // `chave_mestre` é a metade "empresa" do par (a outra é o `machine_id`, já
-  // aqui). Devolvê-la é o que dá ao Punho — que não tem `licenca.json` assinado
+  // aqui). Devolvê-la é o que dá ao Fist — que não tem `licenca.json` assinado
   // — maneira de saber a que empresa pertence. Mas é um segredo, e por isso só
   // sai contra prova de pertença: quem chama tem de ter sessão de utilizador a
   // sério e ser membro activo da empresa cujo NIF é o desta licença. Sem isso

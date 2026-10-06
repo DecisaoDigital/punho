@@ -1,6 +1,6 @@
 # Auditoria de KPIs para a saúde da empresa
 
-**Contexto.** Relatório de investigação para calibrar o painel do **Punho — Agarra
+**Contexto.** Relatório de investigação para calibrar o painel do **Fist — Agarra
 o comando**. Público-alvo: gestor de PME de serviços com formação financeira fraca,
 tempo escasso, quer decidir hoje o que faz esta semana. A filosofia do produto é
 ensinar gestão na prática: mostrar o número, explicar a causa, propor a acção.
@@ -9,7 +9,7 @@ Este documento tem quatro partes:
 
 - **Parte A** — os 3 KPIs que um empresário teria de ver se só pudesse ver três.
 - **Parte B** — os 15 KPIs essenciais agrupados em cinco categorias.
-- **Parte C** — cruzamento com o painel actual do Punho (v0.0.5).
+- **Parte C** — cruzamento com o painel actual do Fist (v0.0.5).
 - **Parte D** — recomendações concretas para as próximas sprints (0.0.7+).
 
 Fontes consultadas listadas no final.
@@ -57,7 +57,7 @@ provisório = tesouraria**. Não é: o subsídio de férias (Junho) e o de Natal
 corrente porque foram sendo devidas ao longo do ano. Um runway em semanas obriga
 o gestor a olhar para o próximo pico de pagamento, não para o próximo mês médio.
 
-**Nota.** Runway sozinho não chega — precisa de contexto sazonal. Para o Punho,
+**Nota.** Runway sozinho não chega — precisa de contexto sazonal. Para o Fist,
 isto sugere que a projecção deve absorver os padrões conhecidos: aluguer com pico
 no Verão, TSU mensal em dia útil fixo, subsídios em duas datas do ano.
 
@@ -261,7 +261,7 @@ preço subir 1%).
 *Na cabeça do gestor:* "de cada euro que entrou, quanto foi para pagar a máquina
 a funcionar".
 *Referência:* verde < 60%, amarelo 60–80%, vermelho > 80% — que é exactamente o
-semáforo já usado no Punho.
+semáforo já usado no Fist.
 *Sinal de alerta:* dois meses consecutivos no vermelho.
 *Fonte teórica:* consenso de gestão operacional.
 
@@ -345,13 +345,13 @@ equivalente sem a fricção do NPS formal.
 
 ---
 
-## Parte C — Cruzamento com o painel actual do Punho (v0.0.5)
+## Parte C — Cruzamento com o painel actual do Fist (v0.0.5)
 
 Avaliação fria: **coberto** significa que o número existe hoje e responde à
 pergunta na cabeça do gestor; **parcial** significa que existe algo próximo mas
 com lacunas materiais; **não coberto** é o que falta por completo.
 
-| KPI recomendado | Estado no Punho hoje |
+| KPI recomendado | Estado no Fist hoje |
 |---|---|
 | 1. Saldo de tesouraria disponível | Não coberto — o painel mostra fluxos (recebido, pago) mas não o saldo acumulado em conta e caixa. |
 | 2. Runway em semanas | Não coberto — não há projecção de saídas nem cálculo de autonomia. |
@@ -369,7 +369,7 @@ com lacunas materiais; **não coberto** é o que falta por completo.
 | 14. % receita de clientes recorrentes | Não coberto. |
 | 15. NPS ou proxy de satisfação | Não coberto. |
 
-**Balanço.** Dos 15 KPIs, o Punho tem hoje **3 cobertos**, **4 parciais** e **8
+**Balanço.** Dos 15 KPIs, o Fist tem hoje **3 cobertos**, **4 parciais** e **8
 não cobertos**. A força actual está na *operação* e na *entrada do funil
 comercial* — que é natural para um vertical de aluguer e para uma app que começou
 como registo operacional. A fraqueza é dupla: **tesouraria verdadeira** (saldo,
@@ -405,7 +405,7 @@ categoria já existente.
 
 ### 3. Percentagem de receita de clientes recorrentes (repeat rate)
 
-O Punho já tem clientes, reservas e recebimentos — os dados existem, falta só o
+O Fist já tem clientes, reservas e recebimentos — os dados existem, falta só o
 cruzamento. Um número no slide 2 ou 3 do tipo "**68% da receita deste mês veio
 de clientes que já tinham alugado antes**" ensina imediatamente ao gestor onde
 está o seu ouro. A investigação de Fred Reichheld e da Bain é clara: cada 5%
@@ -419,7 +419,7 @@ detalhe abaixo em três parcelas (cobrança, imobilizado parado, pagamento a
 fornecedores). Pode viver no slide 1 ou num slide novo "Saúde do circulante".
 Esta é a métrica com maior valor didáctico da lista — traduz em dias uma
 realidade que os gestores só entendem depois de um susto de tesouraria. O
-Punho pode ensinar sem susto.
+Fist pode ensinar sem susto.
 
 ### 5. NPS / proxy de satisfação e ligação à "Recomendação do dia"
 

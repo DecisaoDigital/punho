@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/core/theme/punho_theme.dart';
-import 'package:punho/features/auth/acesso_providers.dart';
-import 'package:punho/features/auth/data/acesso_service.dart';
-import 'package:punho/domain/models/finance.dart';
-import 'package:punho/domain/models/operations.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/core/theme/punho_theme.dart';
+import 'package:fist/features/auth/acesso_providers.dart';
+import 'package:fist/features/auth/data/acesso_service.dart';
+import 'package:fist/domain/models/finance.dart';
+import 'package:fist/domain/models/operations.dart';
 // O modelo tem o seu próprio TimeOfDay (sem depender do Flutter); com prefixo
 // para não colidir com o do Material.
-import 'package:punho/domain/models/workforce.dart' as pw;
-import 'package:punho/domain/models/workforce.dart'
+import 'package:fist/domain/models/workforce.dart' as pw;
+import 'package:fist/domain/models/workforce.dart'
     show
         Collaborator,
         CollaboratorStatus,
@@ -387,7 +387,7 @@ Future<void> montarLandscape(
       // O tema real, não um ThemeData qualquer: senão os CTA saíam roxos em vez
       // de laranja e as capturas não valiam para comparar com o mockup.
       child: MaterialApp(
-        theme: PunhoTheme.light,
+        theme: FistTheme.light,
         home: Scaffold(body: child),
       ),
     ),

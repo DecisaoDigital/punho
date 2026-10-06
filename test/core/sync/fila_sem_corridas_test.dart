@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/sync/registo_de_operacoes.dart';
+import 'package:fist/core/sync/registo_de_operacoes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// REGRESSÃO — a fila perdia quase tudo quando várias operações entravam ao

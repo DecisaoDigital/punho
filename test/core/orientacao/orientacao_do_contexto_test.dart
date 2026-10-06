@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/orientacao/orientacao_do_contexto.dart';
+import 'package:fist/core/orientacao/orientacao_do_contexto.dart';
 
 /// O cadeado impõe retrato por cima de um shell que está em landscape e tem de
 /// devolver o landscape ao sair. Sem memória da escolha anterior, desbloquear

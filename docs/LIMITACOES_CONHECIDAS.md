@@ -71,7 +71,7 @@ Actualizado na sprint de estabilização v0.0.3.
   no planeamento.
 
 - **A `validar-licenca` continua a responder a quem tiver só a chave anon.** Tem
-  de continuar: o POS não tem conta nenhuma e o Punho valida no arranque, antes
+  de continuar: o POS não tem conta nenhuma e o Fist valida no arranque, antes
   do login. Quem souber um `machine_id` obtém estado, plano, validade, nome e
   NIF dessa instalação. O que saiu da resposta foi a `chave_mestre`, que era o
   único segredo lá dentro; o resto é o que o terminal precisa de saber sobre si

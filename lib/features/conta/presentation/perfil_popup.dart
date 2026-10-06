@@ -576,7 +576,7 @@ class _Versao extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => VersaoApp(
-    formato: (versao) => 'Punho v$versao',
+    formato: (versao) => 'Fist v$versao',
     style: Theme.of(context).textTheme.bodySmall,
   );
 }

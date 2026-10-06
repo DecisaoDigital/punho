@@ -1,5 +1,5 @@
 -- =============================================================================
--- Limpar seed de demonstração — empresa de ALUGUER DE MÁQUINAS (Punho)
+-- Limpar seed de demonstração — empresa de ALUGUER DE MÁQUINAS (Fist)
 -- =============================================================================
 --
 -- Apaga TUDO o que scripts/semear_demonstracao.sql tenha inserido para a

@@ -102,7 +102,7 @@ class _CadeadoGateState extends ConsumerState<CadeadoGate>
     // mostre — e rode — antes de ter esse direito.
     if (!_decidido) {
       return const ColoredBox(
-        color: PunhoTheme.navyDeep,
+        color: FistTheme.navyDeep,
         child: SizedBox.expand(),
       );
     }

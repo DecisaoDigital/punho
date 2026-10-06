@@ -72,7 +72,7 @@ int _soma(Iterable<LedgerMovement> movimentos) =>
 ///
 /// **O saldo é aproximado e tem de ser dito.** A app não fala com o banco: o
 /// que sabe é o que entrou (recebimentos) menos o que saiu (despesas **pagas**)
-/// desde que há registo. Quem tinha dinheiro em conta antes de usar o Punho vê
+/// desde que há registo. Quem tinha dinheiro em conta antes de usar o Fist vê
 /// aqui menos do que tem; quem começou com a app vê o número certo.
 class SaldoEAutonomia {
   const SaldoEAutonomia({

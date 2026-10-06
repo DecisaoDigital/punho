@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/core/sync/registo_de_operacoes.dart';
-import 'package:punho/domain/models/finance.dart';
-import 'package:punho/domain/models/operations.dart';
-import 'package:punho/features/company/presentation/company_settings_page.dart';
-import 'package:punho/features/empresa/presentation/empresa_page.dart';
-import 'package:punho/features/sync/sync_providers.dart';
-import 'package:punho/core/navigation/app_destination.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/core/sync/registo_de_operacoes.dart';
+import 'package:fist/domain/models/finance.dart';
+import 'package:fist/domain/models/operations.dart';
+import 'package:fist/features/company/presentation/company_settings_page.dart';
+import 'package:fist/features/empresa/presentation/empresa_page.dart';
+import 'package:fist/features/sync/sync_providers.dart';
+import 'package:fist/core/navigation/app_destination.dart';
 
 /// **O ecrã Empresa.** Duas queixas do César a 10 de Agosto de 2026, e as duas
 /// sobre a mesma coisa: o ecrã dava trabalho para não fazer nada.

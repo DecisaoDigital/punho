@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/caixa.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/domain/models/finance.dart';
+import 'package:fist/core/operations/caixa.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/domain/models/finance.dart';
 
 /// A Caixa é a conta mais simples da app e é por isso que tem de estar certa.
 ///

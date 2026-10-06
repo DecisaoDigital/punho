@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/domain/models/finance.dart';
+import 'package:fist/domain/models/finance.dart';
 
 void main() {
   final day = DateTime(2026, 7, 24);

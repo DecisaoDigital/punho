@@ -36,11 +36,11 @@ String mensagemContabilista(ConviteCriado convite, {String? empresa}) {
       ? 'a empresa'
       : empresa.trim();
   return 'Olá! Preciso da sua ajuda para pôr o histórico de $nomeEmpresa '
-      'no Punho.\n\n'
+      'no Fist.\n\n'
       'Abra este link no computador:\n'
       '${linkContabilista(convite.token)}\n\n'
       'É uma grelha de meses, de $de a $ate. O que não souber, deixe em '
-      'branco — em branco não é zero, e o Punho sabe a diferença.\n'
+      'branco — em branco não é zero, e o Fist sabe a diferença.\n'
       'Se só tiver o total de um ano, escreva-o na última linha desse ano.\n\n'
       'Não precisa de conta nem de instalar nada, e pode voltar ao mesmo link '
       'para corrigir o que já escreveu. O link é pessoal: quem o tiver escreve '

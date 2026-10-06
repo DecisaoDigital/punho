@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/empresa_sync/empresa_sync_service.dart';
-import 'package:punho/core/empresa_sync/ficha_da_empresa.dart';
-import 'package:punho/core/empresa_sync/ficha_recebida_provider.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
+import 'package:fist/core/empresa_sync/empresa_sync_service.dart';
+import 'package:fist/core/empresa_sync/ficha_da_empresa.dart';
+import 'package:fist/core/empresa_sync/ficha_recebida_provider.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
 
 /// A ficha do servidor tem mesmo de chegar ao estado da app.
 ///

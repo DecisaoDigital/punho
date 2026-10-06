@@ -41,7 +41,7 @@ confirmação** — excepto num caso concreto:
   perguntar nada** — mas só quando a app que instala é a **mesma que instalou a
   versão anterior** (é o "installer of record") e a assinatura bate certo.
 - Consequência prática: **a primeira actualização por esta via ainda pede
-  confirmação.** A partir daí, se foi o Punho a instalar, as seguintes passam a
+  confirmação.** A partir daí, se foi o Fist a instalar, as seguintes passam a
   ser silenciosas de verdade.
 
 Ou seja, o pedido é atingível — mas só a partir da segunda vez, e só em Android
@@ -88,7 +88,7 @@ dias, e cada versão nova demora algumas horas a propagar em vez de ser imediata
 Os assets já existem — o `ic_launcher_512.png` foi gerado para isso na v0.0.15.
 
 **Se o destino já é a Play Store**, construir um instalador próprio é trabalho
-que se deita fora daqui a uns meses. Se o Punho vai continuar a ser distribuído
+que se deita fora daqui a uns meses. Se o Fist vai continuar a ser distribuído
 por APK a clientes que não passam pela loja, então o instalador próprio é o
 caminho certo.
 

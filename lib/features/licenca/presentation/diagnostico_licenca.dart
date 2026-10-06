@@ -13,7 +13,7 @@ import '../../../core/licenca/licenca_provider.dart';
 ///
 /// O par `chave mestre + dispositivo` é o que identifica um posto de trabalho.
 /// A chave mestre é a mesma em todos os aparelhos e terminais do mesmo
-/// contribuinte — Punho e POS incluídos —, e o `machine_id` é só deste
+/// contribuinte — Fist e POS incluídos —, e o `machine_id` é só deste
 /// aparelho. Ver `docs/design/chaves_empresa_e_dispositivo.md`.
 class DiagnosticoLicenca extends ConsumerWidget {
   const DiagnosticoLicenca({super.key});

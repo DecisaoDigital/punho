@@ -192,7 +192,7 @@ class Customer {
     final micros = int.tryParse(id.startsWith('c') ? id.substring(1) : id);
     if (micros == null || micros <= 0) return null;
     final data = DateTime.fromMicrosecondsSinceEpoch(micros);
-    // O Punho não existia em 2020, e nada foi criado no século que vem.
+    // O Fist não existia em 2020, e nada foi criado no século que vem.
     if (data.year < 2020 || data.year > 2100) return null;
     return data;
   }

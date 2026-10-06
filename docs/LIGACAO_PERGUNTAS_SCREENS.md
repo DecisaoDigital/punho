@@ -448,7 +448,7 @@ necessárias para subir um degrau — e, ao responder, o gestor vê o número mu
 percebe porquê.
 
 É aqui que a app cumpre a promessa de *"ensina o empresário a perceber as
-alavancas"* (`O_QUE_E_O_PUNHO.md`). Não com um tutorial: com o número dele a
+alavancas"* (`O_QUE_E_O_FIST.md`). Não com um tutorial: com o número dele a
 mexer-se à frente dele, e a razão escrita ao lado.
 
 ### A escada, no caso do lucro por máquina

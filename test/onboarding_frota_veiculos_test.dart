@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/domain/models/workforce.dart';
-import 'package:punho/features/tarefas/data/tarefas_service.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/domain/models/workforce.dart';
+import 'package:fist/features/tarefas/data/tarefas_service.dart';
 
 /// Decisão de 2026-08-02: o onboarding não cria registos automaticamente,
 /// nem para as máquinas nem para a frota. Declarar "3 veículos" deixa a

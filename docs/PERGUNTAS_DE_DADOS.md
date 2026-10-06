@@ -1,4 +1,4 @@
-# Punho — perguntas que alimentam os dados
+# Fist — perguntas que alimentam os dados
 
 > Lista viva. Serve para o César e o Claude se guiarem: que pergunta existe,
 > onde se responde, e que KPI/célula fica coxo sem ela.

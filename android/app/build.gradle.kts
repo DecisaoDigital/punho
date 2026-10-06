@@ -18,7 +18,7 @@ android {
     // Identidade permanente da app. `com.example.*` é o placeholder do
     // template do Flutter e a Google Play recusa-o à entrada — ficou cá dentro
     // até 4 de Agosto de 2026, com o TODO original por cima. Mudar o
-    // applicationId faz do Punho outra app aos olhos do Android: quem tiver a
+    // applicationId faz do Fist outra app aos olhos do Android: quem tiver a
     // anterior instalada tem de desinstalar (os dados locais vão com ela; o
     // servidor mantém tudo). Por isso se mudou com uma instalação no mundo, e
     // não com trinta. Não voltar a mexer.
@@ -56,7 +56,7 @@ android {
     signingConfigs {
         create("release") {
             check(keystorePropertiesFile.exists()) {
-                "Falta android/key.properties. Um APK release do Punho tem de ser assinado com a chave de release."
+                "Falta android/key.properties. Um APK release do Fist tem de ser assinado com a chave de release."
             }
             storeFile = file(keystoreProperties["storeFile"] as String)
             storePassword = keystoreProperties["storePassword"] as String
@@ -73,14 +73,14 @@ android {
     }
 
     // O ficheiro sai com o nome e a versão em vez de "app-release.apk":
-    // Punho_v0.0.4.apk. Assim o que se instala por USB diz-se a si próprio, e
-    // segue o mesmo padrão do instalador Windows (Punho_Setup_v0.0.2.exe).
+    // Fist_v0.0.4.apk. Assim o que se instala por USB diz-se a si próprio, e
+    // segue o mesmo padrão do instalador Windows (Fist_Setup_v0.0.2.exe).
     // `applicationVariants` está depreciado no AGP 8 mas continua a funcionar;
     // quando sair (AGP 9) o substituto é a Variant API nova.
     //
     // O sufixo da arquitectura não é enfeite: com `--split-per-abi` saem três
     // APKs, e sem ele os três queriam escrever o mesmo ficheiro. O Gradle
-    // rebentava com "Failed to create .../Punho_v0.2.1.apk", que não diz
+    // rebentava com "Failed to create .../Fist_v0.2.1.apk", que não diz
     // nada sobre a causa (apanhado a publicar a v0.2.1).
     @Suppress("DEPRECATION")
     applicationVariants.all {
@@ -90,9 +90,9 @@ android {
                 this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
             val arquitectura = saida.getFilter(com.android.build.OutputFile.ABI)
             saida.outputFileName = if (arquitectura == null) {
-                "Punho_v$versao.apk"
+                "Fist_v$versao.apk"
             } else {
-                "Punho_v${versao}_$arquitectura.apk"
+                "Fist_v${versao}_$arquitectura.apk"
             }
         }
     }

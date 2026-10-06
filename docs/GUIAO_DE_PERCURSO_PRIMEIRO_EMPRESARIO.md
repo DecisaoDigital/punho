@@ -1,4 +1,4 @@
-# Punho — guião do percurso do primeiro empresário
+# Fist — guião do percurso do primeiro empresário
 
 > Ficheiro vivo. Registo ecrã-a-ecrã da conversa com o Cesar sobre o
 > que a app pede/mostra ao empresário no arranque, e como deve ser
@@ -217,7 +217,7 @@ correr. O nome da empresa também não é reforçado.
 visível em cima de qualquer conteúdo:
 
 ```
-Punho v0.0.5 · Nome da Empresa
+Fist v0.0.5 · Nome da Empresa
 ```
 
 - **Cor**: letras brancas com sombra fina (contraste sobre fundos
@@ -245,7 +245,7 @@ e ajuda ao suporte remoto ("qual é a versão que estás a ver?").
 3. Widget test: aparece em portrait e landscape sem sobrepor conteúdo
    crítico (verificar em Dashboard, `TarefasPage`, `ClientsPage`).
 4. Se `companyName == null` (modo demo antes de onboarding), rótulo
-   fica só `Punho v0.0.5 · Modo demonstração`.
+   fica só `Fist v0.0.5 · Modo demonstração`.
 
 **Estado:** decisão fechada. Sprint dedicada de "polimento visual"
 ou parte do bug bundle da próxima release.
@@ -482,7 +482,7 @@ Um só slide, quatro perguntas fechadas.
 
 **Estado hoje (v0.0.5):** Dashboard com 5 slides organizados por
 categorias operacionais arbitrárias: **Dinheiro, Pipeline, Máquinas,
-Custos, Semana**. As "5 alavancas do Punho" da
+Custos, Semana**. As "5 alavancas do Fist" da
 `docs/BIBLIOTECA_DE_ALAVANCAS.md` (Procura e vendas · Tesouraria ·
 Margem · Utilização da frota · Equipa e processo) existem em texto e
 alimentam recomendações determinísticas, mas **não têm reflexo
@@ -711,7 +711,7 @@ ajustares):
   código de cores das recomendações da Decisão 6.
 - **2-3 metas secundárias** com o mesmo padrão (ex.: nº clientes
   novos no ano · margem média · ocupação média das máquinas).
-- **Recomendação contextual** — quando o ritmo pisca, o Punho aponta
+- **Recomendação contextual** — quando o ritmo pisca, o Fist aponta
   qual alavanca puxar. Ex.: *"estás 12% abaixo do ritmo de facturação;
   a alavanca de Procura e vendas tem 40 leads sem contactar — abrir
   →"*. Isto liga este slide de volta aos slides-alavanca 3–7.
@@ -816,7 +816,7 @@ Cada campo tem à esquerda o valor **actual** (só leitura, cinza) e
 - **Resultado anual projectado** — actual vs simulado
 - **Margem %** — actual vs simulado
 - **Cash conversion cycle / runway em semanas** — actual vs simulado
-- **Alavanca mais afectada pela mudança** — o Punho aponta qual
+- **Alavanca mais afectada pela mudança** — o Fist aponta qual
   slide-alavanca faria mais sentido consultar em consequência
 
 **Cenários guardados:**
@@ -881,7 +881,7 @@ Decisão 7 (task #203) — o Dashboard é refeito de uma vez.
 ## Decisão 11 — Tarefas como backlog priorizado de perguntas por responder
 
 **Contexto:** com o Dashboard fechado em 9 slides (Decisões 6-10),
-sabemos exactamente que respostas o Punho quer poder dar ao
+sabemos exactamente que respostas o Fist quer poder dar ao
 empresário. E se sabemos as respostas, sabemos as perguntas que
 precisamos de lhe fazer. O onboarding actual tenta recolher tudo à
 cabeça — cansa o empresário e cria abandono. Ao mesmo tempo, o
@@ -1023,7 +1023,7 @@ ordem de prioridade no 'Tarefas'"*.
 4. Onboarding **não encolhe** — mantém-se como está. As perguntas
    complementares nascem em Tarefas com prioridade calculada, **e só
    aparecem depois das do onboarding estarem preenchidas**.
-5. Sub-secção nova no destino Tarefas: **"Progresso do teu Punho"**
+5. Sub-secção nova no destino Tarefas: **"Progresso do teu Fist"**
    com a barra de completude dos KPIs.
 
 **Relação com decisões anteriores:**
@@ -1097,7 +1097,7 @@ contexto:
 | Login / registo | **Portrait lock** | Antes de qualquer sessão |
 | Onboarding inteiro (todos os passos, incluindo `MaisDados` e `BoasVindas`) | **Portrait lock** | Sem excepções, sem "convite a rodar" |
 | Shell do colaborador (após entrar) | **Portrait lock** | Já era assim; mantém-se |
-| Shell do gestor (após `completeOnboarding` + tap em "Entrar na Punho") | **Landscape lock** | Só aqui a app roda |
+| Shell do gestor (após `completeOnboarding` + tap em "Entrar na Fist") | **Landscape lock** | Só aqui a app roda |
 
 **Racional (Cesar):** *"o 'como te chamas' não é para ser landscape,
 o app do colaborador também não é landscape. Estas perguntas estavam
@@ -1117,9 +1117,9 @@ prematuros.
   (ou pattern equivalente) que chama `setPreferredOrientations`
   com o que corresponde ao contexto actual.
 - **`BoasVindasScreen` passa a portrait lock**. O botão "Entrar na
-  Punho" continua a mudar para landscape *depois* do tap — nunca
+  Fist" continua a mudar para landscape *depois* do tap — nunca
   antes. O texto que sugeria rodar antes de entrar deixa de fazer
-  sentido: pode ser reformulado para *"a partir daqui a Punho vai
+  sentido: pode ser reformulado para *"a partir daqui a Fist vai
   passar a modo horizontal — o teu tablet vai rodar sozinho"*.
 - **O teste que confirma que `BoasVindasScreen` não chama
   `setPreferredOrientations`** passa a inverter-se: agora exige que
@@ -1135,7 +1135,7 @@ v0.0.6, junto com o follow-up da Decisão 12):**
 3. `main.dart` limpo — sem forçar orientação global.
 4. `BoasVindasScreen` chama `forcarPortrait()` no `initState` e
    `forcarLandscape()` **apenas** dentro do `onPressed` do botão
-   "Entrar na Punho", **antes** de navegar.
+   "Entrar na Fist", **antes** de navegar.
 5. Testes reformulados para cada contexto.
 
 **Estado:** decisão fechada. Fica como follow-up pequeno da sprint 1

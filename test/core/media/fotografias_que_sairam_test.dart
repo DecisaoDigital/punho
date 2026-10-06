@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/media/machine_image_store.dart';
+import 'package:fist/core/media/machine_image_store.dart';
 
 /// **Uma fotografia de máquina que sai da lista tem de sair também do arquivo.**
 ///

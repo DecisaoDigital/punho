@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/auth/acesso_providers.dart';
-import 'package:punho/features/auth/domain/estado_acesso.dart';
-import 'package:punho/features/auth/presentation/auth_gate.dart';
-import 'package:punho/features/auth/presentation/pedir_acesso_screen.dart';
+import 'package:fist/features/auth/acesso_providers.dart';
+import 'package:fist/features/auth/domain/estado_acesso.dart';
+import 'package:fist/features/auth/presentation/auth_gate.dart';
+import 'package:fist/features/auth/presentation/pedir_acesso_screen.dart';
 
 import 'fake_acesso_service.dart';
 

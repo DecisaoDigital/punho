@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/config/supabase_config.dart';
+import 'package:fist/core/config/supabase_config.dart';
 
 /// A trava que impede um APK de release sair sem Supabase.
 ///

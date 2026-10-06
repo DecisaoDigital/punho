@@ -331,7 +331,7 @@ a seis meses precisa de saber quem lhe deve). **A célula diz a régua** — «A
 dos 21 dias do costume» —, porque uma fronteira que não se vê não se pode
 contestar. É a mesma ideia da apreciação da caixa: o padrão é o da empresa, não
 o do manual. Sem recibos que cheguem, volta ao dia seguinte ao fim do trabalho,
-que é onde o modelo do Punho põe o vencimento.
+que é onde o modelo do Fist põe o vencimento.
 
 **O que os três dizem hoje na Depilconcept**, já com tudo arrumado:
 

@@ -1,4 +1,4 @@
-/// O que o Punho pede ao contabilista, e o que ele já respondeu.
+/// O que o Fist pede ao contabilista, e o que ele já respondeu.
 ///
 /// Desenho e razões em `docs/PORTAL_DO_CONTABILISTA.md`. O resumo é: o
 /// contabilista não é utilizador da app. É uma fonte de dados que abre um link,

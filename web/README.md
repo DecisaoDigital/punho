@@ -1,4 +1,4 @@
-# Landing pública do Punho (`web/`)
+# Landing pública do Fist (`web/`)
 
 Site estático que aceita convites: o gestor cria um convite na app, partilha o
 link, o convidado abre-o no telemóvel e cria a conta ali — sem instalar nada
@@ -110,7 +110,7 @@ confirmação, acrescentar:
 
 ```html
 <p style="margin-top:24px;color:#5b6b78;font-size:14px">
-  Depois de confirmares o email, o acesso ao Punho fica pendente de aprovação
+  Depois de confirmares o email, o acesso ao Fist fica pendente de aprovação
   central — recebes aviso quando ficar activo.
 </p>
 <p style="color:#5b6b78;font-size:14px">

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/documents/at_invoice_qr.dart';
+import 'package:fist/core/documents/at_invoice_qr.dart';
 
 void main() {
   test('lê os campos essenciais do QR de uma fatura AT', () {

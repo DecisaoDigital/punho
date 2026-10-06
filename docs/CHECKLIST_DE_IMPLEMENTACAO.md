@@ -1,4 +1,4 @@
-# Checklist de implementação — Punho
+# Checklist de implementação — Fist
 
 Última revisão: 25 de julho de 2026.
 
@@ -6,7 +6,7 @@ Legenda: `[x]` concluído e validado localmente; `[-]` iniciado/parcial; `[ ]` p
 
 ## 1. Base de produto e experiência
 
-- [x] Nome, posicionamento e assinatura: **Punho — Agarra o comando.**
+- [x] Nome, posicionamento e assinatura: **Fist — Agarra o comando.**
 - [x] Identidade inicial: azul-noite, branco e laranja/dourado de acção.
 - [x] Moldura de gestão com barra lateral, ícones, item activo e áreas de comando/operação.
 - [x] Orientação horizontal para o painel do empresário/administrador em telemóvel e tablet.
@@ -93,11 +93,11 @@ Legenda: `[x]` concluído e validado localmente; `[-]` iniciado/parcial; `[ ]` p
 ## 8. WashInvoice Control e comercialização
 
 - [x] Estrutura inicial de consulta de actualizações remotas pelo Control para a app `punho`.
-- [x] Migration de catálogo de versões com plataforma e banner de actualização no Punho.
+- [x] Migration de catálogo de versões com plataforma e banner de actualização no Fist.
 - [-] Código preparado; falta aplicar SQL e publicar a Edge Function no ambiente real.
-- [ ] No Control: criar/editar planos Punho, empresa, estado da subscrição e data de validade.
+- [ ] No Control: criar/editar planos Fist, empresa, estado da subscrição e data de validade.
 - [ ] No Control: definir limite de colaboradores por empresa e packs (gestor + até 3 colaboradores, ou outros planos).
-- [ ] No Punho: consultar autorização do Control no arranque e impedir exceder limites sem desactivar silenciosamente pessoas.
+- [ ] No Fist: consultar autorização do Control no arranque e impedir exceder limites sem desactivar silenciosamente pessoas.
 - [ ] Bloqueios claros por subscrição expirada, período de graça e reactivação.
 - [ ] Registo de instalações/dispositivos e diagnóstico remoto mínimo, sem expor dados financeiros.
 
@@ -108,7 +108,7 @@ Legenda: `[x]` concluído e validado localmente; `[-]` iniciado/parcial; `[ ]` p
 - [-] Novo build Windows após as fotografias iniciou, mas não terminou no limite de execução disponível; precisa de confirmação local.
 - [ ] Gerar e instalar APK Android num dispositivo real; testar câmara, galeria, horizontal do gestor e retrato do colaborador.
 - [ ] Testar iOS/iPad real, permissões de câmara/galeria e orientação.
-- [ ] Configurar GitHub: repositório Punho, branches, releases, changelog e pipeline de análise/testes/build.
+- [ ] Configurar GitHub: repositório Fist, branches, releases, changelog e pipeline de análise/testes/build.
 - [ ] Assinatura de Android, distribuição de teste (APK/Play Internal Testing) e processo de versão.
 - [ ] Testes de integração para autenticação, RLS, duas empresas, reservas simultâneas, offline e sincronização.
 - [ ] Auditoria manual com uma empresa-piloto apenas com dados de demonstração antes de introduzir dados reais.

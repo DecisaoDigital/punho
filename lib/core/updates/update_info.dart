@@ -1,5 +1,5 @@
-class PunhoUpdateInfo {
-  const PunhoUpdateInfo({
+class FistUpdateInfo {
+  const FistUpdateInfo({
     required this.version,
     required this.buildNumber,
     required this.downloadUrl,
@@ -21,8 +21,8 @@ class PunhoUpdateInfo {
   /// app que se instala a si própria tem de confirmar o que está a abrir.
   final String? sha256;
 
-  factory PunhoUpdateInfo.fromJson(Map<String, dynamic> json) =>
-      PunhoUpdateInfo(
+  factory FistUpdateInfo.fromJson(Map<String, dynamic> json) =>
+      FistUpdateInfo(
         version: json['versao_actual'] as String,
         buildNumber: json['build_number'] as int,
         downloadUrl: json['url_download'] as String,
@@ -46,7 +46,7 @@ class PunhoUpdateInfo {
   /// fora da app. Um `obrigatoria: true` vindo do cache local significaria que
   /// retirar a linha de `versoes_apps` deixava o telemóvel bloqueado para
   /// sempre, sem forma de recuperar sem limpar os dados da app.
-  PunhoUpdateInfo semBloqueio() => PunhoUpdateInfo(
+  FistUpdateInfo semBloqueio() => FistUpdateInfo(
     version: version,
     buildNumber: buildNumber,
     downloadUrl: downloadUrl,

@@ -16,7 +16,7 @@ Estado — 4 de Agosto de 2026:
 
 ## O problema
 
-Uma empresa que instala o Punho hoje começa sem passado. O painel calcula
+Uma empresa que instala o Fist hoje começa sem passado. O painel calcula
 variação homóloga — `TesourariaMes.recebidoMesHomologoCents`,
 `lib/core/operations/kpis.dart:62` — contra um ano que não existe, e fica cego
 durante doze meses. São exactamente os doze meses em que o empresário está a
@@ -24,7 +24,7 @@ decidir se a app vale alguma coisa.
 
 Quem tem esse passado escrito não é o gestor. É o contabilista.
 
-Há um segundo buraco, mais silencioso. A forma jurídica o Punho sabe-a — é
+Há um segundo buraco, mais silencioso. A forma jurídica o Fist sabe-a — é
 perguntada no arranque da app e vive em `FichaDaEmpresa.formaJuridica`. O que
 ele não sabe é o degrau a seguir: `regimeDaFormaJuridica()` manda **todos** os
 ENI para `eniSimplificado` e admite porquê em comentário
@@ -40,7 +40,7 @@ depois.
 ## O que o contabilista é aqui
 
 **Uma fonte de dados, não um utilizador da app.** Não vê o painel, não vê
-clientes, não vê o que o Punho faz. Vê uma grelha de meses e responde.
+clientes, não vê o que o Fist faz. Vê uma grelha de meses e responde.
 
 Isso decide tudo o resto:
 
@@ -99,7 +99,7 @@ trigger recusa um total anual numa rubrica que não o preveja.
 ### 1. Em branco não é zero
 
 "Não sei quanto faturou em Março de 2022" e "faturou zero em Março de 2022" são
-respostas diferentes, e o Punho decide diferente com cada uma. Em branco é a
+respostas diferentes, e o Fist decide diferente com cada uma. Em branco é a
 **ausência de linha** em `punho_respostas_contabilista`; zero é uma linha com
 `valor_centavos = 0`. A constraint `punho_resposta_tem_valor` impede a linha
 sem valor — não se grava "não sei" de forma cara.
@@ -125,7 +125,7 @@ dentro dela:
 
 **Agregada.** Cinco rubricas mensais em sessenta meses são trezentas células.
 Trezentas tarefas não são uma lista, são um muro. A função devolve uma linha
-por rubrica e o Punho faz disso uma tarefa só. Numa rubrica única `em_falta` é
+por rubrica e o Fist faz disso uma tarefa só. Numa rubrica única `em_falta` é
 1 e os meses vêm nulos.
 
 **Com dois níveis de gravidade**, que caem certos nas severidades que
@@ -165,7 +165,7 @@ para quem não souber os meses:
 | `resultado` | Resultado do mês | não | sim |
 
 O IVA liquidado é o único que não aceita total anual: um total de IVA do ano
-não serve para nada que o Punho faça — o que ele precisa de saber é quando a
+não serve para nada que o Fist faça — o que ele precisa de saber é quando a
 entrega calha, e isso vem da periodicidade.
 
 **Únicas** — uma resposta para a empresa toda:
@@ -184,7 +184,7 @@ pergunta obriga a uma migração é um modelo em que ninguém acrescenta pergunt
 
 ## O fluxo
 
-1. **O gestor convida.** No Punho, secção da empresa: nome e email do
+1. **O gestor convida.** No Fist, secção da empresa: nome e email do
    contabilista. A app gera um token aleatório, envia o `sha256` para
    `punho_convites_contabilista.token_hash` e mostra o link em claro **uma
    vez** — para copiar para email ou WhatsApp. A base nunca guarda o token
@@ -211,7 +211,7 @@ pergunta obriga a uma migração é um modelo em que ninguém acrescenta pergunt
 `supabase/functions/portal-contabilista/`. Nota de terreno: as Edge Functions
 deste ecossistema vivem em `~/washinvoice-control/supabase/functions` — e a
 `sincronizar-empresa-punho` **não tem código local em lado nenhum**, foi
-publicada directamente. Esta nasce versionada, no repo do Punho, onde vive o
+publicada directamente. Esta nasce versionada, no repo do Fist, onde vive o
 resto do desenho.
 
 Serve HTML e trata submissões. Sem build web, sem hosting novo, sem Flutter web
@@ -231,7 +231,7 @@ Duas notas que só aparecem ao escrever o código:
   `euros.ts` com testes, e o servidor devolve sempre o valor como o interpretou
   para o campo — quem escreveu vê como ficou antes de fechar a página.
 
-## Ligação ao Punho
+## Ligação ao Fist
 
 - **Tarefas.** `tarefasPendentes` (`lib/features/tarefas/data/tarefas_service.dart`)
   ganha um gerador que lê `punho_lacunas_contabilista()`. Severidade
@@ -340,7 +340,7 @@ de a empresa» não lhe diz de quem são. O NIF é o que desfaz a dúvida — do
 clientes podem chamar-se parecido, o número é um só. Quem não tem a certeza de
 que cliente está a preencher, ou não preenche, ou preenche o do lado.
 
-**Porquê, em três parágrafos.** O que é o Punho, porque é que a comparação com o
+**Porquê, em três parágrafos.** O que é o Fist, porque é que a comparação com o
 ano anterior não funciona sem ele, e o que se espera: preencher com o que já tem
 fechado — não é trabalho novo, são valores que já saíram das contas que fez. Um
 pedido sem explicação parece burocracia, e burocracia de terceiros é a primeira

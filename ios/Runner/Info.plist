@@ -5,7 +5,7 @@
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>
-		<string>Punho</string>
+		<string>Fist</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>
@@ -25,9 +25,9 @@
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>NSCameraUsageDescription</key>
-		<string>O Punho usa a câmara para fotografar faturas e identificar as máquinas da empresa.</string>
+		<string>O Fist usa a câmara para fotografar faturas e identificar as máquinas da empresa.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
-		<string>O Punho acede à galeria para associar faturas e fotografias às máquinas da empresa.</string>
+		<string>O Fist acede à galeria para associar faturas e fotografias às máquinas da empresa.</string>
 		<key>UILaunchStoryboardName</key>
 		<string>LaunchScreen</string>
 		<key>UIMainStoryboardFile</key>

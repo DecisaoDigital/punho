@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/documents/document_reading.dart';
-import 'package:punho/domain/models/finance.dart';
+import 'package:fist/core/documents/document_reading.dart';
+import 'package:fist/domain/models/finance.dart';
 
 void main() {
   test('QR sem valor não preenche valor inválido', () {

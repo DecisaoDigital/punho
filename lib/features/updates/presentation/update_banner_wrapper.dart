@@ -18,8 +18,8 @@ const barreiraUpdateObrigatorio = Key('barreira-update-obrigatorio');
 ///
 /// O wrapper não decide acessos nem os contorna: o `AcessoGate` continua a
 /// mandar no que se vê por baixo. Só desenha por cima.
-class PunhoUpdateBannerWrapper extends ConsumerWidget {
-  const PunhoUpdateBannerWrapper({super.key, required this.child});
+class FistUpdateBannerWrapper extends ConsumerWidget {
+  const FistUpdateBannerWrapper({super.key, required this.child});
 
   final Widget child;
 
@@ -49,7 +49,7 @@ class PunhoUpdateBannerWrapper extends ConsumerWidget {
                   padding: const EdgeInsets.all(24),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 520),
-                    child: PunhoUpdateBanner(update: update),
+                    child: FistUpdateBanner(update: update),
                   ),
                 ),
               ),
@@ -76,7 +76,7 @@ class PunhoUpdateBannerWrapper extends ConsumerWidget {
           bottom: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-            child: PunhoUpdateBanner(update: update),
+            child: FistUpdateBanner(update: update),
           ),
         ),
         Expanded(child: child),

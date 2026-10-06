@@ -1,13 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/updates/update_info.dart';
+import 'package:fist/core/updates/update_info.dart';
 
 /// O cache local do banner (`punho_update.cache_v2`) grava e relê isto. Se o
 /// `toJson` deixar de bater certo com o `fromJson`, o cache passa a rebentar em
 /// silêncio no arranque e o banner volta ao bug de só aparecer à segunda vez.
 void main() {
-  const info = PunhoUpdateInfo(
+  const info = FistUpdateInfo(
     version: '0.0.16',
     buildNumber: 16,
     downloadUrl: 'https://exemplo/punho.apk',
@@ -16,7 +16,7 @@ void main() {
   );
 
   test('sobrevive à ida e volta por JSON', () {
-    final volta = PunhoUpdateInfo.fromJson(
+    final volta = FistUpdateInfo.fromJson(
       Map<String, dynamic>.from(jsonDecode(jsonEncode(info.toJson())) as Map),
     );
 
@@ -40,7 +40,7 @@ void main() {
   });
 
   test('sem notas de lançamento a chave não vai vazia', () {
-    const semNotas = PunhoUpdateInfo(
+    const semNotas = FistUpdateInfo(
       version: '0.0.16',
       buildNumber: 16,
       downloadUrl: 'https://exemplo/punho.apk',
@@ -48,7 +48,7 @@ void main() {
     );
 
     expect(semNotas.toJson().containsKey('notas_lancamento'), isFalse);
-    expect(PunhoUpdateInfo.fromJson(semNotas.toJson()).releaseNotes, isNull);
+    expect(FistUpdateInfo.fromJson(semNotas.toJson()).releaseNotes, isNull);
   });
 
   test('semBloqueio tira o obrigatório e não mexe em mais nada', () {

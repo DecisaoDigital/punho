@@ -1,4 +1,4 @@
--- Inventário verificável de uma base do Punho.
+-- Inventário verificável de uma base do Fist.
 --
 -- Corre-se duas vezes: na base viva, na altura da cópia, e na base restaurada
 -- a partir dessa cópia. Se as duas listas forem iguais, o restauro trouxe tudo.

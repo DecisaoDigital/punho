@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/finance/regime_fiscal.dart';
-import 'package:punho/core/finance/retencao_irs.dart';
-import 'package:punho/domain/models/workforce.dart';
+import 'package:fist/core/finance/regime_fiscal.dart';
+import 'package:fist/core/finance/retencao_irs.dart';
+import 'package:fist/domain/models/workforce.dart';
 
 /// O que sai da empresa por cada pessoa, à luz do regime fiscal.
 ///

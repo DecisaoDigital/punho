@@ -1,6 +1,6 @@
 /// Tipo do que está em disputa. Começa só com reservas de máquina, mas o
 /// modelo não está amarrado a isso — outros tipos de conflito (transversal
-/// a apps, não só ao Punho) podem entrar aqui no futuro.
+/// a apps, não só ao Fist) podem entrar aqui no futuro.
 enum TipoConflito { reservaMaquina }
 
 enum EstadoConflito { pendente, resolvido }

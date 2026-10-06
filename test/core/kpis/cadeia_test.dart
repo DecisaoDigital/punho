@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/dashboard/presentation/kpi_catalogo.dart';
+import 'package:fist/features/dashboard/presentation/kpi_catalogo.dart';
 
 /// **A cadeia de KPIs tem de ser uma árvore.**
 ///

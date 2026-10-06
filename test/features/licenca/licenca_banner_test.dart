@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/licenca/licenca_info.dart';
-import 'package:punho/core/licenca/licenca_provider.dart';
-import 'package:punho/core/licenca/licenca_service.dart';
-import 'package:punho/features/licenca/presentation/licenca_banner.dart';
+import 'package:fist/core/licenca/licenca_info.dart';
+import 'package:fist/core/licenca/licenca_provider.dart';
+import 'package:fist/core/licenca/licenca_service.dart';
+import 'package:fist/features/licenca/presentation/licenca_banner.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 LicencaInfo _licenca(
@@ -21,7 +21,7 @@ LicencaInfo _licenca(
 );
 
 /// Conta os registos pedidos pelo banner quando o estado é `inexistente`.
-class _ServicoEspiao extends PunhoLicencaService {
+class _ServicoEspiao extends FistLicencaService {
   _ServicoEspiao() : super.comInvocador(_semRede);
 
   static Future<FunctionResponse> _semRede(String _, Map<String, dynamic> _) =>
@@ -38,7 +38,7 @@ class _ServicoEspiao extends PunhoLicencaService {
 Future<void> _montar(
   WidgetTester tester,
   LicencaInfo? licenca, {
-  PunhoLicencaService? servico,
+  FistLicencaService? servico,
 }) async {
   await tester.pumpWidget(
     ProviderScope(

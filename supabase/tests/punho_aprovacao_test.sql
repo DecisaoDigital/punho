@@ -1,5 +1,5 @@
 -- ============================================================================
--- Testes da aprovação de pedidos Punho pelo Control.
+-- Testes da aprovação de pedidos Fist pelo Control.
 --
 -- COMO CORRER
 --   SQL Editor do Supabase, com role service_role, depois de aplicar

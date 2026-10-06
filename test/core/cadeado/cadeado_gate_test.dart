@@ -5,10 +5,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth_platform_interface/types/auth_messages.dart';
-import 'package:punho/core/cadeado/cadeado_gate.dart';
-import 'package:punho/core/cadeado/cadeado_service.dart';
-import 'package:punho/core/cadeado/lock_screen.dart';
-import 'package:punho/core/orientacao/orientacao_do_contexto.dart';
+import 'package:fist/core/cadeado/cadeado_gate.dart';
+import 'package:fist/core/cadeado/cadeado_service.dart';
+import 'package:fist/core/cadeado/lock_screen.dart';
+import 'package:fist/core/orientacao/orientacao_do_contexto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// O `CadeadoGate` é o orquestrador do cadeado e não tinha um único teste.

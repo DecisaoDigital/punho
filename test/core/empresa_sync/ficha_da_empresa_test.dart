@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/empresa_sync/ficha_da_empresa.dart';
+import 'package:fist/core/empresa_sync/ficha_da_empresa.dart';
 
 /// A ficha da empresa, lida do servidor.
 ///

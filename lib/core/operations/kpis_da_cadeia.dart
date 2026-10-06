@@ -2,7 +2,7 @@
 ///
 /// O diagrama do plano de KPIs (`docs/kpis/`) põe três números no topo, e todos
 /// os outros pendurados neles: um número mau tem de ter um filho que o
-/// explique. Dois desses três não existiam no Punho. Havia contas de caixa —
+/// explique. Dois desses três não existiam no Fist. Havia contas de caixa —
 /// `caixaDoMes`, `tesourariaDoMes` — e contas de saúde — `margemBruta`,
 /// `fluxoDeCaixaLivre` — mas não havia **Vendas** nem **Lucro**.
 ///

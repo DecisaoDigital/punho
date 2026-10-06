@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/orientacao/orientacao_do_contexto.dart';
 
-/// Splash de arranque com o símbolo Punho.
+/// Splash de arranque com o símbolo Fist.
 ///
 /// Animação em 3 fases (~1.6s total):
 ///   0-30%   fundo azul + símbolo com fade-in
@@ -10,15 +10,15 @@ import '../../core/orientacao/orientacao_do_contexto.dart';
 ///   70-100% micro-pulse final (1.0 → 1.06 → 1.0)
 ///
 /// Ao terminar chama [aoTerminar] — normalmente para revelar AuthGate/AppShell.
-class SplashPunho extends StatefulWidget {
-  const SplashPunho({super.key, required this.aoTerminar});
+class SplashFist extends StatefulWidget {
+  const SplashFist({super.key, required this.aoTerminar});
   final VoidCallback aoTerminar;
 
   @override
-  State<SplashPunho> createState() => _SplashPunhoState();
+  State<SplashFist> createState() => _SplashFistState();
 }
 
-class _SplashPunhoState extends State<SplashPunho>
+class _SplashFistState extends State<SplashFist>
     with SingleTickerProviderStateMixin {
   static const _duracao = Duration(milliseconds: 1600);
   // Cor do fundo do próprio símbolo — evita "flash" azul-claro por trás.

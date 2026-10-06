@@ -1,31 +1,31 @@
-# Punho — decisões de produto e roadmap vivo
+# Fist — decisões de produto e roadmap vivo
 
 > Documento central de produto. Regista o que foi decidido, o que existe no código e o que falta construir.  
 > Atualizar sempre que uma decisão de negócio, UX ou funcionalidade seja fechada.
 
 ## 1. Propósito
 
-**Punho — Agarra o comando** é uma aplicação que ensina pequenos empresários a gerir melhor o negócio através do trabalho diário: recolhe dados no momento certo, transforma-os em indicadores claros e recomenda a próxima ação concreta.
+**Fist — Agarra o comando** é uma aplicação que ensina pequenos empresários a gerir melhor o negócio através do trabalho diário: recolhe dados no momento certo, transforma-os em indicadores claros e recomenda a próxima ação concreta.
 
 O primeiro caso de uso é o aluguer de máquinas. A arquitetura deve permitir adaptar a aplicação a outras atividades sem perder a clareza do primeiro vertical.
 
-O Punho não é contabilidade e não toma decisões sozinho. Mostra o número, explica a causa provável, abre os registos envolvidos e propõe uma ação. A decisão final pertence sempre ao gestor.
+O Fist não é contabilidade e não toma decisões sozinho. Mostra o número, explica a causa provável, abre os registos envolvidos e propõe uma ação. A decisão final pertence sempre ao gestor.
 
-`D:\gestao_fluxo` pode ser consultado como referência, mas não é uma dependência nem deve ser alterado para construir o Punho.
+`D:\gestao_fluxo` pode ser consultado como referência, mas não é uma dependência nem deve ser alterado para construir o Fist.
 
 ## 2. Identidade e princípios fechados
 
-- Nome: **Punho**.
+- Nome: **Fist**.
 - Assinatura: **Agarra o comando**.
 - Identidade visual: azul-marinho escuro, branco e laranja/dourado para ação.
 - Conceito de marca: uma mão a agarrar/elevar uma linha de gráfico económico; não um punho agressivo.
 - Inspiração de interface: Point of Rental, Quipli e EZRentOut, sem copiar a identidade de nenhum.
-- O cliente vê apenas Punho. A ligação ao WashInvoice Control é interna e invisível.
+- O cliente vê apenas Fist. A ligação ao WashInvoice Control é interna e invisível.
 - O empresário usa sempre uma visão de trabalho em horizontal: Windows, tablet e telemóvel de gestor em landscape. A experiência de colaborador privilegia telemóvel/tablet Android e ações rápidas.
 - A barra lateral do gestor deve ter ícones e grupos claros: Gestão, Funcionários, Máquinas, Veículos quando existem, Clientes e Marcações/Reservas.
 - Poucos toques, linguagem portuguesa simples e cada pedido de dados deve explicar a razão.
 - Refeições são apenas uma categoria de despesa; não se pergunta o contexto da refeição.
-- Uma promoção, cobrança ou campanha é uma sugestão. O Punho nunca a executa automaticamente.
+- Uma promoção, cobrança ou campanha é uma sugestão. O Fist nunca a executa automaticamente.
 
 ## 3. O que já existe no código (estado local/piloto)
 
@@ -53,7 +53,7 @@ O Punho não é contabilidade e não toma decisões sozinho. Mostra o número, e
 - [x] Recomendações como cobrar atrasos e reforçar leads, ou sugerir promoção em dia fraco quando existe capacidade.
 - [x] Alertas de máquinas declaradas mas ainda não identificadas, colaboradores incompletos e frota sem viaturas registadas.
 - [x] Histórico mensal manual para os últimos cinco anos e ano atual: recebimentos, despesas pagas, publicidade, leads, conversões e manutenção.
-- [x] Comparação homóloga mensal no dashboard quando existe o mesmo mês do ano anterior. Sem esse mês, o Punho pede o histórico em vez de inventar uma comparação.
+- [x] Comparação homóloga mensal no dashboard quando existe o mesmo mês do ano anterior. Sem esse mês, o Fist pede o histórico em vez de inventar uma comparação.
 
 ### 3.3 Base técnica já iniciada
 
@@ -86,14 +86,14 @@ O Punho não é contabilidade e não toma decisões sozinho. Mostra o número, e
 
 **v0.0.6 — sprint 1 preparada (`feat/v006-boas-vindas`):**
 
-- [ ] **Ecrãs de contexto no onboarding:** `MaisDadosScreen` (se escolheu preencher tudo) + `BoasVindasScreen` sempre no fim, ainda em portrait, com CTA "roda o tablet — a Punho passa a horizontal".
+- [ ] **Ecrãs de contexto no onboarding:** `MaisDadosScreen` (se escolheu preencher tudo) + `BoasVindasScreen` sempre no fim, ainda em portrait, com CTA "roda o tablet — a Fist passa a horizontal".
 - [ ] **Ecrã de conta** (tocar no avatar da sidebar) com identidade, chip `SESSÃO ACTIVA` / `MODO DEMONSTRAÇÃO`, dados da empresa editáveis inline (widget `EmpresaDadosForm` extraído da `CompanySettingsPage`), botão **Convidar por WhatsApp** (usa `mensagemConvite` + `wa.me`) e **Terminar sessão** com confirmação.
 - [ ] **Modelo contratual do funcionário:** enum `EmploymentType { recibosVerdes, contrato }` no `Collaborator`. Diálogo com `SegmentedButton` no topo; campos condicionais (recibos verdes → NIF+IBAN+morada; contrato → NISS+estado civil+dependentes+IBAN+morada). Bloco read-only "Estimativa" com líquido do trabalhador, TSU patronal 23,75% e **Custo total para a empresa** destacado.
 - [ ] **KPI "Custo real com pessoal"** no slide Custos: bruto pago + TSU patronal + custo real. Fica explícita a diferença entre o que o trabalhador vê e o que a empresa desembolsa.
 
 **v0.0.6 — sprint 2 preparada (self-service do colaborador):**
 
-- [ ] Colaborador recebe convite WhatsApp, entra na Punho, vê no shell portrait um card âmbar *"A tua ficha está incompleta"* e preenche o `FichaFiscalColaboradorForm` (mesmo widget que o gestor usa, reutilizado). Preenche NISS, IBAN, morada, data nasc.
+- [ ] Colaborador recebe convite WhatsApp, entra na Fist, vê no shell portrait um card âmbar *"A tua ficha está incompleta"* e preenche o `FichaFiscalColaboradorForm` (mesmo widget que o gestor usa, reutilizado). Preenche NISS, IBAN, morada, data nasc.
 - [ ] Nova RPC Supabase `punho_atualizar_ficha_colaborador` (security definer, filtra pelo `auth.uid()`), só deixa mudar campos permitidos (não custo, não cargo).
 - [ ] Trigger `AFTER UPDATE` dispara push ao gestor **só na transição** `NISS null → preenchido` (evita spam).
 - [ ] `CollaboratorsPage`: chip verde `FICHA COMPLETA` vs âmbar `AGUARDA COLABORADOR` (mais accionável que "NISS em falta").
@@ -239,7 +239,7 @@ disponível (`444ad68`).
 `registar-terminal` (Edge Function, deploy v7, já em produção) passa a aceitar
 `nif` opcional e a actualizar `licencas.nif` — que nascia sempre com o
 placeholder `'000000000'` — quando recebe um NIF real de 9 dígitos (`1e0c04d`).
-Antes disto, nenhuma instalação Punho tinha alguma vez ligado o seu NIF real
+Antes disto, nenhuma instalação Fist tinha alguma vez ligado o seu NIF real
 à linha de `licencas`, mesmo depois de a empresa o preencher em Definições.
 
 **Actualização à decisão do limite de colaboradores (secção 3.6): a RPC
@@ -253,7 +253,7 @@ registam quem a aplicou nem quando — ambos ainda afirmam "não aplicada em
 produção" por uma verificação anterior a esta, agora desactualizada. Por
 confirmar com o Cesar: se foi ele a aplicar directamente por fora deste
 histórico, e se o Control já tem alguma interface a chamá-la — a proposta em
-`docs/HANDOVER_SESSAO_SEGUINTE.md` ("Control — menus do Punho") continua a
+`docs/HANDOVER_SESSAO_SEGUINTE.md` ("Control — menus do Fist") continua a
 descrever isto como peça por construir do lado da interface.
 
 ## 3.7 Decisão e progresso — 3 de agosto de 2026 (conflitos de reserva entre dispositivos offline)
@@ -277,14 +277,14 @@ ficam para uma iteração futura, só a pedido explícito.
 ## 3.4 Decisoes recentes: faturas e fotografias (26 de julho de 2026)
 
 - [x] Uma despesa pode ser criada a partir de uma fotografia da fatura. O QR da AT e lido no dispositivo para sugerir data, total, NIF do fornecedor, numero do documento e ATCUD; o utilizador confirma os valores antes de guardar.
-- [x] O comprovativo da despesa e enviado para o arquivo remoto privado do Punho, associado a empresa e a despesa. A autoria e registada para auditoria, mas o ficheiro nao pertence ao dispositivo nem a conta individual de quem o captou.
+- [x] O comprovativo da despesa e enviado para o arquivo remoto privado do Fist, associado a empresa e a despesa. A autoria e registada para auditoria, mas o ficheiro nao pertence ao dispositivo nem a conta individual de quem o captou.
 - [x] Acesso a comprovativos de despesas: quem o enviou e os gestores da mesma empresa.
 - [x] Fotografias de maquinas podem ser enviadas por qualquer membro e ficam disponiveis a todos os membros ativos da mesma empresa. A fotografia da maquina e um recurso da empresa.
 - [ ] Para ativar este comportamento no ambiente real, aplicar a migration `20260726_punho_documentos_privados.sql` no Supabase e configurar `SUPABASE_URL` e `SUPABASE_ANON_KEY` na compilacao da app.
 
 Decisao de arquitetura: os ficheiros binarios vivem no **Supabase Storage privado**, que e o arquivo remoto da aplicacao; a base de dados guarda a empresa, a autoria, a associacao a despesa e o caminho do ficheiro. Nao se guardam fotografias como dados binarios dentro das tabelas relacionais.
 
-## 4. Dados que o Punho precisa de aprender
+## 4. Dados que o Fist precisa de aprender
 
 ### 4.1 Primeiro uso sem cansar o empresário
 
@@ -315,7 +315,7 @@ Os valores podem ser aproximados e são marcados implicitamente como registo man
 
 ## 5. Funil comercial e publicidade — decisão de produto
 
-O Punho mede a cadeia completa:
+O Fist mede a cadeia completa:
 
 ```text
 Investimento em publicidade → Leads → Contacto → Proposta → Reserva confirmada → Dinheiro recebido → Recompra
@@ -337,13 +337,13 @@ Exemplo pedagógico:
 
 > 40 € em publicidade geraram 200 leads, 100 reservas confirmadas e 4 000 € em receita atribuída. Existem duas alavancas: aumentar investimento se houver capacidade e melhorar a taxa de conversão.
 
-Antes de recomendar aumentar publicidade, o Punho confirma disponibilidade de máquinas, capacidade de equipa e qualidade das leads. Não aumenta orçamentos sozinho.
+Antes de recomendar aumentar publicidade, o Fist confirma disponibilidade de máquinas, capacidade de equipa e qualidade das leads. Não aumenta orçamentos sozinho.
 
 ## 6. Clientes, retenção e contacto
 
 O cliente pertence sempre à empresa e é partilhado pelos colaboradores autorizados; nenhum colaborador é dono da base de clientes.
 
-O Punho deve identificar clientes que concluíram uma reserva e não voltaram, começando com limiares configuráveis de:
+O Fist deve identificar clientes que concluíram uma reserva e não voltaram, começando com limiares configuráveis de:
 
 - mais de 18 dias sem regressar;
 - mais de 40 dias sem regressar — subconjunto prioritário dos anteriores.
@@ -360,7 +360,7 @@ Motivos de não retorno a registar: sem necessidade atual, preço, concorrência
 
 ## 7. Reclamações, máquinas e qualidade
 
-O Punho terá registo estruturado de reclamações ligado, quando possível, a cliente, reserva e máquina. Uma ocorrência deve ter categoria, data, descrição curta, estado de resolução e responsável.
+O Fist terá registo estruturado de reclamações ligado, quando possível, a cliente, reserva e máquina. Uma ocorrência deve ter categoria, data, descrição curta, estado de resolução e responsável.
 
 Categorias iniciais:
 
@@ -372,7 +372,7 @@ Categorias iniciais:
 
 O dashboard mostrará o top 5 de reclamações e cada categoria abrirá a lista real de ocorrências. Em “Máquinas avariadas”, deverá ainda destacar máquinas repetidamente problemáticas, reservas potencialmente perdidas e a próxima ação de manutenção/decisão.
 
-## 8. Comunicações, WhatsApp e Punho IA
+## 8. Comunicações, WhatsApp e Fist IA
 
 ### 8.1 Primeira fase de WhatsApp
 
@@ -383,9 +383,9 @@ O dashboard mostrará o top 5 de reclamações e cada categoria abrirá a lista 
 
 Esta fase não requer automação nem API WhatsApp paga.
 
-### 8.2 Punho IA Pro (futuro)
+### 8.2 Fist IA Pro (futuro)
 
-O cliente escreve no WhatsApp da empresa e o Punho IA interpreta o pedido, verifica disponibilidade, faz perguntas em falta e cria uma pré-reserva. Casos de baixa confiança, exceções de preço, indisponibilidade ou conflito exigem validação humana.
+O cliente escreve no WhatsApp da empresa e o Fist IA interpreta o pedido, verifica disponibilidade, faz perguntas em falta e cria uma pré-reserva. Casos de baixa confiança, exceções de preço, indisponibilidade ou conflito exigem validação humana.
 
 Evolução segura:
 
@@ -400,8 +400,8 @@ Para isto será necessária a WhatsApp Business Platform/API, backend seguro, co
 
 - Frase da Semana e Objetivo da Semana fazem parte da proposta Pro/educativa.
 - Citações curtas e atribuídas só são usadas em contexto real de aprendizagem; ideias devem ser apresentadas como “Ideia de [autor]” quando não forem citação literal verificada.
-- Ao fim de cerca de um ano de utilização, o Punho deve propor o **Balanço de Comando**: ajudar o empresário a formular a filosofia, promessa e padrões da empresa.
-- O Punho IA Pro poderá transformar dados reais em objetivos semanais, cenários e plano de 90 dias. As regras determinísticas continuam a existir como base e alternativa.
+- Ao fim de cerca de um ano de utilização, o Fist deve propor o **Balanço de Comando**: ajudar o empresário a formular a filosofia, promessa e padrões da empresa.
+- O Fist IA Pro poderá transformar dados reais em objetivos semanais, cenários e plano de 90 dias. As regras determinísticas continuam a existir como base e alternativa.
 
 ## 10. Multiempresa, colaboradores e WashInvoice Control
 
@@ -410,7 +410,7 @@ Para isto será necessária a WhatsApp Business Platform/API, backend seguro, co
 - Modelo comercial previsto: uma conta principal e pacotes de colaboradores (por exemplo, até três), com cobrança mensal.
 - O colaborador não vê custos, margens, lucro/prejuízo nem configuração comercial; vê apenas o necessário para registar trabalho.
 - A sincronização final será granular: cada colaborador envia apenas as entidades permitidas; o gestor vê a informação da empresa.
-- O Punho deve comunicar tecnicamente com o Control para licença, limites, atualizações e diagnóstico, mas nunca revelar essa marca ao cliente.
+- O Fist deve comunicar tecnicamente com o Control para licença, limites, atualizações e diagnóstico, mas nunca revelar essa marca ao cliente.
 
 ## 11. O que ainda não está implementado
 
@@ -418,7 +418,7 @@ Para isto será necessária a WhatsApp Business Platform/API, backend seguro, co
 
 - **Planeado — reativar máquina:** uma máquina marcada como suspensa/inativa deve poder voltar a ativa através de uma ação explícita na ficha da máquina. A reativação preserva o histórico e não cria uma nova máquina.
 - **Planeado — Tarefas por fazer:** a barra lateral do gestor terá uma entrada **Tarefas por fazer**. Esta vista reunirá os dados, campos e decisões ainda em falta — por adiamento, preguiça ou informação ainda desconhecida — e indicará a origem de cada pendência e o caminho para a completar.
-- **Decisão fechada — dados incompletos não bloqueiam:** quando o gestor não tem um dado concreto, o Punho deve permitir continuar e converter essa lacuna numa tarefa por fazer; não deve forçar o preenchimento nem perder a pendência.
+- **Decisão fechada — dados incompletos não bloqueiam:** quando o gestor não tem um dado concreto, o Fist deve permitir continuar e converter essa lacuna numa tarefa por fazer; não deve forçar o preenchimento nem perder a pendência.
 
 ### Prioridade 1 — confiança nos dados
 

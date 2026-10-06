@@ -1,4 +1,4 @@
-# Punho — checklist da 0.0.6 sprint 1 até ao fim do horizonte planeado
+# Fist — checklist da 0.0.6 sprint 1 até ao fim do horizonte planeado
 
 > Consolidação de tudo o que está por implementar, por ordem de
 > prioridade. Consulta o `GUIAO_DE_PERCURSO_PRIMEIRO_EMPRESARIO.md`
@@ -34,7 +34,7 @@ Ficheiro: `prompts/punho_v006_sprint2_colaborador_selfservice.md`.
 
 ## Prioridade 3 — Cesar: instalar Control 1.8.1 no Redmi (task #188)
 
-Sem isto, os push do trigger #196 (novo pedido Punho) e o da sprint 2
+Sem isto, os push do trigger #196 (novo pedido Fist) e o da sprint 2
 (ficha completada) chegam ao vazio. Bloqueia validação real de tudo o
 que vem por push.
 
@@ -65,7 +65,7 @@ Ficheiro: `prompts/punho_v006_sprint3_whatsapp_retorno.md`.
 - [ ] **#197** · NDK 27.0.12077973 no `build.gradle.kts` — antes do
       QR facturas ser usado a sério
 - [ ] **#202** · CI: excluir tests de screenshot do gate de release
-- [ ] **#198** · Cesar: `gh auth login` no Punho para releases
+- [ ] **#198** · Cesar: `gh auth login` no Fist para releases
       explícitas
 
 ## Prioridade 6 — Refactors grandes que reformulam a app
@@ -144,12 +144,12 @@ Não são para esta janela, ficam marcados como norte.
 - [ ] **RLS de produção + Storage privado**
 - [ ] **Integração real com Control** para planos e limites de vagas
 
-## Coisas fora do Punho, no calendário do Cesar
+## Coisas fora do Fist, no calendário do Cesar
 
 - [ ] **#52** · Segunda-feira: chamar `707 206 707` para credenciais
       de produtor de software (Modelo 24 WashInvoice)
 - [ ] **#153, #167, #142** e outras do lado do POS — não fazem parte
-      deste horizonte Punho
+      deste horizonte Fist
 
 ## Notas transversais para o Code (padrões a manter)
 

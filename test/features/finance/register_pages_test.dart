@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/core/theme/punho_theme.dart';
-import 'package:punho/features/finance/presentation/finance_pages.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/core/theme/punho_theme.dart';
+import 'package:fist/features/finance/presentation/finance_pages.dart';
 
 import '../dashboard/fixtura.dart';
 
@@ -33,7 +33,7 @@ Future<ProviderContainer> _abrirEmpurrado(
     UncontrolledProviderScope(
       container: container,
       child: MaterialApp(
-        theme: PunhoTheme.light,
+        theme: FistTheme.light,
         home: Builder(
           builder: (context) => Scaffold(
             body: Center(

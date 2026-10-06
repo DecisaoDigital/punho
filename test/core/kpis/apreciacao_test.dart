@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/kpis/apreciacao.dart';
+import 'package:fist/core/kpis/apreciacao.dart';
 
 /// **A regra que transforma um número numa leitura.**
 ///

@@ -1,6 +1,6 @@
 /// O motor do ciclo: dado um trabalho e uma data, qual é o **próximo passo**.
 ///
-/// **Porque existe.** O Punho tinha o ciclo todo escrito nos estados —
+/// **Porque existe.** O Fist tinha o ciclo todo escrito nos estados —
 /// `request → proposalSent → confirmed → rented → completed` — e nenhum ecrã o
 /// usava para nada. Os estados eram uma etiqueta colorida no calendário: diziam
 /// onde o trabalho está, nunca o que falta fazer. Quem sabia o que fazer a

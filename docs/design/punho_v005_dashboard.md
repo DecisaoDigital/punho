@@ -380,7 +380,7 @@ parte para reconciliar o contador.
 
 ## Sub-textos do onboarding
 
-O passo 1 pergunta o nome e tinha por baixo "O Punho orienta a pessoa
+O passo 1 pergunta o nome e tinha por baixo "O Fist orienta a pessoa
 responsável por decidir e agir na empresa." — o pitch do produto, a meio de um
 formulário. Critério aplicado aos 12 passos: **o sub-texto só fica se disser algo
 sobre aquele campo**. Ficaram 7 dos 12, e os que ficaram foram reescritos mais

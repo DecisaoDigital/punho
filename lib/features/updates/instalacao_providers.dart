@@ -22,7 +22,7 @@ final instaladorProvider = Provider<InstaladorDeUpdate>(
 ///
 /// A instalação é que não pode ser totalmente silenciosa: o Android só a
 /// dispensa de confirmação a partir do 12, e mesmo aí só quando foi o próprio
-/// Punho a instalar a versão anterior. Da segunda actualização em diante deixa
+/// Fist a instalar a versão anterior. Da segunda actualização em diante deixa
 /// de haver toque nenhum.
 final estadoDoUpdateProvider =
     NotifierProvider<InstalacaoController, EstadoDoUpdate>(
@@ -43,7 +43,7 @@ class InstalacaoController extends Notifier<EstadoDoUpdate> {
   EstadoDoUpdate build() {
     // Uma versão nova a aparecer arranca a descarga por si. Só isso, e só se o
     // ficheiro puder ser verificado.
-    ref.listen<PunhoUpdateInfo?>(punhoUpdateProvider, (anterior, actual) {
+    ref.listen<FistUpdateInfo?>(punhoUpdateProvider, (anterior, actual) {
       if (actual == null) return;
       if (anterior?.buildNumber == actual.buildNumber) return;
       if ((actual.sha256 ?? '').isEmpty) return;
@@ -76,7 +76,7 @@ class InstalacaoController extends Notifier<EstadoDoUpdate> {
     return const EstadoDoUpdate(fase: FaseDoUpdate.disponivel);
   }
 
-  Future<void> descarregar(PunhoUpdateInfo info) async {
+  Future<void> descarregar(FistUpdateInfo info) async {
     if (state.fase == FaseDoUpdate.aDescarregar) return;
     // Só em Wi-Fi por defeito: são 76 MB, e gastá-los nos dados móveis dele sem
     // avisar é abusar da confiança. Quem quiser força pelo botão.
@@ -88,9 +88,9 @@ class InstalacaoController extends Notifier<EstadoDoUpdate> {
   }
 
   /// Descarrega mesmo sem Wi-Fi, porque foi ele a pedir.
-  Future<void> descarregarAgora(PunhoUpdateInfo info) => _descarregar(info);
+  Future<void> descarregarAgora(FistUpdateInfo info) => _descarregar(info);
 
-  Future<void> _descarregar(PunhoUpdateInfo info) async {
+  Future<void> _descarregar(FistUpdateInfo info) async {
     state = const EstadoDoUpdate(fase: FaseDoUpdate.aDescarregar);
     final caminho = await ref
         .read(instaladorProvider)

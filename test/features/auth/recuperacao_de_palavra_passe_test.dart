@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/auth/presentation/nova_palavra_passe_screen.dart';
+import 'package:fist/features/auth/presentation/nova_palavra_passe_screen.dart';
 
 /// **O caminho de volta de quem perdeu a palavra-passe.**
 ///

@@ -16,12 +16,12 @@ silêncio**. Aconteceu com duas (ver mais abaixo).
 
 | Função | `verify_jwt` | Código | Serve |
 |---|---|---|---|
-| `validar-licenca` | sim | `punho/` | Punho **e** POS |
-| `registar-terminal` | sim | `punho/` ¹ | Punho **e** POS |
-| `enviar-sugestao` | sim | `punho/` ¹ | Punho **e** POS |
-| `portal-contabilista` | não | `punho/` | Punho |
-| `sincronizar-empresa-punho` | sim | `punho/` ¹ | Punho |
-| `receber-lead` | sim | `punho/` ¹ | Punho |
+| `validar-licenca` | sim | `punho/` | Fist **e** POS |
+| `registar-terminal` | sim | `punho/` ¹ | Fist **e** POS |
+| `enviar-sugestao` | sim | `punho/` ¹ | Fist **e** POS |
+| `portal-contabilista` | não | `punho/` | Fist |
+| `sincronizar-empresa-punho` | sim | `punho/` ¹ | Fist |
+| `receber-lead` | sim | `punho/` ¹ | Fist |
 | `versao-mais-recente` | sim | `washinvoice-control/` ² | Todas (`pos`, `control`, `punho`, `punho_op`) |
 | `gerir-licenca` | sim | `washinvoice-control/` | Control |
 | `assinar-documento` | sim | `washinvoice-control/` | POS |
@@ -40,14 +40,14 @@ silêncio**. Aconteceu com duas (ver mais abaixo).
   por `machine_id`.
 
 Uma função só existe numa das duas árvores, nunca nas duas. As multi-app
-vivem em `punho/` por serem as que o Punho chama ao arranque; as do POS e do
+vivem em `punho/` por serem as que o Fist chama ao arranque; as do POS e do
 Control vivem em `washinvoice-control/`.
 
 ## As duas que estavam a mentir
 
 **`versao-mais-recente`** — o ficheiro tinha `APPS = ['pos', 'control',
 'punho']`. Produção tem `'punho_op'` também. Um redeploy a partir do
-repositório teria feito o auto-update do **Punho OP** responder
+repositório teria feito o auto-update do **Fist OP** responder
 `400 app inválida` a todas as instalações, sem aviso nenhum.
 
 **`enviar-push`** — o ficheiro era anterior à v8. Faltava-lhe o

@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/contabilista/data/contabilista_service.dart';
-import 'package:punho/features/contabilista/domain/contabilista.dart';
-import 'package:punho/features/tarefas/data/tarefas_service.dart';
-import 'package:punho/features/tarefas/domain/tarefa.dart';
+import 'package:fist/features/contabilista/data/contabilista_service.dart';
+import 'package:fist/features/contabilista/domain/contabilista.dart';
+import 'package:fist/features/tarefas/data/tarefas_service.dart';
+import 'package:fist/features/tarefas/domain/tarefa.dart';
 
 import '../dashboard/fixtura.dart';
 

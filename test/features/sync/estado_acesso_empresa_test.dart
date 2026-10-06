@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/auth/domain/estado_acesso.dart';
+import 'package:fist/features/auth/domain/estado_acesso.dart';
 
 /// A empresa é a chave da sincronização: as operações são por empresa, e sem
 /// ela não há onde as ler nem escrever.

@@ -1,4 +1,4 @@
-# Estado atual do Punho
+# Estado atual do Fist
 
 > **Release v0.3.3** (tag `v0.3.3`, `version: 0.3.3+38`) — 8 de agosto de 2026
 >
@@ -75,7 +75,7 @@
 > no onboarding como em Definições da Empresa — resolve os 400 da Edge
 > Function `sincronizar-empresa-punho` para quem terminava sem NIF. Do lado
 > do servidor, `registar-terminal` passa a actualizar `licencas.nif` com o
-> NIF real assim que a app o tem (`1e0c04d`) — nenhuma instalação Punho
+> NIF real assim que a app o tem (`1e0c04d`) — nenhuma instalação Fist
 > alguma vez tinha ligado o NIF real à sua licença antes disto.
 >
 > Três hotfixes no mesmo dia (`v0.1.7`, `v0.1.8`, `v0.1.9`, tags directas sem
@@ -85,7 +85,7 @@
 > entrada na app. `v0.1.10` traz a limpeza dos 8 avisos que bloqueavam
 > `flutter analyze --fatal-infos` e dois fixes ao script de catálogo de
 > releases: nome do asset Android alinhado com o workflow (deixou de esperar
-> `Punho_v..._universal.apk`/`.exe`, que já não existem) e publicação do
+> `Fist_v..._universal.apk`/`.exe`, que já não existem) e publicação do
 > sha256, sem o qual o botão "Atualizar" caía sempre para o browser externo
 > em vez de instalar in-app. `v0.1.11` acrescenta custos fixos editáveis por
 > rubrica, veículos a mostrar o custo total (prestação + seguro + manutenção,

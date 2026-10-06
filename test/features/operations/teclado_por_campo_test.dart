@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/features/operations/presentation/operational_pages.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/features/operations/presentation/operational_pages.dart';
 
 /// **O teclado é do campo, não do ecrã anterior.**
 ///

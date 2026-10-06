@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/domain/models/workforce.dart';
+import 'package:fist/domain/models/workforce.dart';
 
 /// **Um custo incompleto não é um custo: é "por apurar".**
 ///

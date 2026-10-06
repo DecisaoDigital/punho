@@ -96,7 +96,7 @@ class InstaladorDeUpdate {
   /// que ficou a meio, para não deixar 76 MB de lixo no telemóvel nem um
   /// ficheiro truncado que uma tentativa seguinte confundisse com bom.
   Future<String?> descarregar(
-    PunhoUpdateInfo info, {
+    FistUpdateInfo info, {
     void Function(double)? aoProgredir,
   }) async {
     if ((info.sha256 ?? '').isEmpty) {

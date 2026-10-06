@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/updates/instalador_de_update.dart';
-import 'package:punho/core/updates/update_info.dart';
+import 'package:fist/core/updates/instalador_de_update.dart';
+import 'package:fist/core/updates/update_info.dart';
 
 /// O instalador só corre sobre um ficheiro que confere com o hash publicado.
 ///
@@ -21,8 +21,8 @@ void main() {
     if (await pasta.exists()) await pasta.delete(recursive: true);
   });
 
-  PunhoUpdateInfo info({String? sha, String url = 'https://exemplo/p.apk'}) =>
-      PunhoUpdateInfo(
+  FistUpdateInfo info({String? sha, String url = 'https://exemplo/p.apk'}) =>
+      FistUpdateInfo(
         version: '0.0.20',
         buildNumber: 20,
         downloadUrl: url,
@@ -43,7 +43,7 @@ void main() {
   });
 
   test('o modelo transporta o hash de ida e volta', () {
-    const original = PunhoUpdateInfo(
+    const original = FistUpdateInfo(
       version: '0.0.20',
       buildNumber: 20,
       downloadUrl: 'https://exemplo/p.apk',
@@ -51,7 +51,7 @@ void main() {
       sha256: 'abc123',
     );
 
-    final volta = PunhoUpdateInfo.fromJson(original.toJson());
+    final volta = FistUpdateInfo.fromJson(original.toJson());
 
     expect(volta.sha256, 'abc123');
     // E sobrevive ao `semBloqueio`, que é o que o cache guarda: sem isso, uma
@@ -62,7 +62,7 @@ void main() {
   test('uma resposta antiga sem sha256 não rebenta a leitura', () {
     // O servidor pode ser mais antigo do que a app. Falta de campo é ausência
     // de instalação automática, não erro.
-    final info = PunhoUpdateInfo.fromJson({
+    final info = FistUpdateInfo.fromJson({
       'versao_actual': '0.0.20',
       'build_number': 20,
       'url_download': 'https://exemplo/p.apk',

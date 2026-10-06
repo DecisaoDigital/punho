@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/domain/models/operations.dart';
-import 'package:punho/domain/models/historical_month.dart';
-import 'package:punho/domain/models/workforce.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/domain/models/operations.dart';
+import 'package:fist/domain/models/historical_month.dart';
+import 'package:fist/domain/models/workforce.dart';
 
 void main() {
   /// O relógio fica preso a 1 de Agosto de 2026.

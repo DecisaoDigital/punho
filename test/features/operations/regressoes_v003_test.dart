@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/domain/models/operations.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/domain/models/operations.dart';
 
 /// Regressões da sprint de estabilização v0.0.3. Cada teste falhava antes do
 /// fix correspondente — ver docs/AUDITORIA_BUGS_v0.0.3.md.

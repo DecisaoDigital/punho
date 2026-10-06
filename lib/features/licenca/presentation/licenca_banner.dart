@@ -153,7 +153,7 @@ class _LicencaBannerState extends ConsumerState<LicencaBanner> {
               onPressed: () => launchUrl(
                 Uri.parse(
                   'mailto:$_emailSuporte'
-                  '?subject=${Uri.encodeComponent('Licença Punho')}',
+                  '?subject=${Uri.encodeComponent('Licença Fist')}',
                 ),
                 mode: LaunchMode.externalApplication,
               ),

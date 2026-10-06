@@ -18,7 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// coisa que se peça a ninguém.
 ///
 /// **Não é gravar o onboarding.** A regra continua a mesma: quem conclui é o
-/// botão "Entrar na Punho", e só ele chama `completeOnboarding` e manda a ficha
+/// botão "Entrar na Fist", e só ele chama `completeOnboarding` e manda a ficha
 /// ao servidor. Isto é papel de rascunho, local, e é [limpar]ado no momento em
 /// que o onboarding termina — senão a conta seguinte a fazer onboarding neste
 /// telemóvel herdava as respostas da anterior.

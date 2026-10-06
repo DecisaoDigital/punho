@@ -1,4 +1,4 @@
-# Verificação RLS Punho
+# Verificação RLS Fist
 
 1. Criar duas empresas e três utilizadores: gestor A, colaborador A e gestor B.
 2. Inserir membros ativos com os perfis respetivos.

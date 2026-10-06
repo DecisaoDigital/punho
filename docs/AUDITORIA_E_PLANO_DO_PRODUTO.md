@@ -1,12 +1,12 @@
-# Punho — auditoria e plano do produto
+# Fist — auditoria e plano do produto
 
 > Estado: fundação do produto  
-> Nome fixado: **Punho**  
+> Nome fixado: **Fist**  
 > Assinatura: **Agarra o comando.**
 
 ## 1. Decisão de produto
 
-O Punho é uma aplicação autónoma de gestão ativa para pequenos empresários. Não é um painel de contabilidade: ensina o empresário a gerir através do uso diário. Faz perguntas na altura certa, recolhe apenas os dados necessários, explica os números e recomenda a próxima ação prática.
+O Fist é uma aplicação autónoma de gestão ativa para pequenos empresários. Não é um painel de contabilidade: ensina o empresário a gerir através do uso diário. Faz perguntas na altura certa, recolhe apenas os dados necessários, explica os números e recomenda a próxima ação prática.
 
 O primeiro caso de uso é uma empresa de aluguer de máquinas com poucos funcionários e, quando aplicável, viaturas de apoio. A estrutura deve poder adaptar-se a outros tipos de negócio sem perder a clareza do primeiro vertical.
 
@@ -16,7 +16,7 @@ O objetivo é substituir gestão por sensação por decisões baseadas em reserv
 
 ### Marca
 
-- Nome visível: **Punho**.
+- Nome visível: **Fist**.
 - Assinatura curta: **Agarra o comando.**
 - Explicação longa: **Agarra o comando do teu negócio.**
 - A marca deve transmitir firmeza, direção, rigor, ambição e crescimento.
@@ -25,12 +25,12 @@ O objetivo é substituir gestão por sensação por decisões baseadas em reserv
 
 ### Relação com WashControl e WashInvoice
 
-- O cliente final não saberá que o Punho é controlado pelo WashControl.
-- O WashInvoice Control será o painel interno que autoriza, suspende, reativa e audita o acesso comercial ao Punho.
-- A relação não é visual nem comercial: no Punho o cliente vê apenas Punho, a sua empresa e a sua equipa.
-- Nenhum ecrã, nome, loja de aplicações ou comunicação do Punho mostra WashControl ou WashInvoice.
+- O cliente final não saberá que o Fist é controlado pelo WashControl.
+- O WashInvoice Control será o painel interno que autoriza, suspende, reativa e audita o acesso comercial ao Fist.
+- A relação não é visual nem comercial: no Fist o cliente vê apenas Fist, a sua empresa e a sua equipa.
+- Nenhum ecrã, nome, loja de aplicações ou comunicação do Fist mostra WashControl ou WashInvoice.
 - D:\gestao_fluxo fica onde está, não é alterado e continua disponível para consulta.
-- O Punho é autónomo; gestao_fluxo é referência de arquitetura, cálculos e produto, não uma dependência direta.
+- O Fist é autónomo; gestao_fluxo é referência de arquitetura, cálculos e produto, não uma dependência direta.
 
 ## 3. Princípios inegociáveis
 
@@ -41,12 +41,12 @@ O objetivo é substituir gestão por sensação por decisões baseadas em reserv
 5. **A categoria serve a gestão.** Uma fatura de almoço entra em Refeições, sem perguntar para quem foi. O tratamento fiscal é separado.
 6. **Dinheiro não é lucro.** O painel separa recebimentos, pagamentos, resultado, previsões e valores por receber.
 7. **Histórico obrigatório.** Recebimentos, correções, reservas e estados de máquina deixam rasto auditável.
-8. **Punho recomenda; o gestor decide.** O sistema não ativa descontos, campanhas ou alterações financeiras sozinho.
+8. **Fist recomenda; o gestor decide.** O sistema não ativa descontos, campanhas ou alterações financeiras sozinho.
 9. **Uma pergunta, uma razão.** Sempre que pedir um dado, explica porque esse dado desbloqueia uma análise ou decisão.
 
 ## 4. Perfis e superfícies
 
-### 4.1 Punho Gestor
+### 4.1 Fist Gestor
 
 Aplicação completa para proprietário/gestor, disponível em Windows, Android, iOS e tablet.
 
@@ -232,7 +232,7 @@ O primeiro objetivo é construir o mapa real do negócio. Perguntas progressivas
 - manutenção anual estimada;
 - condições de pagamento dos clientes.
 
-O utilizador pode indicar valores redondos e marcar “não sei ainda”. O Punho cria uma tarefa para confirmar o dado mais tarde.
+O utilizador pode indicar valores redondos e marcar “não sei ainda”. O Fist cria uma tarefa para confirmar o dado mais tarde.
 
 ### 6.2 Painel Gestão
 
@@ -314,7 +314,7 @@ Princípios e elementos reutilizáveis por adaptação:
 - integração por adaptador, sem acesso direto à base de dados do anfitrião;
 - cálculos de faturação, custos, resultado, fluxo de caixa, valores por receber e contributo de funcionário.
 
-### 7.3 Lacunas face ao Punho
+### 7.3 Lacunas face ao Fist
 
 gestao_fluxo foi desenhado para lavandaria e como módulo da WashInvoice. Não contém:
 
@@ -325,9 +325,9 @@ gestao_fluxo foi desenhado para lavandaria e como módulo da WashInvoice. Não c
 - recebimentos auditáveis;
 - foto de fatura, QR ou OCR;
 - motor de procura por dia da semana;
-- identidade Punho.
+- identidade Fist.
 
-Conclusão: consultar e aproveitar princípios ou código isolado quando for útil; não tentar transformar gestao_fluxo no Punho e não mover os seus ficheiros.
+Conclusão: consultar e aproveitar princípios ou código isolado quando for útil; não tentar transformar gestao_fluxo no Fist e não mover os seus ficheiros.
 
 ## 8. Arquitetura proposta
 
@@ -339,36 +339,36 @@ Conclusão: consultar e aproveitar princípios ou código isolado quando for út
 - Persistência local-first para trabalho em campo com rede fraca.
 - Repositórios e casos de uso separados da interface.
 - Camada de sincronização abstrata, sem referência pública a WashControl.
-- Supabase como infraestrutura interna comum, com tabelas, funções e políticas exclusivas do domínio Punho.
+- Supabase como infraestrutura interna comum, com tabelas, funções e políticas exclusivas do domínio Fist.
 
 ### 8.2 Autorização pelo WashInvoice Control
 
-Foi confirmada a integração real entre o WashInvoice POS e o WashInvoice Control: ambos usam o mesmo projeto Supabase, mas não partilham dados operacionais. O Control autentica o administrador; o POS pede ao servidor um estado de licença sanitizado. O Punho deve seguir este padrão, melhorando-o para uma aplicação multiutilizador.
+Foi confirmada a integração real entre o WashInvoice POS e o WashInvoice Control: ambos usam o mesmo projeto Supabase, mas não partilham dados operacionais. O Control autentica o administrador; o POS pede ao servidor um estado de licença sanitizado. O Fist deve seguir este padrão, melhorando-o para uma aplicação multiutilizador.
 
-Fluxo definido para o Punho:
+Fluxo definido para o Fist:
 
-    Punho (gestor/equipa)
+    Fist (gestor/equipa)
       -> autenticação própria por utilizador
-      -> função Punho de sessão e licença
+      -> função Fist de sessão e licença
       -> dados isolados pela empresa e pelo perfil
       -> eventos operacionais sincronizados
 
     WashInvoice Control (interno)
       -> administrador autenticado
-      -> cria/ativa/suspende/renova a licença da empresa Punho
+      -> cria/ativa/suspende/renova a licença da empresa Fist
       -> altera plano e capacidades por função de servidor
       -> consulta instalações, última sincronização e auditoria
 
 Regras obrigatórias:
 
-- A decisão de acesso comercial vem sempre do servidor. Uma licença suspensa ou expirada no Control bloqueia as áreas protegidas do Punho assim que houver ligação.
-- O Punho pode manter uma cache local curta, cifrada e com prazo de tolerância para permitir trabalho de campo sem rede; nunca uma licença assinada com segredo dentro da aplicação.
+- A decisão de acesso comercial vem sempre do servidor. Uma licença suspensa ou expirada no Control bloqueia as áreas protegidas do Fist assim que houver ligação.
+- O Fist pode manter uma cache local curta, cifrada e com prazo de tolerância para permitir trabalho de campo sem rede; nunca uma licença assinada com segredo dentro da aplicação.
 - A primeira abertura cria uma instalação ou pedido de ativação idempotente. O Control vê-o como pendente, associa-o à empresa e escolhe plano, validade e capacidades.
 - O identificador de instalação serve diagnóstico e auditoria, não é a identidade da empresa. A identidade principal é a empresa/tenant e os seus utilizadores autenticados.
 - O colaborador inicia sessão com a sua conta; não recebe nem conhece a licença comercial. O seu perfil limita dados e ações, dentro da empresa já autorizada.
 - A licença da empresa tem uma conta Principal e uma capacidade máxima de colaboradores ativos. O servidor recusa convites, reativações ou sessões de novos colaboradores acima desse limite.
 - Só Edge Functions com verificação de JWT e autorização de administrador podem mudar licença, plano ou capacidades. Toda a alteração regista quem a fez, quando e qual era o estado anterior.
-- Tabelas Punho usam RLS por empresa e perfil. A chave anónima pode existir no cliente; chaves de serviço e segredos ficam exclusivamente no servidor.
+- Tabelas Fist usam RLS por empresa e perfil. A chave anónima pode existir no cliente; chaves de serviço e segredos ficam exclusivamente no servidor.
 - A infraestrutura pode ser comum ao Control, mas as tabelas devem ter prefixo próprio (por exemplo, punho_) e não misturar reservas, despesas ou colaboradores com tabelas fiscais/licenças do WashInvoice.
 
 O que se reutiliza do padrão atual: Control autenticado, funções de servidor para mutações sensíveis, histórico de ações e catálogo de versões. O que não se copia: HMAC embutido no cliente, autorização baseada apenas em machine_id, leituras diretas anónimas de tabelas e a mistura entre licença de terminal e identidade de utilizador.
@@ -398,7 +398,7 @@ Divergências conscientes face às regras de 8.2 e 8.4, por resolver:
 | "licença expirada bloqueia as áreas protegidas" (8.2) | **Não bloqueia nada** — só mostra banner | Sem cliente pagante, bloquear só cria risco de falhar uma demonstração |
 | "o preço é por empresa, não por instalação/dispositivo" (8.3) | Uma linha de licença **por dispositivo** | Consequência directa de usar `machine_id` |
 
-A última linha é a mais relevante comercialmente: um gestor com o Punho no PC
+A última linha é a mais relevante comercialmente: um gestor com o Fist no PC
 e no telemóvel gera **duas** linhas em `licencas`, o que colide com o modelo de
 preço por empresa definido em 8.3. Enquanto o faturamento for manual pelo
 Cesar, não faz mal. Deixa de servir assim que houver cobrança automática.
@@ -422,11 +422,11 @@ O Control define `limite_colaboradores_ativos` para cada empresa. Assim pode atr
 - número de empresas/unidades, se vier a existir;
 - funcionalidades futuras sem alterar nem reinstalar a app.
 
-Alterações necessárias no WashInvoice Control antes de ligar o Punho:
+Alterações necessárias no WashInvoice Control antes de ligar o Fist:
 
 - criar um domínio próprio no Supabase: `punho_empresas`, `punho_membros`, `punho_subscricoes`, `punho_instalacoes` e `punho_auditoria_acessos`;
-- acrescentar ao Control uma área Punho, separada das licenças fiscais do POS, para rever pedidos, associar empresa, definir validade/capacidades e consultar auditoria;
-- criar funções próprias para ativação e validação do Punho; nunca reutilizar diretamente a tabela `licencas`, porque esta contém regras fiscais e licenças por terminal do POS;
+- acrescentar ao Control uma área Fist, separada das licenças fiscais do POS, para rever pedidos, associar empresa, definir validade/capacidades e consultar auditoria;
+- criar funções próprias para ativação e validação do Fist; nunca reutilizar diretamente a tabela `licencas`, porque esta contém regras fiscais e licenças por terminal do POS;
 - alargar o catálogo de versões, hoje limitado a `pos` e `control`, para aceitar `punho` e publicar as atualizações por app;
 - manter a função administrativa com JWT, verificação de administrador e registo explícito do ator em cada mutação.
 
@@ -434,7 +434,7 @@ Alterações necessárias no WashInvoice Control antes de ligar o Punho:
 
 O projeto começa com uma interface, não com dependência rígida de fornecedor:
 
-    PunhoSyncGateway
+    FistSyncGateway
       ├─ sessão de utilizador e contexto de empresa
       ├─ estado de autorização e capacidades da empresa
       ├─ puxar alterações permitidas
@@ -454,7 +454,7 @@ O adaptador real usa a infraestrutura interna já controlada pelo WashInvoice Co
 
 ## 9. Limites da primeira versão
 
-O Punho não será inicialmente:
+O Fist não será inicialmente:
 
 - software de contabilidade certificada;
 - processador salarial;
@@ -468,7 +468,7 @@ O Punho não será inicialmente:
 ## 10. Plano de execução em 10 fases
 
 1. Fundação e auditoria: estrutura, este plano e decisões sem fornecedor externo.
-2. Marca e shell: Punho, mockup aprovado, tema e navegação responsiva.
+2. Marca e shell: Fist, mockup aprovado, tema e navegação responsiva.
 3. Identidade e permissões: empresa, Gestor/Funcionário, auditoria e contratos de sincronização.
 4. Máquinas, clientes, leads e reservas: ciclo comercial e disponibilidade.
 5. Funcionários e veículos: custos, horários internos, contributo e frota condicional.

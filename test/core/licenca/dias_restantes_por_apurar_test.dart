@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/licenca/licenca_info.dart';
-import 'package:punho/features/licenca/presentation/licenca_banner.dart';
+import 'package:fist/core/licenca/licenca_info.dart';
+import 'package:fist/features/licenca/presentation/licenca_banner.dart';
 
 /// **Uma ausência não é um zero — e muito menos um alarme.**
 ///

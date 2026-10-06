@@ -1,6 +1,6 @@
 # Auditoria: o empresário exemplar
 
-**Pergunta de partida:** se um empresário real, empenhado, responder a tudo o que a app pergunta e tiver todos os dados para preencher os campos — a Punho resulta? O que consegue mostrar, e o que ainda é código partido?
+**Pergunta de partida:** se um empresário real, empenhado, responder a tudo o que a app pergunta e tiver todos os dados para preencher os campos — a Fist resulta? O que consegue mostrar, e o que ainda é código partido?
 
 **Data:** 2026-08-02. **Estado do código:** verificado contra o repositório ao vivo (havia outra sessão a editar `lib/` durante esta auditoria — ver nota no Eixo 3). Commits de referência: `de11645`, `091d5d8`, `59fb98c`, `5a2d41b`.
 
@@ -161,6 +161,6 @@ Confirmado directamente no código: `lib/domain/models/operations.dart:116-131` 
 
 ## Veredicto
 
-Com um empresário exemplar — todos os campos preenchidos, dados plausíveis — a Punho **entrega o essencial**: tesouraria do mês, cobranças em atraso, pipeline de leads, ocupação de máquinas e recomendação do dia calculam-se correctamente a partir do que foi pedido, com boa disciplina de "Por apurar com motivo" em vez de zeros enganadores. Os 21 achados da campanha de testes de hoje estão, na sua maioria, corrigidos ou já não se aplicam — o trabalho de hoje limpou bastante.
+Com um empresário exemplar — todos os campos preenchidos, dados plausíveis — a Fist **entrega o essencial**: tesouraria do mês, cobranças em atraso, pipeline de leads, ocupação de máquinas e recomendação do dia calculam-se correctamente a partir do que foi pedido, com boa disciplina de "Por apurar com motivo" em vez de zeros enganadores. Os 21 achados da campanha de testes de hoje estão, na sua maioria, corrigidos ou já não se aplicam — o trabalho de hoje limpou bastante.
 
 Onde a app o deixa mal é em dois pontos concretos. Primeiro, há uma promessa que **nunca pode ser cumprida**, por muito dedicado que o empresário seja: o retorno das máquinas ("Utilização vs Rentabilidade") depende de um "valor de compra" que nenhum ecrã pergunta, apesar de o modelo já ter o campo pronto — é uma pergunta esquecida a meio do caminho entre o dado e o ecrã. Segundo, há uma perda silenciosa de dinheiro: escrever o valor de uma reserva grande na notação portuguesa normal ("1.250,00 €") grava a reserva sem valor nenhum, sem qualquer aviso — um bug real, não uma limitação conhecida. A isto junta-se uma assimetria de manutenção incómoda mas menor: veículos não se editam depois de criados, e clientes não se apagam nunca — ambas "em falta", não "partidas", mas ambas vão irritar um empresário real ao fim de poucas semanas de uso.

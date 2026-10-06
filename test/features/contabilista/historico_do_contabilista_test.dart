@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/domain/models/historical_month.dart';
-import 'package:punho/features/contabilista/contabilista_providers.dart';
-import 'package:punho/features/contabilista/data/contabilista_service.dart';
-import 'package:punho/features/contabilista/domain/contabilista.dart';
-import 'package:punho/features/contabilista/historico_do_contabilista_provider.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/domain/models/historical_month.dart';
+import 'package:fist/features/contabilista/contabilista_providers.dart';
+import 'package:fist/features/contabilista/data/contabilista_service.dart';
+import 'package:fist/features/contabilista/domain/contabilista.dart';
+import 'package:fist/features/contabilista/historico_do_contabilista_provider.dart';
 
 /// A ponte que leva os meses de faturação do contabilista ao `historicalMonths`
 /// que os KPIs leem — sem ela a tendência do painel fica cega no passado que o

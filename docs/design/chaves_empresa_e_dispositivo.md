@@ -46,9 +46,9 @@ aparelho, mas é decoração para tu reconheceres a linha, não identidade.
 O prefixo legível (`TRD`, `POSII`) vem do nome do aparelho — serve para tu o
 reconheceres na lista, não tem significado técnico.
 
-## Punho — o titular do par é o **email**
+## Fist — o titular do par é o **email**
 
-O Punho tem contas pessoais: cada pessoa entra com o seu email, e o par diz a
+O Fist tem contas pessoais: cada pessoa entra com o seu email, e o par diz a
 que empresa pertence e com que cargo.
 
 **1. O empresário cria a conta.** É sempre o primeiro. Nasce a chave mestre com
@@ -113,7 +113,7 @@ regras de plano e de limite são as mesmas; muda só o que se conta.
 
 **Cada terminal adicional é cobrado à parte.** No POS o que se vende é o posto:
 o primeiro vem com a licença, os seguintes pagam. É o equivalente ao colaborador
-extra do Punho — muda só a unidade, porque muda quem é o titular do par.
+extra do Fist — muda só a unidade, porque muda quem é o titular do par.
 
 Os 3 terminais POS que existem hoje são **de teste**. Não há migração a fazer.
 
@@ -132,7 +132,7 @@ Os 3 terminais POS que existem hoje são **de teste**. Não há migração a faz
 
 - **A chave mestre não existe como conceito.** Hoje há `licencas.machine_id`,
   que é o hash de *um* aparelho, e nada que represente a empresa.
-- **A chave de dispositivo não se liga a ninguém.** O `machine_id` do Punho vive
+- **A chave de dispositivo não se liga a ninguém.** O `machine_id` do Fist vive
   isolado em `licencas`, sem empresa e sem email.
 - **Nada impede duas sessões** do mesmo colaborador.
 
@@ -155,7 +155,7 @@ linhas em `punho_instalacoes`.
    empresa. Sem isto nada do resto tem onde se pendurar.
 2. **Chaves de dispositivo em `punho_instalacoes`**, com `empresa_id`, o
    `machine_id` do aparelho e o email a que pertence.
-3. **`registar-terminal` deixa de criar licença para o Punho** quando o
+3. **`registar-terminal` deixa de criar licença para o Fist** quando o
    utilizador já pertence a uma empresa — regista o dispositivo em vez disso.
    *(É a alteração que toca na função partilhada com o POS: mexer só dentro do
    ramo `punho`, guardar a versão actual e confirmar logo a seguir que um
@@ -168,7 +168,7 @@ Os passos 1 e 2 não mexem no POS e podem ser feitos com segurança. O passo 3 �
 
 ## Porque é que isto interessa ao negócio
 
-Palavras do Cesar: **é o Punho que lhe vai dar este controlo**. O modelo nasce
+Palavras do Cesar: **é o Fist que lhe vai dar este controlo**. O modelo nasce
 aqui — chave da empresa, aparelhos pendurados, limite por email — e depois
 aplica-se ao POS, que hoje não tem forma de saber quantos postos uma empresa
 está mesmo a usar. Sem isto, acrescentar um terminal ou uma pessoa não se vê e
@@ -181,7 +181,7 @@ não se cobra.
 | sessões simultâneas do empresário | **duas** (telemóvel + PC do escritório). À terceira, cai a mais antiga |
 | sessões dos colaboradores | **uma**. É aí que está o risco de partilha |
 | terminal POS adicional | **cobrado à parte** |
-| colaborador adicional no Punho | **cobrado à parte** (limite manual por empresa) |
+| colaborador adicional no Fist | **cobrado à parte** (limite manual por empresa) |
 | dispositivo | **nunca facturável** — serve para identidade e para travar partilha |
 | os 3 terminais POS actuais | são de teste, **não há migração** |
 | colaborador que sai | o **empresário elimina o email**. É o que liberta a vaga |
@@ -279,9 +279,9 @@ Três coisas que vale a pena reter do que lá está:
 - **Degrada com cuidado.** Se o `reg` falhar, usa só hostname + SO; se o `wmic`
   não existir (Windows recente), tenta PowerShell. Nunca rebenta — mas quanto
   menos fontes entram no hash, mais fraco o identificador fica.
-- **Fica em cache**, como no Punho.
+- **Fica em cache**, como no Fist.
 
-O Punho faz o mesmo com outra semente (`lib/core/licenca/machine_id.dart`):
+O Fist faz o mesmo com outra semente (`lib/core/licenca/machine_id.dart`):
 Android → SHA-256 de `android:<ANDROID_ID>`; Windows → SHA-256 de
 `windows:<nome do PC>:<MachineGuid>`. Mesma forma nas duas apps: 64 hex.
 
@@ -332,8 +332,8 @@ chave mestre, tudo assina e valida exactamente como antes.
 - a chave fixa-se na primeira licença válida que a traga e nunca é substituída
 - a CLI de emissão **pergunta** a chave em vez de a inventar
 
-**Punho**
-- `LicencaInfo.chaveMestre`, vinda do `validar-licenca` — o Punho não tem
+**Fist**
+- `LicencaInfo.chaveMestre`, vinda do `validar-licenca` — o Fist não tem
   `licenca.json` assinado, é por aqui que sabe a que empresa pertence
 
 ### O que continua por fazer

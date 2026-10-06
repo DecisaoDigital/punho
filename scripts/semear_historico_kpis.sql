@@ -1,5 +1,5 @@
 -- =============================================================================
--- Semente de histórico para os KPIs — 15 meses de operação (Punho)
+-- Semente de histórico para os KPIs — 15 meses de operação (Fist)
 -- =============================================================================
 --
 -- PORQUÊ

@@ -69,7 +69,7 @@ Bucket `punho-documentos` criado e **privado** (`public=false`), commit
 **Edge functions: fechado.** Catorze em produção, **sete sem ficheiro nenhum**
 em repositório — recuperadas e commitadas. Duas das que já cá estavam estavam
 **desactualizadas**, e são as perigosas: um `deploy` a partir do repositório
-teria partido o auto-update do Punho OP (`versao-mais-recente` sem `punho_op`)
+teria partido o auto-update do Fist OP (`versao-mais-recente` sem `punho_op`)
 e tirado o prefixo `[POS]`/`[PUNHO]` de todas as notificações (`enviar-push`
 anterior à v8). Inventário e regra em `supabase/functions/README.md`.
 
@@ -93,7 +93,7 @@ app morta e reaberta, lead lá.
 
 ## À espera de ti
 
-### ⏸ T2 — Contaminação entre o Punho e o POS
+### ⏸ T2 — Contaminação entre o Fist e o POS
 O mapa está entregue: `docs/PUNHO_MAPA_DE_ACESSOS_2026-08-08.md`. O teu passo 2
 manda parar aqui. **Nada foi fechado do lado do POS** — `clientes`, `pings`,
 `pedidos_renovacao`, `aceites_termos`, `licencas_audit`,
@@ -133,8 +133,8 @@ pergunto a regra de precedência quando o gestor já preencheu o mês à mão.
 
 ## Fora das catorze
 
-- [x] `scripts/update-release-catalog.sh` **do Punho** tinha o mesmo defeito
-      POST-vs-PATCH do Punho OP. Corrigido e provado a correr para a 0.3.3+38,
+- [x] `scripts/update-release-catalog.sh` **do Fist** tinha o mesmo defeito
+      POST-vs-PATCH do Fist OP. Corrigido e provado a correr para a 0.3.3+38,
       que já estava catalogada — o caso que antes rebentava.
 - [x] O Redmi tem a **0.3.2+37**; a versão publicada é a **0.3.3+38**. Bom
       momento para provar o auto-update de ponta a ponta. **Provado** — o

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/domain/models/arranjo_do_painel.dart';
+import 'package:fist/domain/models/arranjo_do_painel.dart';
 
 /// **O painel do gestor: o que lá está e por que ordem.**
 ///

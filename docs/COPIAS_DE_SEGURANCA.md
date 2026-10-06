@@ -1,4 +1,4 @@
-# Cópias de segurança do Punho
+# Cópias de segurança do Fist
 
 **Estado: a correr. Cópia da produção tirada, restaurada e usada a 11/8/2026,
 e agendada.** Diária às 04:40, provada ao domingo às 05:20, com registo em
@@ -49,7 +49,7 @@ escreve-se num contentor que morre.
 ./scripts/ensaio_de_copia.sh
 ```
 
-Levanta um PostgreSQL 17 com a forma da base do Punho — papéis, esquema `auth`,
+Levanta um PostgreSQL 17 com a forma da base do Fist — papéis, esquema `auth`,
 log de operações, vista com `security_invoker`, RLS, gatilho, as funções do
 RGPD — e manda os dois scripts de cima trabalhar contra ele. São os mesmos
 scripts, sem ramo de teste lá dentro: só muda para onde apontam
@@ -205,7 +205,7 @@ repor uma senha que já estava boa.
 ## A correr
 
 ```cron
-# copia da base do Punho — diaria, e provada uma vez por semana
+# copia da base do Fist — diaria, e provada uma vez por semana
 40 4 * * * /home/cesar/punho/scripts/copia_de_seguranca.sh >> /home/cesar/copias/punho.log 2>&1
 20 5 * * 0 /home/cesar/punho/scripts/restaurar_prova.sh   >> /home/cesar/copias/punho.log 2>&1
 ```

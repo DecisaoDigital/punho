@@ -1,7 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:punho/core/cadeado/cadeado_service.dart';
+import 'package:fist/core/cadeado/cadeado_service.dart';
 
 /// **O cadeado continua a funcionar com o `allowBackup="false"`.**
 ///

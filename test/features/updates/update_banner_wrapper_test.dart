@@ -1,35 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/updates/update_info.dart';
-import 'package:punho/features/auth/acesso_providers.dart';
-import 'package:punho/features/auth/domain/estado_acesso.dart';
-import 'package:punho/features/auth/presentation/acesso_indisponivel_screen.dart';
-import 'package:punho/features/auth/presentation/auth_gate.dart';
-import 'package:punho/features/auth/presentation/pedido_em_analise_screen.dart';
-import 'package:punho/features/collaborator/presentation/collaborator_shell.dart';
-import 'package:punho/features/shell/presentation/app_shell.dart';
-import 'package:punho/features/updates/presentation/update_banner.dart';
-import 'package:punho/features/updates/presentation/update_banner_wrapper.dart';
-import 'package:punho/features/updates/update_providers.dart';
+import 'package:fist/core/updates/update_info.dart';
+import 'package:fist/features/auth/acesso_providers.dart';
+import 'package:fist/features/auth/domain/estado_acesso.dart';
+import 'package:fist/features/auth/presentation/acesso_indisponivel_screen.dart';
+import 'package:fist/features/auth/presentation/auth_gate.dart';
+import 'package:fist/features/auth/presentation/pedido_em_analise_screen.dart';
+import 'package:fist/features/collaborator/presentation/collaborator_shell.dart';
+import 'package:fist/features/shell/presentation/app_shell.dart';
+import 'package:fist/features/updates/presentation/update_banner.dart';
+import 'package:fist/features/updates/presentation/update_banner_wrapper.dart';
+import 'package:fist/features/updates/update_providers.dart';
 
 import '../auth/fake_acesso_service.dart';
 
-const _opcional = PunhoUpdateInfo(
+const _opcional = FistUpdateInfo(
   version: '0.0.4',
   buildNumber: 9,
   downloadUrl: 'https://exemplo/punho-0.0.4.apk',
   mandatory: false,
 );
 
-const _obrigatorio = PunhoUpdateInfo(
+const _obrigatorio = FistUpdateInfo(
   version: '0.0.5',
   buildNumber: 10,
   downloadUrl: 'https://exemplo/punho-0.0.5.apk',
   mandatory: true,
 );
 
-const _opcionalNovo = PunhoUpdateInfo(
+const _opcionalNovo = FistUpdateInfo(
   version: '0.0.6',
   buildNumber: 11,
   downloadUrl: 'https://exemplo/punho-0.0.6.apk',
@@ -37,18 +37,18 @@ const _opcionalNovo = PunhoUpdateInfo(
 );
 
 /// Estado de update fixo, sem rede e sem `Supabase.instance`.
-class _UpdateFixo extends PunhoUpdateController {
+class _UpdateFixo extends FistUpdateController {
   _UpdateFixo(this.info);
-  final PunhoUpdateInfo? info;
+  final FistUpdateInfo? info;
 
   @override
-  PunhoUpdateInfo? build() => info;
+  FistUpdateInfo? build() => info;
 }
 
 Future<void> _montar(
   WidgetTester tester, {
   required Widget child,
-  PunhoUpdateInfo? update,
+  FistUpdateInfo? update,
   FakeAcessoService? acesso,
 }) async {
   await tester.pumpWidget(
@@ -57,7 +57,7 @@ Future<void> _montar(
         punhoUpdateProvider.overrideWith(() => _UpdateFixo(update)),
         if (acesso != null) acessoServiceProvider.overrideWithValue(acesso),
       ],
-      child: MaterialApp(home: PunhoUpdateBannerWrapper(child: child)),
+      child: MaterialApp(home: FistUpdateBannerWrapper(child: child)),
     ),
   );
   await tester.pumpAndSettle();
@@ -151,7 +151,7 @@ void main() {
       await _montar(tester, child: const AcessoGate(), acesso: fake);
 
       expect(find.byType(PedidoEmAnaliseScreen), findsOneWidget);
-      expect(find.byType(PunhoUpdateBanner), findsNothing);
+      expect(find.byType(FistUpdateBanner), findsNothing);
       expect(find.textContaining('disponível'), findsNothing);
     });
   });
@@ -241,7 +241,7 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: MaterialApp(
-            home: PunhoUpdateBannerWrapper(
+            home: FistUpdateBannerWrapper(
               child: _AlvoDeToque(aoToque: () => toques++),
             ),
           ),
@@ -254,7 +254,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(_avisoOpcional, findsNothing);
-      expect(find.byType(PunhoUpdateBanner), findsNothing);
+      expect(find.byType(FistUpdateBanner), findsNothing);
       // O ecrã de baixo continua lá e continua a receber toques.
       await tester.tap(find.text('Continuar'));
       await tester.pump();
@@ -285,7 +285,7 @@ void main() {
           UncontrolledProviderScope(
             container: container,
             child: const MaterialApp(
-              home: PunhoUpdateBannerWrapper(child: SizedBox()),
+              home: FistUpdateBannerWrapper(child: SizedBox()),
             ),
           ),
         );

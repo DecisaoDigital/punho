@@ -1,7 +1,7 @@
-# Auditoria — o que vê um empresário que abre o Punho pela primeira vez
+# Auditoria — o que vê um empresário que abre o Fist pela primeira vez
 
 Feita em 31 de Julho de 2026, sobre a `v0.0.18`. Percurso seguido no código, do
-splash ao painel: `main.dart` → `SplashPunho` → `AuthGate` → `RegistoScreen` →
+splash ao painel: `main.dart` → `SplashFist` → `AuthGate` → `RegistoScreen` →
 `AcessoGate` → `OnboardingPage` (7 a 12 passos) → `BoasVindasScreen` →
 `AppShell` → `DashboardPage`.
 
@@ -12,8 +12,8 @@ ver, e o que não sabe que devia ver.**
 
 ## 1. O painel mostra números que não são dele
 
-**O que ele vê.** Acaba o onboarding, lê "A Punho é o painel do teu negócio",
-carrega em "Entrar na Punho" e encontra:
+**O que ele vê.** Acaba o onboarding, lê "A Fist é o painel do teu negócio",
+carrega em "Entrar na Fist" e encontra:
 
 - "Dinheiros que entraram: **1 240 €** hoje ▲18%"
 - "Encontro de contas: **+380 €** · Entradas 1 240 · Saídas 860"
@@ -133,13 +133,13 @@ desistir ao quarto cliente escrito à mão.
 
 ### 4.4 O "porquê" por trás de cada número
 
-O `O_QUE_E_O_PUNHO.md` promete, no passo 3 do ciclo: *"mostra não apenas um
+O `O_QUE_E_O_FIST.md` promete, no passo 3 do ciclo: *"mostra não apenas um
 número, mas também a causa provável e os registos que o produziram"*. Os slides
 novos mostram número + subtexto, e mais nada — não há como abrir um KPI e ver os
 registos que lhe deram origem. A `todas_metricas_page.dart`, que fazia parte
 desse caminho, foi apagada no refactor da v0.0.15 e não foi substituída.
 
-É precisamente isto que distingue o Punho de uma folha de Excel. Sem drill-down,
+É precisamente isto que distingue o Fist de uma folha de Excel. Sem drill-down,
 é um painel bonito de números que ele não pode verificar — e um empresário que
 não pode verificar um número deixa de o usar para decidir.
 

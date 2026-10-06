@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/gestao/presentation/dados_pessoais_screen.dart';
+import 'package:fist/features/gestao/presentation/dados_pessoais_screen.dart';
 
 /// **O botão de procurar tem de ter tamanho, e o campo um nome só.**
 ///

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:punho/features/auth/data/acesso_service.dart';
+import 'package:fist/features/auth/data/acesso_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// **O travão do convite tem de chegar a quem está a escrever o código.**

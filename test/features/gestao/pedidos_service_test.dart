@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:punho/features/gestao/data/pedidos_service.dart';
+import 'package:fist/features/gestao/data/pedidos_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// **O que se pede ao servidor, e não só o que ele responde.**

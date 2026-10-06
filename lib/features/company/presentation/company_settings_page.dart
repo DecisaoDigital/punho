@@ -341,7 +341,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
             'Máquinas que tem (estimativa)',
             teclado: TextInputType.number,
             ajuda:
-                'Serve para o Punho saber quantas faltam identificar no '
+                'Serve para o Fist saber quantas faltam identificar no '
                 'inventário.',
           ),
         ],

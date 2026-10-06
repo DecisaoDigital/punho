@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/sync/registo_de_operacoes.dart';
+import 'package:fist/core/sync/registo_de_operacoes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A fila de saída é o que torna a app utilizável sem rede: numa obra não há

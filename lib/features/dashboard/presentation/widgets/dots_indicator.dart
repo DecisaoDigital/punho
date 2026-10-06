@@ -55,7 +55,7 @@ class DotsIndicator extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
-                  color: PunhoTheme.navyDeep,
+                  color: FistTheme.navyDeep,
                 ),
               ),
             ),
@@ -126,7 +126,7 @@ class _Ponto extends StatelessWidget {
             width: activo ? 18 : 8,
             height: 8,
             decoration: BoxDecoration(
-              color: activo ? PunhoTheme.orange : const Color(0xFFCFD6DB),
+              color: activo ? FistTheme.orange : const Color(0xFFCFD6DB),
               borderRadius: BorderRadius.circular(4),
             ),
           ),

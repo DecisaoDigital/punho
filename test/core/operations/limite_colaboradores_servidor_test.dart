@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/domain/models/workforce.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/domain/models/workforce.dart';
 
 /// Decisão de 2026-08-02: as vagas de colaboradores da subscrição (servidor
 /// ou, na falta dele, o valor local do onboarding) deixaram de bloquear a

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/ciclo/relogio_da_reserva.dart';
-import 'package:punho/domain/models/operations.dart';
+import 'package:fist/core/ciclo/relogio_da_reserva.dart';
+import 'package:fist/domain/models/operations.dart';
 
 /// **O relógio é que manda no estado da marcação.**
 ///

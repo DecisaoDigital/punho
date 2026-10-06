@@ -1,4 +1,4 @@
-# Regras obrigatórias para trabalhar no Punho
+# Regras obrigatórias para trabalhar no Fist
 
 Este ficheiro aplica-se a todo o repositório.
 

@@ -8,8 +8,8 @@ import '../licenca/machine_id.dart';
 import '../operations/operations_controller.dart';
 import 'pings.dart';
 
-final pingsServiceProvider = Provider<PunhoPings>(
-  (ref) => PunhoPings(Supabase.instance.client),
+final pingsServiceProvider = Provider<FistPings>(
+  (ref) => FistPings(Supabase.instance.client),
 );
 
 /// Mantém a app a dizer que está viva: um ping no arranque e outro a cada seis
@@ -36,7 +36,7 @@ final pingsProvider = Provider<void>((ref) {
 
   unawaited(pingar('arranque'));
   final timer = Timer.periodic(
-    PunhoPings.intervalo,
+    FistPings.intervalo,
     (_) => unawaited(pingar('timer_6h')),
   );
   ref.onDispose(timer.cancel);

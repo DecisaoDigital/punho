@@ -39,7 +39,7 @@ Future<String> resolverMachineId({Future<String> Function()? semente}) async {
 /// sobrevive a uma reinstalação — que é o que se quer de um terminal
 /// licenciado. O `device_info_plus` deixou de o expor; vem do `android_id`.
 ///
-/// Corrigido a 5 de Agosto de 2026, com o Punho a recomeçar do zero. Era o
+/// Corrigido a 5 de Agosto de 2026, com o Fist a recomeçar do zero. Era o
 /// único momento em que sai de graça: mudar a semente com terminais registados
 /// obrigaria a reemitir todas as licenças.
 Future<String> sementeDoDispositivo() async {

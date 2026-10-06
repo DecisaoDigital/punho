@@ -24,16 +24,16 @@ class BrandLockup extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      const SimboloPunho(),
+      const SimboloFist(),
       if (!compact) ...[
         const SizedBox(width: 10),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Punho',
+              'Fist',
               style: TextStyle(
-                color: emFundoEscuro ? Colors.white : PunhoTheme.navyDeep,
+                color: emFundoEscuro ? Colors.white : FistTheme.navyDeep,
                 fontSize: 21,
                 fontWeight: FontWeight.w800,
               ),
@@ -47,7 +47,7 @@ class BrandLockup extends StatelessWidget {
                 // parecia de outra marca.
                 color: emFundoEscuro
                     ? const Color(0xFFB7C5CE)
-                    : PunhoTheme.navyDeep.withValues(alpha: 0.62),
+                    : FistTheme.navyDeep.withValues(alpha: 0.62),
                 fontSize: 11,
               ),
             ),

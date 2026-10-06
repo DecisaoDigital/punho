@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/empresa_sync/ficha_pendente.dart';
+import 'package:fist/core/empresa_sync/ficha_pendente.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A ficha pendente é um estado — "como é a empresa agora, ainda por

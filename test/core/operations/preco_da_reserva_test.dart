@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/preco_da_reserva.dart';
-import 'package:punho/domain/models/operations.dart';
+import 'package:fist/core/operations/preco_da_reserva.dart';
+import 'package:fist/domain/models/operations.dart';
 
 /// **O valor previsto vem com a conta feita.**
 ///

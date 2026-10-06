@@ -1,6 +1,6 @@
-# Plano — push de "instalação" para o Punho
+# Plano — push de "instalação" para o Fist
 
-**Conclusão adiantada: a cadeia já existe e já funciona tecnicamente para o Punho.
+**Conclusão adiantada: a cadeia já existe e já funciona tecnicamente para o Fist.
 Não é preciso trigger novo nem alterações à Edge Function.** O que falta,
 quando muito, é confirmação/polimento — ver secção 4.
 
@@ -52,10 +52,10 @@ Evento "app instalada" = **primeiro `INSERT` em `licencas` para um
 - `lib/services/push_routing.dart:18-27` (`destinoDoPush`) — mapeia
   `data['tipo']`:
   - `'novo_terminal'` → `DestinoPush.instalacoes` (**genérico, não olha para
-    `app`** — serve POS e Punho da mesma forma, comentário no próprio
+    `app`** — serve POS e Fist da mesma forma, comentário no próprio
     ficheiro linha 9-12 explica que `data['app']` não pode ser usado para
     isto).
-  - `'novo_pedido'` → `DestinoPush.pedidosPunho`
+  - `'novo_pedido'` → `DestinoPush.pedidosFist`
   - `'pedido_ajuda'` → `DestinoPush.pedidosAjuda`
   - `'inicio_actividade'` → `DestinoPush.dashboard`
 - **Canal Android / som — não existe canal custom nenhum.** Procurei
@@ -68,7 +68,7 @@ Evento "app instalada" = **primeiro `INSERT` em `licencas` para um
     som por omissão, a não ser que o Cesar o tenha silenciado manualmente
     nas definições do telefone).
   - **Não há canal silencioso à parte** — logo o `trg_notificar_novo_pedido_punho`
-    (pedidos de acesso Punho, que o Cesar já recebe hoje) usa exactamente o
+    (pedidos de acesso Fist, que o Cesar já recebe hoje) usa exactamente o
     mesmo canal/som que o `novo_terminal`. Não há diferença estrutural entre
     os dois.
   - **Importante:** o som só se ouve com a app em **background/fechada** —
@@ -77,11 +77,11 @@ Evento "app instalada" = **primeiro `INSERT` em `licencas` para um
     `HapticFeedback.mediumImpact()`, **sem som**. Isto é intencional
     (comentário na linha 254-255) e é igual para todos os tipos de push.
 
-## 3. Punho — o evento equivalente a "instalada"
+## 3. Fist — o evento equivalente a "instalada"
 
 **Já é exactamente o mesmo mecanismo do WashInvoice — não um candidato
 novo.** `lib/core/licenca/licenca_service.dart:38-49`
-(`PunhoLicencaService.registarTerminal`) chama a **mesma** Edge Function
+(`FistLicencaService.registarTerminal`) chama a **mesma** Edge Function
 `registar-terminal`, sempre com `'app': 'punho'`, e é chamado:
 - no arranque (`lib/main.dart:45,62-67`, `_registarTerminal()`);
 - e outra vez a partir do banner de licença (`licenca_banner.dart:88`).
@@ -117,7 +117,7 @@ exacta do segundo insert (`2026-08-02 00:42:01`), há uma chamada a
 `enviar-push` que devolveu `200` com **6 tokens tentados, 5 `404
 NotRegistered` (tokens antigos/expirados) e 1 `200` aceite pela FCM**
 (`token_prefix "e8vqH2FOT42D"`). Ou seja: **o push de "novo terminal" para o
-Punho já foi gerado, autenticado, enviado e aceite pela FCM hoje** — a
+Fist já foi gerado, autenticado, enviado e aceite pela FCM hoje** — a
 cadeia inteira (trigger → Edge Function → FCM) está viva.
 
 ## 4. O plano
@@ -178,7 +178,7 @@ sinal/distinção)
 **Nada estrutural.** Sugiro: (a) confirmar `admin_dispositivos` tem o
 telefone certo do Cesar; (b) testar com a Control em background; (c) se
 mesmo assim não aparecer, correr a query de `net._http_response` acima logo
-a seguir a uma instalação de teste do Punho para ver se o `net.http_post`
+a seguir a uma instalação de teste do Fist para ver se o `net.http_post`
 disparou e o que a FCM respondeu.
 
 ---
@@ -194,21 +194,21 @@ titulo := 'Novo terminal registado';
 corpo  := hostname_do_pc || ' — ' || left(new.machine_id, 8) || '…';
 ```
 
-`hostname` é chave que **só o POS escreve**. O Punho escreve outras:
+`hostname` é chave que **só o POS escreve**. O Fist escreve outras:
 
 | app | `info_host` |
 |---|---|
 | `pos` | `{"hostname": "Portatil-CD", "so": "...", "versao_pos": "2.0.6"}` |
 | `punho` | `{"host": "M2101K6G", "fabricante": "Xiaomi", "versao_app": "0.1.0", ...}` |
 
-Logo, para o Punho o Cesar recebeu **«Novo terminal registado —
+Logo, para o Fist o Cesar recebeu **«Novo terminal registado —
 (máquina sem nome) — 339ed162…»**: sem dizer que app é, sem dizer que
 aparelho é. Aconteceu duas vezes — Redmi a 1 de Agosto às 15:21 e emulador a
 2 de Agosto às 00:42, ambas com `pendente_revisao = true` e `http_post`
 disparado.
 
 Também confirmado: o título nunca menciona a app em caso nenhum, portanto o
-mesmo texto serve POS e Punho. Não é regressão do Punho, é uma lacuna que só
+mesmo texto serve POS e Fist. Não é regressão do Fist, é uma lacuna que só
 se vê quando há mais do que uma app.
 
 ### Migração a aplicar (por autorizar)
@@ -241,7 +241,7 @@ begin
   if invoke_secret is null then return new; end if;
 
   nome_app := case new.app
-    when 'punho' then 'Punho'
+    when 'punho' then 'Fist'
     when 'pos' then 'WashInvoice POS'
     else coalesce(nullif(new.app, ''), 'App')
   end;
@@ -291,7 +291,7 @@ end;
 $function$;
 ```
 
-Resultado esperado: **«Punho instalado» / «Xiaomi M2101K6G · v0.1.4 —
+Resultado esperado: **«Fist instalado» / «Xiaomi M2101K6G · v0.1.4 —
 339ed162…»**.
 
 ### Tokens mortos em `admin_dispositivos`

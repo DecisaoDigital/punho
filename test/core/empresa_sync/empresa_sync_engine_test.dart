@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/empresa_sync/empresa_sync_controller.dart';
-import 'package:punho/core/empresa_sync/empresa_sync_service.dart';
-import 'package:punho/core/empresa_sync/ficha_pendente.dart';
+import 'package:fist/core/empresa_sync/empresa_sync_controller.dart';
+import 'package:fist/core/empresa_sync/empresa_sync_service.dart';
+import 'package:fist/core/empresa_sync/ficha_pendente.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A política de "guardar e insistir", sem Timer nem WidgetsBinding — o que

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Restaura uma cópia de segurança do Punho e verifica que ela serve.
+# Restaura uma cópia de segurança do Fist e verifica que ela serve.
 # Uso normal: ./scripts/restaurar_prova.sh            (usa a cópia mais recente)
 #             ./scripts/restaurar_prova.sh <pasta>
 #
@@ -21,7 +21,7 @@
 #
 # A cópia é do esquema `public`. O que a Supabase põe à volta dele — os papéis,
 # o esquema `auth` com o auth.uid(), as extensões — é plataforma, não são dados
-# do Punho. Recria-se aqui em baixo, como andaime.
+# do Fist. Recria-se aqui em baixo, como andaime.
 
 set -Eeuo pipefail
 
@@ -87,7 +87,7 @@ create extension if not exists pgcrypto  with schema extensions;
 create extension if not exists "uuid-ossp" with schema extensions;
 
 -- As mesmas que a Supabase instala. Sem elas, metade das políticas RLS do
--- Punho não chega sequer a ser criada: são escritas em cima do auth.uid().
+-- Fist não chega sequer a ser criada: são escritas em cima do auth.uid().
 create or replace function auth.uid() returns uuid language sql stable as $$
   select coalesce(
     nullif(current_setting('request.jwt.claim.sub', true), ''),
@@ -198,7 +198,7 @@ echo "   tarefas agendadas: $tarefas_no_ficheiro guardadas em agenda.sql" \
 echo
 echo "── e a base restaurada responde a perguntas? ────────────────────────"
 # Restaurar tabelas não prova nada se depois não se conseguir usar a base. As
-# vistas do Punho montam-se em cima do log a cada leitura; se o log veio mal,
+# vistas do Fist montam-se em cima do log a cada leitura; se o log veio mal,
 # é aqui que se vê.
 usavel=true
 prova_de_uso="$(

@@ -11,8 +11,8 @@ import 'machine_id.dart';
 /// De quanto em quanto tempo a licença é revalidada com o Control.
 const intervaloRevalidacaoLicenca = Duration(hours: 6);
 
-final licencaServiceProvider = Provider<PunhoLicencaService>(
-  (ref) => PunhoLicencaService(Supabase.instance.client),
+final licencaServiceProvider = Provider<FistLicencaService>(
+  (ref) => FistLicencaService(Supabase.instance.client),
 );
 
 final machineIdProvider = FutureProvider<String>((ref) => resolverMachineId());

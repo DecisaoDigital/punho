@@ -11,7 +11,7 @@ import '../data/contabilista_service.dart';
 import '../domain/contabilista.dart';
 import 'rubrica_meses_page.dart';
 
-/// O histórico da empresa antes do Punho, e quem o preenche.
+/// O histórico da empresa antes do Fist, e quem o preenche.
 ///
 /// Duas coisas num ecrã porque são a mesma pergunta vista de dois lados: o que
 /// falta saber sobre o passado, e quem está a responder a isso. Separá-las dava
@@ -110,7 +110,7 @@ class _CorpoState extends ConsumerState<_Corpo> {
         Text('O passado da empresa', style: textos.labelLarge),
         const SizedBox(height: 6),
         Text(
-          'O Punho compara cada mês com o mesmo mês do ano anterior. Sem esse '
+          'O Fist compara cada mês com o mesmo mês do ano anterior. Sem esse '
           'ano escrito, a comparação fica cega durante doze meses — que são '
           'precisamente os doze em que a app tem de provar que serve.',
           style: textos.bodyMedium,
@@ -485,7 +485,7 @@ class _FormularioDeConviteState extends State<_FormularioDeConvite> {
           controlador: _email,
           rotulo: 'Email',
           ajuda:
-              'Opcional — o Punho não envia nada, é o senhor que entrega '
+              'Opcional — o Fist não envia nada, é o senhor que entrega '
               'o link',
           teclado: TextInputType.emailAddress,
         ),
@@ -613,7 +613,7 @@ class _DialogoDoLinkState extends ConsumerState<_DialogoDoLink> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Só aparece agora. O Punho guarda uma impressão digital do '
+                    'Só aparece agora. O Fist guarda uma impressão digital do '
                     'link, não o link — se sair daqui sem o copiar, tem de '
                     'emitir outro.',
                     style: textos.bodySmall?.copyWith(color: cores.error),

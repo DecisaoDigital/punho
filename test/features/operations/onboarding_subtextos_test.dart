@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/operations/presentation/operational_pages.dart';
+import 'package:fist/features/operations/presentation/operational_pages.dart';
 
 import '../dashboard/fixtura.dart';
 
@@ -20,7 +20,7 @@ void main() {
     expect(find.text('Como te chamas?'), findsOneWidget);
     expect(
       find.text(
-        'O Punho orienta a pessoa responsável por decidir e agir na empresa.',
+        'O Fist orienta a pessoa responsável por decidir e agir na empresa.',
       ),
       findsNothing,
     );

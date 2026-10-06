@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:punho/core/cadeado/lock_screen.dart';
+import 'package:fist/core/cadeado/lock_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Os pontos do PIN não podem prometer um comprimento que a app não conhece.

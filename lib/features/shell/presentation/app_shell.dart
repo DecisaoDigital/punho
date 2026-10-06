@@ -215,7 +215,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   // altura toda e não pintava um pixel. Foi assim durante três
                   // afinações da altura, todas a medir uma faixa invisível.
                   width: double.infinity,
-                  child: const ColoredBox(color: PunhoTheme.navyDeep),
+                  child: const ColoredBox(color: FistTheme.navyDeep),
                 ),
               Expanded(
                 child: Row(
@@ -305,7 +305,7 @@ class _Sidebar extends ConsumerWidget {
     // dentro. Sem somar aqui, os 88 dp passavam a 54 e os rótulos apertavam —
     // a barra ficava diferente conforme o lado para que se roda o telemóvel.
     width: 88 + MediaQuery.paddingOf(context).left,
-    color: PunhoTheme.navyDeep,
+    color: FistTheme.navyDeep,
     child: SafeArea(
       top: false,
       // A margem direita é a barra de navegação do sistema, do outro lado do
@@ -482,7 +482,7 @@ class _SidebarItem extends ConsumerWidget {
               borderRadius: BorderRadius.circular(10),
               border: selected
                   ? const Border(
-                      left: BorderSide(color: PunhoTheme.orange, width: 3),
+                      left: BorderSide(color: FistTheme.orange, width: 3),
                     )
                   : null,
             ),
@@ -500,7 +500,7 @@ class _SidebarItem extends ConsumerWidget {
                           item.icon,
                           size: 22,
                           color: selected
-                              ? PunhoTheme.orange
+                              ? FistTheme.orange
                               : const Color(0xFFB7C7D1),
                         ),
                         const SizedBox(height: 4),
@@ -516,7 +516,7 @@ class _SidebarItem extends ConsumerWidget {
                                 ? FontWeight.w800
                                 : FontWeight.w500,
                             color: selected
-                                ? PunhoTheme.orange
+                                ? FistTheme.orange
                                 : const Color(0xFFB7C7D1),
                           ),
                         ),
@@ -578,7 +578,7 @@ class _MobileMenu extends ConsumerWidget {
     padding: EdgeInsets.zero,
     children: [
       const DrawerHeader(
-        decoration: BoxDecoration(color: PunhoTheme.navyDeep),
+        decoration: BoxDecoration(color: FistTheme.navyDeep),
         child: Align(
           alignment: Alignment.centerLeft,
           child: BrandLockup(emFundoEscuro: true),
@@ -590,7 +590,7 @@ class _MobileMenu extends ConsumerWidget {
           selectedTileColor: const Color(0xFFFFF1DA),
           leading: Icon(
             item.icon,
-            color: item == selected ? PunhoTheme.orange : null,
+            color: item == selected ? FistTheme.orange : null,
           ),
           title: Text(item.label),
           onTap: () {

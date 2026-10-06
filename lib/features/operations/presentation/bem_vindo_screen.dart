@@ -4,11 +4,11 @@ import '../../../core/orientacao/orientacao_do_contexto.dart';
 import '../../../shared/widgets/simbolo_punho.dart';
 import 'ecra_de_contexto.dart';
 
-/// Primeiro ecrã de quem entra na Punho depois de o pedido ser aprovado.
+/// Primeiro ecrã de quem entra na Fist depois de o pedido ser aprovado.
 ///
 /// Pedido por o César a 5 de Agosto de 2026: «nesta nova entrada depois da
 /// aceitação do pedido de licença, gostaria de ver um "bem-vindo!" e pequena
-/// explicação do que é o Punho».
+/// explicação do que é o Fist».
 ///
 /// O que ele apanhou foi entrar numa app que nunca lhe tinha sido apresentada e
 /// ser recebido com um formulário — «Forma jurídica e NIF da empresa». Quem
@@ -58,17 +58,17 @@ class _BemVindoScreenState extends State<BemVindoScreen> {
   @override
   Widget build(BuildContext context) {
     return EcraDeContexto(
-      // A mão do Punho — a nossa, não a do Material. «a mão no primeiro
+      // A mão do Fist — a nossa, não a do Material. «a mão no primeiro
       // bem-vindo não é a original, e quero que seja» — Cesar, 5/8/2026.
-      simbolo: const SimboloPunho(lado: 56),
+      simbolo: const SimboloFist(lado: 56),
       titulo: 'Bem-vindo, ${widget.nome}.',
       paragrafos: const [
-        'O teu acesso ao Punho está activo.',
-        'O Punho é a sala de controlo da tua empresa: leads, cobranças, '
+        'O teu acesso ao Fist está activo.',
+        'O Fist é a sala de controlo da tua empresa: leads, cobranças, '
             'serviços, gastos e lucros num só sítio. Vês tudo à distância, em '
             'dois cliques, sem precisares de saber contabilidade.',
         'Não é só para controlar. É para decidir.',
-        'O Punho foi feito para quem quer crescer sem se perder em papelada.',
+        'O Fist foi feito para quem quer crescer sem se perder em papelada.',
       ],
       // A última linha é uma máxima, não é mais um parágrafo: fecha o texto e
       // muda de registo. Como sexta linha cinzenta perdia-se; num destaque

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/licenca/machine_id.dart';
+import 'package:fist/core/licenca/machine_id.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

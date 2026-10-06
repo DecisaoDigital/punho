@@ -9,7 +9,7 @@
 
 ## Passos de ativacao
 
-1. Criar o projeto Supabase do Punho.
+1. Criar o projeto Supabase do Fist.
 2. Executar todas as migrations em `supabase/migrations/` por ordem, incluindo:
    - `20260727_punho_onboarding_rpc.sql`
    - `20260728_punho_auth_and_rls_hardening.sql`

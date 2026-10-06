@@ -130,7 +130,7 @@ class CadeadoService {
     _aPedirBiometria = true;
     try {
       final ok = await _auth.authenticate(
-        localizedReason: 'Desbloquear Punho',
+        localizedReason: 'Desbloquear Fist',
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: false,

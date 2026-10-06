@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/layout/ecra_de_formulario.dart';
+import 'package:fist/core/layout/ecra_de_formulario.dart';
 
 /// O corpo do formulário tem de sobreviver ao teclado.
 ///

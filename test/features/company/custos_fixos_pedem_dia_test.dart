@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/domain/models/finance.dart';
-import 'package:punho/features/company/presentation/company_settings_page.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/domain/models/finance.dart';
+import 'package:fist/features/company/presentation/company_settings_page.dart';
 
 /// **O quadro dos custos fixos tem de pedir a data.**
 ///

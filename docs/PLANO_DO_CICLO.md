@@ -7,7 +7,7 @@
 
 ## 1. Porque este documento existe
 
-O Punho tem hoje peças excelentes e desligadas: leads que entram, máquinas que
+O Fist tem hoje peças excelentes e desligadas: leads que entram, máquinas que
 se reservam, custos que se sabem ao cêntimo, recebimentos que se registam. O
 que não tem é **um fio que as atravesse**. Cada uma vive no seu ecrã, e é o
 gestor quem faz o transporte de cabeça.
@@ -76,14 +76,14 @@ saem da devolução e não da memória de ninguém.
 
 **4. Fechar até ao documento fiscal.** `Receipt` é um pagamento, não é uma
 factura. Enquanto o utilizador fechar o trabalho aqui e reescrever tudo noutro
-lado, o Punho é mais um sítio onde ele trabalha. A ponte para o WashInvoice é o
+lado, o Fist é mais um sítio onde ele trabalha. A ponte para o WashInvoice é o
 que o torna *o* sítio.
 
 **5. Saber o que a lead rendeu.** `LeadStatus.converted` não apontava para
 cliente nenhum. Ligada a cadeia `Lead → Customer → Booking → Receipt`, passa a
 haver **euros por canal** e não contagens.
 
-As três primeiras põem o Punho à mesa. As duas últimas são as que ninguém copia
+As três primeiras põem o Fist à mesa. As duas últimas são as que ninguém copia
 depressa.
 
 ## 5. As fases
@@ -134,7 +134,7 @@ que se repete. **Uma** sugestão por semana, não uma caixa de entrada.
 ## 6. Onde está a diferenciação
 
 Nenhuma das cinco funcionalidades acima diferencia — só põem à mesa. A
-diferença do Punho está em duas coisas que a concorrência estruturalmente não
+diferença do Fist está em duas coisas que a concorrência estruturalmente não
 faz:
 
 - **O painel que manda, não o que descreve.** *"A retroescavadora está parada

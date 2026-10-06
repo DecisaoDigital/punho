@@ -7,18 +7,18 @@ import '../../../core/updates/update_info.dart';
 import '../instalacao_providers.dart';
 import '../update_providers.dart';
 
-/// O aviso em si. Quem o monta é o [PunhoUpdateBannerWrapper], por cima de
+/// O aviso em si. Quem o monta é o [FistUpdateBannerWrapper], por cima de
 /// qualquer ecrã — o estado vive em `punhoUpdateProvider`, não aqui.
 ///
 /// O botão muda com a fase: a descarga acontece sozinha em segundo plano e o
 /// gestor só decide **quando** instalar. É o mais perto de "não se dá por eles"
 /// que o Android permite a uma app fora da loja.
-class PunhoUpdateBanner extends ConsumerWidget {
-  const PunhoUpdateBanner({super.key, this.update});
+class FistUpdateBanner extends ConsumerWidget {
+  const FistUpdateBanner({super.key, this.update});
 
   /// Quando é nulo, o aviso lê o estado global. Serve para o wrapper poder
   /// passar o que já leu, sem segunda leitura do provider.
-  final PunhoUpdateInfo? update;
+  final FistUpdateInfo? update;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -89,7 +89,7 @@ class PunhoUpdateBanner extends ConsumerWidget {
     );
   }
 
-  String _titulo(PunhoUpdateInfo update, EstadoDoUpdate instalacao) =>
+  String _titulo(FistUpdateInfo update, EstadoDoUpdate instalacao) =>
       switch (instalacao.fase) {
         FaseDoUpdate.aDescarregar =>
           'A descarregar a versão ${update.version}…',
@@ -106,7 +106,7 @@ class PunhoUpdateBanner extends ConsumerWidget {
 
 class _Accao extends ConsumerWidget {
   const _Accao({required this.update, required this.instalacao});
-  final PunhoUpdateInfo update;
+  final FistUpdateInfo update;
   final EstadoDoUpdate instalacao;
 
   @override

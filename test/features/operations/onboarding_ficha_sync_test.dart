@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/empresa_sync/empresa_sync_service.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/features/operations/presentation/operational_pages.dart';
+import 'package:fist/core/empresa_sync/empresa_sync_service.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/features/operations/presentation/operational_pages.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// O fim do onboarding é o único sítio que grava a ficha da empresa — e, até
@@ -106,7 +106,7 @@ void main() {
     await tester.pumpAndSettle();
     await continuar(tester);
 
-    await tester.tap(find.text('Entrar na Punho →'));
+    await tester.tap(find.text('Entrar na Fist →'));
     await tester.pumpAndSettle();
   }
 

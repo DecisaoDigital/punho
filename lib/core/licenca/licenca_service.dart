@@ -23,13 +23,13 @@ const _timeout = Duration(seconds: 10);
 /// Não verifica `SupabaseConfig.enabled` — isso é responsabilidade de quem
 /// chama (`licencaProvider` e o arranque em `main`), para o serviço continuar
 /// testável sem `--dart-define`.
-class PunhoLicencaService {
-  PunhoLicencaService(SupabaseClient client)
+class FistLicencaService {
+  FistLicencaService(SupabaseClient client)
     : _invocar = ((nome, corpo) =>
           client.functions.invoke(nome, body: corpo).timeout(_timeout));
 
   /// Para testes.
-  PunhoLicencaService.comInvocador(this._invocar);
+  FistLicencaService.comInvocador(this._invocar);
 
   final InvocarFuncao _invocar;
 
@@ -87,8 +87,8 @@ class PunhoLicencaService {
       //
       // O Control lê `info_host['hostname']` — é o que o WashInvoice grava, e é
       // por esse nome que uma instalação aparece na lista enquanto a ficha da
-      // empresa não chega. O Punho gravava `host`, e as duas nunca se
-      // encontravam: o nome da máquina nunca apareceu do lado do Punho, que
+      // empresa não chega. O Fist gravava `host`, e as duas nunca se
+      // encontravam: o nome da máquina nunca apareceu do lado do Fist, que
       // caía sempre para o NIF. Visto a 5 de Agosto de 2026 ao comparar as duas
       // apps lado a lado.
       if (Platform.isAndroid) {

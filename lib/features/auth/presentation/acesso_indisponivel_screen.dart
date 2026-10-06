@@ -28,7 +28,7 @@ class AcessoIndisponivelScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Esta conta não tem acesso ao Punho. Para mais informações, '
+                'Esta conta não tem acesso ao Fist. Para mais informações, '
                 'contacte a Decisão Digital.',
                 textAlign: TextAlign.center,
               ),

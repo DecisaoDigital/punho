@@ -201,7 +201,7 @@ class KpiValor extends StatelessWidget {
         fontSize: tamanho,
         height: 1.1,
         fontWeight: FontWeight.w800,
-        color: cor ?? PunhoTheme.navy,
+        color: cor ?? FistTheme.navy,
       ),
     ),
   );

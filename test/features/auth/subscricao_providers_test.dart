@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/features/auth/subscricao_providers.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/features/auth/subscricao_providers.dart';
 
 /// `limiteColaboradoresEfetivoProvider` combina o limite do servidor com o
 /// local. `limiteColaboradoresServidorProvider` é substituído directamente

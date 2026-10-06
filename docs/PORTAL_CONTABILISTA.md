@@ -22,7 +22,7 @@ própria documentação diz que não é para alojar frontends.
 ## Como está agora
 
 ```
-  Punho (app)                     i9 (Tailscale Funnel)          Supabase
+  Fist (app)                     i9 (Tailscale Funnel)          Supabase
   cria convite ──► link ──► https://…ts.net/portal/?t=TOKEN
                                         │
                                         ├─ GET  ?t=…&formato=json ──► {"html": "…"}

@@ -9,7 +9,7 @@
 # tal linhas de shell que nunca correram — e código que nunca correu não
 # funciona, apenas ainda não se sabe onde falha.
 #
-# Este ensaio levanta um PostgreSQL 17 com a forma da base do Punho — os
+# Este ensaio levanta um PostgreSQL 17 com a forma da base do Fist — os
 # papéis, o esquema `auth`, o log de operações, as vistas com
 # `security_invoker`, o RLS, os gatilhos, as funções do RGPD — e manda os dois
 # scripts trabalharem contra ele. São os mesmos scripts, sem ramo de teste lá
@@ -51,7 +51,7 @@ for _ in $(seq 1 60); do
 done
 docker exec "$FALSA" pg_isready -U postgres -q || erro "a base de ensaio não arrancou"
 
-passo "a dar-lhe a forma da base do Punho"
+passo "a dar-lhe a forma da base do Fist"
 docker exec -i "$FALSA" psql -U postgres -d postgres -q -v ON_ERROR_STOP=1 <<'SQL'
 create role anon nologin;
 create role authenticated nologin;
@@ -109,7 +109,7 @@ create table public.punho_expurgos (
   corrido_em timestamptz not null default now(),
   contagens jsonb not null default '{}'::jsonb);
 
--- A vista lê o log a cada leitura, como as do Punho. `security_invoker` é o
+-- A vista lê o log a cada leitura, como as do Fist. `security_invoker` é o
 -- que faz o RLS aplicar-se a quem pergunta, e não ao dono da vista.
 create view public.punho_clientes with (security_invoker = on) as
   select distinct on (empresa_id, entidade_id)

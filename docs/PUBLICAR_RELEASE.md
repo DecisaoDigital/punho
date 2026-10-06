@@ -1,4 +1,4 @@
-# Publicar uma nova versão do Punho
+# Publicar uma nova versão do Fist
 
 ## Regra inegociável
 
@@ -98,7 +98,7 @@ keystore definitiva guardadas no servidor, sem revelar segredos em logs.
 
 Para Android, gerar no i9:
 
-- `Punho_vX.Y.Z_universal.apk`, usado pelo atualizador;
+- `Fist_vX.Y.Z_universal.apk`, usado pelo atualizador;
 - os APKs por arquitetura, se continuarem a fazer parte da release.
 
 Confirmar antes do commit:
@@ -110,7 +110,7 @@ Confirmar antes do commit:
 - presença da configuração Supabase no binário;
 - instalação e arranque num dispositivo de teste quando a alteração justificar.
 
-Nunca criar outra keystore para uma atualização do Punho.
+Nunca criar outra keystore para uma atualização do Fist.
 
 **A versão a seguir à 0.2.1 não se instala por cima da anterior.** A 4 de
 Agosto de 2026 o `applicationId` passou de `com.example.punho` (o placeholder

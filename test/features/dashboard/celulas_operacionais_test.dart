@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/domain/models/operations.dart';
-import 'package:punho/features/dashboard/presentation/pagina_do_painel.dart';
-import 'package:punho/features/dashboard/presentation/widgets/celula_semaforo.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/domain/models/operations.dart';
+import 'package:fist/features/dashboard/presentation/pagina_do_painel.dart';
+import 'package:fist/features/dashboard/presentation/widgets/celula_semaforo.dart';
 
 import 'fixtura.dart';
 

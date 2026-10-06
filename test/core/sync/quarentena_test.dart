@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/sync/registo_de_operacoes.dart';
+import 'package:fist/core/sync/registo_de_operacoes.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:punho/core/sync/sincronizacao_entre_dispositivos.dart';
+import 'package:fist/core/sync/sincronizacao_entre_dispositivos.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// O que estes testes protegem: **uma operação que o servidor nunca vai

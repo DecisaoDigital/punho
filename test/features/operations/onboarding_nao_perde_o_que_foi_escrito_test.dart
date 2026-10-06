@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/features/operations/presentation/operational_pages.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/features/operations/presentation/operational_pages.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// **Para trás é um passo, e o que foi escrito não se perde.**
@@ -20,7 +20,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// segundo plano), iam com ele.
 ///
 /// O que **não** muda é a regra de sempre: o rascunho é local e nada é gravado
-/// nem enviado antes de "Entrar na Punho" — isso continua fixado em
+/// nem enviado antes de "Entrar na Fist" — isso continua fixado em
 /// `onboarding_fluxo_test.dart`.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

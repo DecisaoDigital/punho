@@ -1,4 +1,4 @@
-# Backend Punho
+# Backend Fist
 
 Execute as migrations com a CLI Supabase. O cliente Flutter recebe apenas `SUPABASE_URL` e `SUPABASE_ANON_KEY` via `--dart-define`; nunca use `service_role` no cliente.
 

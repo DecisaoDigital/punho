@@ -25,7 +25,7 @@
          Android 12+, que **ignora** o `allowBackup`. Só com as duas é que a
          mudança de telemóvel não leva os dados atrás. -->
     <application
-        android:label="punho"
+        android:label="Fist"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"

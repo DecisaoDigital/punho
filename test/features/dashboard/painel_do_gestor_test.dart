@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/dashboard/presentation/dashboard_page.dart';
-import 'package:punho/features/dashboard/presentation/kpi_catalogo.dart';
-import 'package:punho/core/operations/painel_controller.dart';
-import 'package:punho/features/dashboard/presentation/widgets/celula_semaforo.dart';
-import 'package:punho/features/kpis/presentation/cadeia_do_kpi_page.dart';
+import 'package:fist/features/dashboard/presentation/dashboard_page.dart';
+import 'package:fist/features/dashboard/presentation/kpi_catalogo.dart';
+import 'package:fist/core/operations/painel_controller.dart';
+import 'package:fist/features/dashboard/presentation/widgets/celula_semaforo.dart';
+import 'package:fist/features/kpis/presentation/cadeia_do_kpi_page.dart';
 
 import 'fixtura.dart';
 

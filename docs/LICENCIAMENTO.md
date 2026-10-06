@@ -1,17 +1,17 @@
-# Punho — Licenciamento
+# Fist — Licenciamento
 
-O Punho reutiliza a infra do WashInvoice Control: mesmo projecto Supabase
+O Fist reutiliza a infra do WashInvoice Control: mesmo projecto Supabase
 (`oefqbkhioncakojipqyx`), mesmas Edge Functions `registar-terminal` e
 `validar-licenca` (v6+, multi-app), distinguidas pelo campo `app: 'punho'`.
 
-Não há infra de licenciamento própria do Punho. Tudo o que o Cesar já faz para
+Não há infra de licenciamento própria do Fist. Tudo o que o Cesar já faz para
 o POS no Control aplica-se aqui.
 
 ## Auto-onboarding
 
 No arranque da app (`main.dart`, logo após `Supabase.initialize`):
 
-1. O Punho resolve o `machine_id` — ver secção abaixo.
+1. O Fist resolve o `machine_id` — ver secção abaixo.
 2. Chama `registar-terminal` com `{machine_id, app: 'punho', info_host}`.
 3. O Control cria uma linha em `licencas` com `app='punho'`, `plano='trial'`,
    `validade = hoje + 40 dias`, `activa=true`, `oferta=true` e
@@ -19,7 +19,7 @@ No arranque da app (`main.dart`, logo após `Supabase.initialize`):
 4. O Cesar vê a instalação no Control e decide o plano definitivo.
 
 A chamada é **idempotente** do lado do servidor por `(machine_id, app)` — o
-mesmo PC pode ter o POS e o Punho lado a lado sem colidir, e chamar em todos os
+mesmo PC pode ter o POS e o Fist lado a lado sem colidir, e chamar em todos os
 arranques não cria linhas duplicadas.
 
 Corre **antes do login** e **não bloqueia o arranque**. Se falhar (offline,
@@ -41,7 +41,7 @@ para não criar registos:
 | Publishable key (`sb_publishable_…`) | `400` — passou |
 | Nenhuma | `401` |
 
-Por isso o `PunhoLicencaService` **não** tem guarda de sessão nenhuma. Desde a
+Por isso o `FistLicencaService` **não** tem guarda de sessão nenhuma. Desde a
 v0.0.3 o `update_service.dart` também não: a guarda
 `if (session == null) return null;` que lá existia deixava sem aviso de update
 todos os utilizadores presos no login ou no gate de acesso — ver
@@ -59,7 +59,7 @@ SHA256 de uma semente própria da plataforma, calculado uma vez e guardado em
 | Outras | `desconhecido:<so>:<timestamp>` (fica em cache, logo estável) |
 
 Só o hash sai do dispositivo — a semente nunca é enviada. O mesmo utilizador
-com Punho no telemóvel e no PC conta como **dois terminais**, com duas linhas
+com Fist no telemóvel e no PC conta como **dois terminais**, com duas linhas
 em `licencas`.
 
 O `info_host` enviado no registo tem apenas o que o Cesar precisa para
@@ -138,7 +138,7 @@ mantendo a leitura do histórico.
 ## Renovação
 
 O utilizador clica "Contactar" no banner → abre email para
-`cesarmendes78@gmail.com` com assunto "Licença Punho". O Cesar prolonga
+`cesarmendes78@gmail.com` com assunto "Licença Fist". O Cesar prolonga
 manualmente no Control, no mesmo ecrã que já usa para o POS.
 
 Não há pagamento dentro da app, nem ecrã de gestão de licença. Ambos ficam
@@ -154,9 +154,9 @@ para iteração futura.
 | `lib/core/licenca/licenca_provider.dart` | Providers Riverpod e timer das 6h |
 | `lib/features/licenca/presentation/licenca_banner.dart` | Banner e regra de aviso |
 
-O `PunhoLicencaService` não consulta `SupabaseConfig.enabled` — quem chama é
+O `FistLicencaService` não consulta `SupabaseConfig.enabled` — quem chama é
 que decide (`licencaProvider` e o arranque em `main`). Assim o serviço fica
 testável em `flutter test`, que corre sem `--dart-define`.
 
-O construtor `PunhoLicencaService.comInvocador` existe só para os testes
+O construtor `FistLicencaService.comInvocador` existe só para os testes
 substituírem a rede sem precisar de um package de mocking.

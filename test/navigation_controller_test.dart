@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/navigation/app_destination.dart';
-import 'package:punho/core/navigation/navigation_controller.dart';
-import 'package:punho/domain/models/company_settings.dart';
+import 'package:fist/core/navigation/app_destination.dart';
+import 'package:fist/core/navigation/navigation_controller.dart';
+import 'package:fist/domain/models/company_settings.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {

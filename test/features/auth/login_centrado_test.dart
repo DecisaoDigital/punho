@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/auth/presentation/login_screen.dart';
-import 'package:punho/shared/widgets/brand_lockup.dart';
+import 'package:fist/features/auth/presentation/login_screen.dart';
+import 'package:fist/shared/widgets/brand_lockup.dart';
 
 /// **O login não encosta ao topo com o teclado aberto.**
 ///

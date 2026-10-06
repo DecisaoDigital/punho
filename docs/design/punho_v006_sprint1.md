@@ -1,4 +1,4 @@
-# Punho v0.0.6 — sprints 1 e 2
+# Fist v0.0.6 — sprints 1 e 2
 
 **Branch:** `feat/v006-boas-vindas`
 **Data:** Julho 2026
@@ -13,7 +13,7 @@
 Dois ecrãs de **contexto** — não pedem dados nenhuns, explicam. Nenhum deles tem o contador "N de M", porque não são passos.
 
 - **`MaisDadosScreen`** aparece só quando o switch dos dados operacionais está ligado, **entre** o switch e o primeiro passo detalhado. O gestor acabava de dizer "sim, quero preencher" e a app respondia mudando de campo sem dizer nada.
-- **`BoasVindasScreen`** é o último ecrã antes de entrar, e é ele que chama o `completeOnboarding`. Até tocar em "Entrar na Punho" **nada é gravado** e o gestor pode voltar atrás a corrigir.
+- **`BoasVindasScreen`** é o último ecrã antes de entrar, e é ele que chama o `completeOnboarding`. Até tocar em "Entrar na Fist" **nada é gravado** e o gestor pode voltar atrás a corrigir.
 
 Só o gestor os vê. Ao colaborador não se promete "o painel do teu negócio em cinco vistas" nem se pede uma rotação: o shell dele não tem painel e fica em retrato.
 

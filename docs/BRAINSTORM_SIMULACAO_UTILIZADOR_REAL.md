@@ -1,7 +1,7 @@
 # Brainstorm vivo — Testar as apps como um utilizador real durante 3 meses
 
 > Documento de memória futura. Nasceu do brainstorm de **9/8/2026**: como testar a
-> fundo o Punho (gestor) e o Punho OP (operador) **como se fossem usados por pessoas
+> fundo o Fist (gestor) e o Fist OP (operador) **como se fossem usados por pessoas
 > reais durante 3 meses**. Aqui decide-se *o quê* e *como*. É para **continuar a
 > escrever** — cada execução acrescenta achados no fim.
 
@@ -57,7 +57,7 @@ $ADB shell pm clear pt.decisaodigital.punho
 $ADB shell monkey -p pt.decisaodigital.punho -c android.intent.category.LAUNCHER 1
 ```
 
-**Servidor (Supabase `oefqbkhioncakojipqyx`):** apagar **só o domínio Punho**. NÃO tocar
+**Servidor (Supabase `oefqbkhioncakojipqyx`):** apagar **só o domínio Fist**. NÃO tocar
 em WashInvoice/Control (`clientes`, `licencas`, `versoes_apps`, `admins`, `chaves_mestre`,
 `aceites_termos`…). **Preservar** `punho_rubricas_contabilista` (config, 10 rubricas) e
 `auth.users` (para haver login). **Gotcha de FK:** os backups `punho_*_copia_YYYY_MM_DD`
@@ -83,7 +83,7 @@ linha** (bom: não gera projecções fantasma).
 ### 3.2 Contas (sem gastar emails)
 
 - Creds de teste vivem em `scratchpad/credenciais.env` e `scratchpad/contas_teste.env`
-  (chmod 600). Ex.: `cesarmendes78+punhoteste@gmail.com` / `PunhoOP2026!`.
+  (chmod 600). Ex.: `cesarmendes78+punhoteste@gmail.com` / `FistOP2026!`.
 - Depois de limpar `punho_membros`, **qualquer conta auth fica sem empresa** → ao entrar
   cai no onboarding do zero. Não é preciso conta nova.
 - Criar contas sem esbarrar no SMTP (~3/hora): inserir em `auth.users` com
@@ -352,7 +352,7 @@ para a frente. Decisão do César (9/8): seguir o modelo da app.
   (No Redmi a app instalada é **release**, assinatura `3fcf1935`, sem flag
   `DEBUGGABLE` → `-r` com um APK debug falha por assinatura, obriga a desinstalar
   primeiro.)
-- **Login do Alfredo**: `cesarmendes78+punhoteste@gmail.com` / `PunhoOP2026!` (em
+- **Login do Alfredo**: `cesarmendes78+punhoteste@gmail.com` / `FistOP2026!` (em
   `scratchpad/credenciais.env`). Validar headless antes de tocar no ecrã:
   ```bash
   curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
@@ -388,7 +388,7 @@ para a frente. Decisão do César (9/8): seguir o modelo da app.
 - **Input a falhar pode tirar-te da app**: com o INJECT_EVENTS revogado, além
   dos toques caírem, `KEYCODE_BACK` para fechar teclado faz **scroll-to-top**
   do formulário, e swipes/BACK repetidos chegaram a **sair da app do gestor e
-  cair na app do operador (Punho OP)**. Mitigações: confirmar sempre o
+  cair na app do operador (Fist OP)**. Mitigações: confirmar sempre o
   foreground com `adb shell dumpsys window | grep mCurrentFocus` depois de
   gestos; para fechar teclado preferir **tocar numa zona vazia** (defocus) em
   vez de BACK; relançar o gestor com
@@ -398,7 +398,7 @@ para a frente. Decisão do César (9/8): seguir o modelo da app.
   — o `punho_estado_operacional` (snapshot do gestor) fica **vazio** (revisão
   1, zero de tudo; a app só faz *push* para lá, nunca lê de volta), o que
   parecia significar que reinstalar apagava tudo (alarme registado em §3.6).
-  Na prática o Punho **re-hidrata do log append-only `punho_operacoes`** num
+  Na prática o Fist **re-hidrata do log append-only `punho_operacoes`** num
   login novo (`lib/core/sync/sincronizacao_entre_dispositivos.dart`, cursor
   por `seq` desde 0) — provado: 6 máquinas / 4 clientes / 2 reservas / €2.200
   voltaram sozinhas após login num emulador limpo (§3.14). Só
@@ -491,7 +491,7 @@ onde ficou):
   das Oliveiras 45", 2670-320 Loures; forma jurídica ENI; 2 funcionários, 2 veículos,
   6 máquinas; faturação este ano 12.800 €; custos fixos 1.800 €/mês; ano passado em
   branco (empresa de 3 meses, sem homólogo).
-- Login: `cesarmendes78+punhoteste@gmail.com` / `PunhoOP2026!`.
+- Login: `cesarmendes78+punhoteste@gmail.com` / `FistOP2026!`.
 - Contabilista: **Manuela Sousa** / `manuela.sousa@contabilidade.pt`; janela 1 ano
   (Ago/2025→Jul/2026).
 - **Fonte de verdade da receita mensal** (o Alfredo terá de reconciliar dentro da
@@ -512,7 +512,7 @@ colaborador). Corrigido pelo método de §3.6 (`pm clear` + SQL
 `fichaRecebidaProvider` repor o perfil do servidor e ir **direta ao dashboard
 sem repetir o onboarding** — prova, de caminho, a feature "trocar de
 telemóvel/reinstalar". Durante a manobra, os toques a falhar (INJECT_EVENTS
-revogado) levaram a app a **sair para o Punho OP** duas vezes; recuperado com
+revogado) levaram a app a **sair para o Fist OP** duas vezes; recuperado com
 `dumpsys window | grep mCurrentFocus` + relançar por `monkey` (achado de
 método registado em §4).
 

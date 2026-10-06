@@ -1,4 +1,4 @@
-# Handshake — aba nova, Punho
+# Handshake — aba nova, Fist
 
 Lê só isto para começar. O detalhe está em `docs/HANDOVER_SESSAO_SEGUINTE.md`;
 vai lá quando precisares, não antes.
@@ -18,7 +18,7 @@ linha de base, não tentes limpá-los.
 A Edge Function `registar-terminal` (deploy v7, já em produção) passou a
 aceitar um `nif` opcional no corpo e a actualizar `licencas.nif` — que nasce
 sempre com o placeholder `'000000000'` — quando recebe um NIF válido de 9
-dígitos diferente do guardado. Antes disto, nenhuma instalação Punho jamais
+dígitos diferente do guardado. Antes disto, nenhuma instalação Fist jamais
 tinha o seu NIF real ligado à linha de `licencas`, mesmo depois da empresa
 preencher o NIF nas Definições. `LicencaService.registarTerminal` ganhou o
 parâmetro opcional `nif`, e `_registarTerminal()` em `main.dart` busca a
@@ -191,7 +191,7 @@ que o contrato subiu.
 
 - Aplicar `supabase/seeds/mare_alta.sql` (ver `docs/DADOS_DE_TESTE.md`).
 - A migração da notificação de instalação — SQL pronto na adenda de
-  `docs/PLANO_PUSH_INSTALACAO_PUNHO.md`. **Escrever na base de dados de
+  `docs/PLANO_PUSH_INSTALACAO_FIST.md`. **Escrever na base de dados de
   produção foi recusado pelo classificador de permissões**: não contornes,
   pede-lhe.
 - Publicar (APK + GitHub Release + `versoes_apps`) — só a pedido explícito, e
@@ -219,7 +219,7 @@ que o contrato subiu.
 2. ~~Máquina alugada bloqueia todas as semanas seguintes~~ (achado 18) —
    **resolvido**: bloqueia só a data ocupada. Lógica em `3c7fe1c`, testes em
    `3db013b`.
-3. **Control — menus do Punho.** Proposta em aberto, três peças, detalhe no
+3. **Control — menus do Fist.** Proposta em aberto, três peças, detalhe no
    handover. A peça pequena que o desbloqueia: RPC `punho_definir_limite` para
    editar o limite fora da criação da empresa.
 

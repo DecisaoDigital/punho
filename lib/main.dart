@@ -62,7 +62,7 @@ Future<void> _arrancar() async {
   // conteúdo, sobretudo quando o telemóvel está em landscape.
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
-      statusBarColor: PunhoTheme.navyDeep,
+      statusBarColor: FistTheme.navyDeep,
       statusBarIconBrightness: Brightness.light,
       statusBarBrightness: Brightness.dark,
       systemNavigationBarColor: Colors.black,
@@ -95,7 +95,7 @@ Future<void> _arrancar() async {
       overrides: [
         operationRepositoryProvider.overrideWithValue(operationsRepository),
       ],
-      child: const PunhoApp(),
+      child: const FistApp(),
     ),
   );
 }
@@ -164,7 +164,7 @@ Future<void> _registarTerminal() async {
     // único ponto em que a instalação se liga ao NIF depois de nascer com o
     // placeholder '000000000' (ver EmpresaSyncService.buscarFicha).
     final ficha = await EmpresaSyncService(client).buscarFicha();
-    await PunhoLicencaService(
+    await FistLicencaService(
       client,
     ).registarTerminal(machineId, nif: ficha?.nif);
   } catch (erro) {
@@ -172,13 +172,13 @@ Future<void> _registarTerminal() async {
   }
 }
 
-class PunhoApp extends ConsumerStatefulWidget {
-  const PunhoApp({super.key});
+class FistApp extends ConsumerStatefulWidget {
+  const FistApp({super.key});
   @override
-  ConsumerState<PunhoApp> createState() => _PunhoAppState();
+  ConsumerState<FistApp> createState() => _FistAppState();
 }
 
-class _PunhoAppState extends ConsumerState<PunhoApp> {
+class _FistAppState extends ConsumerState<FistApp> {
   bool _splashTerminou = false;
 
   @override
@@ -193,7 +193,7 @@ class _PunhoAppState extends ConsumerState<PunhoApp> {
     // quando foi usado nem que versão lá está agora.
     ref.watch(pingsProvider);
     final Widget destino = CadeadoGate(
-      child: PunhoUpdateBannerWrapper(
+      child: FistUpdateBannerWrapper(
         child: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),
       ),
     );
@@ -211,12 +211,12 @@ class _PunhoAppState extends ConsumerState<PunhoApp> {
             child: destino,
           );
     return MaterialApp(
-      title: 'Punho',
+      title: 'Fist',
       debugShowCheckedModeBanner: false,
-      theme: PunhoTheme.light,
+      theme: FistTheme.light,
       home: _splashTerminou
           ? comAviso
-          : SplashPunho(
+          : SplashFist(
               aoTerminar: () => setState(() => _splashTerminou = true),
             ),
     );

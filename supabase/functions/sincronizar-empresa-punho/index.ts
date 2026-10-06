@@ -1,6 +1,6 @@
 // sincronizar-empresa-punho
 // Recebe os dados detalhados da empresa (NIF, morada, contactos, facturação,
-// custos) que o utilizador Punho preencheu no onboarding ou nas Definições, e
+// custos) que o utilizador Fist preencheu no onboarding ou nas Definições, e
 // grava-os em `punho_empresas.dados` (jsonb). O trigger DB
 // `punho_empresas_sync_licenca` cria/actualiza automaticamente a linha em
 // `licencas` (app='punho') para o Control ver a empresa.
@@ -65,7 +65,7 @@ Deno.serve(async (req: Request) => {
 
   if (memErr) return json({ error: 'db_error', detalhe: memErr.message }, 500);
   if (!membros || membros.length === 0) {
-    return json({ error: 'sem_empresa', detalhe: 'Não está inscrito como gestor activo em nenhuma empresa Punho.' }, 403);
+    return json({ error: 'sem_empresa', detalhe: 'Não está inscrito como gestor activo em nenhuma empresa Fist.' }, 403);
   }
   const empresaId = membros[0].empresa_id as string;
 

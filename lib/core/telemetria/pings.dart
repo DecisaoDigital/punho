@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Assinatura de vida da app: uma linha em `pings` a dizer que este terminal
 /// correu, quando, e com que versão.
 ///
-/// O Punho já se registava (`registar-terminal`) e já validava licença — mas
+/// O Fist já se registava (`registar-terminal`) e já validava licença — mas
 /// isso acontece **uma vez** e não deixa rasto. No Control via-se que o
 /// terminal existe e que a licença está activa, e mais nada: nem o último
 /// acesso, nem a versão que lá está agora — só a que estava no dia do registo.
@@ -17,12 +17,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///
 /// Falha sempre em silêncio. Um terminal sem rede continua a ser um terminal
 /// que trabalha, e ninguém vê um erro de telemetria no arranque.
-class PunhoPings {
-  PunhoPings(SupabaseClient cliente)
+class FistPings {
+  FistPings(SupabaseClient cliente)
     : _inserir = ((linha) => cliente.from('pings').insert(linha));
 
   /// Para testes: injecta o destino sem precisar de Supabase.
-  PunhoPings.com(this._inserir);
+  FistPings.com(this._inserir);
 
   final Future<void> Function(Map<String, dynamic> linha) _inserir;
 

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/layout/margens_do_canvas.dart';
-import 'package:punho/core/navigation/app_destination.dart';
-import 'package:punho/core/navigation/navigation_controller.dart';
-import 'package:punho/core/theme/punho_theme.dart';
-import 'package:punho/features/dashboard/presentation/dashboard_page.dart';
-import 'package:punho/core/operations/painel_controller.dart';
-import 'package:punho/features/shell/presentation/app_shell.dart';
+import 'package:fist/core/layout/margens_do_canvas.dart';
+import 'package:fist/core/navigation/app_destination.dart';
+import 'package:fist/core/navigation/navigation_controller.dart';
+import 'package:fist/core/theme/punho_theme.dart';
+import 'package:fist/features/dashboard/presentation/dashboard_page.dart';
+import 'package:fist/core/operations/painel_controller.dart';
+import 'package:fist/features/shell/presentation/app_shell.dart';
 
 import '../dashboard/fixtura.dart';
 
@@ -55,7 +55,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(theme: PunhoTheme.light, home: const AppShell()),
+        child: MaterialApp(theme: FistTheme.light, home: const AppShell()),
       ),
     );
     await tester.pumpAndSettle();
@@ -66,7 +66,7 @@ void main() {
   Rect faixaDoTopo(WidgetTester tester) {
     for (final elemento in find.byType(ColoredBox).evaluate()) {
       final widget = elemento.widget as ColoredBox;
-      if (widget.color != PunhoTheme.navyDeep) continue;
+      if (widget.color != FistTheme.navyDeep) continue;
       final caixa = elemento.renderObject! as RenderBox;
       final canto = caixa.localToGlobal(Offset.zero);
       if (canto.dy == 0) return canto & caixa.size;
@@ -247,7 +247,7 @@ void main() {
     // navy também — o que não pode existir é navy a atravessar o ecrã todo.
     for (final elemento in find.byType(ColoredBox).evaluate()) {
       final widget = elemento.widget as ColoredBox;
-      if (widget.color != PunhoTheme.navyDeep) continue;
+      if (widget.color != FistTheme.navyDeep) continue;
       final caixa = elemento.renderObject! as RenderBox;
       if (caixa.localToGlobal(Offset.zero).dy != 0) continue;
       expect(caixa.size.width, lessThan(redmiDeitado.width));

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/layout/margens_do_canvas.dart';
-import 'package:punho/core/navigation/app_destination.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/core/navigation/navigation_controller.dart';
-import 'package:punho/core/theme/punho_theme.dart';
-import 'package:punho/features/operations/presentation/operational_pages.dart';
-import 'package:punho/features/shell/presentation/app_shell.dart';
+import 'package:fist/core/layout/margens_do_canvas.dart';
+import 'package:fist/core/navigation/app_destination.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/core/navigation/navigation_controller.dart';
+import 'package:fist/core/theme/punho_theme.dart';
+import 'package:fist/features/operations/presentation/operational_pages.dart';
+import 'package:fist/features/shell/presentation/app_shell.dart';
 
 import '../../tipos_de_letra.dart';
 import '../dashboard/fixtura.dart';
@@ -50,7 +50,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(theme: PunhoTheme.light, home: const AppShell()),
+        child: MaterialApp(theme: FistTheme.light, home: const AppShell()),
       ),
     );
     await tester.pumpAndSettle();

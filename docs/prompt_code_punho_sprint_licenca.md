@@ -1,20 +1,20 @@
-# Prompt Code Punho — sprint: cliente de licenciamento (registar-terminal + validar-licenca)
+# Prompt Code Fist — sprint: cliente de licenciamento (registar-terminal + validar-licenca)
 
-> Cola numa sessão nova do Claude Code em `D:\Punho\`.
+> Cola numa sessão nova do Claude Code em `D:\Fist\`.
 > Branch: **`feature/licenciamento`** a partir de `main`.
-> Alvo: adicionar cliente de licenciamento ao Punho. Chama Edge Functions no Supabase (mesmo do Control) para auto-onboarding e validação periódica. Trial 40 dias. Cross-platform (Android + Windows). **NÃO** bumpar `pubspec.yaml` para além do necessário para deps novas. **NÃO** fazer release.
+> Alvo: adicionar cliente de licenciamento ao Fist. Chama Edge Functions no Supabase (mesmo do Control) para auto-onboarding e validação periódica. Trial 40 dias. Cross-platform (Android + Windows). **NÃO** bumpar `pubspec.yaml` para além do necessário para deps novas. **NÃO** fazer release.
 
 ---
 
 ## Contexto
 
-- **Punho** é Flutter cross-platform (Android + Windows). Auto-update já feito (`lib/core/updates/`, `lib/features/updates/`).
+- **Fist** é Flutter cross-platform (Android + Windows). Auto-update já feito (`lib/core/updates/`, `lib/features/updates/`).
 - **Supabase:** projecto `oefqbkhioncakojipqyx` (mesmo do WashInvoice Control). `SUPABASE_URL` e `SUPABASE_ANON_KEY` já vêm via `--dart-define` (workflow) ou `.env` local (dev). `SupabaseConfig.enabled` já lá está.
 - **Edge Functions já deployed** (versão 6, multi-app):
   - `registar-terminal` — recebe `{machine_id, app, info_host?}`. Retorna trial 40 dias para `app='punho'`. Idempotente por `(machine_id, app)`.
   - `validar-licenca` — recebe `{machine_id, app}`. Retorna `{estado, plano, validade, nome, nif, dias_restantes, oferta, tier, preferencias_features}`. Estados: `activa | expirada | inactiva | inexistente`.
-- **Padrão de referência:** o WashInvoice POS já tem este cliente feito em `D:\WashFactura\lib\services\licenca\`. **Não copies literalmente** — adapta ao contexto Punho (cross-platform, arquitectura Riverpod já existente).
-- **`machine_id`** — no POS é hash SHA256 do hostname Windows. No Punho tem de ser cross-platform:
+- **Padrão de referência:** o WashInvoice POS já tem este cliente feito em `D:\WashFactura\lib\services\licenca\`. **Não copies literalmente** — adapta ao contexto Fist (cross-platform, arquitectura Riverpod já existente).
+- **`machine_id`** — no POS é hash SHA256 do hostname Windows. No Fist tem de ser cross-platform:
   - Windows: mesmo padrão (hostname via `Platform.localHostname` + SHA256)
   - Android: `device_info_plus.androidId` (o `ANDROID_ID` do sistema)
   - Persistente entre arranques, único por dispositivo.
@@ -90,8 +90,8 @@ Future<String> resolverMachineId() async {
 ### 1c. `lib/core/licenca/licenca_service.dart`
 
 ```dart
-class PunhoLicencaService {
-  PunhoLicencaService(this._client);
+class FistLicencaService {
+  FistLicencaService(this._client);
   final SupabaseClient _client;
 
   /// Regista o terminal no arranque. Idempotente do lado do servidor.
@@ -152,8 +152,8 @@ class PunhoLicencaService {
 ### 2a. `lib/core/licenca/licenca_provider.dart`
 
 ```dart
-final licencaServiceProvider = Provider<PunhoLicencaService>((ref) {
-  return PunhoLicencaService(Supabase.instance.client);
+final licencaServiceProvider = Provider<FistLicencaService>((ref) {
+  return FistLicencaService(Supabase.instance.client);
 });
 
 final machineIdProvider = FutureProvider<String>((ref) => resolverMachineId());
@@ -191,7 +191,7 @@ Não bloquear boot se falhar. É fail-silent.
 
 ### 3a. `lib/features/licenca/presentation/licenca_banner.dart`
 
-Padrão análogo ao `PunhoUpdateBanner` já existente. Cores:
+Padrão análogo ao `FistUpdateBanner` já existente. Cores:
 
 | Estado | Cor | Mensagem |
 |---|---|---|
@@ -202,11 +202,11 @@ Padrão análogo ao `PunhoUpdateBanner` já existente. Cores:
 | `inactiva` | vermelho | "Licença suspensa. Contactar suporte." |
 | `inexistente` | cinza | "Terminal por registar. A tentar registo…" (tenta `registarTerminal` de novo) |
 
-Botão "Contactar" em todos → `mailto:cesarmendes78@gmail.com?subject=Licença Punho`.
+Botão "Contactar" em todos → `mailto:cesarmendes78@gmail.com?subject=Licença Fist`.
 
 ### 3b. Integrar em `lib/features/shell/presentation/app_shell.dart`
 
-Colocar `LicencaBanner` **por cima** do `PunhoUpdateBanner` (licença é mais prioritária que update). Ambos usam `ConsumerWidget` já.
+Colocar `LicencaBanner` **por cima** do `FistUpdateBanner` (licença é mais prioritária que update). Ambos usam `ConsumerWidget` já.
 
 ### 3c. Testes
 
@@ -231,15 +231,15 @@ Implementação nesta fase: **nenhum bloqueio efectivo**. Apenas o banner. Docum
 ### 5a. `docs/LICENCIAMENTO.md` (novo)
 
 ```markdown
-# Punho — Licenciamento
+# Fist — Licenciamento
 
-Punho reutiliza a infra do WashInvoice Control (mesmo Supabase, mesmas EFs
+Fist reutiliza a infra do WashInvoice Control (mesmo Supabase, mesmas EFs
 `registar-terminal` e `validar-licenca` v6+, com `app='punho'`).
 
 ## Auto-onboarding
 
 Primeiro arranque:
-1. Punho resolve `machine_id` (hash SHA256 do hostname/androidId).
+1. Fist resolve `machine_id` (hash SHA256 do hostname/androidId).
 2. Chama `registar-terminal` com `{machine_id, app: 'punho', info_host}`.
 3. Control cria linha em `licencas` com `app='punho'`, `plano='trial'`,
    validade = hoje + 40 dias, `pendente_revisao=true`.
@@ -295,7 +295,7 @@ Se este ficheiro tem secção de "licenciamento" ou "produto", actualizar com:
 - Ecrã de "gerir a minha licença" dentro da app. Não. Iteração futura.
 - Tabela de renovações. Não. Só quando primeiro cliente pagante existir.
 - Push notifications da licença. Não. Fica com o Control ao Cesar.
-- Alterações ao Control. Não. Este sprint é só Punho.
+- Alterações ao Control. Não. Este sprint é só Fist.
 - Bump `pubspec.yaml` version. Não. Fica em 1.0.0+1.
 
 ---

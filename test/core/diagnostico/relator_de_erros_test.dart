@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/diagnostico/relator_de_erros.dart';
+import 'package:fist/core/diagnostico/relator_de_erros.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// O que estes testes protegem: **um erro em casa do cliente tem de chegar a

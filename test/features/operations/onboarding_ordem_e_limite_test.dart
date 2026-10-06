@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/features/operations/presentation/operational_pages.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/features/operations/presentation/operational_pages.dart';
 
 /// **A ordem das primeiras perguntas do gestor, e o tecto dos funcionários.**
 ///
@@ -162,7 +162,7 @@ void main() {
     await tester.tap(find.byType(Switch));
     await tester.pumpAndSettle();
     await continuar(tester);
-    await tester.tap(find.text('Entrar na Punho →'));
+    await tester.tap(find.text('Entrar na Fist →'));
     await tester.pumpAndSettle();
 
     expect(container.read(operationsProvider).declaredCollaboratorCount, 7);

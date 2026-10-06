@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/orientacao/orientacao_do_contexto.dart';
-import 'package:punho/core/updates/instalador_de_update.dart';
-import 'package:punho/features/updates/instalacao_providers.dart';
+import 'package:fist/core/orientacao/orientacao_do_contexto.dart';
+import 'package:fist/core/updates/instalador_de_update.dart';
+import 'package:fist/features/updates/instalacao_providers.dart';
 
 /// Nenhum ecrã do Android nesta sequência está preparado para landscape: nem
 /// o pedido de autorização de fontes desconhecidas, nem o scan do Play

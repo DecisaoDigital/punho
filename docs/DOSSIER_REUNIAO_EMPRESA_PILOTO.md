@@ -1,4 +1,4 @@
-# Dossier de descoberta — Empresa Piloto Punho
+# Dossier de descoberta — Empresa Piloto Fist
 
 ## Reunião antes da proposta
 
@@ -8,7 +8,7 @@
 **Data:** ___________________ **Duração:** ______________  
 **Entrevistador:** _____________________________________
 
-> **Objetivo da reunião:** compreender o que o empresário precisa agora, como o negócio funciona realmente e se o Punho está alinhado com essas necessidades. A proposta só deve ser construída depois desta escuta.
+> **Objetivo da reunião:** compreender o que o empresário precisa agora, como o negócio funciona realmente e se o Fist está alinhado com essas necessidades. A proposta só deve ser construída depois desta escuta.
 
 ## Princípios da conversa
 
@@ -34,7 +34,7 @@
 
 ## Sugestão de abertura
 
-“Antes de te mostrar ou propor seja o que for, quero perceber como funciona realmente o teu negócio, o que hoje te ocupa mais tempo e onde sentes falta de controlo ou informação. O Punho é um projeto piloto e deve ser construído a partir de problemas reais, não de suposições nossas. Vou fazer algumas perguntas, pedir exemplos concretos e, no fim, confirmar contigo o que compreendi.”
+“Antes de te mostrar ou propor seja o que for, quero perceber como funciona realmente o teu negócio, o que hoje te ocupa mais tempo e onde sentes falta de controlo ou informação. O Fist é um projeto piloto e deve ser construído a partir de problemas reais, não de suposições nossas. Vou fazer algumas perguntas, pedir exemplos concretos e, no fim, confirmar contigo o que compreendi.”
 
 ## Perguntas de enquadramento
 
@@ -230,7 +230,7 @@ Para cada dor identificada, registar:
 13. Cada pessoa tem telemóvel próprio?
 14. Existe trabalho em zonas sem internet?
 15. Que informação laboral é realmente necessária dentro da aplicação?
-16. Que informação não deve ser guardada no Punho?
+16. Que informação não deve ser guardada no Fist?
 
 ## Mapa simples de responsabilidades
 
@@ -306,8 +306,8 @@ Para cada dor identificada, registar:
 11. Que apoio é esperado durante o piloto?
 12. Que operações não podem falhar?
 13. Qual é o nível aceitável de trabalho manual durante o piloto?
-14. Que resultado justificaria continuar a investir no Punho?
-15. Que resultado levaria a concluir que o Punho não está alinhado?
+14. Que resultado justificaria continuar a investir no Fist?
+15. Que resultado levaria a concluir que o Fist não está alinhado?
 
 ## Critérios de sucesso propostos
 
@@ -318,13 +318,13 @@ Para cada dor identificada, registar:
 - Valores pendentes são identificados mais cedo.
 - Indicadores conferem com os registos reais.
 - A equipa utiliza a aplicação sem assistência constante.
-- O empresário reconhece pelo menos uma decisão melhorada pelo Punho.
+- O empresário reconhece pelo menos uma decisão melhorada pelo Fist.
 
-# 11. Avaliar o alinhamento com o Punho
+# 11. Avaliar o alinhamento com o Fist
 
 ## Escala
 
-- **0 — Desalinhado:** o Punho não responde à necessidade.
+- **0 — Desalinhado:** o Fist não responde à necessidade.
 - **1 — Parcial:** existe uma aproximação, mas falta uma parte essencial.
 - **2 — Alinhado:** a capacidade existe e precisa apenas de adaptação.
 - **3 — Muito alinhado:** a necessidade corresponde diretamente ao núcleo atual.
@@ -350,7 +350,7 @@ Avaliar cada área:
 
 ## Síntese de alinhamento
 
-- **Muito alinhado com o Punho atual:** ______________________________________
+- **Muito alinhado com o Fist atual:** ______________________________________
 - **Alinhado, mas requer adaptação:** _______________________________________
 - **Necessidade importante ainda não coberta:** _____________________________
 - **Pedido fora do objetivo do piloto:** ____________________________________
@@ -360,7 +360,7 @@ Avaliar cada área:
 
 Estas soluções não devem ser apresentadas como uma lista de funcionalidades. Devem ser ligadas às dores e exemplos recolhidos.
 
-## Possíveis respostas do Punho
+## Possíveis respostas do Fist
 
 - **Informação espalhada:** registo operacional único ligado ao cliente, reserva, máquina e movimento financeiro.
 - **Dependência da memória:** tarefas, estados e alertas gerados a partir dos acontecimentos.
@@ -421,7 +421,7 @@ Usar sempre esta sequência:
 
 ## Hipótese de solução
 
-- **O que o Punho já cobre:** ______________________________________________
+- **O que o Fist já cobre:** ______________________________________________
 - **Adaptação necessária:** ________________________________________________
 - **O que fica fora:** _____________________________________________________
 - **Risco principal:** _____________________________________________________
@@ -441,7 +441,7 @@ Usar sempre esta sequência:
 ## Semáforo da oportunidade
 
 - **Valor para a empresa:** verde / amarelo / vermelho
-- **Alinhamento com o Punho:** verde / amarelo / vermelho
+- **Alinhamento com o Fist:** verde / amarelo / vermelho
 - **Viabilidade do piloto:** verde / amarelo / vermelho
 - **Risco de dados/operação:** verde / amarelo / vermelho
 - **Disponibilidade da equipa:** verde / amarelo / vermelho

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/features/operations/presentation/boas_vindas_screen.dart';
-import 'package:punho/features/operations/presentation/mais_dados_screen.dart';
-import 'package:punho/features/operations/presentation/operational_pages.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/features/operations/presentation/boas_vindas_screen.dart';
+import 'package:fist/features/operations/presentation/mais_dados_screen.dart';
+import 'package:fist/features/operations/presentation/operational_pages.dart';
 
 /// O percurso do onboarding com os dois ecrãs de contexto pelo meio.
 ///
-/// O que interessa fixar: **nada é gravado até "Entrar na Punho"**. Antes desta
+/// O que interessa fixar: **nada é gravado até "Entrar na Fist"**. Antes desta
 /// sprint o `completeOnboarding` era chamado pelo botão do último campo, e o
 /// gestor caía no painel sem transição nenhuma.
 void main() {
@@ -99,7 +99,7 @@ void main() {
     expect(find.text('Quantas máquinas tem aproximadamente?'), findsNothing);
   });
 
-  testWidgets('nada é gravado antes de "Entrar na Punho"', (tester) async {
+  testWidgets('nada é gravado antes de "Entrar na Fist"', (tester) async {
     final container = containerVazio();
     await abrir(tester, container);
     await tester.enterText(find.byType(TextField).first, 'César');
@@ -115,7 +115,7 @@ void main() {
       reason: 'o onboarding não pode estar concluído antes do último botão',
     );
 
-    await tester.tap(find.text('Entrar na Punho →'));
+    await tester.tap(find.text('Entrar na Fist →'));
     await tester.pumpAndSettle();
 
     expect(container.read(operationsProvider).onboarded, isTrue);

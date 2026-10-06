@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/domain/models/finance.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/domain/models/finance.dart';
 
 /// Os custos fixos deixaram de ser um número redondo e passaram a rubricas.
 ///

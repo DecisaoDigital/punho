@@ -1,7 +1,7 @@
 # RGPD — o que se guarda, durante quanto tempo, e como se apaga
 
 Estado a 11 Ago 2026. Aplica-se ao projecto Supabase `oefqbkhioncakojipqyx`,
-que serve o Punho, o Punho OP e o WashInvoice Control.
+que serve o Fist, o Fist OP e o WashInvoice Control.
 
 ---
 

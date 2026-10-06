@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/gestao/data/dados_pessoais_service.dart';
-import 'package:punho/features/gestao/presentation/dados_pessoais_screen.dart';
+import 'package:fist/features/gestao/data/dados_pessoais_service.dart';
+import 'package:fist/features/gestao/presentation/dados_pessoais_screen.dart';
 
 /// **Apagar uma ficha de três não é ter respondido ao pedido.**
 ///

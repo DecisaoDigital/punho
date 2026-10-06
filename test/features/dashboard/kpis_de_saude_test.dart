@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/kpis_de_saude.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/domain/models/finance.dart';
-import 'package:punho/domain/models/operations.dart';
+import 'package:fist/core/operations/kpis_de_saude.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/domain/models/finance.dart';
+import 'package:fist/domain/models/operations.dart';
 
 /// **As contas de saúde da empresa.**
 ///

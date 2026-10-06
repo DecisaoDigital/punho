@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cópia de segurança da base do Punho, tirada do i9.
+# Cópia de segurança da base do Fist, tirada do i9.
 # Uso normal: ./scripts/copia_de_seguranca.sh
 #
 # Um backup que nunca foi restaurado não é um backup, é uma esperança. Este
@@ -10,7 +10,7 @@
 #
 #   public.dump   o esquema `public` inteiro — tabelas, dados, vistas, funções,
 #                 gatilhos, políticas RLS e as permissões dos papéis. É aqui que
-#                 está tudo o que o Punho é.
+#                 está tudo o que o Fist é.
 #   contas.dump   auth.users e auth.identities. Sem isto restaura-se a empresa
 #                 mas ninguém consegue entrar nela.
 #   agenda.sql    as tarefas do pg_cron, escritas como comandos para recriar.

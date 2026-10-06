@@ -1,5 +1,5 @@
-import 'package:punho/features/auth/data/acesso_service.dart';
-import 'package:punho/features/auth/domain/estado_acesso.dart';
+import 'package:fist/features/auth/data/acesso_service.dart';
+import 'package:fist/features/auth/domain/estado_acesso.dart';
 
 /// Fake do [AcessoService] para os testes de acessos.
 ///

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/sync/sync_engine.dart';
+import 'package:fist/core/sync/sync_engine.dart';
 
 void main() {
   test('empresa A não lê dados da empresa B', () {

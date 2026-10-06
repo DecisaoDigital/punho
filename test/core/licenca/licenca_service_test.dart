@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/licenca/licenca_info.dart';
-import 'package:punho/core/licenca/licenca_service.dart';
+import 'package:fist/core/licenca/licenca_info.dart';
+import 'package:fist/core/licenca/licenca_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Regista as chamadas feitas e devolve uma resposta combinada, para não ser
@@ -29,7 +29,7 @@ void main() {
         data: {'estado': 'activa', 'plano': 'trial', 'dias_restantes': 40},
       ),
     );
-    final servico = PunhoLicencaService.comInvocador(invocador.call);
+    final servico = FistLicencaService.comInvocador(invocador.call);
 
     await servico.validar(machineId);
 
@@ -56,7 +56,7 @@ void main() {
         },
       ),
     );
-    final servico = PunhoLicencaService.comInvocador(invocador.call);
+    final servico = FistLicencaService.comInvocador(invocador.call);
 
     final licenca = await servico.validar(machineId);
 
@@ -74,7 +74,7 @@ void main() {
   });
 
   test('validar traz a chave mestre da empresa', () async {
-    // A metade "empresa" do par; o machine_id é a do dispositivo. O Punho não
+    // A metade "empresa" do par; o machine_id é a do dispositivo. O Fist não
     // tem licenca.json assinado — sabe-a por aqui.
     final invocador = _InvocadorFalso(
       resposta: const FunctionResponse(
@@ -88,7 +88,7 @@ void main() {
         },
       ),
     );
-    final servico = PunhoLicencaService.comInvocador(invocador.call);
+    final servico = FistLicencaService.comInvocador(invocador.call);
 
     final licenca = await servico.validar(machineId);
 
@@ -109,7 +109,7 @@ void main() {
           },
         ),
       );
-      final servico = PunhoLicencaService.comInvocador(invocador.call);
+      final servico = FistLicencaService.comInvocador(invocador.call);
 
       expect((await servico.validar(machineId))!.chaveMestre, isNull);
     },
@@ -117,7 +117,7 @@ void main() {
 
   test('validar devolve null quando a rede falha, sem excepção', () async {
     final invocador = _InvocadorFalso(erro: Exception('sem rede'));
-    final servico = PunhoLicencaService.comInvocador(invocador.call);
+    final servico = FistLicencaService.comInvocador(invocador.call);
 
     await expectLater(servico.validar(machineId), completion(isNull));
   });
@@ -129,7 +129,7 @@ void main() {
         data: {'estado': 'expirada', 'plano': 'trial', 'dias_restantes': 0},
       ),
     );
-    final servico = PunhoLicencaService.comInvocador(invocador.call);
+    final servico = FistLicencaService.comInvocador(invocador.call);
 
     final licenca = await servico.validar(machineId);
 
@@ -145,7 +145,7 @@ void main() {
         data: {'estado': 'qualquer-coisa-nova'},
       ),
     );
-    final servico = PunhoLicencaService.comInvocador(invocador.call);
+    final servico = FistLicencaService.comInvocador(invocador.call);
 
     final licenca = await servico.validar(machineId);
 
@@ -156,7 +156,7 @@ void main() {
     final invocador = _InvocadorFalso(
       resposta: const FunctionResponse(status: 200, data: 'erro interno'),
     );
-    final servico = PunhoLicencaService.comInvocador(invocador.call);
+    final servico = FistLicencaService.comInvocador(invocador.call);
 
     expect(await servico.validar(machineId), isNull);
   });
@@ -165,7 +165,7 @@ void main() {
     final invocador = _InvocadorFalso(
       resposta: const FunctionResponse(status: 200, data: {'criado': true}),
     );
-    final servico = PunhoLicencaService.comInvocador(invocador.call);
+    final servico = FistLicencaService.comInvocador(invocador.call);
 
     await servico.registarTerminal(machineId);
 
@@ -179,7 +179,7 @@ void main() {
     final invocador = _InvocadorFalso(
       resposta: const FunctionResponse(status: 200, data: {'criado': true}),
     );
-    final servico = PunhoLicencaService.comInvocador(invocador.call);
+    final servico = FistLicencaService.comInvocador(invocador.call);
 
     await servico.registarTerminal(machineId, nif: '509442129');
 
@@ -190,7 +190,7 @@ void main() {
     final invocador = _InvocadorFalso(
       resposta: const FunctionResponse(status: 200, data: {'criado': true}),
     );
-    final servico = PunhoLicencaService.comInvocador(invocador.call);
+    final servico = FistLicencaService.comInvocador(invocador.call);
 
     await servico.registarTerminal(machineId);
 
@@ -199,7 +199,7 @@ void main() {
 
   test('registarTerminal não propaga erro de rede', () async {
     final invocador = _InvocadorFalso(erro: Exception('timeout'));
-    final servico = PunhoLicencaService.comInvocador(invocador.call);
+    final servico = FistLicencaService.comInvocador(invocador.call);
 
     await expectLater(servico.registarTerminal(machineId), completes);
   });

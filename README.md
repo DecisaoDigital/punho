@@ -1,16 +1,16 @@
-# Punho
+# Fist
 
 Aplicação Flutter de gestão operacional e apoio à decisão para pequenas
 empresas, desenvolvida pela **Decisão Digital**.
 
-O Punho transforma registos do trabalho diário — clientes, reservas, máquinas,
+O Fist transforma registos do trabalho diário — clientes, reservas, máquinas,
 recebimentos, despesas e equipa — em métricas, explicações e ações
 recomendadas. A primeira vertical aprofundada é o aluguer de máquinas.
 
 ## Começar por aqui
 
 - [Estado actual da aplicação](docs/ESTADO_ATUAL_DA_APP.md)
-- [O que é o Punho](docs/O_QUE_E_O_PUNHO.md)
+- [O que é o Fist](docs/O_QUE_E_O_FIST.md)
 - [Decisões e roadmap vivo](docs/DECISOES_E_ROADMAP_VIVO.md)
 - [Publicar uma versão (runbook)](docs/PUBLICAR_RELEASE.md) ← **ler antes de cortar tag**
 - [Smoke antes de anunciar](docs/SMOKE.md)

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/auth/presentation/login_screen.dart';
+import 'package:fist/features/auth/presentation/login_screen.dart';
 
 /// O que o ecrã de entrar tem de ter, sempre.
 ///
@@ -11,7 +11,7 @@ import 'package:punho/features/auth/presentation/login_screen.dart';
 ///   29/07 12:53  `afab061`  AutofillGroup + autofillHints + olhinho — adicionados
 ///                `9ac5655`  **as três desaparecem de uma vez**
 ///
-/// O commit que as levou foi um de *branding* — pôr o símbolo do Punho no
+/// O commit que as levou foi um de *branding* — pôr o símbolo do Fist no
 /// Login, no Registo e no Onboarding. Reescreveu o ecrã a partir de uma versão
 /// anterior do ficheiro e arrastou tudo o que lá tinha entrado nesse dia.
 ///

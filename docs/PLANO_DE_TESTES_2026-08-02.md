@@ -82,7 +82,7 @@ flutter build apk --debug --target-platform android-arm64 \
 
 ### 2. Cabeçalho do ecrã de login cortado pela barra de estado
 
-No ecrã "Iniciar sessão", o bloco "Punho / Agarra o comando." fica por baixo da
+No ecrã "Iniciar sessão", o bloco "Fist / Agarra o comando." fica por baixo da
 barra de estado — o topo das letras está escondido. Falta `SafeArea` ou margem
 de topo. Captura: `~/shots/punho_phone2.png`.
 
@@ -147,7 +147,7 @@ neste MIUI. Para ver logs é preciso `flutter run` ligado por USB.
 
 O ecrã do punho aparecia em retrato, rodava para landscape e voltava a retrato
 ao entrar no login. Ninguém pedia orientação até ao `AuthGate`: o
-`AndroidManifest` não define `screenOrientation` e o `SplashPunho` não declarava
+`AndroidManifest` não define `screenOrientation` e o `SplashFist` não declarava
 nada, por isso durante os 1,6 s da animação valia o sensor. Corrigido em
 `lib/shared/widgets/splash_punho.dart` — o splash passa a declarar
 `portraitJa()` no `initState`, como qualquer outro ecrã (Decisão 13). O manifest
@@ -461,7 +461,7 @@ Risca-se aqui à medida que acontece. `[x]` feito · `[~]` a decorrer ·
 - [x] Campainha em tempo real a funcionar — **corrigida e verificada nos dois
       sentidos** (achado 15). Nunca tinha tocado: rebentava em cada envio.
       **Nota de 02/08 à noite:** o trigger DB de `punho_campainha_tempo_real.sql`
-      **não está aplicado** (confirmado por `pg_trigger` — sem entrada); o Punho
+      **não está aplicado** (confirmado por `pg_trigger` — sem entrada); o Fist
       usa broadcast directo entre aparelhos por falta de partições em
       `realtime.messages`. O ficheiro entrou em git no washinvoice-control como
       registo do caminho abandonado, não como algo activo
@@ -516,7 +516,7 @@ Risca-se aqui à medida que acontece. `[x]` feito · `[~]` a decorrer ·
 - [x] ~~Cabeçalho do ecrã de login cortado pela barra de estado~~ —
       confirmado `SafeArea` presente em `login_screen.dart` e
       `registo_screen.dart`; **confirmado no aparelho:** o bloco
-      "Punho / Agarra o comando." aparece completo, sem corte pela barra
+      "Fist / Agarra o comando." aparece completo, sem corte pela barra
       de estado, tanto no ecrã de login como no ecrã de PIN pós-reinício
 - [x] ~~Onboarding não cria colaboradores nem veículos~~ (achado 8) — deixou
       de ser bug: é o comportamento pretendido desde a regra "a app começa

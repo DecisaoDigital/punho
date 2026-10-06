@@ -70,7 +70,7 @@ class TarefasPage extends ConsumerWidget {
     icone: Icons.warning_amber_rounded,
   ),
   SeveridadeTarefa.aCompletar => (
-    cor: PunhoTheme.orange,
+    cor: FistTheme.orange,
     icone: Icons.edit_note_outlined,
   ),
   SeveridadeTarefa.sugestao => (

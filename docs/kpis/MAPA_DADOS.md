@@ -65,7 +65,7 @@ quando se lê o modelo.
 
 ## 2. Onde vivem os dados — e a armadilha
 
-O Punho é *local-first*. A verdade de cada terminal é o estado local; o
+O Fist é *local-first*. A verdade de cada terminal é o estado local; o
 servidor guarda **o registo de operações** (`punho_operacoes`, append-only) e
 **uma projecção** por entidade. Os KPIs correm no cliente, sobre
 `OperationsState`, e não sobre SQL.

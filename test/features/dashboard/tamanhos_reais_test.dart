@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/domain/models/finance.dart';
-import 'package:punho/domain/models/operations.dart';
-import 'package:punho/features/dashboard/presentation/pagina_do_painel.dart';
-import 'package:punho/features/operations/presentation/operational_pages.dart';
-import 'package:punho/features/tarefas/presentation/tarefas_page.dart';
+import 'package:fist/domain/models/finance.dart';
+import 'package:fist/domain/models/operations.dart';
+import 'package:fist/features/dashboard/presentation/pagina_do_painel.dart';
+import 'package:fist/features/operations/presentation/operational_pages.dart';
+import 'package:fist/features/tarefas/presentation/tarefas_page.dart';
 
 import 'fixtura.dart';
 

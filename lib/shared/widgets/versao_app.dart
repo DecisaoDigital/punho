@@ -18,7 +18,7 @@ class VersaoApp extends StatelessWidget {
   });
 
   /// Recebe a versão nua (`0.0.16`) e devolve o texto a mostrar. Cada sítio
-  /// escreve-a à sua maneira: `v 0.0.16` na sidebar, `Punho v0.0.16` no perfil.
+  /// escreve-a à sua maneira: `v 0.0.16` na sidebar, `Fist v0.0.16` no perfil.
   final String Function(String versao) formato;
 
   final TextStyle? style;

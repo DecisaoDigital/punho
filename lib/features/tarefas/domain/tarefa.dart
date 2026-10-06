@@ -8,7 +8,7 @@ enum SeveridadeTarefa {
   /// Dinheiro ou obrigações legais. Não espera.
   urgente('Urgente', 2),
 
-  /// Falta preencher algo que faz o Punho decidir melhor.
+  /// Falta preencher algo que faz o Fist decidir melhor.
   aCompletar('A completar', 1),
 
   /// Conselho que o gestor adiou. Fica à mão, sem incomodar.

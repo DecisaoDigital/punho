@@ -1,4 +1,4 @@
-# Punho — para onde não estamos a olhar
+# Fist — para onde não estamos a olhar
 
 > Relatório complementar às auditorias
 > `AUDITORIA_KPIS_EMPRESA.md` e `AUDITORIA_APP_ENSINO_GESTAO.md`.
@@ -30,7 +30,7 @@ independentemente da 0.0.6.
 
 Todas as métricas assumem um gestor racional a decidir com calma. Na
 prática, quem abre a app às 23:00 depois de um dia mau precisa de
-coisa diferente de quem abre às 09:00 com café. O Punho podia detectar
+coisa diferente de quem abre às 09:00 com café. O Fist podia detectar
 o momento (hora + últimas acções + tempo desde última sessão) e
 mostrar um dashboard adaptado: modo "cabeça fria" (números todos) vs
 modo "só o urgente" (uma acção, três frases).
@@ -38,7 +38,7 @@ modo "só o urgente" (uma acção, três frases).
 **Ninguém no mercado o faz.** Explorável em prompts do dashboard sem
 mexer no modelo de dados. Muito barato.
 
-### 2. Benchmark anónimo entre empresas Punho
+### 2. Benchmark anónimo entre empresas Fist
 
 Hoje cada empresa é ilha: os números só fazem sentido contra a
 própria história. Com 20-30 empresas na app, é possível dizer *"a tua
@@ -95,7 +95,7 @@ opinião editorial forte (que múltiplos, que ajustes).
 ### 7. Painel fiscal-de-bolso (IRC, IVA, TSU, retenções)
 
 Para o gestor de PME português, a AT é o maior credor mensal. O
-Punho hoje ignora. Um painel de "o Estado leva-me quanto e quando"
+Fist hoje ignora. Um painel de "o Estado leva-me quanto e quando"
 com semáforos de datas (IVA trimestral, IRC anual, retenções mensais)
 teria adopção imediata.
 
@@ -107,7 +107,7 @@ sprint 1 da 0.0.6.
 
 O gestor médio não sabe quantos concorrentes tem no raio de 5 km,
 que preços praticam, que horários fazem. Dados públicos (Google Maps,
-websites, Portal das Finanças) + benchmark anónimo entre Punhos
+websites, Portal das Finanças) + benchmark anónimo entre Fists
 resolvem parcialmente.
 
 Grande valor pedagógico ("não estás sozinho no mercado, e olha aqui
@@ -133,7 +133,7 @@ mensal — "há 30 dias baixaste 10% no preço da Ana; o resultado foi
 X" — é o loop de aprendizagem completo.
 
 Depende de haver acções registadas com intenção declarada, coisa que
-o Punho ainda não tem (só tem eventos operacionais). Custo médio,
+o Fist ainda não tem (só tem eventos operacionais). Custo médio,
 altíssimo valor pedagógico. Fecha o *loop* que a Auditoria B apontou
 como lacuna central.
 
@@ -156,7 +156,7 @@ de um ano.
 | # | Pista | Propósito | Assimetria de mercado | Reversibilidade |
 |---|---|---|---|---|
 | 1 | Estado emocional / momento do dia | Alto | Alta (ninguém faz) | Total |
-| 2 | Benchmark anónimo entre Punhos | Alto | Alta | Alta |
+| 2 | Benchmark anónimo entre Fists | Alto | Alta | Alta |
 | 3 | Ensino ao colaborador | Alto | Média | Total |
 | 4 | Portal do cliente final | Médio | Baixa (padrão do mercado) | Baixa |
 | 5 | Tempo do gestor auditável | Alto | Alta | Média (risco tom) |
@@ -203,7 +203,7 @@ mês, o formato falhou.
 ### Aposta B — Painel fiscal-de-bolso (o Estado como credor visível)
 
 **Porquê.** Para o gestor de PME português a AT é o maior credor
-mensal e a menos entendida. Nenhuma app faz isto bem no Punho vertical
+mensal e a menos entendida. Nenhuma app faz isto bem no Fist vertical
 (Moloni faz para facturação, não para "quanto tenho de pagar quando"
 enquanto gestor). Adopção imediata; alinha com "ensinar gestão na
 prática" — o gestor médio não sabe articular a diferença entre IRC
@@ -256,7 +256,7 @@ Se pudesse escolher **uma só** para arrancar no ciclo pós-0.0.6:
 **Aposta A — Post-mortem de decisões.**
 
 Fecha a lacuna central que a Auditoria B identificou (loop de
-aprendizagem ausente). Transforma o Punho de "app que mostra bem" em
+aprendizagem ausente). Transforma o Fist de "app que mostra bem" em
 "app que ensina a decidir melhor". É o único diferenciador
 pedagógico que **nenhum concorrente pode copiar sem repensar o
 produto do zero** — as apps operacionais tratam decisões como

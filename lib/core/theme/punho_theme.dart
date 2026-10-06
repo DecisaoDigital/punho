@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-abstract final class PunhoTheme {
+abstract final class FistTheme {
   static const navy = Color(0xFF10283A);
   static const navyDeep = Color(0xFF0A1C2A);
   static const orange = Color(0xFFF2A23A);

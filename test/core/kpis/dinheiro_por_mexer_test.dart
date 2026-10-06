@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/kpis/dinheiro_por_mexer.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/domain/models/finance.dart';
-import 'package:punho/domain/models/operations.dart';
-import 'package:punho/features/dashboard/presentation/kpi_catalogo.dart';
-import 'package:punho/features/dashboard/presentation/widgets/celula_semaforo.dart';
+import 'package:fist/core/kpis/dinheiro_por_mexer.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/domain/models/finance.dart';
+import 'package:fist/domain/models/operations.dart';
+import 'package:fist/features/dashboard/presentation/kpi_catalogo.dart';
+import 'package:fist/features/dashboard/presentation/widgets/celula_semaforo.dart';
 
 /// **O espaço entre vender e receber, que é onde vive a tesouraria.**
 ///
@@ -226,7 +226,7 @@ void main() {
 
       expect(costumeDeRecebimento(estado), isNull);
       // E sem régua medida volta-se ao dia seguinte ao fim do trabalho, que é
-      // onde o modelo do Punho põe o vencimento.
+      // onde o modelo do Fist põe o vencimento.
       expect(cobrancasVencidas(estado, hoje)!.costumeDias, isNull);
     });
   });

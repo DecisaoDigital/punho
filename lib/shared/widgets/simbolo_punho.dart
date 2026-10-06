@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// A mão do Punho — o símbolo da marca, o ficheiro verdadeiro.
+/// A mão do Fist — o símbolo da marca, o ficheiro verdadeiro.
 ///
 /// Existe porque estava a ser desenhada em cada sítio outra vez, e porque num
 /// deles não estava a ser desenhada de todo: o ecrã de boas-vindas abria com um
@@ -19,8 +19,8 @@ import 'package:flutter/material.dart';
 ///
 /// As proporções vêm do lockup, onde estavam afinadas: 38 de lado para 10 de
 /// raio, e `1.12` de escala.
-class SimboloPunho extends StatelessWidget {
-  const SimboloPunho({super.key, this.lado = 38});
+class SimboloFist extends StatelessWidget {
+  const SimboloFist({super.key, this.lado = 38});
 
   final double lado;
 

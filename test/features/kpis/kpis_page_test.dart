@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/domain/models/finance.dart';
-import 'package:punho/domain/models/operations.dart';
-import 'package:punho/features/dashboard/presentation/widgets/celula_semaforo.dart';
-import 'package:punho/features/kpis/presentation/kpis_page.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/domain/models/finance.dart';
+import 'package:fist/domain/models/operations.dart';
+import 'package:fist/features/dashboard/presentation/widgets/celula_semaforo.dart';
+import 'package:fist/features/kpis/presentation/kpis_page.dart';
 
 /// A **KPIs (todos)** — a bancada. O que estes testes guardam: a página mostra
 /// os KPIs que já dizem verdade, um KPI **aparece** quando o dado entra, e uma

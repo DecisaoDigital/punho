@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/theme/punho_theme.dart';
-import 'package:punho/features/contabilista/contabilista_providers.dart';
-import 'package:punho/features/contabilista/data/contabilista_service.dart';
-import 'package:punho/features/contabilista/domain/contabilista.dart';
-import 'package:punho/features/contabilista/presentation/historico_contabilista_page.dart';
+import 'package:fist/core/theme/punho_theme.dart';
+import 'package:fist/features/contabilista/contabilista_providers.dart';
+import 'package:fist/features/contabilista/data/contabilista_service.dart';
+import 'package:fist/features/contabilista/domain/contabilista.dart';
+import 'package:fist/features/contabilista/presentation/historico_contabilista_page.dart';
 
 /// A caixa do fim do portal do contabilista gravava numa tabela que nenhum ecrã
 /// lia. Ele escrevia, a app respondia "guardado", e o recado morria ali.
@@ -39,7 +39,7 @@ void main() {
       ProviderScope(
         overrides: [contabilistaServiceProvider.overrideWithValue(servico)],
         child: MaterialApp(
-          theme: PunhoTheme.light,
+          theme: FistTheme.light,
           home: const Scaffold(body: HistoricoContabilistaPage()),
         ),
       ),
@@ -112,7 +112,7 @@ void main() {
           ),
         ],
         child: MaterialApp(
-          theme: PunhoTheme.light,
+          theme: FistTheme.light,
           home: const Scaffold(body: HistoricoContabilistaPage()),
         ),
       ),

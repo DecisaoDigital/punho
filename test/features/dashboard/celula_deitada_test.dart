@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/dashboard/presentation/widgets/celula_semaforo.dart';
-import 'package:punho/features/dashboard/presentation/widgets/kpi_grid_2x2.dart';
+import 'package:fist/features/dashboard/presentation/widgets/celula_semaforo.dart';
+import 'package:fist/features/dashboard/presentation/widgets/kpi_grid_2x2.dart';
 
 /// **A célula deitada** — a da bancada, onde é uma por linha e a largura é toda
 /// dela.

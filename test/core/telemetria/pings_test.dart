@@ -1,19 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/telemetria/pings.dart';
+import 'package:fist/core/telemetria/pings.dart';
 
 /// A linha que diz ao Control que esta app está viva.
 ///
-/// O Punho já se registava e já validava licença, mas isso acontece uma vez:
+/// O Fist já se registava e já validava licença, mas isso acontece uma vez:
 /// no Control via-se o terminal e o estado da licença, e nunca o último acesso
 /// nem a versão que lá está agora. A tabela `pings` é partilhada com o POS e já
-/// distinguia as duas apps pela coluna `app` — só faltava o Punho escrever lá.
+/// distinguia as duas apps pela coluna `app` — só faltava o Fist escrever lá.
 void main() {
   late List<Map<String, dynamic>> enviados;
-  late PunhoPings pings;
+  late FistPings pings;
 
   setUp(() {
     enviados = [];
-    pings = PunhoPings.com((linha) async => enviados.add(linha));
+    pings = FistPings.com((linha) async => enviados.add(linha));
   });
 
   test('identifica-se como punho, e não como pos', () async {
@@ -55,7 +55,7 @@ void main() {
   });
 
   test('uma falha de rede não sobe ao chamador', () async {
-    final rebenta = PunhoPings.com((_) async => throw Exception('sem rede'));
+    final rebenta = FistPings.com((_) async => throw Exception('sem rede'));
 
     // Um terminal sem rede continua a ser um terminal que trabalha. Se isto
     // atirasse, o arranque da app ficava dependente da telemetria.
@@ -69,11 +69,11 @@ void main() {
     // Seis horas: o que se quer saber é "isto continua a ser usado", não o
     // minuto exacto. E o Control conta 120 pings por máquina — a esse ritmo,
     // 30 dias de histórico.
-    expect(PunhoPings.intervalo, const Duration(hours: 6));
+    expect(FistPings.intervalo, const Duration(hours: 6));
   });
 
   test('a versão vai nua, no mesmo formato que o POS usa', () async {
-    // O POS escreve `2.2.1` nesta coluna. O Punho chegou a escrever `0.1.0+21`
+    // O POS escreve `2.2.1` nesta coluna. O Fist chegou a escrever `0.1.0+21`
     // — a mesma coluna com dois formatos conforme a app, e era assim que
     // aparecia no Control. O build tem coluna própria em `versoes_apps`.
     await pings.enviar(machineId: 'm1', origem: 'arranque');

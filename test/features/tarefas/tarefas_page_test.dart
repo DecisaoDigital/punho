@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/navigation/app_destination.dart';
-import 'package:punho/core/navigation/navigation_controller.dart';
-import 'package:punho/features/auth/data/acesso_service.dart';
-import 'package:punho/domain/models/historical_month.dart';
-import 'package:punho/domain/models/workforce.dart'
+import 'package:fist/core/navigation/app_destination.dart';
+import 'package:fist/core/navigation/navigation_controller.dart';
+import 'package:fist/features/auth/data/acesso_service.dart';
+import 'package:fist/domain/models/historical_month.dart';
+import 'package:fist/domain/models/workforce.dart'
     show Collaborator, CollaboratorStatus;
-import 'package:punho/features/company/presentation/company_settings_page.dart';
-import 'package:punho/features/tarefas/data/tarefas_service.dart';
-import 'package:punho/features/tarefas/domain/tarefa.dart';
-import 'package:punho/features/tarefas/presentation/tarefas_page.dart';
+import 'package:fist/features/company/presentation/company_settings_page.dart';
+import 'package:fist/features/tarefas/data/tarefas_service.dart';
+import 'package:fist/features/tarefas/domain/tarefa.dart';
+import 'package:fist/features/tarefas/presentation/tarefas_page.dart';
 
 import '../dashboard/fixtura.dart';
 

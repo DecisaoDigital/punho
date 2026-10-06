@@ -1,4 +1,4 @@
-# Processo de release — Punho
+# Processo de release — Fist
 
 > **Este documento já não é o procedimento.**
 > O runbook único é **[PUBLICAR_RELEASE.md](PUBLICAR_RELEASE.md)**.

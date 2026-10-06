@@ -28,7 +28,7 @@ Actualizado no mesmo dia, depois de o plano começar a ser executado.
 
 ## Ler primeiro
 
-- **`docs/OBJECTIVO_PUNHO.md`** — a fonte de verdade do produto. O que o Punho é, para quem, o conceito de diferenciação, os 17 princípios, a arquitectura, os indicadores, as balizas, o diagnóstico de hoje e o caminho. Substitui a leitura dispersa dos brainstorms e auditorias antigas.
+- **`docs/OBJECTIVO_FIST.md`** — a fonte de verdade do produto. O que o Fist é, para quem, o conceito de diferenciação, os 17 princípios, a arquitectura, os indicadores, as balizas, o diagnóstico de hoje e o caminho. Substitui a leitura dispersa dos brainstorms e auditorias antigas.
 - **`docs/FONTES_DAS_BALIZAS.md`** — investigação das referências para as balizas.
 
 ## O trabalho seguinte, por ordem
@@ -86,7 +86,7 @@ Os passos 1, 2 e 4 são o caminho real do cliente.
 - ~~**A mensagem do contabilista**~~ — decidida e feita: mostra-se ao gestor.
 - ~~**A ordem de tabulação**~~ — decidida e feita: o Tab desce a coluna.
   **Falta implantar a Edge Function.**
-- **O link com cara de Punho:** hoje mostra `supabase.co`. Decisão consciente (evita o token no `Location` de um redirect), a rever quando houver domínio próprio com proxy.
+- **O link com cara de Fist:** hoje mostra `supabase.co`. Decisão consciente (evita o token no `Location` de um redirect), a rever quando houver domínio próprio com proxy.
 
 ### 4. Depois
 

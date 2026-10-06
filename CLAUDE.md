@@ -1,4 +1,4 @@
-# Punho — contexto para Cowork / Claude Code
+# Fist — contexto para Cowork / Claude Code
 
 ## Máquina de trabalho preferida: i9 (Home Lab)
 

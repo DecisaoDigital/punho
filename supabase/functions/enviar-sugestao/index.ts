@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-// Recebe sugestões do utilizador (Punho, WashInvoice, ...) e grava com
+// Recebe sugestões do utilizador (Fist, WashInvoice, ...) e grava com
 // service_role — os clientes móveis não têm (nem devem ter) permissão de
 // INSERT directo em `sugestoes` para utilizadores autenticados; só o papel
 // anon tinha essa política. Em vez de alargar RLS numa tabela partilhada com

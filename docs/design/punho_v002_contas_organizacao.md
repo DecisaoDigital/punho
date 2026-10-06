@@ -1,6 +1,6 @@
-# Punho v0.0.2 — contas por organização com aprovação manual
+# Fist v0.0.2 — contas por organização com aprovação manual
 
-Desenho final da funcionalidade. Cobre só o lado Punho; a UI de aprovação vive
+Desenho final da funcionalidade. Cobre só o lado Fist; a UI de aprovação vive
 no Decisão Digital Control (repo separado).
 
 **Princípio:** ter sessão Supabase não dá acesso a nada. A única prova de acesso

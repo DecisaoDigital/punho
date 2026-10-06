@@ -67,7 +67,7 @@ class OperacaoRecusada {
   final String? codigo;
 
   /// **A frase do servidor, tal como ele a disse.** Guardada à parte para a
-  /// Fase 5 a poder mostrar — as mensagens do Punho estão escritas em português
+  /// Fase 5 a poder mostrar — as mensagens do Fist estão escritas em português
   /// e para uma pessoa («Não podes alterar o preço por dia da máquina»), e
   /// deitá-las fora deixava o utilizador a olhar para um código.
   ///

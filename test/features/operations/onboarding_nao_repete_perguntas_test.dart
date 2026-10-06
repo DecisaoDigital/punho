@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/operations/operations_controller.dart';
-import 'package:punho/data/repositories/operation_repository.dart';
-import 'package:punho/features/auth/acesso_providers.dart';
-import 'package:punho/features/auth/domain/estado_acesso.dart';
-import 'package:punho/features/operations/presentation/operational_pages.dart';
+import 'package:fist/core/operations/operations_controller.dart';
+import 'package:fist/data/repositories/operation_repository.dart';
+import 'package:fist/features/auth/acesso_providers.dart';
+import 'package:fist/features/auth/domain/estado_acesso.dart';
+import 'package:fist/features/operations/presentation/operational_pages.dart';
 
 /// **Uma pergunta já respondida não se volta a fazer.**
 ///
 /// O pedido de acesso pergunta o nome e a empresa, e o Control aprova o cargo.
-/// Aprovado como Alfredo / DepilConcept / Gestor, o Punho abria na mesma em
+/// Aprovado como Alfredo / DepilConcept / Gestor, o Fist abria na mesma em
 /// «Como te chamas?» e contava o percurso inteiro.
 ///
 /// «quando eu fiz log in já foi pedido isto, se já foi perguntado e já
@@ -66,7 +66,7 @@ void main() {
   }
 
   testWidgets('quem foi aprovado é recebido pelo nome', (tester) async {
-    // «gostaria de ver um "bem-vindo!" e pequena explicação do que é o Punho»
+    // «gostaria de ver um "bem-vindo!" e pequena explicação do que é o Fist»
     // — César, 5/8/2026. Entrava directo em «Forma jurídica e NIF da empresa».
     await abrir(tester, comAcesso(aprovado));
 

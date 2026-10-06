@@ -135,7 +135,7 @@ WeeklyGoal weeklyGoalFromRecommendations(List<Recommendation> recommendations) {
       action:
           'Regista esta semana pelo menos uma reserva, um recebimento e uma despesa.',
       measure:
-          'No fim da semana confirma se já tens números suficientes para o Punho orientar.',
+          'No fim da semana confirma se já tens números suficientes para o Fist orientar.',
     );
   }
   final recommendation = recommendations.first;

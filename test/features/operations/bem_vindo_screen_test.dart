@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/operations/presentation/bem_vindo_screen.dart';
-import 'package:punho/shared/widgets/simbolo_punho.dart';
+import 'package:fist/features/operations/presentation/bem_vindo_screen.dart';
+import 'package:fist/shared/widgets/simbolo_punho.dart';
 
 /// **Quem recebe é a marca, e a marca é a nossa.**
 ///
@@ -22,7 +22,7 @@ void main() {
   ) async {
     await abrir(tester);
 
-    expect(find.byType(SimboloPunho), findsOneWidget);
+    expect(find.byType(SimboloFist), findsOneWidget);
     expect(find.byIcon(Icons.back_hand_outlined), findsNothing);
   });
 
@@ -31,7 +31,7 @@ void main() {
 
     final imagem = tester.widget<Image>(
       find.descendant(
-        of: find.byType(SimboloPunho),
+        of: find.byType(SimboloFist),
         matching: find.byType(Image),
       ),
     );

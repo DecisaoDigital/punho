@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/auth/domain/estado_acesso.dart';
-import 'package:punho/features/auth/presentation/pedido_em_analise_screen.dart';
-import 'package:punho/features/shell/presentation/app_shell.dart';
+import 'package:fist/features/auth/domain/estado_acesso.dart';
+import 'package:fist/features/auth/presentation/pedido_em_analise_screen.dart';
+import 'package:fist/features/shell/presentation/app_shell.dart';
 
 import 'fake_acesso_service.dart';
 import 'gate_helpers.dart';

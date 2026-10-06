@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/media/tipos_aceites.dart';
+import 'package:fist/core/media/tipos_aceites.dart';
 
 /// Achado 4 — o balde `punho-documentos` aceitava qualquer tipo de ficheiro.
 ///

@@ -27,7 +27,7 @@ Para uma build local de release, criar `android/key.properties` fora do Git com
 `storeFile`, `storePassword`, `keyAlias` e `keyPassword` da chave segura. Sem
 esse ficheiro, `flutter build apk --release` falha deliberadamente.
 
-Windows: `flutter build windows`; o executável fica em `build/windows/x64/runner/Release/punho.exe`.
+Windows: `flutter build windows`; o executável fica em `build/windows/x64/runner/Release/fist.exe`.
 
 Android: `flutter build apk --debug`; instalar com `adb install build/app/outputs/flutter-apk/app-debug.apk` ou transferir o APK para o dispositivo e permitir instalação da origem escolhida.
 

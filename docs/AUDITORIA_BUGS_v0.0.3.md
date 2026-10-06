@@ -1,4 +1,4 @@
-# Auditoria de bugs — Punho v0.0.3 (sprint de estabilização)
+# Auditoria de bugs — Fist v0.0.3 (sprint de estabilização)
 
 **Branch:** `chore/estabilizacao-v0.0.3` · **Base:** `feat/contas-organizacao`
 **Âmbito:** zero features novas. Bug hunt, correcção de P0/P1 e cobertura de

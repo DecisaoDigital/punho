@@ -45,7 +45,7 @@ perdeu-se. Quem trata o canal como camião fica com buracos silenciosos nos dado
 quem o trata como campainha só perde… uma campainha, e a próxima chegada — ou o
 temporizador de segurança — repõe tudo.
 
-O padrão de recuperação é sempre o mesmo, e é exactamente o que o Punho já tem:
+O padrão de recuperação é sempre o mesmo, e é exactamente o que o Fist já tem:
 ao reconectar, pedir o que falta a partir do **último identificador recebido**
 ([WebSocket.org](https://websocket.org/guides/reconnection/),
 [OneUptime](https://oneuptime.com/blog/post/2026-01-24-websocket-reconnection-logic/view)).
@@ -85,7 +85,7 @@ experiência em web
 [Verity](https://verity.salient.community/research/local-first-software-in-2026.html)).
 
 **Não é para aqui, e a razão não é técnica.** Estas ferramentas resolvem o
-problema que o Punho **já resolveu**: fila local, cursor, idempotência,
+problema que o Fist **já resolveu**: fila local, cursor, idempotência,
 resolução de conflitos. Adoptá-las agora seria deitar fora código que funciona,
 está testado e está afinado ao modelo de negócio (ganha a última a chegar, por
 `seq` do servidor), em troca de uma dependência nova e de outra forma de pensar.
@@ -94,7 +94,7 @@ Valem a pena quando o problema **muda de tamanho**: replicação parcial
 complicada (cada colaborador só vê parte dos dados), volumes que não cabem em
 memória, ou vários clientes a editar o mesmo registo ao mesmo tempo.
 
-## Recomendação para o Punho: A, com Broadcast
+## Recomendação para o Fist: A, com Broadcast
 
 Manter tudo o que existe. Acrescentar **uma campainha** e nada mais.
 

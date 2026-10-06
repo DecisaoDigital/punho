@@ -295,7 +295,7 @@ class _AnoExpansivel extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Escreva o total de $ano e o Punho reparte-o pelos meses que '
+              'Escreva o total de $ano e o Fist reparte-o pelos meses que '
               'ficarem por preencher. Fica marcado como repartido — um mês '
               'verdadeiro ganha-lhe sempre.',
               style: Theme.of(context).textTheme.bodySmall,

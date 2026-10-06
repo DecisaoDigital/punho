@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/operations/presentation/boas_vindas_screen.dart';
-import 'package:punho/features/operations/presentation/mais_dados_screen.dart';
+import 'package:fist/features/operations/presentation/boas_vindas_screen.dart';
+import 'package:fist/features/operations/presentation/mais_dados_screen.dart';
 
 /// Os dois ecrãs de contexto do onboarding, em isolamento.
 ///
@@ -55,9 +55,9 @@ void main() {
       expect(find.textContaining('modo horizontal'), findsOneWidget);
       expect(find.textContaining('vai rodar sozinho'), findsOneWidget);
       expect(find.byIcon(Icons.screen_rotation), findsOneWidget);
-      expect(find.text('Entrar na Punho →'), findsOneWidget);
+      expect(find.text('Entrar na Fist →'), findsOneWidget);
 
-      await tester.tap(find.text('Entrar na Punho →'));
+      await tester.tap(find.text('Entrar na Fist →'));
       expect(entrou, 1);
     });
 
@@ -70,7 +70,7 @@ void main() {
       await montar(tester, BoasVindasScreen(aoEntrar: () {}));
 
       expect(find.textContaining('Bem-vindo'), findsNothing);
-      expect(find.textContaining('A Punho é'), findsNothing);
+      expect(find.textContaining('A Fist é'), findsNothing);
       expect(find.text('Vamos a isto?'), findsNothing);
     });
 
@@ -86,7 +86,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Entrar na Punho →'), findsOneWidget);
+      expect(find.text('Entrar na Fist →'), findsOneWidget);
       expect(find.textContaining('modo horizontal'), findsOneWidget);
       expect(find.textContaining('vai rodar sozinho'), findsOneWidget);
     });

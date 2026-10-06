@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
 import '../media/tipos_aceites.dart';
 
-/// Arquivo privado da empresa. O ficheiro pertence ao Punho/empresa, não ao
+/// Arquivo privado da empresa. O ficheiro pertence ao Fist/empresa, não ao
 /// dispositivo nem à conta que o capturou; a autoria fica nos metadados.
 abstract final class ExpenseDocumentStorage {
   static Future<String?> upload({

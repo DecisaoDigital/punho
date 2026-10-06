@@ -1,7 +1,7 @@
-# Punho — auditoria como aplicação de ensino prático de gestão
+# Fist — auditoria como aplicação de ensino prático de gestão
 
 > Auditoria de produto, 27 de Julho de 2026.
-> Compara o estado real do Punho (docs + código, v0.0.5 em curso) com a
+> Compara o estado real do Fist (docs + código, v0.0.5 em curso) com a
 > promessa declarada: "ensinar gestão empresarial na prática, através do
 > trabalho diário".
 > Investigação externa em Julho de 2026 com FreshBooks, Xero, QuickBooks,
@@ -10,7 +10,7 @@
 
 ## 1. Sumário executivo
 
-O Punho, tal como está hoje, é uma aplicação de **operação com ambição
+O Fist, tal como está hoje, é uma aplicação de **operação com ambição
 pedagógica declarada**, não uma aplicação de ensino. A ambição está
 articulada nos documentos com um nível de exigência que quase ninguém no
 mercado tem — a Biblioteca de Alavancas, a regra "por apurar" em vez de
@@ -24,20 +24,20 @@ princípio que o justifica, e não pode explorar cenários.
 
 A distância principal não é técnica — é editorial e pedagógica: a
 Biblioteca de Alavancas existe como ficheiro (`docs/BIBLIOTECA_DE_ALAVANCAS.md`)
-mas **não existe dentro da app**. Um gestor a usar o Punho hoje não sabe
+mas **não existe dentro da app**. Um gestor a usar o Fist hoje não sabe
 que existe. Fechar essa distância é o passo mais barato e mais
-diferenciador possível, e é onde o Punho tem vantagem competitiva real —
+diferenciador possível, e é onde o Fist tem vantagem competitiva real —
 nenhuma app de aluguer o faz, nenhuma app financeira PT o faz nesta
 combinação, e as apps que ensinam bem (YNAB, Profit First) não são de
 gestão operacional.
 
-## 2. O que o Punho já faz bem
+## 2. O que o Fist já faz bem
 
 **Linguagem editorial de KPIs.** A regra "zero por falta de dados devolve
 `null`", implementada de forma consistente em `lib/core/operations/kpis.dart:15-18`
 e em cada slide do dashboard (`docs/design/punho_v005_dashboard.md`, secção
 "Grelha 2×2 que enche o ecrã"), é rara no mercado. FreshBooks, Xero e
-mesmo Copilot Money apresentam 0 € quando não há dados; o Punho mostra
+mesmo Copilot Money apresentam 0 € quando não há dados; o Fist mostra
 "Por apurar — ainda não registaste nenhuma despesa". Isto é ensino
 implícito de qualidade de dados.
 
@@ -81,7 +81,7 @@ em ensino" (a app não explica, não conduz, não fecha o loop). Aqui foco o
 segundo.
 
 **A Biblioteca de Alavancas não vive dentro da app.** Está em Markdown
-para o Cesar e para quem lê o repositório. O gestor a usar o Punho hoje
+para o Cesar e para quem lê o repositório. O gestor a usar o Fist hoje
 não vê Taylor, Follett, Pareto, Schumpeter, nem os princípios. Vê
 números melhor arrumados, mas sem o texto por trás. A `WeeklyManagementNote`
 existe (`guidance_engine.dart:83-123`) mas o `design/punho_v005_dashboard.md`
@@ -90,7 +90,7 @@ enterrada, não elevada.
 
 **Sem currículo nem progresso visível.** Duolingo funciona porque tem
 uma árvore. YNAB funciona porque tem quatro regras numeradas. Profit
-First funciona porque tem cinco contas. O Punho tem cinco alavancas +
+First funciona porque tem cinco contas. O Fist tem cinco alavancas +
 nove princípios + cinco slides — sem mapa. Um gestor no dia 60 não sabe
 o que já aprendeu ou o que devia aprender a seguir. Não há "streak",
 não há "níveis", não há "primeiros 30 dias".
@@ -113,19 +113,19 @@ se mexe. `TodasMetricasPage` é o catálogo, não é o professor.
 
 **Sem retrospectiva.** Weekdone construiu-se sobre PPP semanal
 (Progress, Plans, Problems). EOS construiu-se sobre scorecard semanal
-de 5-15 measurables. YNAB obriga a "reconciliar". O Punho tem
+de 5-15 measurables. YNAB obriga a "reconciliar". O Fist tem
 `weeklyGoalFromRecommendations` (`guidance_engine.dart:131-147`) que
 propõe um objectivo mas **não pergunta no fim da semana o que aconteceu**.
 Sem fecho, o gestor não aprende do próprio ciclo.
 
 **Sem "e se". Sem simulação.** Uma máquina que renda 25 € por dia,
 alugada 12 dias por mês, dá 300 €/mês; se subir preço 10% e perder 1 dia
-de aluguer, dá 302,50 €. Isto é gestão prática e o Punho tem todos os
+de aluguer, dá 302,50 €. Isto é gestão prática e o Fist tem todos os
 dados para o fazer. Mas não permite mexer nos números para ver o
 impacto. Copilot Money faz-o em finanças pessoais ("se cortares Ubers
 em 20% poupas 45 €/mês"). Nenhum concorrente de aluguer faz isto.
 
-**Sem objectivo do próprio negócio.** O Punho pergunta ao gestor uma
+**Sem objectivo do próprio negócio.** O Fist pergunta ao gestor uma
 lista longa de dados de onboarding (`DECISOES_E_ROADMAP_VIVO.md`,
 secção 4.1) mas não lhe pergunta o que quer da empresa: crescer, ganhar
 tempo, vender daqui a três anos, estabilizar. Sem isso, toda a
@@ -173,7 +173,7 @@ devias aprender".
 **Apps que ensinam método (YNAB, Profit First/Relay) prendem-se a UM
 método.** YNAB são as Quatro Regras. Profit First são as cinco contas
 bancárias. Isto tem virtudes (clareza, aderência) mas fecha o produto
-a uma metodologia; quem não a compra, sai. O Punho, com cinco alavancas
+a uma metodologia; quem não a compra, sai. O Fist, com cinco alavancas
 e recomendações contextuais, poderia ter clareza de método SEM se
 prender a UMA doutrina. Ninguém no mercado ocupa esta posição.
 
@@ -192,7 +192,7 @@ concorrente de aluguer o faz. O Cesar já sinalizou que IA é opcional
 para depois, mas convém saber que a janela existe e não é abstracta.
 
 **Duolingo é a referência de aprender fazendo, com progresso visível.**
-O Punho tem o "fazer" (regista, decide, mede); falta a estrutura visível
+O Fist tem o "fazer" (regista, decide, mede); falta a estrutura visível
 de progresso — a árvore, o streak, o "novo esta semana". Trazer estes
 elementos sem os tornar infantis é um problema de design, não de
 funcionalidade.
@@ -200,7 +200,7 @@ funcionalidade.
 **Vácuo grande:** um produto de gestão operacional de PME em português
 europeu, com currículo explícito de gestão embutido, com recomendações
 contextuais em vez de artigos de biblioteca, e com um ciclo semanal de
-reflexão. Este posicionamento está livre. O Punho é o candidato mais
+reflexão. Este posicionamento está livre. O Fist é o candidato mais
 próximo.
 
 ## 5. As sete lacunas mais importantes vs "melhor app de ensino"
@@ -224,7 +224,7 @@ sprints do Cesar visto em `DECISOES_E_ROADMAP_VIVO.md:66-106`.
 
 ## 6. Propostas concretas para as próximas três versões
 
-### v0.0.7 — Currículo do Punho
+### v0.0.7 — Currículo do Fist
 
 **O quê:** Trazer a Biblioteca de Alavancas para dentro da app.
 Cada KPI ganha um ecrã "O que é / Porque interessa / Como o mexes /
@@ -252,7 +252,7 @@ deliberadamente (menos bom).
 semana", "o que aprendeste com os números", "o que vais fazer na
 próxima". Duas primeiras auto-preenchidas com dados (recebidos,
 reservas, recomendações mostradas) e o gestor confirma ou corrige. A
-resposta livre fica guardada em `retrospectivas`. O Punho passa a
+resposta livre fica guardada em `retrospectivas`. O Fist passa a
 mostrar, no início da semana seguinte, "há uma semana disseste isto —
 aconteceu?". Notificação Windows/Android à sexta às 17h; opcional,
 adiável.
@@ -310,7 +310,7 @@ resultado por máquina do que os que não simulam.
 
 3. **Colaborador é utilizador da app ou informador do gestor?** Hoje
    é informador — regista, não decide, não recebe feedback pedagógico.
-   Para o Punho ser "app de ensino de gestão", tem de decidir se o
+   Para o Fist ser "app de ensino de gestão", tem de decidir se o
    colaborador também aprende (o que exige uma segunda camada
    pedagógica) ou se apenas serve o gestor. A citação de Follett na
    Biblioteca sugere a primeira; o código actual pratica a segunda.
@@ -318,7 +318,7 @@ resultado por máquina do que os que não simulam.
 4. **Currículo estruturado ou catálogo por procura?** Duolingo é
    currículo (a árvore obriga a ordem). Xero Central é catálogo
    (procura o que precisas). YNAB é os dois (4 regras + biblioteca). O
-   Punho tem hoje o esqueleto de catálogo (a Biblioteca em Markdown);
+   Fist tem hoje o esqueleto de catálogo (a Biblioteca em Markdown);
    se o próximo passo é "trazer para dentro da app", tem de decidir se
    é catálogo pesquisável ou currículo com ordem sugerida.
 

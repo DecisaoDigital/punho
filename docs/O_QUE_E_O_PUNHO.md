@@ -1,8 +1,8 @@
-# O que é o Punho
+# O que é o Fist
 
 O produto tenta resolver um problema real: o pequeno empresário normalmente gere por memória, WhatsApp, papéis e sensação.
 
-O Punho propõe este ciclo:
+O Fist propõe este ciclo:
 
 1. O gestor e os colaboradores registam leads, clientes, reservas, máquinas, recebimentos, despesas, veículos e informação laboral.
 2. A aplicação converte esses registos em métricas.

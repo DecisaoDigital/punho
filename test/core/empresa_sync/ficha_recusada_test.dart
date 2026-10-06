@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/empresa_sync/empresa_sync_controller.dart';
-import 'package:punho/core/empresa_sync/empresa_sync_service.dart';
-import 'package:punho/core/empresa_sync/ficha_pendente.dart';
+import 'package:fist/core/empresa_sync/empresa_sync_controller.dart';
+import 'package:fist/core/empresa_sync/empresa_sync_service.dart';
+import 'package:fist/core/empresa_sync/ficha_pendente.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Achado 3 da Faixa D: `punho_empresas.dados` ficou vazio porque a ficha ia

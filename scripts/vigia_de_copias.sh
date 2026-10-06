@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Vigia das cópias de segurança do Punho.
+# Vigia das cópias de segurança do Fist.
 #
 # ## Porquê isto existe
 #
@@ -99,7 +99,7 @@ if [[ "$modo" != banner ]]; then
   if [[ -d "$(dirname "$PROM")" && -w "$(dirname "$PROM")" ]]; then
     tmp="$(mktemp)"
     {
-      echo "# HELP punho_copia_idade_segundos Idade da última cópia bem sucedida da base do Punho."
+      echo "# HELP punho_copia_idade_segundos Idade da última cópia bem sucedida da base do Fist."
       echo "# TYPE punho_copia_idade_segundos gauge"
       [[ -n "$idade_copia" ]] && echo "punho_copia_idade_segundos $idade_copia"
       echo "# HELP punho_copia_prova_idade_segundos Idade da última cópia provada por restauro."
@@ -120,7 +120,7 @@ fi
 
 if (( ${#problemas[@]} == 0 )); then
   if [[ "$modo" == humano ]]; then
-    echo "✓ cópias do Punho em ordem"
+    echo "✓ cópias do Fist em ordem"
     echo "   última cópia:  há $(( idade_copia / 3600 ))h"
     echo "   última prova:  há $(( idade_prova / 86400 )) dias"
     [[ -n "$livre_pct" ]] && echo "   disco livre:   ${livre_pct}%"
@@ -131,7 +131,7 @@ fi
 # O banner é para ser visto de relance por cima do ombro, não lido.
 echo
 echo "╔══════════════════════════════════════════════════════════════════════╗"
-echo "║  AS CÓPIAS DE SEGURANÇA DO PUNHO PRECISAM DE ATENÇÃO                 ║"
+echo "║  AS CÓPIAS DE SEGURANÇA DO FIST PRECISAM DE ATENÇÃO                 ║"
 echo "╚══════════════════════════════════════════════════════════════════════╝"
 for p in "${problemas[@]}"; do
   echo "  · $p"

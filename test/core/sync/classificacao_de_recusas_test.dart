@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:punho/core/sync/classificacao_de_recusas.dart';
+import 'package:fist/core/sync/classificacao_de_recusas.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// A regra das recusas, um balde de cada vez.

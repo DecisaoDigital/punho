@@ -1,5 +1,5 @@
 -- =============================================================================
--- Seed de dados de teste — Lavandaria Mare Alta (Punho)
+-- Seed de dados de teste — Lavandaria Mare Alta (Fist)
 -- =============================================================================
 --
 -- O QUE É ISTO
@@ -11,7 +11,7 @@
 --
 -- COMO OS DADOS CHEGAM AO TELEMOVEL (confirmado por inspeccao directa)
 -- ----------------------------------------------------------------------------
--- A app Punho NAO le as tabelas "materializadas" punho_clientes, punho_maquinas,
+-- A app Fist NAO le as tabelas "materializadas" punho_clientes, punho_maquinas,
 -- punho_colaboradores, punho_veiculos, punho_despesas, punho_recebimentos nem
 -- punho_documentos — todas elas estavam com 0 linhas apesar de a empresa ter
 -- dados reais criados pela app durante os testes de hoje. A fonte de verdade

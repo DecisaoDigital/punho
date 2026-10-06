@@ -1,6 +1,6 @@
-# OBJECTIVO PUNHO
+# OBJECTIVO FIST
 
-> **A fonte de verdade do produto.** O que o Punho é, para quem, como se distingue, onde está e para onde vai.
+> **A fonte de verdade do produto.** O que o Fist é, para quem, como se distingue, onde está e para onde vai.
 >
 > Tudo o que está escrito aqui é presente. Se um documento discordar deste, este ganha. Se o César discordar deste, o César ganha — e este é corrigido no mesmo dia. Se o código discordar deste, o código é que está errado.
 >
@@ -18,7 +18,7 @@
 
 São dois objectivos, não um. O primeiro é operacional e vende-se sozinho. **O segundo é o que justifica continuar a pagar ao fim de dois anos**, e é o que nenhum concorrente tem.
 
-**A frase do produto:** o Punho agarra o comando de uma pequena empresa — regista o trabalho onde ele acontece, transforma-o em números que o dono percebe, diz-lhe o que fazer a seguir, e com o tempo ensina-o a ver as alavancas do próprio negócio.
+**A frase do produto:** o Fist agarra o comando de uma pequena empresa — regista o trabalho onde ele acontece, transforma-o em números que o dono percebe, diz-lhe o que fazer a seguir, e com o tempo ensina-o a ver as alavancas do próprio negócio.
 
 Não é ERP. Não é contabilidade. Não é CRM. É gestão operacional + painel de controlo + assistente de decisão + aprendizagem de gestão dentro do trabalho diário.
 
@@ -126,7 +126,7 @@ Uma entrega registada pelo colaborador **porque ele precisa de registar a entreg
 | **Contabilidade / ERP** | ❌ | ✅ | ❌ | Sabe tudo e chega dois meses depois, em balancete |
 | **Excel / BI** | ❌ | ✅ se alguém alimentar | ❌ | **Exige o segundo momento — e o dono não o faz.** Morre por atrito, não por falta de capacidade |
 | **Literacia financeira** (YNAB, Profit First) | ❌ | ✅ | ✅ | Ensinam bem e não operam a empresa |
-| **Punho** | ✅ | ✅ | ✅ | — |
+| **Fist** | ✅ | ✅ | ✅ | — |
 
 **Ninguém fecha o triângulo:** conhecer a operação **+** conhecer os custos **+** traduzir em acção de hoje.
 
@@ -184,7 +184,7 @@ O terceiro é o que prende, e é o único que ninguém copia depressa.
 3. **Um alerta falso cedo demais** — destrói a credibilidade de todos os outros.
 4. **Construir a camada de gestão sobre `dados jsonb`** e descobrir tarde que a análise plurianual exige reescrever o modelo.
 
-⚠ **A aquisição é a área menos pensada do produto.** Há um plano completo de captar leads *para o cliente do cliente*, e quase nada sobre como o Punho chega ao primeiro dono.
+⚠ **A aquisição é a área menos pensada do produto.** Há um plano completo de captar leads *para o cliente do cliente*, e quase nada sobre como o Fist chega ao primeiro dono.
 
 ---
 
@@ -240,7 +240,7 @@ Facto → Indicador → Diagnóstico
 | 7 | **A categoria serve a gestão**, não a contabilidade. |
 | 8 | **Dinheiro recebido ≠ lucro.** Separa-se sempre facturado, recebido, por receber, por pagar e caixa previsto. |
 | 9 | **Histórico obrigatório.** Toda a alteração deixa rasto: quem, quando, antes, depois. |
-| 10 | **O Punho recomenda, o gestor decide.** |
+| 10 | **O Fist recomenda, o gestor decide.** |
 | 11 | **Cada pergunta tem uma razão.** Se não destranca um indicador ou uma acção, não se pergunta. |
 | 12 | **Sem placeholders, sem fingir.** Se não há dado, diz-se o que falta e cria-se a tarefa que o resolve. |
 | 13 | **Nenhum limiar decide sem declarar a base.** Nem uma cor, nem um conselho, nem uma percentagem. |
@@ -271,7 +271,7 @@ Duas coisas diferentes, ambas necessárias: **a alavanca é a gramática da acç
 
 **Rail estável:** Painel · Máquinas · Reservas · Clientes (+leads) · Colaboradores · Empresa · Tarefas (com badge) · **Leitura do mês** *(destino por confirmar — §17)*.
 
-Onboarding em portrait; a partir do "Entrar", landscape no gestor. Colaborador em telemóvel com acções rápidas. **Rótulo permanente** no canto inferior esquerdo: `Punho vX.Y.Z · Nome da Empresa`.
+Onboarding em portrait; a partir do "Entrar", landscape no gestor. Colaborador em telemóvel com acções rápidas. **Rótulo permanente** no canto inferior esquerdo: `Fist vX.Y.Z · Nome da Empresa`.
 
 ### O Painel — 9 slides, composição vinda do catálogo
 
@@ -435,9 +435,9 @@ Formato: *"neste indicador a média do mercado é 36% e tu estás a 59%"*, com o
 
 **Ensina por osmose primeiro, explicitamente só quando ele procura.** Nada de currículo, progresso ou distintivos: **é uma app de trabalho onde se aprende, não uma app de ensino com trabalho lá dentro.**
 
-**Direcções guardadas** (não são objectivo até decisão): painel fiscal-de-bolso com timeline AT · correlação clima × ocupação · benchmark anónimo entre empresas Punho · ensino ao colaborador · simulador de valorização · manual de operações para sucessão.
+**Direcções guardadas** (não são objectivo até decisão): painel fiscal-de-bolso com timeline AT · correlação clima × ocupação · benchmark anónimo entre empresas Fist · ensino ao colaborador · simulador de valorização · manual de operações para sucessão.
 
-## 17. O que o Punho não é
+## 17. O que o Fist não é
 
 Contabilidade certificada · processador salarial · e-commerce · portal público de cliente · telemática/GPS · ERP multi-armazém · descontos automáticos · substituto do contabilista · rotas optimizadas · suites de marketing · inventário avançado. Regimes fiscais especiais (TSU reduzida, IRS jovem, subsídios) ficam fora até decisão.
 
@@ -485,7 +485,7 @@ A campanha gerada a partir de uma recomendação **nasce sem desconto**: o valor
 
 **A mensagem do contabilista não tem quem a leia.** O portal tem uma caixa *"Alguma coisa a dizer?"*; o que lá se escreve grava em `punho_mensagens_contabilista`, que existe, tem índice por empresa e tem RLS para o gestor. **Nenhum ecrã da app a mostra.** O contabilista escreve, a app guarda, e ninguém vê. Ou se lê no ecrã do gestor, ou a caixa sai do portal — prometer um canal que não chega a lado nenhum é pior do que não o ter.
 
-**O link expõe a infraestrutura.** `linkContabilista` aponta directamente à Edge Function, e a razão está escrita e é boa: um redirect intermédio poria o token no cabeçalho `Location` e nos registos de mais um serviço. O custo é que o contabilista vê um endereço `supabase.co` — e o princípio é que o cliente só vê Punho. A troca foi feita a favor da segurança do token sem que o custo de marca ficasse registado. Fica agora: **é decisão consciente, não descuido**, e revê-se quando houver domínio próprio com proxy que não passe o token pelo `Location`.
+**O link expõe a infraestrutura.** `linkContabilista` aponta directamente à Edge Function, e a razão está escrita e é boa: um redirect intermédio poria o token no cabeçalho `Location` e nos registos de mais um serviço. O custo é que o contabilista vê um endereço `supabase.co` — e o princípio é que o cliente só vê Fist. A troca foi feita a favor da segurança do token sem que o custo de marca ficasse registado. Fica agora: **é decisão consciente, não descuido**, e revê-se quando houver domínio próprio com proxy que não passe o token pelo `Location`.
 
 **Uso em escritório, ecrã grande** — o contabilista preenche num PC ou Mac, sentado, e a página não está desenhada para isso:
 
@@ -571,7 +571,7 @@ Drill-down do indicador até ao registo · tesouraria real (saldo, autonomia, ci
 
 Orçamento a sério com linhas, validade e motivo de perda → prova do serviço com fotos e assinatura → conversa com o cliente registada → fechar até documento fiscal → euros por canal em vez de contagens.
 
-*As três primeiras põem o Punho à mesa; as duas últimas são as que ninguém copia depressa.*
+*As três primeiras põem o Fist à mesa; as duas últimas são as que ninguém copia depressa.*
 
 ### E a que não é código
 

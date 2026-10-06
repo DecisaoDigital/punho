@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/cadeado/definicoes_cadeado_page.dart';
+import 'package:fist/core/cadeado/definicoes_cadeado_page.dart';
 
 /// **Definir um PIN tem de caber no ecrã com o teclado aberto.**
 ///

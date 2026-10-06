@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/workforce/presentation/workforce_pages.dart';
+import 'package:fist/features/workforce/presentation/workforce_pages.dart';
 
 /// A frase do cabeçalho de Funcionários, incluindo o caso que motivou a
 /// decisão de 2026-08-02: a subscrição no servidor pode descer abaixo de

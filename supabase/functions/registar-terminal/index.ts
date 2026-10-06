@@ -1,4 +1,4 @@
-// WashInvoice + Punho — registar-terminal (multi-app)
+// WashInvoice + Fist — registar-terminal (multi-app)
 // Auto-onboarding: dado um machine_id que ainda NÃO existe em `licencas` para
 // a app pedida, cria uma linha inicial com período de graça (trial), activa=true,
 // oferta=true e pendente_revisao=true (o Cesar revê no Control). Idempotente:
@@ -7,7 +7,7 @@
 // bloco abaixo: cobre o caso da instalação nascer antes do NIF ser conhecido).
 //
 // Multi-app: `body.app` é OBRIGATÓRIO. Aceita 'pos' ou 'punho'. Trial de 5 dias
-// para POS (mantido do legado), 40 dias para Punho. Corre com service_role.
+// para POS (mantido do legado), 40 dias para Fist. Corre com service_role.
 //
 // ─── Autorização, 10/08/2026 ────────────────────────────────────────────────
 //
@@ -24,7 +24,7 @@
 //
 // A correcção NÃO pode ser exigir sessão em tudo, e é preciso dizer porquê:
 // **o POS não tem uma única conta em `auth.users`** (verificado, zero) e o
-// Punho corre isto no arranque, antes do login. Exigir `getUser()` à entrada
+// Fist corre isto no arranque, antes do login. Exigir `getUser()` à entrada
 // fechava a porta de instalação das duas apps. Então divide-se em duas portas,
 // pelo risco de cada uma:
 //
@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
 
-  // Idempotente por (machine_id, app): o mesmo PC pode ter POS e Punho
+  // Idempotente por (machine_id, app): o mesmo PC pode ter POS e Fist
   // instalados lado a lado.
   const { data: existentes, error: erroLeitura } = await supabase
     .from('licencas')

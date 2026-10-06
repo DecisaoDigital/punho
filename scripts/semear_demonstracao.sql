@@ -1,5 +1,5 @@
 -- =============================================================================
--- Seed de demonstração — empresa de ALUGUER DE MÁQUINAS (Punho)
+-- Seed de demonstração — empresa de ALUGUER DE MÁQUINAS (Fist)
 -- =============================================================================
 --
 -- O QUE É ISTO

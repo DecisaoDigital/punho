@@ -90,7 +90,7 @@ List<Tarefa> tarefasPendentes(
         titulo: pendente,
         subtitulo: fiscal
             ? 'Sem NIF não há factura em condições'
-            : 'O Punho decide melhor com este dado preenchido',
+            : 'O Fist decide melhor com este dado preenchido',
         cta: 'Preencher',
         destino: ehFacturacaoDoAno
             ? DestinoTarefa.facturacaoDoAno

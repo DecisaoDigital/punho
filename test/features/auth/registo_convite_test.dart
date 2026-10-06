@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/features/auth/data/acesso_service.dart';
+import 'package:fist/features/auth/data/acesso_service.dart';
 
 import 'fake_acesso_service.dart';
 import 'registo_helpers.dart';

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Publicação completa do Punho a partir do home lab.
+# Publicação completa do Fist a partir do home lab.
 # Uso normal: ./scripts/release.sh 0.0.10 --yes
 
 set -Eeuo pipefail
@@ -82,7 +82,7 @@ for command in git gh curl jq perl flutter supabase dpkg; do
 done
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" ||
-  die "execute este comando dentro do repositório Punho"
+  die "execute este comando dentro do repositório Fist"
 cd "$repo_root"
 
 [[ "$(git branch --show-current)" == "main" ]] ||
@@ -181,7 +181,7 @@ apk_construido="build/app/outputs/flutter-apk/app-release.apk"
 [[ -f "$apk_construido" ]] || die "o build não produziu $apk_construido"
 
 # As verificações que o docs/PUBLICAR_RELEASE.md exige antes de publicar. O
-# certificado é o definitivo do Punho: uma keystore diferente instala-se como
+# certificado é o definitivo do Fist: uma keystore diferente instala-se como
 # outra app e parte o self-update de toda a gente.
 readonly CERTIFICADO_SHA256="33386ff0dd95bb57818aaabc32b37e378da9febb1fb905b2388c4b5aa0f70205"
 build_tools="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
@@ -200,7 +200,7 @@ grep -Fq "versionCode='${new_build}' versionName='${version}'" <<< "$badging" ||
 grep -Fq "package: name='pt.decisaodigital.punho'" <<< "$badging" ||
   die "o APK não é pt.decisaodigital.punho"
 grep -Fq "$CERTIFICADO_SHA256" <<< "$certificados" ||
-  die "o APK não está assinado com a keystore definitiva do Punho"
+  die "o APK não está assinado com a keystore definitiva do Fist"
 
 # Fim do ensaio. Tudo o que vem a seguir deixa rasto: commit, tag, push e
 # release. O ensaio corre de propósito **até aqui** e não menos — o que costuma
@@ -227,7 +227,7 @@ git commit -m "chore(release): ${tag}"
 committed=true
 
 git push origin main
-git tag -a "$tag" -m "Punho ${version}"
+git tag -a "$tag" -m "Fist ${version}"
 git push origin "$tag"
 
 # O GitHub guarda e distribui os ficheiros; não os constrói. O workflow que o
@@ -238,7 +238,7 @@ mkdir -p dist
 cp "$apk_construido" "dist/${asset}"
 gh release create "$tag" \
   --repo "$REPOSITORY" \
-  --title "Punho ${version}" \
+  --title "Fist ${version}" \
   --notes "Ver o histórico de commits desde a etiqueta anterior." \
   "dist/${asset}#${asset}"
 

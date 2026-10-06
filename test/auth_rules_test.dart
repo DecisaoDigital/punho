@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:punho/core/auth/auth_rules.dart';
+import 'package:fist/core/auth/auth_rules.dart';
 
 void main() {
   group('AuthRules', () {
