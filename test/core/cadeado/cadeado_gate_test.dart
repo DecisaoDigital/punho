@@ -103,6 +103,49 @@ void main() {
       expect(bloqueado(c), isTrue);
     });
 
+    testWidgets(
+      'o resumed que o prompt provoca ao fechar não volta a bloquear',
+      (tester) async {
+        // O bug da digital: aceite o dedo, o prompt fecha, o Flutter anuncia
+        // `resumed` e o cadeado fechava-se de novo um segundo depois, com um
+        // segundo prompt à frente. Em «Sempre» (threshold 0) não havia saída.
+        final c = await montar(tester, threshold: 0);
+        await c.read(cadeadoServiceProvider).marcarDesbloqueio();
+        c.read(cadeadoBloqueadoProvider.notifier).state = false;
+        await tester.pumpAndSettle();
+
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pumpAndSettle();
+
+        expect(bloqueado(c), isFalse);
+      },
+    );
+
+    testWidgets('com carimbo antigo, o resumed do prompt também não bloqueia', (
+      tester,
+    ) async {
+      // Threshold normal (2 min) e a última saída a sério há dez minutos: sem o
+      // carimbo de desbloqueio o `resumed` do prompt via «passaram 10 min».
+      final c = await montar(tester, threshold: 2);
+      final sp = await SharedPreferences.getInstance();
+      await sp.setInt(
+        'cadeado.ultimo_paused_ms',
+        DateTime.now()
+            .subtract(const Duration(minutes: 10))
+            .millisecondsSinceEpoch,
+      );
+      await c.read(cadeadoServiceProvider).marcarDesbloqueio();
+      c.read(cadeadoBloqueadoProvider.notifier).state = false;
+      await tester.pumpAndSettle();
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(bloqueado(c), isFalse);
+    });
+
     testWidgets('volta a bloquear tantas vezes quantas as que se sai', (
       tester,
     ) async {

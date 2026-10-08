@@ -81,6 +81,9 @@ class _CadeadoGateState extends ConsumerState<CadeadoGate>
         state == AppLifecycleState.hidden) {
       await svc.registarPaused();
     } else if (state == AppLifecycleState.resumed) {
+      // O `resumed` que o prompt da digital provoca ao fechar não é um regresso
+      // de background: ver [CadeadoService.acabouDeDesbloquear].
+      if (svc.acabouDeDesbloquear) return;
       if (await svc.deveBloquearAoRetomar()) {
         if (!mounted) return;
         _bloquear();

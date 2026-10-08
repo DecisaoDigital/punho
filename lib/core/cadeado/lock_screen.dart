@@ -34,7 +34,8 @@ class LockScreen extends ConsumerStatefulWidget {
 const _minimoDigitos = 4;
 const _maximoDigitos = 6;
 
-class _LockScreenState extends ConsumerState<LockScreen> {
+class _LockScreenState extends ConsumerState<LockScreen>
+    with WidgetsBindingObserver {
   static const _navy = Color(0xFF1E2A44);
 
   String _pin = '';
@@ -47,9 +48,41 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   /// Ver [LockScreen.rearmar].
   static bool _jaTentouAutomaticamente = false;
 
+  /// Passa a `true` sempre que o ecrã muda de tamanho/orientação. Serve para
+  /// perceber se o prompt morreu por causa de uma rotação e não porque o
+  /// utilizador desistiu.
+  bool _rodouDuranteOPedido = false;
+
+  @override
+  void didChangeMetrics() => _rodouDuranteOPedido = true;
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// O cadeado impõe retrato por cima da app. Quando se volta de background
+  /// com a app deitada, o telemóvel ainda está a rodar nos primeiros instantes
+  /// — e o `BiometricPrompt` do Android morre com a mudança de configuração,
+  /// deixando um «cancelado» que parece desistência. Espera-se (no máximo 2,5 s)
+  /// que o ecrã esteja de pé e assente antes de pedir a digital.
+  Future<void> _esperarRetratoAssente() async {
+    final vista = View.of(context);
+    final limite = DateTime.now().add(const Duration(milliseconds: 2500));
+    while (mounted &&
+        vista.physicalSize.width > vista.physicalSize.height &&
+        DateTime.now().isBefore(limite)) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    // Deixa passar a animação de rotação do próprio sistema.
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+  }
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // A orientação é do `CadeadoGate`, que a decide pelo estado. Aqui não se
     // toca: era o `initState`/`dispose` deste ecrã a mexer nela que fazia a app
     // dar voltas no primeiro arranque.
@@ -75,11 +108,29 @@ class _LockScreenState extends ConsumerState<LockScreen> {
       _aTentarBio = true;
       _erro = null;
     });
-    final resultado = await svc.pedirBiometria();
+    await _esperarRetratoAssente();
     if (!mounted) return;
+    _rodouDuranteOPedido = false;
+    final inicio = DateTime.now();
+    var resultado = await svc.pedirBiometria();
+    if (!mounted) return;
+    // Se o prompt morreu depressa e o ecrã rodou entretanto, não foi o
+    // utilizador a desistir: espera-se que assente e pede-se uma segunda vez.
+    // Só uma vez, para nunca encadear pedidos.
+    if (!resultado.autenticado &&
+        resultado.erro == null &&
+        _rodouDuranteOPedido &&
+        DateTime.now().difference(inicio) < const Duration(seconds: 3)) {
+      await _esperarRetratoAssente();
+      if (!mounted) return;
+      resultado = await svc.pedirBiometria();
+      if (!mounted) return;
+    }
     setState(() => _aTentarBio = false);
 
     if (resultado.autenticado) {
+      await svc.marcarDesbloqueio();
+      if (!mounted) return;
       ref.read(cadeadoBloqueadoProvider.notifier).state = false;
       return;
     }
@@ -96,6 +147,8 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     final ok = await svc.validarPin(_pin);
     if (!mounted) return;
     if (ok) {
+      await svc.marcarDesbloqueio();
+      if (!mounted) return;
       ref.read(cadeadoBloqueadoProvider.notifier).state = false;
       return;
     }

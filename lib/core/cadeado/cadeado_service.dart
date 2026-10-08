@@ -170,6 +170,30 @@ class CadeadoService {
     _ => 'A biometria não respondeu. Usa o PIN.',
   };
 
+  /// Instante do último desbloqueio bem-sucedido.
+  ///
+  /// Quando o prompt da digital fecha, o Android devolve o foco à app e o
+  /// Flutter anuncia um `resumed`. Esse `resumed` chega *depois* de o cadeado
+  /// já ter sido aberto — e, como o `paused` do próprio prompt foi ignorado (a
+  /// app estava bloqueada), o carimbo guardado era o da última saída a sério,
+  /// há minutos. Resultado: a app voltava a bloquear-se um segundo depois de a
+  /// digital ser aceite, com um segundo prompt à frente. Quem tinha o cadeado em
+  /// «Sempre» nunca saía dali.
+  DateTime? _desbloqueadoEm;
+
+  Future<void> marcarDesbloqueio() async {
+    _desbloqueadoEm = DateTime.now();
+    await registarPaused(); // o relógio da inactividade recomeça agora
+  }
+
+  /// `true` nos instantes a seguir a um desbloqueio, em que um `resumed` é o
+  /// eco do prompt a fechar e não um regresso de background.
+  bool get acabouDeDesbloquear {
+    final t = _desbloqueadoEm;
+    return t != null &&
+        DateTime.now().difference(t) < const Duration(seconds: 3);
+  }
+
   Future<void> registarPaused() async {
     final sp = await SharedPreferences.getInstance();
     await sp.setInt(_kUltimoPausedMs, DateTime.now().millisecondsSinceEpoch);
