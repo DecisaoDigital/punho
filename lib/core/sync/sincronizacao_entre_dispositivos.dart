@@ -73,11 +73,21 @@ LoteDeOperacoes prepararLote(
 /// Faltava a mesma regra do lado da entrada.
 ({int aplicadas, int recusadas}) aplicarLinhas(
   PersistentOperationRepository repositorio,
-  Iterable<Map<String, dynamic>> linhas,
-) {
+  Iterable<Map<String, dynamic>> linhas, {
+  Set<String> comEdicaoPendente = const {},
+}) {
   var aplicadas = 0;
   var recusadas = 0;
   for (final json in linhas) {
+    // Uma entidade com edição nossa ainda por enviar tem a versão local mais
+    // recente: reaplicar por cima o eco de uma operação mais antiga (a nossa
+    // ou de outro aparelho) desfazia-a até ao ciclo seguinte. A nossa sobe a
+    // seguir e ganha por `seq`, portanto saltar aqui não perde nada.
+    if (comEdicaoPendente.contains(
+      '${json['entidade']}/${json['entidade_id']}',
+    )) {
+      continue;
+    }
     try {
       repositorio.aplicarOperacaoRemota(
         json['entidade'] as String,
@@ -331,7 +341,13 @@ class SincronizacaoEntreDispositivos {
       // normal só entra o que é novo, portanto isto não anda a corrigir
       // sozinho, a cada volta, um estado local que se tenha estragado. Curar
       // exige a releitura; a releitura é decisão de quem sobe a chave.
-      final resultado = aplicarLinhas(repositorio, lote.linhas);
+      final resultado = aplicarLinhas(
+        repositorio,
+        lote.linhas,
+        comEdicaoPendente: {
+          for (final o in registo.pendentes) '${o.entidade}/${o.entidadeId}',
+        },
+      );
       aplicadas += resultado.aplicadas;
       recusadas += resultado.recusadas;
       // Se o lote não fez o cursor andar, a consulta seguinte seria igual a

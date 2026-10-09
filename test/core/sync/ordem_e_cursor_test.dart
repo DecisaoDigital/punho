@@ -120,6 +120,23 @@ void main() {
     });
   });
 
+  group('edição local por enviar', () {
+    test('o eco de uma operação mais antiga não a desfaz', () async {
+      SharedPreferences.setMockInitialValues({});
+      final repo = await PersistentOperationRepository.create();
+      aplicarLinhas(repo, [linha(204, 'confirmed')]);
+
+      final resultado = aplicarLinhas(
+        repo,
+        [linha(205, 'completed')],
+        comEdicaoPendente: {'booking/res-9'},
+      );
+
+      expect(resultado.aplicadas, 0);
+      expect(repo.bookings.single.status, BookingStatus.confirmed);
+    });
+  });
+
   group('uma linha má não pode prender o canal', () {
     test('as boas passam à mesma, e a má fica contada', () async {
       SharedPreferences.setMockInitialValues({});

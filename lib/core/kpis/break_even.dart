@@ -203,7 +203,7 @@ String? motivoSemBreakEven(OperationsState s, DateTime now) =>
 BreakEvenDoMes? breakEvenDoMes(OperationsState s, DateTime now) {
   final lancada = _despesaCents(s, now);
   final media = _mediaDaDespesa(s, now);
-  final declarado = s.custoFixoMensalCents;
+  final declarado = s.custoMensalCompletoCents;
 
   // O maior de três respostas à mesma pergunta. Somá-las era contar a renda
   // três vezes; ficar pela primeira era dizer, a dia 2, que o mês não custa

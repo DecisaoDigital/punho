@@ -690,7 +690,8 @@ CelulaSemaforo kpiBreakEven(OperationsState estado, DateTime now) {
   final origem = switch (be.origem) {
     OrigemDoAlvo.lancado => '',
     OrigemDoAlvo.media => ' · média dos meses anteriores',
-    OrigemDoAlvo.declarado => ' · pelos custos fixos declarados',
+    OrigemDoAlvo.declarado =>
+      ' · pelos custos fixos, equipa e frota declarados',
   };
 
   if (be.atingido) {

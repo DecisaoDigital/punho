@@ -132,6 +132,43 @@ class OperationsState {
   /// contradizer-se.
   int? get custoFixoMensalCents =>
       totalDeCustosFixos(custosFixos) ?? fixedMonthlyCostsCents;
+
+  /// O que a casa custa por mês **com a equipa e a frota registadas**.
+  ///
+  /// As rubricas de Custos fixos são renda, luz, seguros — não incluem a folha
+  /// nem a carrinha, que já estão registadas nas suas próprias fichas. Quem só
+  /// lê [custoFixoMensalCents] fica com um break even de 2000 € numa empresa
+  /// que paga 4400 € de ordenados. Aqui soma-se o que as fichas dizem, com uma
+  /// guarda contra contar duas vezes: se o gestor já escreveu uma rubrica de
+  /// salários (ou de seguro/manutenção de viatura), essa parte não se repete.
+  ///
+  /// `null` quando não há nada declarado em lado nenhum.
+  int? get custoMensalCompletoCents {
+    final base = custoFixoMensalCents;
+    final temSalarios = custosFixos.any(
+      (c) => c.categoria == ExpenseCategory.salaries,
+    );
+    final temFrota = custosFixos.any(
+      (c) =>
+          c.categoria == ExpenseCategory.vehicleInsurance ||
+          c.categoria == ExpenseCategory.vehicleMaintenance,
+    );
+    final equipa = temSalarios
+        ? 0
+        : collaborators
+              .where(
+                (x) => !x.archived && x.status == CollaboratorStatus.active,
+              )
+              .fold<int>(0, (t, c) => t + (monthlyCollaboratorCost(c) ?? 0));
+    final frota = temFrota
+        ? 0
+        : vehicles
+              .where((v) => !v.archived && v.status != VehicleStatus.inactive)
+              .fold<int>(0, (t, v) => t + monthlyFleetCostKnown(v));
+    final total = (base ?? 0) + equipa + frota;
+    return base == null && total == 0 ? null : total;
+  }
+
   final List<HistoricalMonth> historicalMonths;
   final List<Machine> machines;
   final List<Customer> customers;

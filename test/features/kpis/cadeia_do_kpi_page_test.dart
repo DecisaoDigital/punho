@@ -132,13 +132,14 @@ void main() {
     testWidgets('pendura-se no Lucro e diz se o mês já se paga', (
       tester,
     ) async {
-      // Abril vendeu 3402 € com 3234 € de estrutura e nenhum custo directo: o
-      // mês pagou-se a 15, no dia da única venda.
+      // Abril vendeu 3402 € com 3234 € de despesa lançada, mas o alvo conta
+      // também a equipa (Ana, 1100 €) e a frota declaradas: 4300 €. A única
+      // venda, a 15, não chega lá.
       await abrir(tester, 'lucro-mes');
 
       expect(find.textContaining('BREAK EVEN DO MÊS'), findsWidgets);
-      expect(find.textContaining('O mês já se paga'), findsOneWidget);
-      expect(find.textContaining('Passou a 15 de Abril'), findsOneWidget);
+      expect(find.textContaining('O mês paga-se com 4300 €'), findsOneWidget);
+      expect(find.textContaining('não chega este mês'), findsOneWidget);
     });
   });
 

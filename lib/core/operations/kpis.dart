@@ -373,7 +373,7 @@ PrevisaoDoMes previsaoDoMes(OperationsState state, DateTime now) {
       receiptTotal(state.receipts, inicio, fim) +
       _porReceberDeReservasDoMes(state, now);
 
-  final custosFixos = state.custoFixoMensalCents;
+  final custosFixos = state.custoMensalCompletoCents;
   int? saidas;
   if (custosFixos != null) {
     // Média das despesas variáveis, mas só sobre os meses de referência que

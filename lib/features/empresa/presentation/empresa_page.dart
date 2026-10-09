@@ -531,10 +531,24 @@ class _AbaCustosFixosState extends ConsumerState<_AbaCustosFixos> {
       children: [
         Text('Custos fixos mensais', style: textos.labelLarge),
         const SizedBox(height: 6),
+        // Sem rubricas mas com o total do onboarding: mostra-se esse total, que é
+        // o que o painel já está a usar, em vez de «Por indicar».
         Text(
-          total == null ? 'Por indicar' : '${textoDeCents(total)} €',
+          total != null
+              ? '${textoDeCents(total)} €'
+              : estado.fixedMonthlyCostsCents != null
+              ? '${textoDeCents(estado.fixedMonthlyCostsCents!)} €'
+              : 'Por indicar',
           style: textos.headlineMedium,
         ),
+        if (total == null && estado.fixedMonthlyCostsCents != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Total dado no arranque. Acrescenta rubricas para o detalhar; '
+            'quando as guardares, passam a mandar.',
+            style: textos.bodySmall,
+          ),
+        ],
         const SizedBox(height: 8),
         Text(
           'Renda, electricidade, água, comunicações, seguros e outros custos '
