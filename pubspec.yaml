@@ -40,6 +40,9 @@ dependencies:
   flutter_riverpod: ^2.6.1
   file_picker: ^10.1.9
   supabase_flutter: ^2.8.4
+  # Push das leads (camada 2). Firebase próprio: projecto punho-fist.
+  firebase_core: ^3.15.2
+  firebase_messaging: ^15.2.10
   shared_preferences: ^2.5.3
   package_info_plus: ^9.0.1
   url_launcher: ^6.2.0

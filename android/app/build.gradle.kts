@@ -14,6 +14,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// O `google-services.json` não vai para o git. Sem ele (CI, outro PC) a app
+// compila na mesma, com o push desligado — ver `PushDeLeads`.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     // Identidade permanente da app. `com.example.*` é o placeholder do
     // template do Flutter e a Google Play recusa-o à entrada — ficou cá dentro

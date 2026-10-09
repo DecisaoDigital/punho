@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/push/push_de_leads.dart';
 import '../domain/estado_acesso.dart';
 
 /// Convite gerado por um gestor, para partilhar por fora (não há envio de
@@ -270,5 +271,8 @@ class SupabaseAcessoService implements AcessoService {
   }
 
   @override
-  Future<void> terminarSessao() => _client.auth.signOut();
+  Future<void> terminarSessao() async {
+    await PushDeLeads.esquecer();
+    await _client.auth.signOut();
+  }
 }

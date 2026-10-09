@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/auth/auth_rules.dart';
+import '../../../core/push/push_de_leads.dart';
 import '../../../core/orientacao/orientacao_do_contexto.dart';
 import '../../collaborator/presentation/collaborator_shell.dart';
 import '../../shell/presentation/app_shell.dart';
@@ -114,7 +115,10 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         return NovaPalavraPasseScreen(
           // Desistir tem de fechar a sessão que o link abriu. Deixá-la aberta
           // era dar entrada a quem só clicou num email.
-          aoDesistir: () => Supabase.instance.client.auth.signOut(),
+          aoDesistir: () async {
+            await PushDeLeads.esquecer();
+            await Supabase.instance.client.auth.signOut();
+          },
         );
       }
       // Ter sessão não chega: quem decide é o AcessoGate.

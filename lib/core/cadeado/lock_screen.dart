@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../shared/widgets/brand_lockup.dart';
 import '../config/supabase_config.dart';
+import '../push/push_de_leads.dart';
 import 'cadeado_service.dart';
 
 /// Ecrã de bloqueio. Aparece sobreposto ao resto da app quando o
@@ -174,6 +175,7 @@ class _LockScreenState extends ConsumerState<LockScreen>
 
   Future<void> _terminarSessao() async {
     if (SupabaseConfig.enabled) {
+      await PushDeLeads.esquecer();
       await Supabase.instance.client.auth.signOut();
     }
     // O AuthGate a seguir devolve ao Login. Desbloqueia o gate para o

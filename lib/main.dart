@@ -25,6 +25,7 @@ import 'core/theme/punho_theme.dart';
 import 'core/config/supabase_config.dart';
 import 'data/repositories/operation_repository.dart';
 import 'features/auth/presentation/auth_gate.dart';
+import 'core/push/push_de_leads.dart';
 import 'features/shell/presentation/app_shell.dart';
 import 'features/sync/sync_providers.dart';
 import 'features/updates/presentation/update_banner_wrapper.dart';
@@ -178,10 +179,12 @@ class _FistAppState extends ConsumerState<FistApp> {
     final Widget destino = CadeadoGate(
       child: ObservadorDeLeadsNovas(
         child: ObservadorDeLembretes(
-          child: FistUpdateBannerWrapper(
-            child: SupabaseConfig.enabled
-                ? const LicencaFistGate(child: AuthGate())
-                : const AppShell(),
+          child: ObservadorDePush(
+            child: FistUpdateBannerWrapper(
+              child: SupabaseConfig.enabled
+                  ? const LicencaFistGate(child: AuthGate())
+                  : const AppShell(),
+            ),
           ),
         ),
       ),
