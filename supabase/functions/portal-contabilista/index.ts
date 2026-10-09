@@ -74,7 +74,9 @@ function escapar(s: unknown): string {
 // Lista de origens, nao `*`: o token do convite chega no URL, e um `*` punha
 // qualquer pagina do mundo a poder le-lo com o token na mao.
 const ORIGENS_PERMITIDAS = new Set([
-  "https://decisaodigital.tailb66396.ts.net",
+  // O Funnel do Tailscale nunca chegou a ter DNS público; o portal vive agora
+  // em decisaodigital.pt/portal/, atrás da Cloudflare.
+  "https://decisaodigital.pt",
 ]);
 
 function cabecalhosCors(req: Request): Record<string, string> {

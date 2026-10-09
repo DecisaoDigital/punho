@@ -159,7 +159,7 @@ com os valores por mês (é onde o gestor vê o que foi submetido).
 
 O link mostrado já **não é o edge direto**, é um domínio Tailscale que serve de fachada:
 ```
-https://decisaodigital.tailb66396.ts.net/portal/?t=<TOKEN>
+https://decisaodigital.pt/portal/?t=<TOKEN>
 ```
 Essa landing (HTML ~2,5 KB) faz `fetch` ao edge com `&formato=json` e injeta o HTML no
 documento — existe porque o Supabase reescreve `text/html`→`text/plain` em

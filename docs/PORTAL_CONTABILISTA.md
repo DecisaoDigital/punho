@@ -78,3 +78,25 @@ curl -sS -D- -o /dev/null \
 
 O `--resolve` não é fussiness: sem ele o `curl` no i9 resolve pela MagicDNS e
 fala consigo próprio pela rede interna, e um Funnel partido passaria o teste.
+
+
+## Atualização de 10/10/2026 — o portal mudou para decisaodigital.pt/portal/
+
+O Funnel do Tailscale deixou de servir: o nome `decisaodigital.tailb66396.ts.net`
+nunca teve DNS público (as provas com `--resolve` forçavam o IP e escondiam-no).
+Agora:
+
+- A página está em `/var/www/decisaodigital/portal/index.html` (cópia da de
+  `~/sites/portal/` e `web/portal/` no repositório), servida pelo nginx num `location ^~ /portal/` com CSP
+  própria (só fala com o Supabase), `noindex` e **404 sem `?t=` de 64 hex**.
+- A Edge Function aceita a origem `https://decisaodigital.pt` (CORS por lista).
+- `portalContabilista` aponta para `https://decisaodigital.pt/portal/`.
+- Segurança: o token tem 256 bits, vive na base só em hash, expira, é revogável
+  e está preso a uma empresa — cada link abre só o relatório dessa empresa.
+- Backup do nginx anterior: `~/backups/nginx-decisaodigital-antes-do-portal-2026-10-09.conf`.
+- **Bug apanhado a 10/10/2026 num browser real:** a página estática declarava
+  `const API` ao nível do script e o HTML escrito por `document.write` declarava
+  outro — «Identifier 'API' has already been declared», e nenhum campo guardava.
+  A prova de 5/8 foi só com `curl` e não o via. Corrigido (a `API` vive dentro da
+  função). Prova com Playwright em `decisaodigital.pt/portal/?t=…`: o campo
+  grava e o servidor devolve o valor formatado.

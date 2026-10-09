@@ -11,13 +11,19 @@ import '../domain/contabilista.dart';
 /// em bruto. Verificado com uma função descartável: só o HTML é degradado, o
 /// JSON passa intacto.
 ///
-/// Agora a página é estática, servida pelo i9 por Tailscale Funnel, e é ela
-/// que vai buscar o HTML à função dentro de JSON. O token continua a não
-/// passar por serviço nenhum a mais: sai daqui e entra na função.
+/// Agora a página é estática e vive em `decisaodigital.pt/portal/`, servida
+/// pelo nginx do i9 atrás da Cloudflare, e é ela que vai buscar o HTML à função
+/// dentro de JSON. Antes tentou-se um Tailscale Funnel, mas o nome `ts.net`
+/// nunca teve DNS público. O token continua a não passar por serviço nenhum a
+/// mais: sai daqui e entra na função.
+///
+/// O nginx só serve `/portal/` a quem traz `?t=` com 64 caracteres hexadecimais;
+/// sem isso é 404. O token (256 bits, por empresa, com validade, revogável) é a
+/// autenticação — cada link abre só o relatório da empresa que o convidou.
 ///
 /// Mudar isto **parte todos os convites já enviados** — o link é gravado no
 /// momento em que se cria o convite, não é resolvido depois.
-const portalContabilista = 'https://decisaodigital.tailb66396.ts.net/portal/';
+const portalContabilista = 'https://decisaodigital.pt/portal/';
 
 /// Link que o contabilista abre.
 String linkContabilista(String token) => '$portalContabilista?t=$token';

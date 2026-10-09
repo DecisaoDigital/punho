@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Punho — dados do contabilista</title>
+<style>
+  body{font:16px/1.6 system-ui,sans-serif;margin:0;display:grid;
+       place-items:center;min-height:100vh;background:#f6f7f9;color:#1a1c1e}
+  div{max-width:34rem;padding:2rem;text-align:center}
+  h1{font-size:1.25rem;margin:0 0 .5rem}
+  p{margin:0;color:#5a6068}
+  @media(prefers-color-scheme:dark){
+    body{background:#16181c;color:#e8eaed} p{color:#9aa0a6}
+  }
+</style>
+</head>
+<body>
+<div id="aviso"><h1>A abrir…</h1><p>Um instante.</p></div>
+
+<script>
+// A página do portal é desenhada pela Edge Function, com os dados da empresa
+// já lá dentro. O que não podia era ser *servida* por ela: o Supabase reescreve
+// `text/html` para `text/plain` em `*.supabase.co`, e o contabilista via o
+// código-fonte. Por isso o HTML chega aqui dentro de JSON — que passa intacto —
+// e é esta página que o escreve no documento.
+
+function falhar(titulo, detalhe) {
+  document.getElementById('aviso').innerHTML =
+    '<h1></h1><p></p>';
+  document.querySelector('#aviso h1').textContent = titulo;
+  document.querySelector('#aviso p').textContent = detalhe;
+}
+
+(async () => {
+  // Dentro da função e não ao nível do script: o `document.write` mais abaixo
+  // escreve uma página que declara o seu próprio `const API`, e as declarações
+  // `const` de topo sobrevivem ao `document.open()` — a segunda rebentava com
+  // «Identifier 'API' has already been declared» e nenhum campo guardava.
+  const API = 'https://oefqbkhioncakojipqyx.supabase.co/functions/v1/portal-contabilista';
+  const token = new URLSearchParams(location.search).get('t');
+  if (!token) {
+    falhar('Falta o link completo.',
+           'Abra o endereço tal como lho enviaram, sem cortar nada.');
+    return;
+  }
+
+  let resposta;
+  try {
+    resposta = await fetch(
+      API + '?t=' + encodeURIComponent(token) + '&formato=json',
+      { headers: { 'Accept': 'application/json' } },
+    );
+  } catch (e) {
+    // Sem rede, ou a função em baixo. Dizer isso, não fingir uma página vazia.
+    falhar('Não consegui chegar ao Punho.',
+           'Verifique a ligação e volte a abrir o link.');
+    return;
+  }
+
+  const corpo = await resposta.json().catch(() => null);
+
+  if (!resposta.ok) {
+    falhar(corpo && corpo.erro ? corpo.erro : 'Este link já não é válido.',
+           'Se acha que é engano, peça um link novo a quem lho enviou.');
+    return;
+  }
+
+  if (!corpo || typeof corpo.html !== 'string') {
+    falhar('Resposta inesperada do Punho.',
+           'Avise quem lhe enviou o link.');
+    return;
+  }
+
+  document.open();
+  document.write(corpo.html);
+  document.close();
+})();
+</script>
+</body>
+</html>
