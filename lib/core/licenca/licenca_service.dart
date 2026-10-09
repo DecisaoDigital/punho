@@ -33,6 +33,9 @@ class FistLicencaService {
 
   final InvocarFuncao _invocar;
 
+  /// Para as extensões deste ficheiro irmão (`licenca_fist.dart`).
+  InvocarFuncao get invocar => _invocar;
+
   /// Regista o terminal. Idempotente do lado do servidor por
   /// `(machine_id, app)`, por isso pode ser chamado em todos os arranques.
   Future<void> registarTerminal(String machineId, {String? nif}) async {

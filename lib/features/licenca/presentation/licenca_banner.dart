@@ -100,16 +100,6 @@ class LicencaBanner extends ConsumerStatefulWidget {
 }
 
 class _LicencaBannerState extends ConsumerState<LicencaBanner> {
-  /// Evita repetir o registo em cada rebuild quando o estado é `inexistente`.
-  bool _registoTentado = false;
-
-  Future<void> _tentarRegistar(LicencaInfo licenca) async {
-    if (_registoTentado) return;
-    _registoTentado = true;
-    await ref.read(licencaServiceProvider).registarTerminal(licenca.machineId);
-    if (mounted) ref.invalidate(licencaProvider);
-  }
-
   @override
   Widget build(BuildContext context) {
     final licenca = ref.watch(licencaProvider).valueOrNull;
@@ -117,12 +107,6 @@ class _LicencaBannerState extends ConsumerState<LicencaBanner> {
     if (aviso == null) return const SizedBox.shrink();
     if (ref.watch(avisoDispensadoProvider) == aviso.mensagem) {
       return const SizedBox.shrink();
-    }
-
-    if (licenca!.estado == EstadoLicenca.inexistente) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _tentarRegistar(licenca),
-      );
     }
 
     return Card(
@@ -169,8 +153,9 @@ class _LicencaBannerState extends ConsumerState<LicencaBanner> {
               padding: EdgeInsets.zero,
               visualDensity: VisualDensity.compact,
               tooltip: 'Dispensar até à próxima vez que abrir a app',
-              onPressed: () => ref.read(avisoDispensadoProvider.notifier).state =
-                  aviso.mensagem,
+              onPressed: () =>
+                  ref.read(avisoDispensadoProvider.notifier).state =
+                      aviso.mensagem,
             ),
           ],
         ),
