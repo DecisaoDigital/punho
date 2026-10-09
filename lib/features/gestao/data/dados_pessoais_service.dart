@@ -84,10 +84,7 @@ class DadosPessoaisService {
   /// email. Devolve mais do que uma de propósito.
   Future<List<FichaDeTitular>> procurar(String termo) async {
     final linhas =
-        await _cliente.rpc(
-              'punho_procurar_titular',
-              params: {'p_termo': termo},
-            )
+        await _cliente.rpc('punho_procurar_titular', params: {'p_termo': termo})
             as List<dynamic>;
     return linhas
         .map((l) => FichaDeTitular.fromJson(l as Map<String, dynamic>))
@@ -120,8 +117,10 @@ class DadosPessoaisService {
   Future<List<ApagamentoFeito>> feitos() async {
     final linhas = await _cliente
         .from('punho_apagamentos')
-        .select('entidade, entidade_id, motivo, operacoes_redigidas, '
-            'reservas_redigidas, feito_em')
+        .select(
+          'entidade, entidade_id, motivo, operacoes_redigidas, '
+          'reservas_redigidas, feito_em',
+        )
         .order('feito_em', ascending: false)
         .limit(50);
     return linhas.map(ApagamentoFeito.fromJson).toList();

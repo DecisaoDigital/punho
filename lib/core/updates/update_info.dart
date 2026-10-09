@@ -21,15 +21,14 @@ class FistUpdateInfo {
   /// app que se instala a si própria tem de confirmar o que está a abrir.
   final String? sha256;
 
-  factory FistUpdateInfo.fromJson(Map<String, dynamic> json) =>
-      FistUpdateInfo(
-        version: json['versao_actual'] as String,
-        buildNumber: json['build_number'] as int,
-        downloadUrl: json['url_download'] as String,
-        mandatory: json['obrigatoria'] as bool? ?? false,
-        releaseNotes: json['notas_lancamento'] as String?,
-        sha256: json['sha256'] as String?,
-      );
+  factory FistUpdateInfo.fromJson(Map<String, dynamic> json) => FistUpdateInfo(
+    version: json['versao_actual'] as String,
+    buildNumber: json['build_number'] as int,
+    downloadUrl: json['url_download'] as String,
+    mandatory: json['obrigatoria'] as bool? ?? false,
+    releaseNotes: json['notas_lancamento'] as String?,
+    sha256: json['sha256'] as String?,
+  );
 
   Map<String, dynamic> toJson() => {
     'versao_actual': version,

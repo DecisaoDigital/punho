@@ -57,7 +57,10 @@ RespostaContabilista _fat(
     ],
   );
   addTearDown(container.dispose);
-  return (container: container, notifier: container.read(operationsProvider.notifier));
+  return (
+    container: container,
+    notifier: container.read(operationsProvider.notifier),
+  );
 }
 
 void main() {
@@ -89,7 +92,10 @@ void main() {
       await c.container.read(historicoDoContabilistaProvider.future);
 
       expect(
-        c.container.read(operationsProvider).historicalMonth(2026, 7)?.revenueReceivedCents,
+        c.container
+            .read(operationsProvider)
+            .historicalMonth(2026, 7)
+            ?.revenueReceivedCents,
         600000,
         reason: 'o que o gestor escreveu por cima é que vale',
       );
@@ -105,9 +111,15 @@ void main() {
 
       await c.container.read(historicoDoContabilistaProvider.future);
 
-      final julho = c.container.read(operationsProvider).historicalMonth(2026, 7);
+      final julho = c.container
+          .read(operationsProvider)
+          .historicalMonth(2026, 7);
       expect(julho?.revenueReceivedCents, 510000, reason: 'a faturação entra');
-      expect(julho?.paidExpensesCents, 88000, reason: 'a despesa que lá estava fica');
+      expect(
+        julho?.paidExpensesCents,
+        88000,
+        reason: 'a despesa que lá estava fica',
+      );
     });
 
     test('respostas sem mês (só o total do ano) ficam de fora', () async {
@@ -120,7 +132,9 @@ void main() {
         ),
       ]);
 
-      final aplicados = await c.container.read(historicoDoContabilistaProvider.future);
+      final aplicados = await c.container.read(
+        historicoDoContabilistaProvider.future,
+      );
 
       expect(aplicados, 0);
     });
@@ -128,7 +142,9 @@ void main() {
     test('empresa ainda em onboarding não mexe no histórico', () async {
       final c = _cenario([_fat(2026, 7, 510000)], onboarded: false);
 
-      final aplicados = await c.container.read(historicoDoContabilistaProvider.future);
+      final aplicados = await c.container.read(
+        historicoDoContabilistaProvider.future,
+      );
 
       expect(aplicados, 0);
     });
@@ -136,10 +152,15 @@ void main() {
     test('sem rede devolve zero em silêncio, não rebenta', () async {
       final c = _cenario([_fat(2026, 7, 510000)], rebenta: true);
 
-      final aplicados = await c.container.read(historicoDoContabilistaProvider.future);
+      final aplicados = await c.container.read(
+        historicoDoContabilistaProvider.future,
+      );
 
       expect(aplicados, 0);
-      expect(c.container.read(operationsProvider).historicalMonth(2026, 7), isNull);
+      expect(
+        c.container.read(operationsProvider).historicalMonth(2026, 7),
+        isNull,
+      );
     });
   });
 }

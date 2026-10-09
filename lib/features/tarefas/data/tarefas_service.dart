@@ -53,6 +53,32 @@ List<Tarefa> tarefasPendentes(
     );
   }
 
+  // 0b. Leads abertas sem operador. Chegaram de fora (site, bot) sem dono e
+  // alguém — o gestor, ou a administrativa — tem de dizer quem as trata,
+  // porque a rota de cada operador conta.
+  final porAtribuir = state.leads
+      .where(
+        (l) =>
+            l.collaboratorResponsibleId == null &&
+            l.status != LeadStatus.converted &&
+            l.status != LeadStatus.lost,
+      )
+      .length;
+  if (porAtribuir > 0) {
+    tarefas.add(
+      Tarefa(
+        id: 'leads-por-atribuir',
+        severidade: SeveridadeTarefa.aCompletar,
+        titulo: porAtribuir == 1
+            ? '1 lead por atribuir a um operador'
+            : '$porAtribuir leads por atribuir a um operador',
+        subtitulo: 'Sem operador, ninguém lhes vai ligar',
+        cta: 'Atribuir',
+        destino: DestinoTarefa.clientes,
+      ),
+    );
+  }
+
   // 1. Cobranças com atraso — dinheiro que já era da empresa.
   for (final cobranca in cobrancasPorReceber(
     state,

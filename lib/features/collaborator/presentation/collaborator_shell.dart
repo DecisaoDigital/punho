@@ -1,3 +1,4 @@
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/layout/ecra_de_formulario.dart';
@@ -67,6 +68,11 @@ class _CollaboratorShellState extends ConsumerState<CollaboratorShell> {
               'Nova lead',
               Icons.person_add_alt_1,
               () => _newLead(context, ref, id),
+            ),
+            _Action(
+              'Para contactar hoje',
+              Icons.phone_in_talk,
+              () => _paraContactar(context, ref, id),
             ),
             _Action(
               'As minhas marcações',
@@ -246,6 +252,48 @@ class _FormularioDeLeadDoColaboradorState
       }
       Navigator.pop(context);
     },
+  );
+}
+
+/// As leads que o gestor (ou ele próprio) lhe atribuiu e ainda estão abertas,
+/// com o que há a fazer a seguir. É a «lista de tarefas» do operador, que não
+/// tem o ecrã de Tarefas do gestor.
+void _paraContactar(BuildContext c, WidgetRef ref, String id) {
+  final abertas = ref
+      .read(operationsProvider)
+      .leads
+      .where(
+        (l) =>
+            l.collaboratorResponsibleId == id &&
+            l.status != LeadStatus.converted &&
+            l.status != LeadStatus.lost,
+      )
+      .toList();
+  Navigator.push(
+    c,
+    MaterialPageRoute(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: const Text('Para contactar hoje')),
+        body: abertas.isEmpty
+            ? const Center(child: Text('Sem leads por tratar.'))
+            : ListView(
+                children: [
+                  for (final l in abertas)
+                    ListTile(
+                      title: Text(l.name),
+                      subtitle: Text(
+                        '${l.phone} · ${leadStatusLabel(l.status)}',
+                      ),
+                      trailing: IconButton(
+                        tooltip: 'Ligar',
+                        icon: const Icon(Icons.call),
+                        onPressed: () => launchUrl(Uri(scheme: 'tel', path: l.phone)),
+                      ),
+                    ),
+                ],
+              ),
+      ),
+    ),
   );
 }
 

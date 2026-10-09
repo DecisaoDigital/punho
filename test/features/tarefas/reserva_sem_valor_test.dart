@@ -80,9 +80,6 @@ void main() {
   });
 
   test('uma reserva cancelada não pede preço nenhum', () {
-    expect(
-      tarefasDe([reserva(estado: BookingStatus.cancelled)]),
-      isEmpty,
-    );
+    expect(tarefasDe([reserva(estado: BookingStatus.cancelled)]), isEmpty);
   });
 }

@@ -145,16 +145,28 @@ class AcessoGate extends ConsumerWidget {
           DecisaoAcesso.app =>
             acesso.eGestor
                 ? const AppShell()
-                : CollaboratorShell(
-                    collaboratorId: ref
-                        .read(acessoServiceProvider)
-                        .utilizadorId,
-                    titulo: 'Colaborador',
-                  ),
+                : ref
+                      .watch(fichaDoUtilizadorProvider)
+                      .when(
+                        loading: () => const Scaffold(
+                          body: Center(child: CircularProgressIndicator()),
+                        ),
+                        // Sem ficha (ou sem rede): cai no uid da conta, como
+                        // até aqui, e o operador continua a poder trabalhar.
+                        error: (_, __) => _shellDoColaborador(ref, null),
+                        data: (ficha) => _shellDoColaborador(ref, ficha),
+                      ),
           DecisaoAcesso.pendente => const PedidoEmAnaliseScreen(),
           DecisaoAcesso.semPedido => const PedirAcessoScreen(),
           DecisaoAcesso.indisponivel => const AcessoIndisponivelScreen(),
         },
+      );
+
+  Widget _shellDoColaborador(WidgetRef ref, String? ficha) =>
+      CollaboratorShell(
+        collaboratorId:
+            ficha ?? ref.read(acessoServiceProvider).utilizadorId,
+        titulo: 'Colaborador',
       );
 
   Widget _erroPage(WidgetRef ref) => Scaffold(

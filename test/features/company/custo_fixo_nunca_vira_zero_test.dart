@@ -45,12 +45,14 @@ void main() {
       overrides: [operationRepositoryProvider.overrideWithValue(repo)],
     );
     addTearDown(container.dispose);
-    container.read(operationsProvider.notifier).updateCompanySettings(
-      custosFixos: rubricas,
-      // Sem NIF válido o `_guardar` sai logo no primeiro `if` e nunca chegava
-      // à verificação dos custos — o teste passaria por outra razão.
-      companyTaxId: const Campo('501442600'),
-    );
+    container
+        .read(operationsProvider.notifier)
+        .updateCompanySettings(
+          custosFixos: rubricas,
+          // Sem NIF válido o `_guardar` sai logo no primeiro `if` e nunca chegava
+          // à verificação dos custos — o teste passaria por outra razão.
+          companyTaxId: const Campo('501442600'),
+        );
 
     await tester.pumpWidget(
       UncontrolledProviderScope(

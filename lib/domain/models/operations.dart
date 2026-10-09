@@ -307,6 +307,9 @@ class Lead {
     String? collaboratorResponsibleId,
     String? convertedCustomerId,
     String? bookingId,
+
+    /// Para atribuir ou desatribuir: devolve o novo valor (pode ser `null`).
+    String? Function()? atribuidaA,
   }) => Lead(
     id: id,
     name: name,
@@ -315,8 +318,9 @@ class Lead {
     createdAt: createdAt,
     source: source,
     summary: summary,
-    collaboratorResponsibleId:
-        collaboratorResponsibleId ?? this.collaboratorResponsibleId,
+    collaboratorResponsibleId: atribuidaA != null
+        ? atribuidaA()
+        : collaboratorResponsibleId ?? this.collaboratorResponsibleId,
     convertedCustomerId: convertedCustomerId ?? this.convertedCustomerId,
     bookingId: bookingId ?? this.bookingId,
   );

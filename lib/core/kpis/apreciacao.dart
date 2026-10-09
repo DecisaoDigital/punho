@@ -77,8 +77,7 @@ ApreciacaoDoKpi apreciar({
   // positivo — a conta dá números como "+250%" que descrevem uma passagem de
   // prejuízo a lucro como se fosse um crescimento, e ninguém lê aquilo bem. Nos
   // dois casos diz-se a diferença em bruto, que é sempre verdade.
-  final podePercentagem =
-      referencia != 0 && (valor >= 0) == (referencia >= 0);
+  final podePercentagem = referencia != 0 && (valor >= 0) == (referencia >= 0);
   final proporcao = podePercentagem ? diferenca.abs() / referencia.abs() : null;
 
   if (proporcao != null && proporcao < _bandaEmLinha) {

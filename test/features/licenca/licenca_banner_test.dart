@@ -133,7 +133,7 @@ void main() {
       expect(_corDoCartao(tester), const Color(0xFFF8CFCB));
     });
 
-    testWidgets('terminal por registar fica cinzento e tenta o registo', (
+    testWidgets('terminal por registar fica cinzento e não regista sozinho', (
       tester,
     ) async {
       final servico = _ServicoEspiao();
@@ -145,19 +145,8 @@ void main() {
 
       expect(find.textContaining('por registar'), findsOneWidget);
       expect(_corDoCartao(tester), const Color(0xFFE2E7EC));
-      expect(servico.registos, ['abc123def456']);
-    });
-
-    testWidgets('o registo não é repetido em cada rebuild', (tester) async {
-      final servico = _ServicoEspiao();
-      await _montar(
-        tester,
-        _licenca(EstadoLicenca.inexistente, dias: 0),
-        servico: servico,
-      );
-      await tester.pumpAndSettle();
-
-      expect(servico.registos, hasLength(1));
+      // O registo por aparelho acabou: a licença nasce no login, na empresa.
+      expect(servico.registos, isEmpty);
     });
   });
 
@@ -176,51 +165,53 @@ void main() {
       expect(find.byType(Card), findsNothing);
     });
 
-    testWidgets('dispensada fica dispensada — mudar de ecrã não a traz de volta', (
-      tester,
-    ) async {
-      // O banner vive na shell, acima do conteúdo: navegar desmonta-o e monta
-      // outro. Se o "dispensei" morasse no `State` do widget, voltava ao
-      // primeiro toque noutro separador.
-      await _montar(tester, _licenca(EstadoLicenca.activa, dias: 4));
-      await tester.tap(xis);
-      await tester.pumpAndSettle();
+    testWidgets(
+      'dispensada fica dispensada — mudar de ecrã não a traz de volta',
+      (tester) async {
+        // O banner vive na shell, acima do conteúdo: navegar desmonta-o e monta
+        // outro. Se o "dispensei" morasse no `State` do widget, voltava ao
+        // primeiro toque noutro separador.
+        await _montar(tester, _licenca(EstadoLicenca.activa, dias: 4));
+        await tester.tap(xis);
+        await tester.pumpAndSettle();
 
-      // Um ecrã por cima, e de volta — com o widget desmontado pelo caminho.
-      final navegador = tester.state<NavigatorState>(find.byType(Navigator));
-      unawaited(
-        navegador.push(
-          MaterialPageRoute<void>(
-            builder: (_) => const Scaffold(body: Text('outro ecrã')),
+        // Um ecrã por cima, e de volta — com o widget desmontado pelo caminho.
+        final navegador = tester.state<NavigatorState>(find.byType(Navigator));
+        unawaited(
+          navegador.push(
+            MaterialPageRoute<void>(
+              builder: (_) => const Scaffold(body: Text('outro ecrã')),
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byType(LicencaBanner), findsNothing);
-      navegador.pop();
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(LicencaBanner), findsNothing);
+        navegador.pop();
+        await tester.pumpAndSettle();
 
-      expect(find.byType(LicencaBanner), findsOneWidget);
-      expect(find.byType(Card), findsNothing);
-    });
+        expect(find.byType(LicencaBanner), findsOneWidget);
+        expect(find.byType(Card), findsNothing);
+      },
+    );
 
-    testWidgets('nada disto fica gravado: ao arrancar de novo a barra está lá', (
-      tester,
-    ) async {
-      // Arrancar é montar tudo de novo, `ProviderScope` incluído. A dispensa
-      // não sobrevive a isso — é a diferença entre "removida" e "desligada".
-      await _montar(tester, _licenca(EstadoLicenca.activa, dias: 4));
-      await tester.tap(xis);
-      await tester.pumpAndSettle();
-      expect(find.byType(Card), findsNothing);
+    testWidgets(
+      'nada disto fica gravado: ao arrancar de novo a barra está lá',
+      (tester) async {
+        // Arrancar é montar tudo de novo, `ProviderScope` incluído. A dispensa
+        // não sobrevive a isso — é a diferença entre "removida" e "desligada".
+        await _montar(tester, _licenca(EstadoLicenca.activa, dias: 4));
+        await tester.tap(xis);
+        await tester.pumpAndSettle();
+        expect(find.byType(Card), findsNothing);
 
-      // Deitar a árvore abaixo: o `ProviderScope` é descartado com ela.
-      await tester.pumpWidget(const SizedBox());
-      await tester.pumpAndSettle();
-      await _montar(tester, _licenca(EstadoLicenca.activa, dias: 4));
+        // Deitar a árvore abaixo: o `ProviderScope` é descartado com ela.
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+        await _montar(tester, _licenca(EstadoLicenca.activa, dias: 4));
 
-      expect(find.byType(Card), findsOneWidget);
-    });
+        expect(find.byType(Card), findsOneWidget);
+      },
+    );
 
     testWidgets('notícia nova volta a aparecer, mesmo dispensada a anterior', (
       tester,

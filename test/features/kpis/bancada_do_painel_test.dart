@@ -320,7 +320,8 @@ void main() {
       expect(
         find.bySemanticsLabel(RegExp('Arrastar .* para ordenar')),
         findsWidgets,
-        reason: 'a dica saiu do ecrã, não pode ter saído da leitura em voz alta',
+        reason:
+            'a dica saiu do ecrã, não pode ter saído da leitura em voz alta',
       );
     });
 

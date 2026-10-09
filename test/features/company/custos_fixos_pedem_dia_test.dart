@@ -43,9 +43,9 @@ void main() {
       overrides: [operationRepositoryProvider.overrideWithValue(repo)],
     );
     addTearDown(container.dispose);
-    container.read(operationsProvider.notifier).updateCompanySettings(
-      custosFixos: rubricas,
-    );
+    container
+        .read(operationsProvider.notifier)
+        .updateCompanySettings(custosFixos: rubricas);
 
     await tester.pumpWidget(
       UncontrolledProviderScope(

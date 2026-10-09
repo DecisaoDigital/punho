@@ -699,6 +699,15 @@ class OperationsController extends Notifier<OperationsState> {
     state = _fromRepo();
   }
 
+  /// Diz quem trata esta lead (`Collaborator.id`), ou `null` para a devolver
+  /// à caixa «por atribuir».
+  void atribuirLead(String leadId, String? colaboradorId) {
+    final atual = state.leads.where((l) => l.id == leadId).firstOrNull;
+    if (atual == null) return;
+    _repo.saveLead(atual.copyWith(atribuidaA: () => colaboradorId));
+    state = _fromRepo();
+  }
+
   /// Passa a lead para outro estado (contactada, qualificada, perdida...).
   /// «Convertida» não se marca aqui: vem do fecho (ver [_fecharLeadSeConfirmada]).
   void setLeadStatus(String leadId, LeadStatus status) {

@@ -15,11 +15,10 @@ import 'core/cadeado/cadeado_gate.dart';
 import 'core/diagnostico/relator_de_erros.dart';
 import 'shared/widgets/splash_punho.dart';
 
-import 'core/empresa_sync/empresa_sync_service.dart';
 import 'core/licenca/licenca_provider.dart';
-import 'core/telemetria/pings_provider.dart';
-import 'core/licenca/licenca_service.dart';
 import 'core/licenca/machine_id.dart';
+import 'features/licenca/presentation/licenca_fist_gate.dart';
+import 'core/telemetria/pings_provider.dart';
 import 'core/operations/operations_controller.dart';
 import 'core/theme/punho_theme.dart';
 import 'core/config/supabase_config.dart';
@@ -75,9 +74,8 @@ Future<void> _arrancar() async {
       url: SupabaseConfig.url,
       publishableKey: SupabaseConfig.anonKey,
     );
-    // Auto-onboarding: não bloqueia o arranque e falha em silêncio. As Edge
-    // Functions aceitam a chave pública, por isso corre antes do login.
-    unawaited(_registarTerminal());
+    // Já não se regista o terminal no arranque: a licença é da empresa e
+    // nasce no primeiro login, em `licenca-fist` (ver licenca_fist.dart).
     // Os erros da sessão passada sobem agora. É aqui e não no momento do erro
     // porque um erro que mata a app não tem tempo de fazer um pedido HTTP —
     // fica gravado no disco e apanha-se boleia no arranque seguinte.
@@ -156,23 +154,6 @@ void _instalarCapturaDeErros() {
   };
 }
 
-Future<void> _registarTerminal() async {
-  try {
-    final machineId = await resolverMachineId();
-    final client = Supabase.instance.client;
-    // Além de registar o terminal, aproveita para corrigir `licencas.nif`
-    // caso a empresa já tenha sincronizado um NIF real no servidor — é o
-    // único ponto em que a instalação se liga ao NIF depois de nascer com o
-    // placeholder '000000000' (ver EmpresaSyncService.buscarFicha).
-    final ficha = await EmpresaSyncService(client).buscarFicha();
-    await FistLicencaService(
-      client,
-    ).registarTerminal(machineId, nif: ficha?.nif);
-  } catch (erro) {
-    debugPrint('auto-onboarding falhou: $erro');
-  }
-}
-
 class FistApp extends ConsumerStatefulWidget {
   const FistApp({super.key});
   @override
@@ -196,7 +177,9 @@ class _FistAppState extends ConsumerState<FistApp> {
     final Widget destino = CadeadoGate(
       child: ObservadorDeLembretes(
         child: FistUpdateBannerWrapper(
-          child: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),
+          child: SupabaseConfig.enabled
+              ? const LicencaFistGate(child: AuthGate())
+              : const AppShell(),
         ),
       ),
     );

@@ -96,23 +96,25 @@ void main() {
     expect(m.registo.pendentes, isEmpty);
   });
 
-  test('se a renovação falhar, a fila fica intacta — não vai para a quarentena',
-      () async {
-    final m = await montar(recusasDeSessao: 99); // nunca melhora
-    m.motor.renovarSessao = () async => false; // e não se consegue renovar
-    await m.registo.acrescentar(op('res-1'));
-    await m.registo.acrescentar(op('res-2'));
+  test(
+    'se a renovação falhar, a fila fica intacta — não vai para a quarentena',
+    () async {
+      final m = await montar(recusasDeSessao: 99); // nunca melhora
+      m.motor.renovarSessao = () async => false; // e não se consegue renovar
+      await m.registo.acrescentar(op('res-1'));
+      await m.registo.acrescentar(op('res-2'));
 
-    final resultado = await m.motor.sincronizar();
+      final resultado = await m.motor.sincronizar();
 
-    expect(resultado.correu, isFalse, reason: 'a sincronização não passou');
-    expect(
-      m.registo.pendentes.map((o) => o.id),
-      ['res-1', 'res-2'],
-      reason: 'fica tudo para a próxima, com sessão boa',
-    );
-    expect(m.registo.quarentena, isEmpty);
-  });
+      expect(resultado.correu, isFalse, reason: 'a sincronização não passou');
+      expect(
+        m.registo.pendentes.map((o) => o.id),
+        ['res-1', 'res-2'],
+        reason: 'fica tudo para a próxima, com sessão boa',
+      );
+      expect(m.registo.quarentena, isEmpty);
+    },
+  );
 
   test('renovação por ciclo: um servidor sempre a 401 não põe isto em roda '
       'livre', () async {

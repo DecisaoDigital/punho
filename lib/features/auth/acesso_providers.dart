@@ -16,6 +16,25 @@ final eventosDeSessaoProvider = StreamProvider.autoDispose<AuthState>(
   (ref) => Supabase.instance.client.auth.onAuthStateChange,
 );
 
+/// A ficha de pessoal (`Collaborator.id`) ligada à conta que tem sessão, ou
+/// `null` se não houver. É por ela, e não pelo uid da conta, que o gestor
+/// atribui leads e reservas ao operador: a ficha é o que o gestor vê.
+final fichaDoUtilizadorProvider = FutureProvider.autoDispose<String?>((
+  ref,
+) async {
+  ref.watch(eventosDeSessaoProvider);
+  final cliente = Supabase.instance.client;
+  final uid = cliente.auth.currentUser?.id;
+  if (uid == null) return null;
+  final linha = await cliente
+      .from('punho_membros')
+      .select('colaborador_id')
+      .eq('user_id', uid)
+      .eq('ativo', true)
+      .maybeSingle();
+  return linha?['colaborador_id'] as String?;
+});
+
 /// Estado de acesso da sessão actual. É `autoDispose` para ser recalculado a
 /// cada entrada: uma revogação tem de fechar a porta no arranque seguinte.
 ///

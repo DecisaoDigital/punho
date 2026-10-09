@@ -22,14 +22,16 @@ void main() {
       ],
     );
     addTearDown(c.dispose);
-    c.read(operationsProvider.notifier).addCustomer(
-      Customer(
-        id: 'c1',
-        name: 'Ana',
-        phone: '910000000',
-        createdAt: DateTime(2026, 1, 1),
-      ),
-    );
+    c
+        .read(operationsProvider.notifier)
+        .addCustomer(
+          Customer(
+            id: 'c1',
+            name: 'Ana',
+            phone: '910000000',
+            createdAt: DateTime(2026, 1, 1),
+          ),
+        );
     await t.pumpWidget(
       UncontrolledProviderScope(
         container: c,
@@ -65,15 +67,18 @@ void main() {
     expect(falso.agendados, isEmpty);
   });
 
-  testWidgets('sair da conta cancela tudo; outra conta não herda o alarme',
-      (t) async {
+  testWidgets('sair da conta cancela tudo; outra conta não herda o alarme', (
+    t,
+  ) async {
     final (c, falso, uid) = await montar(t);
-    c.read(operationsProvider.notifier).agendarReuniao(
-      customerId: 'c1',
-      inicio: DateTime(2026, 10, 21, 10),
-      lembreteMinutos: 15,
-      criadoPorUid: 'u1',
-    );
+    c
+        .read(operationsProvider.notifier)
+        .agendarReuniao(
+          customerId: 'c1',
+          inicio: DateTime(2026, 10, 21, 10),
+          lembreteMinutos: 15,
+          criadoPorUid: 'u1',
+        );
     await t.pumpAndSettle();
     expect(falso.agendados, hasLength(1));
 

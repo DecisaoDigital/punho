@@ -43,17 +43,23 @@ void main() {
     expect(tarefasPendentes(s, agora).length, tarefasAntes);
   });
 
-  test('o relógio não põe uma reunião passada «em aluguer» nem «concluída»', () {
-    final c = container();
-    addTearDown(c.dispose);
-    final n = c.read(operationsProvider.notifier);
-    n.addCustomer(cliente());
-    n.agendarReuniao(customerId: 'c1', inicio: DateTime(2026, 10, 1, 10));
-    expect(
-      reservasAAvancar(c.read(operationsProvider).reunioes, DateTime(2026, 12, 1)),
-      isEmpty,
-    );
-  });
+  test(
+    'o relógio não põe uma reunião passada «em aluguer» nem «concluída»',
+    () {
+      final c = container();
+      addTearDown(c.dispose);
+      final n = c.read(operationsProvider.notifier);
+      n.addCustomer(cliente());
+      n.agendarReuniao(customerId: 'c1', inicio: DateTime(2026, 10, 1, 10));
+      expect(
+        reservasAAvancar(
+          c.read(operationsProvider).reunioes,
+          DateTime(2026, 12, 1),
+        ),
+        isEmpty,
+      );
+    },
+  );
 
   test('remarcar e cancelar uma reunião', () {
     final c = container();

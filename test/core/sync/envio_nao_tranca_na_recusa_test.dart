@@ -58,42 +58,48 @@ void main() {
     return (motor: motor, registo: registo, servidor: servidor);
   }
 
-  test('23P01 a meio do lote vai para o balde de conflitos; as boas passam', () async {
-    final m = await montar('res-2', '23P01');
-    await m.registo.acrescentar(marcacao('res-1'));
-    await m.registo.acrescentar(marcacao('res-2')); // a máquina já reservada
-    await m.registo.acrescentar(marcacao('res-3'));
+  test(
+    '23P01 a meio do lote vai para o balde de conflitos; as boas passam',
+    () async {
+      final m = await montar('res-2', '23P01');
+      await m.registo.acrescentar(marcacao('res-1'));
+      await m.registo.acrescentar(marcacao('res-2')); // a máquina já reservada
+      await m.registo.acrescentar(marcacao('res-3'));
 
-    final resultado = await m.motor.sincronizar();
+      final resultado = await m.motor.sincronizar();
 
-    // A sincronização correu — não estoirou por causa da linha má.
-    expect(resultado.correu, isTrue);
-    expect(resultado.enviadas, 2, reason: 'as duas boas subiram');
-    // O lote foi tentado inteiro, falhou, e depois foi uma a uma (3 tentativas).
-    expect(m.servidor.upserts.first, ['res-1', 'res-2', 'res-3']);
-    expect(m.servidor.upserts.length, 4);
-    // A fila esvaziou — nada fica a bater à porta do servidor para sempre.
-    expect(m.registo.pendentes, isEmpty);
-    // A recusada foi para o balde visível, não para a quarentena silenciosa.
-    expect(m.registo.conflitosDeReserva.map((c) => c.operacao.id), ['res-2']);
-    expect(m.registo.quarentena, isEmpty, reason: 'não é lixo de payload');
-  });
+      // A sincronização correu — não estoirou por causa da linha má.
+      expect(resultado.correu, isTrue);
+      expect(resultado.enviadas, 2, reason: 'as duas boas subiram');
+      // O lote foi tentado inteiro, falhou, e depois foi uma a uma (3 tentativas).
+      expect(m.servidor.upserts.first, ['res-1', 'res-2', 'res-3']);
+      expect(m.servidor.upserts.length, 4);
+      // A fila esvaziou — nada fica a bater à porta do servidor para sempre.
+      expect(m.registo.pendentes, isEmpty);
+      // A recusada foi para o balde visível, não para a quarentena silenciosa.
+      expect(m.registo.conflitosDeReserva.map((c) => c.operacao.id), ['res-2']);
+      expect(m.registo.quarentena, isEmpty, reason: 'não é lixo de payload');
+    },
+  );
 
-  test('42501 (RLS) a meio do lote vai para a quarentena; as boas passam', () async {
-    final m = await montar('res-2', '42501');
-    await m.registo.acrescentar(marcacao('res-1'));
-    await m.registo.acrescentar(marcacao('res-2')); // política recusa
-    await m.registo.acrescentar(marcacao('res-3'));
+  test(
+    '42501 (RLS) a meio do lote vai para a quarentena; as boas passam',
+    () async {
+      final m = await montar('res-2', '42501');
+      await m.registo.acrescentar(marcacao('res-1'));
+      await m.registo.acrescentar(marcacao('res-2')); // política recusa
+      await m.registo.acrescentar(marcacao('res-3'));
 
-    final resultado = await m.motor.sincronizar();
+      final resultado = await m.motor.sincronizar();
 
-    expect(resultado.correu, isTrue);
-    expect(resultado.enviadas, 2);
-    expect(m.registo.pendentes, isEmpty);
-    // Recusa de permissão é definitiva: quarentena, e não o balde de conflitos.
-    expect(m.registo.quarentena.map((q) => q.operacao.id), ['res-2']);
-    expect(m.registo.conflitosDeReserva, isEmpty);
-  });
+      expect(resultado.correu, isTrue);
+      expect(resultado.enviadas, 2);
+      expect(m.registo.pendentes, isEmpty);
+      // Recusa de permissão é definitiva: quarentena, e não o balde de conflitos.
+      expect(m.registo.quarentena.map((q) => q.operacao.id), ['res-2']);
+      expect(m.registo.conflitosDeReserva, isEmpty);
+    },
+  );
 
   test('a frase do servidor chega inteira à quarentena', () async {
     // O servidor fala português e fala para uma pessoa: «Não podes alterar o
@@ -173,18 +179,20 @@ class _ServidorFalso extends http.BaseClient {
     return _resposta(request, 201, '[]');
   }
 
-  http.StreamedResponse _recusa(http.BaseRequest request, String codigo) =>
-      _resposta(
-        request,
-        // O código vem do corpo; o estado é só realista (409 conflito, 403 RLS).
-        codigo == '23P01' ? 409 : 403,
-        jsonEncode({
-          'code': codigo,
-          'message': frase ?? 'linha recusada pelo servidor ($codigo)',
-          'details': null,
-          'hint': null,
-        }),
-      );
+  http.StreamedResponse _recusa(
+    http.BaseRequest request,
+    String codigo,
+  ) => _resposta(
+    request,
+    // O código vem do corpo; o estado é só realista (409 conflito, 403 RLS).
+    codigo == '23P01' ? 409 : 403,
+    jsonEncode({
+      'code': codigo,
+      'message': frase ?? 'linha recusada pelo servidor ($codigo)',
+      'details': null,
+      'hint': null,
+    }),
+  );
 
   http.StreamedResponse _resposta(
     http.BaseRequest request,

@@ -31,9 +31,7 @@ void main() {
     tester.view.viewInsets = const FakeViewPadding(bottom: tecladoDp * dpr);
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      const MaterialApp(home: DefinirPinScreen()),
-    );
+    await tester.pumpWidget(const MaterialApp(home: DefinirPinScreen()));
     await tester.pump();
   }
 
@@ -49,7 +47,9 @@ void main() {
       reason: 'o ecrã transbordou antes mesmo de se medir o botão',
     );
 
-    final guardar = tester.getRect(find.widgetWithText(FilledButton, 'Guardar'));
+    final guardar = tester.getRect(
+      find.widgetWithText(FilledButton, 'Guardar'),
+    );
     expect(
       guardar.bottom,
       lessThanOrEqualTo(alturaVisivel(ecraDeitado)),
@@ -69,7 +69,9 @@ void main() {
     await comTeclado(tester, ecraDeitado);
     expect(tester.takeException(), isNull);
 
-    final repetir = tester.getRect(find.widgetWithText(TextField, 'Repetir PIN'));
+    final repetir = tester.getRect(
+      find.widgetWithText(TextField, 'Repetir PIN'),
+    );
     expect(
       repetir.bottom,
       lessThanOrEqualTo(alturaVisivel(ecraDeitado)),
@@ -112,7 +114,9 @@ void main() {
     await comTeclado(tester, ecraDePe);
     expect(tester.takeException(), isNull);
 
-    final guardar = tester.getRect(find.widgetWithText(FilledButton, 'Guardar'));
+    final guardar = tester.getRect(
+      find.widgetWithText(FilledButton, 'Guardar'),
+    );
     expect(guardar.bottom, lessThanOrEqualTo(alturaVisivel(ecraDePe)));
   });
 }

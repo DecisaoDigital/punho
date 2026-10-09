@@ -85,9 +85,7 @@ class _JaDecididos extends ConsumerWidget {
           : ExpansionTile(
               title: const Text('Já decididos'),
               subtitle: Text('${lista.length} — para corrigir um engano'),
-              children: [
-                for (final p in lista) _LinhaDecidida(pedido: p),
-              ],
+              children: [for (final p in lista) _LinhaDecidida(pedido: p)],
             ),
     );
   }

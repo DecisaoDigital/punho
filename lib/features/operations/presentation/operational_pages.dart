@@ -2187,6 +2187,7 @@ class ClientsPage extends ConsumerWidget {
                   // utilizador — nomes de programador num ecrã de gestão.
                   subtitle: Text(
                     '${l.phone} · ${leadStatusLabel(l.status)}'
+                    '${_operadorDaLead(state, l)}'
                     '${l.convertedCustomerId != null && l.status != LeadStatus.converted ? ' · falta a reserva' : ''}',
                   ),
                   trailing: l.status == LeadStatus.converted
@@ -2197,6 +2198,10 @@ class ClientsPage extends ConsumerWidget {
                             final n = ref.read(operationsProvider.notifier);
                             if (acao is LeadStatus) {
                               n.setLeadStatus(l.id, acao);
+                              return;
+                            }
+                            if (acao == 'atribuir') {
+                              _atribuirLead(context, ref, l);
                               return;
                             }
                             try {
@@ -2217,6 +2222,10 @@ class ClientsPage extends ConsumerWidget {
                                 value: e,
                                 child: Text(leadStatusLabel(e)),
                               ),
+                            const PopupMenuItem<Object>(
+                              value: 'atribuir',
+                              child: Text('Atribuir a um operador'),
+                            ),
                             if (l.convertedCustomerId == null)
                               const PopupMenuItem<Object>(
                                 value: 'cliente',
@@ -2232,6 +2241,46 @@ class ClientsPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _operadorDaLead(OperationsState state, Lead l) {
+  final id = l.collaboratorResponsibleId;
+  if (id == null) return ' · sem operador';
+  final ficha = state.collaborators.where((c) => c.id == id).firstOrNull;
+  return ficha == null ? '' : ' · ${ficha.name}';
+}
+
+Future<void> _atribuirLead(
+  BuildContext context,
+  WidgetRef ref,
+  Lead lead,
+) async {
+  final operadores = ref
+      .read(operationsProvider)
+      .collaborators
+      .where((c) => !c.archived)
+      .toList();
+  final escolha = await showDialog<Object>(
+    context: context,
+    builder: (_) => SimpleDialog(
+      title: Text('Quem trata de ${lead.name}?'),
+      children: [
+        for (final c in operadores)
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, c.id),
+            child: Text(c.name),
+          ),
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(context, ''),
+          child: const Text('Sem operador'),
+        ),
+      ],
+    ),
+  );
+  if (escolha == null) return;
+  ref
+      .read(operationsProvider.notifier)
+      .atribuirLead(lead.id, (escolha as String).isEmpty ? null : escolha);
 }
 
 /// Devolve o id do cliente criado ou editado, ou `null` se desistiu.

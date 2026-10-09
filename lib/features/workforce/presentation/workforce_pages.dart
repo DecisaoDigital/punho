@@ -685,7 +685,11 @@ class VehiclesPage extends ConsumerWidget {
                   ? 'Frota declarada, veículos por identificar'
                   : 'Custo mensal estimado da frota: '
                         '${(total / 100).toStringAsFixed(2)} €'
-                        '${porApurar == 0 ? '' : porApurar == 1 ? ' · 1 veículo por apurar' : ' · $porApurar veículos por apurar'}',
+                        '${porApurar == 0
+                            ? ''
+                            : porApurar == 1
+                            ? ' · 1 veículo por apurar'
+                            : ' · $porApurar veículos por apurar'}',
             ),
             const SizedBox(height: 12),
             FilledButton.icon(

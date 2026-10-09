@@ -63,7 +63,9 @@ void main() {
     });
   });
 
-  testWidgets('o campo de procura anuncia-se uma vez, não duas', (tester) async {
+  testWidgets('o campo de procura anuncia-se uma vez, não duas', (
+    tester,
+  ) async {
     // Era isto que o `Semantics` a mais fazia: dois nós encaixados com o mesmo
     // rectângulo, um a dizer «Quem procurar» e outro a dizer o resto. Quem ouve
     // o ecrã ouvia o campo duas vezes, com nomes diferentes.
@@ -86,7 +88,9 @@ void main() {
     });
   });
 
-  testWidgets('começa por dizer que nada se apaga sem procurar', (tester) async {
+  testWidgets('começa por dizer que nada se apaga sem procurar', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       const ProviderScope(child: MaterialApp(home: DadosPessoaisScreen())),
     );

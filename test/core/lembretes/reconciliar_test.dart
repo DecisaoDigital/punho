@@ -51,7 +51,11 @@ void main() {
       isEmpty,
     );
     expect(
-      reconciliar([reuniao('a', inicio: DateTime(2026, 10, 20, 9, 10))], 'u1', agora),
+      reconciliar(
+        [reuniao('a', inicio: DateTime(2026, 10, 20, 9, 10))],
+        'u1',
+        agora,
+      ),
       isEmpty,
     );
     expect(
@@ -71,7 +75,10 @@ void main() {
     );
     final muitas = [
       for (var i = 0; i < 60; i++)
-        reuniao('r$i', inicio: DateTime(2026, 10, 21).add(Duration(hours: i + 1))),
+        reuniao(
+          'r$i',
+          inicio: DateTime(2026, 10, 21).add(Duration(hours: i + 1)),
+        ),
     ];
     final plano = reconciliar(muitas, 'u1', agora);
     expect(plano, hasLength(50));

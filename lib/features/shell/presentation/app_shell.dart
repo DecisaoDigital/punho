@@ -466,7 +466,8 @@ class _SidebarItem extends ConsumerWidget {
         ? ref.watch(contagemTarefasPendentesProvider)
         : conflitos;
     final urgente =
-        (item == AppDestination.tasks && ref.watch(tarefasTemUrgenteProvider)) ||
+        (item == AppDestination.tasks &&
+            ref.watch(tarefasTemUrgenteProvider)) ||
         conflitos > 0;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),

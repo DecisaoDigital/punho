@@ -88,6 +88,5 @@ class _Servico implements EmpresaSyncService {
       const ResultadoDaFicha.entregue();
 
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      super.noSuchMethod(invocation);
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
