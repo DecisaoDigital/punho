@@ -699,6 +699,37 @@ class OperationsController extends Notifier<OperationsState> {
     state = _fromRepo();
   }
 
+  /// A tabela de preços é da categoria: todas as máquinas (não arquivadas)
+  /// dessa categoria passam a ter esta.
+  void aplicarTarifasACategoria(String categoria, List<Tarifa> tarifas) {
+    final alvo = categoria.trim().toLowerCase();
+    for (final m in state.machines) {
+      if (m.archived || m.category.trim().toLowerCase() != alvo) continue;
+      if (_mesmasTarifas(m.tarifas, tarifas)) continue;
+      _repo.saveMachine(m.copyWith(tarifas: tarifas));
+    }
+    state = _fromRepo();
+  }
+
+  static bool _mesmasTarifas(List<Tarifa> a, List<Tarifa> b) =>
+      a.length == b.length &&
+      [for (var i = 0; i < a.length; i++) a[i] == b[i]].every((x) => x);
+
+  /// Uma máquina livre da [categoria] no período (a primeira, por ordem de
+  /// cadastro), ou `null`. É a regra que a reserva por categoria usa: quem
+  /// regista diz a categoria que o cliente precisa e o sistema escolhe.
+  Machine? maquinaLivreDaCategoria(
+    String categoria,
+    DateTime start,
+    DateTime end,
+  ) {
+    final alvo = categoria.trim().toLowerCase();
+    return state.machines
+        .where((m) => m.category.trim().toLowerCase() == alvo)
+        .where((m) => machineAvailable(m.id, start, end))
+        .firstOrNull;
+  }
+
   /// Diz quem trata esta lead (`Collaborator.id`), ou `null` para a devolver
   /// à caixa «por atribuir».
   void atribuirLead(String leadId, String? colaboradorId) {

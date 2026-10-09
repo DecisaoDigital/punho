@@ -1779,6 +1779,20 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
   // contar dias alugados, mas não como dizer se isso compensou o que a
   // máquina custou. Opcionais os dois — quem não souber grava a máquina na
   // mesma, e a célula continua "Por apurar", agora com o motivo certo.
+  // Tabela de preços por período (opcional): 1, 3, 7 e 30 dias.
+  static const _periodosDaTabela = [1, 3, 7, 30];
+  late final Map<int, TextEditingController> tabela = {
+    for (final d in _periodosDaTabela)
+      d: TextEditingController(
+        text:
+            (current?.tarifas
+                        .where((t) => t.dias == d)
+                        .map((t) => (t.cents / 100).toStringAsFixed(2))
+                        .firstOrNull) ??
+                '',
+      ),
+  };
+  var aplicarACategoria = true;
   late final purchasePrice = TextEditingController(
     text: current?.purchasePriceCents == null
         ? ''
@@ -1796,6 +1810,12 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
       ? MachineStatus.available
       : current?.status ?? MachineStatus.available;
 
+  List<Tarifa> _tarifasDoFormulario() => [
+    for (final d in _periodosDaTabela)
+      if ((centsDeTexto(tabela[d]!.text) ?? 0) > 0)
+        Tarifa(dias: d, cents: centsDeTexto(tabela[d]!.text)!),
+  ];
+
   /// Recusa mostrada dentro do formulário, logo por cima do rodapé.
   String? erro;
 
@@ -1805,6 +1825,9 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
     reference.dispose();
     category.dispose();
     dailyRate.dispose();
+    for (final c in tabela.values) {
+      c.dispose();
+    }
     purchasePrice.dispose();
     notes.dispose();
     photoPaths.dispose();
@@ -1865,6 +1888,29 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
     final notasEFotos = <Widget>[
       CampoDeTexto(controlador: notes, rotulo: 'Notas / manutenção', linhas: 3),
       CampoLargo(_FotografiasDaMaquina(photoPaths: photoPaths)),
+      CampoLargo(
+        Text(
+          'Tabela de preços por período (opcional)',
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+      ),
+      for (final d in _periodosDaTabela)
+        CampoDeTexto(
+          controlador: tabela[d]!,
+          rotulo: d == 1 ? '1 dia (€)' : (d == 30 ? '1 mês — 30 dias (€)' : '$d dias (€)'),
+          teclado: const TextInputType.numberWithOptions(decimal: true),
+        ),
+      CampoLargo(
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Aplicar a toda a categoria'),
+          subtitle: const Text(
+            'Todas as máquinas desta categoria ficam com a mesma tabela.',
+          ),
+          value: aplicarACategoria,
+          onChanged: (v) => setState(() => aplicarACategoria = v),
+        ),
+      ),
     ];
 
     return EcraDeFormulario(
@@ -1893,6 +1939,7 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
                 purchasePriceCents: centsDeTexto(purchasePrice.text),
                 notes: notes.text.trim(),
                 photoPaths: photoPaths.value,
+                tarifas: _tarifasDoFormulario(),
               )
             : Machine(
                 id: 'm${DateTime.now().microsecondsSinceEpoch}',
@@ -1905,8 +1952,17 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
                 purchasePriceCents: centsDeTexto(purchasePrice.text),
                 notes: notes.text.trim(),
                 photoPaths: photoPaths.value,
+                tarifas: _tarifasDoFormulario(),
               );
         widget.notifier.saveMachine(machine);
+        if (aplicarACategoria &&
+            machine.tarifas.isNotEmpty &&
+            machine.category.trim().isNotEmpty) {
+          widget.notifier.aplicarTarifasACategoria(
+            machine.category,
+            machine.tarifas,
+          );
+        }
         // Depois de gravar, e nunca antes: quem tira uma fotografia da lista e
         // depois carrega em Cancelar tem de a manter. Sem `await` porque o
         // arquivo não pode atrasar o fecho do diálogo — e se falhar, fica lixo

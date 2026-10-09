@@ -24,6 +24,27 @@ double diasDeAluguer(DateTime startsAt, DateTime endsAt) {
   return minutos <= 0 ? 0 : minutos / (60 * 24);
 }
 
+/// Quanto custa alugar [dias] dias com esta tabela: o conjunto de pacotes mais
+/// barato que **cobre** esses dias (pode sobrar). `null` sem tabela.
+///
+/// Ex.: com 1 dia 80 €, 3 dias 140 € e 30 dias 500 €, 2 dias custam 140 € (um
+/// pacote de 3, mais barato que dois de 1) e 31 dias custam 580 € (mês + dia).
+int? precoDaTabelaPorPeriodo(List<Tarifa> tabela, int dias) {
+  final validas = tabela.where((t) => t.dias > 0 && t.cents > 0).toList();
+  if (validas.isEmpty || dias <= 0) return null;
+  final custo = List<int>.filled(dias + 1, 0);
+  for (var i = 1; i <= dias; i++) {
+    var melhor = 1 << 60;
+    for (final t in validas) {
+      final resto = i - t.dias;
+      final c = t.cents + custo[resto < 0 ? 0 : resto];
+      if (c < melhor) melhor = c;
+    }
+    custo[i] = melhor;
+  }
+  return custo[dias];
+}
+
 /// O valor à tabela de [maquinas] no período, ou `null` quando não há tabela.
 ///
 /// `null` quer dizer «não sei», e é o que deixa o campo em branco: uma máquina
@@ -41,6 +62,12 @@ int? valorPrevistoDaTabela(
   if (dias <= 0) return null;
   var total = 0.0;
   for (final maquina in lista) {
+    // Tabela por período manda; sem ela vale o preço diário.
+    final porPeriodo = precoDaTabelaPorPeriodo(maquina.tarifas, dias.ceil());
+    if (porPeriodo != null) {
+      total += porPeriodo;
+      continue;
+    }
     final preco = maquina.dailyRateCents;
     if (preco == null || preco <= 0) return null;
     total += preco * dias;

@@ -946,7 +946,21 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'notes': item.notes,
     'photoPaths': item.photoPaths,
     'archived': item.archived,
+    // Só se escreve quando há tabela: uma chave `[]` nas máquinas antigas
+    // contava como «alteração» para o servidor e travava o operador.
+    if (item.tarifas.isNotEmpty)
+      'tarifas': [
+        for (final t in item.tarifas) {'dias': t.dias, 'cents': t.cents},
+      ],
   };
+
+  @visibleForTesting
+  static Map<String, Object?> machineToJson(Machine item) =>
+      _machineToJson(item);
+
+  @visibleForTesting
+  static Machine machineFromJson(Map<String, dynamic> data) =>
+      _machineFromJson(data);
 
   static Machine _machineFromJson(Map<String, dynamic> data) => Machine(
     id: _string(data, 'id'),
@@ -964,6 +978,16 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
         ? List<String>.from(data['photoPaths'] as List)
         : const [],
     archived: _bool(data, 'archived'),
+    tarifas: data['tarifas'] is List
+        ? [
+            for (final t in data['tarifas'] as List)
+              if (t is Map && t['dias'] is num && t['cents'] is num)
+                Tarifa(
+                  dias: (t['dias'] as num).toInt(),
+                  cents: (t['cents'] as num).toInt(),
+                ),
+          ]
+        : const [],
   );
 
   static Map<String, Object?> _historicalMonthToJson(HistoricalMonth item) => {

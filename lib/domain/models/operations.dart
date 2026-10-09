@@ -106,6 +106,20 @@ String bookingStatusLabel(BookingStatus status) => switch (status) {
   BookingStatus.cancelled => 'Cancelada',
 };
 
+/// Um pacote da tabela de preços de uma máquina: [dias] de aluguer por
+/// [cents]. Ex.: 1 dia 80 €, 3 dias 140 €, 30 dias 500 €.
+class Tarifa {
+  const Tarifa({required this.dias, required this.cents});
+  final int dias, cents;
+
+  @override
+  bool operator ==(Object other) =>
+      other is Tarifa && other.dias == dias && other.cents == cents;
+
+  @override
+  int get hashCode => Object.hash(dias, cents);
+}
+
 class Machine {
   const Machine({
     required this.id,
@@ -119,8 +133,12 @@ class Machine {
     this.notes = '',
     this.photoPaths = const [],
     this.archived = false,
+    this.tarifas = const [],
   });
   final String id, name, reference, category, notes;
+
+  /// Tabela de preços por período. Vazia = só vale o preço diário.
+  final List<Tarifa> tarifas;
   final List<String> photoPaths;
   final MachineStatus status;
   final int? dailyRateCents;
@@ -147,6 +165,7 @@ class Machine {
     String? notes,
     List<String>? photoPaths,
     bool? archived,
+    List<Tarifa>? tarifas,
   }) => Machine(
     id: id,
     name: name ?? this.name,
@@ -159,6 +178,7 @@ class Machine {
     notes: notes ?? this.notes,
     photoPaths: photoPaths ?? this.photoPaths,
     archived: archived ?? this.archived,
+    tarifas: tarifas ?? this.tarifas,
   );
 }
 
