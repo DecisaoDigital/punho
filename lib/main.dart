@@ -1,6 +1,7 @@
 import 'core/avisos/avisos_de_leads.dart';
 import 'core/lembretes/lembretes_providers.dart';
 import 'dart:async';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'dart:io';
 import 'dart:ui';
 
@@ -207,6 +208,10 @@ class _FistAppState extends ConsumerState<FistApp> {
       title: 'Fist',
       debugShowCheckedModeBanner: false,
       theme: FistTheme.light,
+      // Sem isto os seletores do sistema (data) saem em inglês.
+      locale: const Locale('pt', 'PT'),
+      supportedLocales: const [Locale('pt', 'PT')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: _splashTerminou
           ? comAviso
           : SplashFist(

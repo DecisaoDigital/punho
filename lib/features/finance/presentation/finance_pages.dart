@@ -171,8 +171,14 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
               DropdownButtonFormField(
                 isExpanded: true,
                 initialValue: category,
+                decoration: const InputDecoration(labelText: 'Categoria'),
                 items: ExpenseCategory.values
-                    .map((x) => DropdownMenuItem(value: x, child: Text(x.name)))
+                    .map(
+                      (x) => DropdownMenuItem(
+                        value: x,
+                        child: Text(expenseCategoryLabel(x)),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => category = v!),
               ),
@@ -468,8 +474,16 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
               DropdownButtonFormField(
                 isExpanded: true,
                 initialValue: method,
-                items: PaymentMethod.values
-                    .map((x) => DropdownMenuItem(value: x, child: Text(x.name)))
+                decoration: const InputDecoration(
+                  labelText: 'Método de pagamento',
+                ),
+                items: metodosDeRecebimento
+                    .map(
+                      (x) => DropdownMenuItem(
+                        value: x,
+                        child: Text(paymentMethodLabel(x)),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => method = v!),
               ),

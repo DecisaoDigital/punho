@@ -129,6 +129,24 @@ enum ExpensePaymentStatus { paid, unpaid }
 
 enum PaymentMethod { cash, transfer, mbWay, multibanco, other }
 
+/// Rótulo do método de pagamento, em português e num sítio só.
+String paymentMethodLabel(PaymentMethod metodo) => switch (metodo) {
+  PaymentMethod.cash => 'A dinheiro',
+  PaymentMethod.transfer => 'Transferência bancária',
+  PaymentMethod.mbWay => 'MB Way',
+  PaymentMethod.multibanco => 'Multibanco',
+  // Já não se oferece ao registar; fica para ler recebimentos antigos.
+  PaymentMethod.other => 'Outro',
+};
+
+/// Métodos que se oferecem ao registar um recebimento.
+const metodosDeRecebimento = [
+  PaymentMethod.cash,
+  PaymentMethod.transfer,
+  PaymentMethod.mbWay,
+  PaymentMethod.multibanco,
+];
+
 enum DocumentDataSource { manual, qr, ocr, mixed }
 
 sealed class LedgerMovement {
