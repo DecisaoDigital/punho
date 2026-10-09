@@ -34,6 +34,8 @@ BookingStatus estadoPeloRelogio(Booking reserva, DateTime agora) {
 List<Booking> reservasAAvancar(Iterable<Booking> reservas, DateTime agora) {
   final mexidas = <Booking>[];
   for (final reserva in reservas) {
+    // Reunião não é aluguer: nunca fica «Em aluguer» nem «Concluída» pelo relógio.
+    if (reserva.eReuniao) continue;
     final devido = estadoPeloRelogio(reserva, agora);
     if (devido != reserva.status) {
       mexidas.add(reserva.copyWith(status: devido));

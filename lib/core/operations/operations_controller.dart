@@ -28,6 +28,9 @@ final operationsProvider =
 
 const minimumBookingDuration = Duration(hours: 12);
 
+/// Uma reunião dura sempre uma hora; o utilizador só escolhe quando começa.
+const duracaoDaReuniao = Duration(hours: 1);
+
 /// Valor a escrever num campo opcional.
 ///
 /// Existe para distinguir **não mexer** (não passar o parâmetro) de **apagar**
@@ -71,6 +74,7 @@ class OperationsState {
     this.customers = const [],
     this.leads = const [],
     this.bookings = const [],
+    this.reunioes = const [],
     this.expenses = const [],
     this.receipts = const [],
     this.collaborators = const [],
@@ -132,6 +136,11 @@ class OperationsState {
   final List<Customer> customers;
   final List<Lead> leads;
   final List<Booking> bookings;
+
+  /// Reuniões do calendário (`BookingTipo.reuniao`). Ficam FORA de [bookings]
+  /// de propósito: uma reunião não é aluguer, e quase tudo o que lê `bookings`
+  /// (KPIs, tarefas, passos, conflitos) conta máquinas e dinheiro.
+  final List<Booking> reunioes;
   final List<Expense> expenses;
   final List<Receipt> receipts;
   final List<Collaborator> collaborators;
@@ -193,6 +202,7 @@ class OperationsState {
     List<Customer>? customers,
     List<Lead>? leads,
     List<Booking>? bookings,
+    List<Booking>? reunioes,
     List<Expense>? expenses,
     List<Receipt>? receipts,
     List<Collaborator>? collaborators,
@@ -227,6 +237,7 @@ class OperationsState {
     customers: customers ?? this.customers,
     leads: leads ?? this.leads,
     bookings: bookings ?? this.bookings,
+    reunioes: reunioes ?? this.reunioes,
     expenses: expenses ?? this.expenses,
     receipts: receipts ?? this.receipts,
     collaborators: collaborators ?? this.collaborators,
@@ -267,6 +278,7 @@ class OperationsController extends Notifier<OperationsState> {
       customers: _repo.customers,
       leads: _repo.leads,
       bookings: _bookingsComORelogio(),
+      reunioes: _reunioesDoRepo(),
       expenses: _repo.expenses,
       receipts: _repo.receipts,
       collaborators: _repo.collaborators,
@@ -283,21 +295,28 @@ class OperationsController extends Notifier<OperationsState> {
   ///
   /// Não escreve nada quando não há nada a mexer, que é o caso comum.
   List<Booking> _bookingsComORelogio() {
-    final doRepo = _repo.bookings;
-    final mexidas = reservasAAvancar(doRepo, ref.read(relogioProvider)());
-    if (mexidas.isEmpty) return doRepo;
-    for (final reserva in mexidas) {
-      _repo.saveBooking(reserva);
+    final mexidas = reservasAAvancar(
+      _repo.bookings,
+      ref.read(relogioProvider)(),
+    );
+    if (mexidas.isNotEmpty) {
+      for (final reserva in mexidas) {
+        _repo.saveBooking(reserva);
+      }
+      _syncMachineCycle(mexidas.expand((r) => r.machineIds).toSet().toList());
     }
-    _syncMachineCycle(mexidas.expand((r) => r.machineIds).toSet().toList());
-    return _repo.bookings;
+    return _repo.bookings.where((b) => !b.eReuniao).toList();
   }
+
+  List<Booking> _reunioesDoRepo() =>
+      _repo.bookings.where((b) => b.eReuniao).toList();
 
   OperationsState _fromRepo() => state.copyWith(
     machines: _repo.machines,
     customers: _repo.customers,
     leads: _repo.leads,
     bookings: _bookingsComORelogio(),
+    reunioes: _reunioesDoRepo(),
     expenses: _repo.expenses,
     receipts: _repo.receipts,
     collaborators: _repo.collaborators,
@@ -548,6 +567,7 @@ class OperationsController extends Notifier<OperationsState> {
     customers: state.customers,
     leads: state.leads,
     bookings: state.bookings,
+    reunioes: state.reunioes,
     expenses: state.expenses,
     receipts: state.receipts,
     collaborators: state.collaborators,
@@ -891,6 +911,65 @@ class OperationsController extends Notifier<OperationsState> {
     return !m.archived &&
         m.status != MachineStatus.maintenance &&
         conflictFor(machineIds: [id], startsAt: start, endsAt: end) == null;
+  }
+
+  /// Marca uma reunião com um cliente. Não é aluguer: sem máquina, sem preço,
+  /// sem conflitos, sem lead; nasce confirmada e dura [duracaoDaReuniao].
+  /// [criadoPorUid] é a conta de quem marca — é nela que o alarme toca.
+  Booking agendarReuniao({
+    required String customerId,
+    required DateTime inicio,
+    int? lembreteMinutos,
+    String notes = '',
+    String? criadoPorUid,
+  }) {
+    final cliente = state.customers.firstWhere((c) => c.id == customerId);
+    final reuniao = Booking(
+      id: 'reuniao-${DateTime.now().microsecondsSinceEpoch}',
+      customerId: customerId,
+      machineIds: const [],
+      startsAt: inicio,
+      endsAt: inicio.add(duracaoDaReuniao),
+      status: BookingStatus.confirmed,
+      notes: notes,
+      customerNameSnapshot: cliente.name,
+      tipo: BookingTipo.reuniao,
+      lembreteMinutos: lembreteMinutos,
+      criadoPorUid: criadoPorUid,
+    );
+    _repo.saveBooking(reuniao);
+    state = _fromRepo();
+    return reuniao;
+  }
+
+  /// Muda a hora de uma reunião (e o lembrete, se vier). A duração mantém-se.
+  void remarcarReuniao(String id, DateTime inicio, {int? lembreteMinutos}) {
+    final atual = state.reunioes.firstWhere((r) => r.id == id);
+    final duracao = atual.endsAt.difference(atual.startsAt);
+    _repo.saveBooking(
+      Booking(
+        id: atual.id,
+        customerId: atual.customerId,
+        machineIds: atual.machineIds,
+        startsAt: inicio,
+        endsAt: inicio.add(duracao),
+        status: atual.status,
+        notes: atual.notes,
+        companyId: atual.companyId,
+        customerNameSnapshot: atual.customerNameSnapshot,
+        collaboratorNameSnapshot: atual.collaboratorNameSnapshot,
+        tipo: atual.tipo,
+        lembreteMinutos: lembreteMinutos ?? atual.lembreteMinutos,
+        criadoPorUid: atual.criadoPorUid,
+      ),
+    );
+    state = _fromRepo();
+  }
+
+  void cancelarReuniao(String id) {
+    final atual = state.reunioes.firstWhere((r) => r.id == id);
+    _repo.saveBooking(atual.copyWith(status: BookingStatus.cancelled));
+    state = _fromRepo();
   }
 
   BookingConflict? addBooking(Booking booking) {
