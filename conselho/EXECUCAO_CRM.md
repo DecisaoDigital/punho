@@ -18,5 +18,5 @@ Mandato: fazer por etapas até tudo implantado e testado no telemóvel; só cham
 - [x] E8 Leads: estado «qualificada», origem «prospecção própria», cliente existente (E.164) não vira lead, conversão ao fecho, operador responsável no cliente
 - [x] E9 (policy aplicada à DB viva, testada em rollback) Atribuição: caixa «por atribuir», tarefa, lista «Para contactar hoje» do operador, visibilidade por atribuído (migration RLS)
 - [x] E10 Categoria de máquina + tabela de preços por período (aguarda 2 respostas do César: períodos intermédios, máquina B) — usar recomendações se não responder: pacote mais barato que cubra; B = categoria à parte
-- [x] E11 (camada 1 feita; camada 2 FCM à espera do google-services.json) Push: camada 1 (app aberta, campainha) e camada 2 (FCM; precisa do google-services.json do Punho)
+- [x] E11 Push: camada 1 (app aberta) e camada 2 (FCM, Firebase punho-fist, edge function punho-push, segredo PUNHO_FCM_SERVICE_ACCOUNT_JSON). Provado no Redmi a 9/10: lead criada pelo operador por REST → «Lead nova» no ecrã bloqueado, app em segundo plano. Por provar: atribuição a operador num 2.º aparelho, app morta de vez.
 - [x] E12 Prova no Redmi: alarme exacto dispara com ecrã bloqueado e com o processo morto (am kill); reboot e fluxo com dados reais por testar. Commit feito.
