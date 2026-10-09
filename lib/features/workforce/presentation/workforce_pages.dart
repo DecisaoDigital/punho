@@ -320,6 +320,10 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
   /// fecha depois de o gestor ler.
   String? erro;
 
+  /// Id fixo do colaborador novo: com o aviso de limite o diálogo fica aberto,
+  /// e um segundo "Guardar" tem de regravar o mesmo registo, não criar outro.
+  late final String _idNovo = 'co${DateTime.now().microsecondsSinceEpoch}';
+
   @override
   void dispose() {
     name.dispose();
@@ -485,7 +489,7 @@ class _FormularioDeColaboradorState extends State<_FormularioDeColaborador> {
                   dependents: dependentes,
                 )
               : Collaborator(
-                  id: 'co${DateTime.now().microsecondsSinceEpoch}',
+                  id: _idNovo,
                   name: name.text.trim(),
                   status: CollaboratorStatus.active,
                   phone: _semVazio(phone.text),
