@@ -200,6 +200,18 @@ Deno.serve(async (req) => {
     licenca = criada;
   }
 
+  // O Control mostra a licença pelo `nome`. A linha adoptada vem do tempo em que
+  // a licença era do aparelho e pode não ter nenhum: passa a ter o da empresa.
+  if (!licenca.nome || String(licenca.nome).trim() === '') {
+    const { data: comNome } = await db
+      .from('licencas')
+      .update({ nome: empresa.nome })
+      .eq('id', licenca.id)
+      .select('*')
+      .single();
+    if (comNome) licenca = comNome;
+  }
+
   const dias = diasRestantes(String(licenca.validade), agora);
   let estado: 'activa' | 'expirada' | 'inactiva' = 'activa';
   if (licenca.activa === false) estado = 'inactiva';
