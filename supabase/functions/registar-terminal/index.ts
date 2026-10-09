@@ -59,6 +59,58 @@ const DIAS_GRACA: Record<AppName, number> = {
 // instalar na mesma manhã, atrás do mesmo NAT, e trava quem esteja a varrer.
 const MAX_CRIACOES_POR_IP_HORA = 10;
 
+/** PKCS#8 em base64 (corpo do PEM). O mesmo secret da `assinar-licenca`. */
+const PRIVADA_B64 = Deno.env.get('LICENCA_ED25519_PRIVATE_KEY') ?? '';
+
+/** Versão de assinatura que esta função emite (Ed25519). */
+const VERSAO_ASSINATURA = 2;
+
+function b64ParaBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+function bytesParaB64(bytes: Uint8Array): string {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
+/// Assina a base do trial (`nif|machine_id|validade|plano`, sem série nem chave
+/// mestre — um trial ainda não pertence a empresa nenhuma). A MESMA base que o
+/// POS (`licenca_assinatura.dart::baseAssinatura`) e a `assinar-licenca`
+/// montam. Devolve `null` se não houver chave ou a assinatura falhar: o registo
+/// do terminal não pode falhar por isto — a linha em `licencas` é o que conta e
+/// o POS sabe arrancar sem ficheiro local.
+async function assinarTrial(base: string): Promise<string | null> {
+  if (PRIVADA_B64 === '') {
+    console.error('LICENCA_ED25519_PRIVATE_KEY em falta — trial sem assinatura');
+    return null;
+  }
+  try {
+    const chave = await crypto.subtle.importKey(
+      'pkcs8',
+      b64ParaBytes(PRIVADA_B64),
+      { name: 'Ed25519' },
+      false,
+      ['sign'],
+    );
+    const bytes = new Uint8Array(
+      await crypto.subtle.sign(
+        { name: 'Ed25519' },
+        chave,
+        new TextEncoder().encode(base),
+      ),
+    );
+    return bytesParaB64(bytes);
+  } catch (e) {
+    console.error('erro a assinar trial', e);
+    return null;
+  }
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
@@ -279,11 +331,14 @@ Deno.serve(async (req) => {
     .toISOString()
     .slice(0, 10);
 
+  const nifTrial = nifRecebido ?? '000000000';
+  const planoTrial = 'trial';
+
   const { error: erroInsert } = await supabase.from('licencas').insert({
     machine_id: machineId,
     app: appTyped,
-    nif: nifRecebido ?? '000000000',
-    plano: 'trial',
+    nif: nifTrial,
+    plano: planoTrial,
     validade,
     activa: true,
     oferta: true,
@@ -311,11 +366,26 @@ Deno.serve(async (req) => {
     .delete()
     .lt('criado_em', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
+  // Só o POS usa `licenca.json`. O trial vai assinado daqui para o terminal o
+  // gravar como cache offline sem ter de saber assinar (a chave sai do binário).
+  const assinatura =
+    appTyped === 'pos'
+      ? await assinarTrial(
+          `${nifTrial}|${machineId}|${validade}|${planoTrial}`,
+        )
+      : null;
+
   return json(200, {
     criado: true,
     app: appTyped,
     validade,
     dias_graca: dias,
+    // `null` se o servidor não tiver chave: o POS trata como "não gravo ficheiro
+    // nenhum", nunca como licença inválida.
+    assinatura,
+    versao_assinatura: assinatura === null ? null : VERSAO_ASSINATURA,
+    nif: nifTrial,
+    plano: planoTrial,
     mensagem: `Terminal registado com ${dias} dias de graça. Contactar Cesar para activar plano definitivo.`,
   });
 });
