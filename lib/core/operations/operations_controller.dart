@@ -688,6 +688,12 @@ class OperationsController extends Notifier<OperationsState> {
   /// Uma lead é alguém que ainda não é cliente. Quem já tem ficha (mesmo
   /// telemóvel, ignorando espaços e o +351) não entra como lead: é uma reserva
   /// nova, com o operador responsável por esse cliente.
+  final Set<String> _leadsCriadasAqui = {};
+
+  /// Ids das leads registadas neste aparelho: o aviso de «lead nova» não deve
+  /// tocar a quem acabou de a escrever.
+  Set<String> get leadsCriadasAqui => Set.unmodifiable(_leadsCriadasAqui);
+
   void addLead(Lead item) {
     final jaCliente = clienteComTelemovel(item.phone);
     if (jaCliente != null) {
@@ -696,6 +702,7 @@ class OperationsController extends Notifier<OperationsState> {
       );
     }
     _repo.saveLead(item);
+    _leadsCriadasAqui.add(item.id);
     state = _fromRepo();
   }
 

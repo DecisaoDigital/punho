@@ -1,3 +1,4 @@
+import 'core/avisos/avisos_de_leads.dart';
 import 'core/lembretes/lembretes_providers.dart';
 import 'dart:async';
 import 'dart:io';
@@ -175,11 +176,13 @@ class _FistAppState extends ConsumerState<FistApp> {
     // quando foi usado nem que versão lá está agora.
     ref.watch(pingsProvider);
     final Widget destino = CadeadoGate(
-      child: ObservadorDeLembretes(
-        child: FistUpdateBannerWrapper(
-          child: SupabaseConfig.enabled
-              ? const LicencaFistGate(child: AuthGate())
-              : const AppShell(),
+      child: ObservadorDeLeadsNovas(
+        child: ObservadorDeLembretes(
+          child: FistUpdateBannerWrapper(
+            child: SupabaseConfig.enabled
+                ? const LicencaFistGate(child: AuthGate())
+                : const AppShell(),
+          ),
         ),
       ),
     );
@@ -197,6 +200,7 @@ class _FistAppState extends ConsumerState<FistApp> {
             child: destino,
           );
     return MaterialApp(
+      scaffoldMessengerKey: mensageiroGlobal,
       title: 'Fist',
       debugShowCheckedModeBanner: false,
       theme: FistTheme.light,
