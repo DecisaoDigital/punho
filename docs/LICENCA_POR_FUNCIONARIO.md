@@ -79,8 +79,37 @@ um trial duplicado por funcionário.
 5. Prova no Redmi, com toques reais, de **dois telemóveis na mesma conta** e de **troca de
    telemóvel** sem trial novo.
 
+## Quem paga, e os dispositivos (decisões de 2026-10-09)
+
+**Quem paga é sempre a empresa.** O funcionário nunca paga nem escolhe plano. A licença é
+dele (uma por email), mas o plano e a validade são da empresa. O número de lugares é o limite
+que autorizas no Control (`limite-de-colaboradores`): quem ultrapassa o limite cadastra-se mas
+não acede, como já é hoje.
+
+**Cada funcionário: no máximo 2 dispositivos, e nunca os dois ao mesmo tempo. Se um abre, o
+outro fecha.**
+
+Isto precisa de duas peças que ainda não existem:
+
+1. **Lista de dispositivos da conta** — nova tabela (`fist_dispositivos`: `user_id`,
+   `machine_id`, `nome`, `visto_em`). Um 3.º dispositivo é recusado com «Esta conta já usa 2
+   aparelhos. Contacte a WashControl»; quem liberta um lugar és tu, no Control.
+2. **Sessão única** — a conta tem uma só sessão ativa (`machine_id` + um número de sessão novo
+   a cada abertura). Ao abrir, o aparelho **reclama** a sessão; o outro, ao validar ou ao
+   voltar ao primeiro plano, vê que perdeu e fecha com «Sessão aberta noutro aparelho».
+   Para o aviso chegar depressa usa-se a campainha em tempo real que o Fist já tem
+   (`punho_campainha_tempo_real.sql`), com a validação periódica como rede de segurança.
+
+**A brecha que tens de aceitar:** um aparelho **sem rede** não recebe o aviso. Com a graça de
+5 dias, o aparelho A pode continuar a trabalhar offline enquanto o B está ativo, e as duas
+sessões coexistem até A voltar à rede. O Fist já tem um log de operações e resolução de
+conflitos, por isso não se perde dados, mas a regra «nunca os dois ao mesmo tempo» só é firme
+com rede. Alternativa mais dura: graça offline do Fist mais curta (por exemplo 1 dia).
+
 ## Perguntas ainda abertas
 
-- Um funcionário pode usar dois telemóveis ao mesmo tempo? Pela regra «nunca presa ao
-  dispositivo» a resposta é sim; fica assumido até dizeres o contrário.
-- Quem paga: o funcionário ou a empresa (ver «No Control»).
+- **Trial por empresa ou por email?** Se for por email, uma empresa ganha 40 dias de graça
+  para cada funcionário novo, indefinidamente. Recomendo: o trial é **da empresa**, começa no
+  primeiro funcionário e acaba para todos no mesmo dia.
+- **Graça offline do Fist:** 5 dias como no WashInvoice, ou mais curta por causa da sessão
+  única?
