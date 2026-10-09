@@ -23,9 +23,11 @@
    repete o trial.
 4. A identidade vem **sempre do token** (`auth.getUser(jwt)`), nunca do corpo do pedido —
    é a regra já seguida em `sincronizar-empresa-punho` e `gerir-licenca`.
-5. Sem rede: uns dias de graça com a última validação guardada, depois bloqueia. Mesma regra
-   do WashInvoice (5 dias, repostos por uma validação do servidor com sucesso). **A verificar**
-   se o Fist já guarda a data da última validação; não li o código por inteiro.
+5. **Sem rede: 28 horas.** O Fist guarda a hora da última validação do servidor com sucesso;
+   passadas 28 horas sem nova validação, bloqueia («contacte a WashControl»). Cada resposta do
+   servidor repõe o relógio. As 28 horas (e não 24) são decisão do Cesar, para lhe darem tempo
+   de corrigir uma avaria. É mais apertado do que as 5 dias do WashInvoice. **A verificar:** o
+   Fist ainda não guarda essa hora (não há cache de validação no código que li).
 
 ## Mudança de dados (proposta — precisa de ok antes de aplicar em produção)
 
@@ -104,12 +106,10 @@ Isto precisa de duas peças que ainda não existem:
 5 dias, o aparelho A pode continuar a trabalhar offline enquanto o B está ativo, e as duas
 sessões coexistem até A voltar à rede. O Fist já tem um log de operações e resolução de
 conflitos, por isso não se perde dados, mas a regra «nunca os dois ao mesmo tempo» só é firme
-com rede. Alternativa mais dura: graça offline do Fist mais curta (por exemplo 1 dia).
+com rede. Por isso a graça offline do Fist é curta: 28 horas.
 
 ## Perguntas ainda abertas
 
 - **Trial por empresa ou por email?** Se for por email, uma empresa ganha 40 dias de graça
   para cada funcionário novo, indefinidamente. Recomendo: o trial é **da empresa**, começa no
   primeiro funcionário e acaba para todos no mesmo dia.
-- **Graça offline do Fist:** 5 dias como no WashInvoice, ou mais curta por causa da sessão
-  única?
