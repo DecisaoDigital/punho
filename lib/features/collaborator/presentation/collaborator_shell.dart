@@ -287,7 +287,8 @@ void _paraContactar(BuildContext c, WidgetRef ref, String id) {
                       trailing: IconButton(
                         tooltip: 'Ligar',
                         icon: const Icon(Icons.call),
-                        onPressed: () => launchUrl(Uri(scheme: 'tel', path: l.phone)),
+                        onPressed: () =>
+                            launchUrl(Uri(scheme: 'tel', path: l.phone)),
                       ),
                     ),
                 ],

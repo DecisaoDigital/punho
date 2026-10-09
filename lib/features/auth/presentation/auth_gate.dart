@@ -166,12 +166,10 @@ class AcessoGate extends ConsumerWidget {
         },
       );
 
-  Widget _shellDoColaborador(WidgetRef ref, String? ficha) =>
-      CollaboratorShell(
-        collaboratorId:
-            ficha ?? ref.read(acessoServiceProvider).utilizadorId,
-        titulo: 'Colaborador',
-      );
+  Widget _shellDoColaborador(WidgetRef ref, String? ficha) => CollaboratorShell(
+    collaboratorId: ficha ?? ref.read(acessoServiceProvider).utilizadorId,
+    titulo: 'Colaborador',
+  );
 
   Widget _erroPage(WidgetRef ref) => Scaffold(
     body: Center(
