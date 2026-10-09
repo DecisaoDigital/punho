@@ -12,6 +12,7 @@ import '../../core/sync/registo_de_operacoes.dart';
 import '../../core/sync/sincronizacao_entre_dispositivos.dart';
 import '../../data/repositories/operation_repository.dart';
 import '../auth/acesso_providers.dart';
+import '../auth/subscricao_providers.dart';
 import '../conflitos/conflitos_providers.dart';
 
 /// Estado visível da sincronização, para a app poder dizer alguma coisa em vez
@@ -319,6 +320,9 @@ class SyncController extends Notifier<InfoSync> {
     // Um envio pode ter mandado uma reserva em conflito (23P01) para o balde:
     // reavaliar para a aba Estado do gestor o mostrar sem ter de reabrir a app.
     ref.invalidate(conflitosDeReservaProvider);
+    // O limite de vagas é o que o Control autoriza e pode mudar a qualquer
+    // momento; sem isto só se via o novo valor depois de reiniciar a app.
+    ref.invalidate(limiteColaboradoresServidorProvider);
     state = InfoSync(
       estado: resultado.correu ? EstadoSync.emEspera : EstadoSync.falhou,
       pendentes: _registo?.pendentes.length ?? 0,
