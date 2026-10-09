@@ -69,6 +69,11 @@ String leadStatusLabel(LeadStatus estado) => switch (estado) {
   LeadStatus.converted => 'Convertida',
 };
 
+/// O que uma entrada do calendário de Reservas é. Uma reunião não tem
+/// máquina, preço nem recebimentos: partilha o calendário e o log com as
+/// reservas, mas nenhuma conta de aluguer a deve ver.
+enum BookingTipo { maquina, reuniao }
+
 enum BookingStatus {
   request,
   proposalSent,
@@ -308,6 +313,9 @@ class Booking {
     this.customerNameSnapshot = '',
     this.collaboratorNameSnapshot = '',
     this.notes = '',
+    this.tipo = BookingTipo.maquina,
+    this.lembreteMinutos,
+    this.criadoPorUid,
   });
   final String id, customerId, notes;
   final List<String> machineIds;
@@ -317,11 +325,25 @@ class Booking {
   final String? collaboratorResponsibleId;
   final String companyId, customerNameSnapshot, collaboratorNameSnapshot;
 
+  /// Reservas antigas não têm o campo e valem como `maquina`.
+  final BookingTipo tipo;
+
+  /// Só das reuniões: quantos minutos antes avisar; `null` = sem aviso.
+  final int? lembreteMinutos;
+
+  /// Conta de quem marcou (carimbada pelo servidor). É nela, e só nela, que o
+  /// alarme toca. Não confundir com `collaboratorResponsibleId`, que é um
+  /// número do negócio e não a conta.
+  final String? criadoPorUid;
+
+  bool get eReuniao => tipo == BookingTipo.reuniao;
+
   Booking copyWith({
     BookingStatus? status,
     int? expectedValueCents,
     String? notes,
     String? collaboratorResponsibleId,
+    int? lembreteMinutos,
   }) => Booking(
     id: id,
     customerId: customerId,
@@ -336,6 +358,9 @@ class Booking {
     companyId: companyId,
     customerNameSnapshot: customerNameSnapshot,
     collaboratorNameSnapshot: collaboratorNameSnapshot,
+    tipo: tipo,
+    lembreteMinutos: lembreteMinutos ?? this.lembreteMinutos,
+    criadoPorUid: criadoPorUid,
   );
 }
 

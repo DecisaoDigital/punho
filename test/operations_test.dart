@@ -719,6 +719,35 @@ void main() {
       expect(depois.endsAt, DateTime(2026, 10, 17, 12));
     });
 
+    test('remarcar não perde tipo, lembrete nem autor', () {
+      final c = container();
+      addTearDown(c.dispose);
+      final n = controlador(c);
+      n.addBooking(
+        Booking(
+          id: 'r',
+          customerId: 'c1',
+          machineIds: const ['m1'],
+          startsAt: DateTime(2026, 10, 10),
+          endsAt: DateTime(2026, 10, 10, 12),
+          status: BookingStatus.confirmed,
+          tipo: BookingTipo.reuniao,
+          lembreteMinutos: 30,
+          criadoPorUid: 'u9',
+        ),
+      );
+
+      expect(n.remarcarPara('r', DateTime(2026, 10, 17)), isNull);
+
+      final depois = c
+          .read(operationsProvider)
+          .bookings
+          .firstWhere((b) => b.id == 'r');
+      expect(depois.tipo, BookingTipo.reuniao);
+      expect(depois.lembreteMinutos, 30);
+      expect(depois.criadoPorUid, 'u9');
+    });
+
     test('não é conflito consigo própria', () {
       final c = container();
       addTearDown(c.dispose);

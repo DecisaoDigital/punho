@@ -957,6 +957,9 @@ class OperationsController extends Notifier<OperationsState> {
         collaboratorNameSnapshot: booking.collaboratorNameSnapshot.isEmpty
             ? collaboratorName
             : booking.collaboratorNameSnapshot,
+        tipo: booking.tipo,
+        lembreteMinutos: booking.lembreteMinutos,
+        criadoPorUid: booking.criadoPorUid,
       ),
     );
     _ligarLeadAoPrimeiroTrabalho(booking);
@@ -1034,6 +1037,9 @@ class OperationsController extends Notifier<OperationsState> {
         companyId: atual.companyId,
         customerNameSnapshot: atual.customerNameSnapshot,
         collaboratorNameSnapshot: atual.collaboratorNameSnapshot,
+        tipo: atual.tipo,
+        lembreteMinutos: atual.lembreteMinutos,
+        criadoPorUid: atual.criadoPorUid,
       ),
     );
     _syncMachineCycle(atual.machineIds);

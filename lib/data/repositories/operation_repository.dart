@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../domain/models/arranjo_do_painel.dart';
@@ -1073,7 +1074,18 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'customerNameSnapshot': item.customerNameSnapshot,
     'collaboratorNameSnapshot': item.collaboratorNameSnapshot,
     'notes': item.notes,
+    'tipo': item.tipo.name,
+    'lembreteMinutos': item.lembreteMinutos,
+    'criadoPorUid': item.criadoPorUid,
   };
+
+  @visibleForTesting
+  static Map<String, Object?> bookingToJson(Booking item) =>
+      _bookingToJson(item);
+
+  @visibleForTesting
+  static Booking bookingFromJson(Map<String, dynamic> data) =>
+      _bookingFromJson(data);
 
   static Booking _bookingFromJson(Map<String, dynamic> data) => Booking(
     id: _string(data, 'id'),
@@ -1090,6 +1102,14 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     customerNameSnapshot: _string(data, 'customerNameSnapshot'),
     collaboratorNameSnapshot: _string(data, 'collaboratorNameSnapshot'),
     notes: _string(data, 'notes'),
+    // Sem o campo (reservas antigas) ou com um valor que esta versão não
+    // conhece: vale como máquina. `byName` sem rede rebentava com um tipo novo.
+    tipo: BookingTipo.values.firstWhere(
+      (t) => t.name == data['tipo'],
+      orElse: () => BookingTipo.maquina,
+    ),
+    lembreteMinutos: _nullableInt(data['lembreteMinutos']),
+    criadoPorUid: _nullableString(data['criadoPorUid']),
   );
 
   static Map<String, Object?> _expenseToJson(Expense item) => {
