@@ -90,7 +90,12 @@ class _FormularioDeReuniaoState extends ConsumerState<FormularioDeReuniao> {
       lembrete = e.lembreteMinutos;
       notas.text = e.notes;
     } else {
-      final proxima = DateTime(agora.year, agora.month, agora.day, agora.hour + 1);
+      final proxima = DateTime(
+        agora.year,
+        agora.month,
+        agora.day,
+        agora.hour + 1,
+      );
       dia = DateUtils.dateOnly(proxima);
       hora = TimeOfDay(hour: proxima.hour, minute: 0);
       _ultimoLembrete().then((v) {
@@ -160,7 +165,10 @@ class _FormularioDeReuniaoState extends ConsumerState<FormularioDeReuniao> {
             ),
             trailing: const Icon(Icons.schedule_outlined),
             onTap: () async {
-              final h = await showTimePicker(context: context, initialTime: hora);
+              final h = await showTimePicker(
+                context: context,
+                initialTime: hora,
+              );
               if (h != null) setState(() => hora = h);
             },
           ),
@@ -225,13 +233,14 @@ class FaixaDeReunioes extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final agora = ref.watch(relogioProvider)();
-    final proximas = ref
-        .watch(operationsProvider)
-        .reunioes
-        .where((r) => r.status != BookingStatus.cancelled)
-        .where((r) => r.endsAt.isAfter(agora))
-        .toList()
-      ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+    final proximas =
+        ref
+            .watch(operationsProvider)
+            .reunioes
+            .where((r) => r.status != BookingStatus.cancelled)
+            .where((r) => r.endsAt.isAfter(agora))
+            .toList()
+          ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
     if (proximas.isEmpty) return const SizedBox.shrink();
     return SizedBox(
       height: 40,

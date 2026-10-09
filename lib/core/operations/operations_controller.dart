@@ -14,6 +14,7 @@ import '../../domain/models/historical_month.dart';
 final operationRepositoryProvider = Provider<OperationRepository>(
   (ref) => LocalDemoOperationRepository(),
 );
+
 /// O relógio que decide o estado das marcações.
 ///
 /// Existe para ser trocado nos testes. Sem ele, qualquer teste com datas fixas
@@ -684,9 +685,37 @@ class OperationsController extends Notifier<OperationsState> {
     return true;
   }
 
+  /// Uma lead é alguém que ainda não é cliente. Quem já tem ficha (mesmo
+  /// telemóvel, ignorando espaços e o +351) não entra como lead: é uma reserva
+  /// nova, com o operador responsável por esse cliente.
   void addLead(Lead item) {
+    final jaCliente = clienteComTelemovel(item.phone);
+    if (jaCliente != null) {
+      throw StateError(
+        'Já é cliente: ${jaCliente.name}. Marca antes uma reserva.',
+      );
+    }
     _repo.saveLead(item);
     state = _fromRepo();
+  }
+
+  /// Passa a lead para outro estado (contactada, qualificada, perdida...).
+  /// «Convertida» não se marca aqui: vem do fecho (ver [_fecharLeadSeConfirmada]).
+  void setLeadStatus(String leadId, LeadStatus status) {
+    if (status == LeadStatus.converted) return;
+    final atual = state.leads.where((l) => l.id == leadId).firstOrNull;
+    if (atual == null || atual.status == LeadStatus.converted) return;
+    _repo.saveLead(atual.copyWith(status: status));
+    state = _fromRepo();
+  }
+
+  /// O cliente (não arquivado) com este telemóvel, ou `null`.
+  Customer? clienteComTelemovel(String telemovel) {
+    final alvo = telefoneNormalizado(telemovel);
+    if (alvo.isEmpty) return null;
+    return state.customers
+        .where((c) => !c.archived && telefoneNormalizado(c.phone) == alvo)
+        .firstOrNull;
   }
 
   void addCustomer(Customer item) {
@@ -811,7 +840,7 @@ class OperationsController extends Notifier<OperationsState> {
   Customer convertLead(Lead lead) {
     final jaConvertida = state.leads
         .where((item) => item.id == lead.id)
-        .any((item) => item.status == LeadStatus.converted);
+        .any((item) => item.convertedCustomerId != null);
     final existente = state.customers
         .where(
           (customer) => lead.phone.isNotEmpty && customer.phone == lead.phone,
@@ -822,12 +851,7 @@ class OperationsController extends Notifier<OperationsState> {
       // Marca-se na mesma o cliente a que ela corresponde: a conversão não se
       // conclui, mas a origem daquele cliente ficou a saber-se aqui, e é
       // exactamente esse o elo que interessa guardar.
-      _repo.saveLead(
-        lead.copyWith(
-          status: LeadStatus.converted,
-          convertedCustomerId: existente.id,
-        ),
-      );
+      _repo.saveLead(lead.copyWith(convertedCustomerId: existente.id));
       state = _fromRepo();
       throw StateError(
         'Já existe um cliente com o telemóvel desta lead: ${existente.name}.',
@@ -844,12 +868,10 @@ class OperationsController extends Notifier<OperationsState> {
       createdAt: DateTime.now(),
     );
     _repo.saveCustomer(customer);
-    _repo.saveLead(
-      lead.copyWith(
-        status: LeadStatus.converted,
-        convertedCustomerId: customer.id,
-      ),
-    );
+    // Só liga: converter é fechar, e fechar é a reserva (ver
+    // [_ligarLeadAoPrimeiroTrabalho]). Ter a ficha do cliente não é ter o
+    // negócio.
+    _repo.saveLead(lead.copyWith(convertedCustomerId: customer.id));
     state = _fromRepo();
     return customer;
   }
@@ -870,7 +892,29 @@ class OperationsController extends Notifier<OperationsState> {
         )
         .firstOrNull;
     if (lead == null) return;
-    _repo.saveLead(lead.copyWith(bookingId: booking.id));
+    _repo.saveLead(
+      lead.copyWith(
+        bookingId: booking.id,
+        status: _fecha(booking.status) ? LeadStatus.converted : null,
+      ),
+    );
+  }
+
+  static bool _fecha(BookingStatus s) =>
+      s == BookingStatus.confirmed ||
+      s == BookingStatus.rented ||
+      s == BookingStatus.completed;
+
+  /// A reserva que a lead originou passou a confirmada: é o fecho.
+  void _fecharLeadSeConfirmada(Booking booking) {
+    if (!_fecha(booking.status)) return;
+    final lead = _repo.leads
+        .where(
+          (l) => l.bookingId == booking.id && l.status != LeadStatus.converted,
+        )
+        .firstOrNull;
+    if (lead == null) return;
+    _repo.saveLead(lead.copyWith(status: LeadStatus.converted));
   }
 
   BookingConflict? conflictFor({
@@ -1064,6 +1108,7 @@ class OperationsController extends Notifier<OperationsState> {
       }
     }
     _repo.saveBooking(current.copyWith(status: status));
+    _fecharLeadSeConfirmada(current.copyWith(status: status));
     _syncMachineCycle(current.machineIds);
     state = _fromRepo();
     return null;

@@ -31,34 +31,31 @@ void main() {
       expect(segundo.id, primeiro.id);
     });
 
-    test(
-      'converter uma lead com telemóvel de cliente existente é recusado',
-      () {
-        final c = container();
-        addTearDown(c.dispose);
-        final controller = c.read(operationsProvider.notifier);
-        controller.addCustomer(
-          const Customer(id: 'cx', name: 'Já existe', phone: '922 222 222'),
-        );
-        final antes = c.read(operationsProvider).customers.length;
+    test('converter uma lead com telemóvel de cliente existente é recusado', () {
+      final c = container();
+      addTearDown(c.dispose);
+      final controller = c.read(operationsProvider.notifier);
+      // Lead antiga, anterior à ficha do cliente (hoje addLead já a recusava).
+      controller.addLead(lead(phone: '922 222 222'));
+      controller.addCustomer(
+        const Customer(id: 'cx', name: 'Já existe', phone: '922 222 222'),
+      );
+      final antes = c.read(operationsProvider).customers.length;
 
-        controller.addLead(lead(phone: '922 222 222'));
-        expect(
-          () => controller.convertLead(lead(phone: '922 222 222')),
-          throwsA(isA<StateError>()),
-        );
-        // Não cria cliente nenhum, e a lead não fica pendente para sempre.
-        expect(c.read(operationsProvider).customers, hasLength(antes));
-        expect(
-          c
-              .read(operationsProvider)
-              .leads
-              .firstWhere((l) => l.id == 'lead-1')
-              .status,
-          LeadStatus.converted,
-        );
-      },
-    );
+      expect(
+        () => controller.convertLead(lead(phone: '922 222 222')),
+        throwsA(isA<StateError>()),
+      );
+      // Não cria cliente nenhum, e fica a saber-se a que cliente corresponde.
+      // Converter é fechar uma reserva: aqui ainda não houve fecho.
+      expect(c.read(operationsProvider).customers, hasLength(antes));
+      final l = c
+          .read(operationsProvider)
+          .leads
+          .firstWhere((l) => l.id == 'lead-1');
+      expect(l.convertedCustomerId, 'cx');
+      expect(l.status, isNot(LeadStatus.converted));
+    });
 
     test('lead sem telemóvel não colide com clientes sem telemóvel', () {
       final c = container();

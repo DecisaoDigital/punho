@@ -251,6 +251,7 @@ int? monthlyInsuranceCost(Vehicle v) =>
       };
 int? monthlyMaintenanceCost(Vehicle v) =>
     v.maintenanceCents == null ? null : v.maintenanceCents! ~/ 12;
+
 /// Custo mensal do veículo, ou `null` quando falta alguma parcela.
 ///
 /// Devolve `null` de propósito em vez de somar zeros. Um veículo com a

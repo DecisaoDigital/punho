@@ -1002,6 +1002,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'companyId': item.companyId,
     'archived': item.archived,
     'createdAt': item.createdAt?.toIso8601String(),
+    'operadorResponsavelId': item.operadorResponsavelId,
   };
 
   static Customer _customerFromJson(Map<String, dynamic> data) => Customer(
@@ -1025,6 +1026,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     createdAt: _nullableString(data['createdAt']) == null
         ? Customer.dataDoId(_string(data, 'id'))
         : DateTime.parse(_string(data, 'createdAt')),
+    operadorResponsavelId: _nullableString(data['operadorResponsavelId']),
   );
 
   static Map<String, Object?> _leadToJson(Lead item) => {
@@ -1044,10 +1046,14 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     id: _string(data, 'id'),
     name: _string(data, 'name'),
     phone: _string(data, 'phone'),
-    status: LeadStatus.values.byName(_string(data, 'status', 'newLead')),
-    source: _nullableString(data['source']) == null
-        ? null
-        : LeadSource.values.byName(_string(data, 'source')),
+    // Valor que esta versão não conhece (uma versão futura): não rebenta.
+    status: LeadStatus.values.firstWhere(
+      (s) => s.name == _string(data, 'status', 'newLead'),
+      orElse: () => LeadStatus.newLead,
+    ),
+    source: LeadSource.values
+        .where((s) => s.name == _nullableString(data['source']))
+        .firstOrNull,
     createdAt: DateTime.parse(_string(data, 'createdAt')),
     summary: _string(data, 'summary'),
     collaboratorResponsibleId: _nullableString(

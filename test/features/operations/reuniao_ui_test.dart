@@ -13,14 +13,16 @@ void main() {
       overrides: [relogioProvider.overrideWithValue(() => agora)],
     );
     addTearDown(c.dispose);
-    c.read(operationsProvider.notifier).addCustomer(
-      Customer(
-        id: 'c1',
-        name: 'Ana Silva',
-        phone: '910000000',
-        createdAt: DateTime(2026, 1, 1),
-      ),
-    );
+    c
+        .read(operationsProvider.notifier)
+        .addCustomer(
+          Customer(
+            id: 'c1',
+            name: 'Ana Silva',
+            phone: '910000000',
+            createdAt: DateTime(2026, 1, 1),
+          ),
+        );
     await t.pumpWidget(
       UncontrolledProviderScope(
         container: c,

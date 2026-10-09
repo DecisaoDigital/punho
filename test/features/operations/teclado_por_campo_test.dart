@@ -29,7 +29,8 @@ void main() {
     for (final c in chamadas) {
       switch (c.method) {
         case 'TextInput.setClient':
-          final config = (c.arguments as List<dynamic>)[1] as Map<Object?, Object?>;
+          final config =
+              (c.arguments as List<dynamic>)[1] as Map<Object?, Object?>;
           final tipoDoCampo = config['inputType'] as Map<Object?, Object?>;
           tipo = tipoDoCampo['name'] as String?;
         case 'TextInput.clearClient':

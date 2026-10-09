@@ -231,8 +231,9 @@ void main() {
     // recolha deixaram de ser passos — são do relógio.
     test('o orçamento mede-se pelo início', () {
       expect(
-        passoDe(trabalho(estado: BookingStatus.request, comecaDaquiA: 0))!
-            .urgencia,
+        passoDe(
+          trabalho(estado: BookingStatus.request, comecaDaquiA: 0),
+        )!.urgencia,
         Urgencia.hoje,
       );
       expect(
@@ -389,16 +390,8 @@ void main() {
           comecaDaquiA: -1,
           valorCents: 30000,
         ),
-        trabalho(
-          id: 'b',
-          estado: BookingStatus.proposalSent,
-          comecaDaquiA: -2,
-        ),
-        trabalho(
-          id: 'c',
-          estado: BookingStatus.proposalSent,
-          comecaDaquiA: 2,
-        ),
+        trabalho(id: 'b', estado: BookingStatus.proposalSent, comecaDaquiA: -2),
+        trabalho(id: 'c', estado: BookingStatus.proposalSent, comecaDaquiA: 2),
       ]);
 
       expect(atrasadosNaSemana(estado, hoje), 2);

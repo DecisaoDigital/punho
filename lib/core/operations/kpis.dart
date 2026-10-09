@@ -499,6 +499,7 @@ FunilProcura funilProcura(OperationsState state, DateTime now, int dias) {
       .toList();
   const jaTocadas = {
     LeadStatus.contacted,
+    LeadStatus.qualified,
     LeadStatus.proposal,
     LeadStatus.converted,
     LeadStatus.lost,

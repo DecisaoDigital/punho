@@ -189,6 +189,7 @@ class _FormularioDeLeadDoColaborador extends StatefulWidget {
 class _FormularioDeLeadDoColaboradorState
     extends State<_FormularioDeLeadDoColaborador> {
   String? erro;
+  LeadSource origem = LeadSource.ownProspecting;
 
   @override
   Widget build(BuildContext context) => EcraDeFormulario(
@@ -206,6 +207,16 @@ class _FormularioDeLeadDoColaboradorState
         rotulo: 'Telemóvel',
         teclado: TextInputType.phone,
       ),
+      DropdownButtonFormField<LeadSource>(
+        isExpanded: true,
+        initialValue: origem,
+        decoration: const InputDecoration(labelText: 'Origem'),
+        items: [
+          for (final o in LeadSource.values)
+            DropdownMenuItem(value: o, child: Text(leadSourceLabel(o))),
+        ],
+        onChanged: (v) => setState(() => origem = v ?? origem),
+      ),
     ],
     aoGuardar: () {
       // Antes o botão não fazia nada quando faltava um dos dois, e não dizia
@@ -215,18 +226,24 @@ class _FormularioDeLeadDoColaboradorState
         setState(() => erro = problema);
         return;
       }
-      widget.ref
-          .read(operationsProvider.notifier)
-          .addLead(
-            Lead(
-              id: 'l${DateTime.now().microsecondsSinceEpoch}',
-              name: widget.nome.text.trim(),
-              phone: widget.telemovel.text.trim(),
-              status: LeadStatus.newLead,
-              createdAt: DateTime.now(),
-              collaboratorResponsibleId: widget.colaboradorId,
-            ),
-          );
+      try {
+        widget.ref
+            .read(operationsProvider.notifier)
+            .addLead(
+              Lead(
+                id: 'l${DateTime.now().microsecondsSinceEpoch}',
+                name: widget.nome.text.trim(),
+                phone: widget.telemovel.text.trim(),
+                status: LeadStatus.newLead,
+                createdAt: DateTime.now(),
+                source: origem,
+                collaboratorResponsibleId: widget.colaboradorId,
+              ),
+            );
+      } on StateError catch (e) {
+        setState(() => erro = e.message);
+        return;
+      }
       Navigator.pop(context);
     },
   );

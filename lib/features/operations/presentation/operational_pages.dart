@@ -2185,22 +2185,44 @@ class ClientsPage extends ConsumerWidget {
                   title: Text(l.name),
                   // `l.status.name` punha "newLead" e "proposal" à frente do
                   // utilizador — nomes de programador num ecrã de gestão.
-                  subtitle: Text('${l.phone} · ${leadStatusLabel(l.status)}'),
+                  subtitle: Text(
+                    '${l.phone} · ${leadStatusLabel(l.status)}'
+                    '${l.convertedCustomerId != null && l.status != LeadStatus.converted ? ' · falta a reserva' : ''}',
+                  ),
                   trailing: l.status == LeadStatus.converted
                       ? null
-                      : TextButton(
-                          onPressed: () {
+                      : PopupMenuButton<Object>(
+                          tooltip: 'Estado da lead',
+                          onSelected: (acao) {
+                            final n = ref.read(operationsProvider.notifier);
+                            if (acao is LeadStatus) {
+                              n.setLeadStatus(l.id, acao);
+                              return;
+                            }
                             try {
-                              ref
-                                  .read(operationsProvider.notifier)
-                                  .convertLead(l);
+                              n.convertLead(l);
                             } on StateError catch (error) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text(error.message)),
                               );
                             }
                           },
-                          child: const Text('Converter'),
+                          itemBuilder: (_) => [
+                            for (final e in const [
+                              LeadStatus.contacted,
+                              LeadStatus.qualified,
+                              LeadStatus.lost,
+                            ])
+                              PopupMenuItem<Object>(
+                                value: e,
+                                child: Text(leadStatusLabel(e)),
+                              ),
+                            if (l.convertedCustomerId == null)
+                              const PopupMenuItem<Object>(
+                                value: 'cliente',
+                                child: Text('Criar ficha de cliente'),
+                              ),
+                          ],
                         ),
                 ),
               );
@@ -2455,6 +2477,7 @@ class _FormularioDeLeadState extends State<_FormularioDeLead> {
   final name = TextEditingController();
   final phone = TextEditingController();
   String? erro;
+  LeadSource? origem;
 
   @override
   void dispose() {
@@ -2486,6 +2509,16 @@ class _FormularioDeLeadState extends State<_FormularioDeLead> {
           rotulo: 'Telemóvel',
           teclado: TextInputType.phone,
         ),
+        DropdownButtonFormField<LeadSource?>(
+          isExpanded: true,
+          initialValue: origem,
+          decoration: const InputDecoration(labelText: 'Origem (opcional)'),
+          items: [
+            for (final o in LeadSource.values)
+              DropdownMenuItem(value: o, child: Text(leadSourceLabel(o))),
+          ],
+          onChanged: (v) => setState(() => origem = v),
+        ),
       ],
       aoGuardar: () {
         final problema = validarLead(name.text, phone.text);
@@ -2493,15 +2526,21 @@ class _FormularioDeLeadState extends State<_FormularioDeLead> {
           setState(() => erro = problema);
           return;
         }
-        widget.notifier.addLead(
-          Lead(
-            id: 'l${DateTime.now().microsecondsSinceEpoch}',
-            name: name.text.trim(),
-            phone: phone.text.trim(),
-            status: LeadStatus.newLead,
-            createdAt: DateTime.now(),
-          ),
-        );
+        try {
+          widget.notifier.addLead(
+            Lead(
+              id: 'l${DateTime.now().microsecondsSinceEpoch}',
+              name: name.text.trim(),
+              phone: phone.text.trim(),
+              status: LeadStatus.newLead,
+              createdAt: DateTime.now(),
+              source: origem,
+            ),
+          );
+        } on StateError catch (e) {
+          setState(() => erro = e.message);
+          return;
+        }
         Navigator.pop(context);
       },
     );
@@ -3576,121 +3615,125 @@ Future<void> _bookingStatusDialog(
       // «Cancelada» é o único caminho para desfazer uma marcação enganada.
       content: SingleChildScrollView(
         child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (quando != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                quando,
-                style: Theme.of(dialogContext).textTheme.bodyMedium,
-              ),
-            ),
-          // As outras reservas da mesma célula. Sem esta lista, a segunda
-          // reserva de um meio-dia era invisível: não cabe na célula e nada
-          // dizia que existia.
-          if (vizinhas.isNotEmpty) ...[
-            Text(
-              vizinhas.length == 1
-                  ? 'Este meio-dia tem mais uma reserva:'
-                  : 'Este meio-dia tem mais ${vizinhas.length} reservas:',
-              style: Theme.of(dialogContext).textTheme.labelLarge,
-            ),
-            for (final outra in vizinhas)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  Icons.event_outlined,
-                  color: _bookingColor(outra.status),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (quando != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  quando,
+                  style: Theme.of(dialogContext).textTheme.bodyMedium,
                 ),
-                title: Text(
-                  '${_maquinasDaReserva(outra, estado)} · '
-                  '${_clienteDaReserva(outra, estado)}',
-                ),
-                subtitle: Text(_bookingStatusLabel(outra.status)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () async {
-                  Navigator.pop(dialogContext);
-                  await _bookingStatusDialog(
-                    context,
-                    ref,
-                    outra,
-                    naCelula: naCelula,
-                    quando: quando,
-                    state: state,
-                  );
-                },
               ),
-            const Divider(height: 8),
-          ],
-          // O valor previsto do trabalho, editável só pelo gestor. Um
-          // funcionário vê o número, não lhe toca — o ícone de lápis nem
-          // aparece e a linha não responde ao toque.
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.euro_outlined),
-            title: const Text('Valor previsto'),
-            subtitle: Text(_valorPrevistoLabel(booking.expectedValueCents)),
-            trailing: podeEditarValor ? const Icon(Icons.edit_outlined) : null,
-            enabled: podeEditarValor,
-            onTap: podeEditarValor
-                ? () async {
+            // As outras reservas da mesma célula. Sem esta lista, a segunda
+            // reserva de um meio-dia era invisível: não cabe na célula e nada
+            // dizia que existia.
+            if (vizinhas.isNotEmpty) ...[
+              Text(
+                vizinhas.length == 1
+                    ? 'Este meio-dia tem mais uma reserva:'
+                    : 'Este meio-dia tem mais ${vizinhas.length} reservas:',
+                style: Theme.of(dialogContext).textTheme.labelLarge,
+              ),
+              for (final outra in vizinhas)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.event_outlined,
+                    color: _bookingColor(outra.status),
+                  ),
+                  title: Text(
+                    '${_maquinasDaReserva(outra, estado)} · '
+                    '${_clienteDaReserva(outra, estado)}',
+                  ),
+                  subtitle: Text(_bookingStatusLabel(outra.status)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () async {
                     Navigator.pop(dialogContext);
-                    await _editarValorDaReservaDialog(context, ref, booking);
-                  }
-                : null,
-          ),
-          const Divider(height: 8),
-          // **O estado lê-se, não se escolhe.** Era uma lista de seis para
-          // carregar; agora é o relógio que manda a partir do dia de entrega —
-          // ver `estadoPeloRelogio`. Fica à vista porque continua a ser a
-          // primeira coisa que se quer saber.
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(
-              Icons.schedule_outlined,
-              color: _bookingColor(booking.status),
+                    await _bookingStatusDialog(
+                      context,
+                      ref,
+                      outra,
+                      naCelula: naCelula,
+                      quando: quando,
+                      state: state,
+                    );
+                  },
+                ),
+              const Divider(height: 8),
+            ],
+            // O valor previsto do trabalho, editável só pelo gestor. Um
+            // funcionário vê o número, não lhe toca — o ícone de lápis nem
+            // aparece e a linha não responde ao toque.
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.euro_outlined),
+              title: const Text('Valor previsto'),
+              subtitle: Text(_valorPrevistoLabel(booking.expectedValueCents)),
+              trailing: podeEditarValor
+                  ? const Icon(Icons.edit_outlined)
+                  : null,
+              enabled: podeEditarValor,
+              onTap: podeEditarValor
+                  ? () async {
+                      Navigator.pop(dialogContext);
+                      await _editarValorDaReservaDialog(context, ref, booking);
+                    }
+                  : null,
             ),
-            title: Text(_bookingStatusLabel(booking.status)),
-            subtitle: Text(
-              booking.status == BookingStatus.cancelled
-                  ? 'Cancelada — o tempo não a desfaz.'
-                  : 'Entrega-se no dia de início e conclui-se no fim, '
-                        'sozinha. Só o cancelamento é que é decidido.',
-            ),
-          ),
-          const Divider(height: 8),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.event_repeat_outlined),
-            title: const Text('Mudar de dia'),
-            subtitle: const Text('A duração vai atrás, tal como está.'),
-            onTap: () async {
-              Navigator.pop(dialogContext);
-              await _remarcarReservaDialog(context, ref, booking);
-            },
-          ),
-          if (booking.status != BookingStatus.cancelled)
+            const Divider(height: 8),
+            // **O estado lê-se, não se escolhe.** Era uma lista de seis para
+            // carregar; agora é o relógio que manda a partir do dia de entrega —
+            // ver `estadoPeloRelogio`. Fica à vista porque continua a ser a
+            // primeira coisa que se quer saber.
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(
-                Icons.event_busy_outlined,
-                color: Theme.of(dialogContext).colorScheme.error,
+                Icons.schedule_outlined,
+                color: _bookingColor(booking.status),
               ),
-              title: Text(
-                'Cancelar reserva',
-                style: TextStyle(
-                  color: Theme.of(dialogContext).colorScheme.error,
-                ),
+              title: Text(_bookingStatusLabel(booking.status)),
+              subtitle: Text(
+                booking.status == BookingStatus.cancelled
+                    ? 'Cancelada — o tempo não a desfaz.'
+                    : 'Entrega-se no dia de início e conclui-se no fim, '
+                          'sozinha. Só o cancelamento é que é decidido.',
               ),
-              subtitle: const Text('A máquina volta a ficar livre no período.'),
+            ),
+            const Divider(height: 8),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.event_repeat_outlined),
+              title: const Text('Mudar de dia'),
+              subtitle: const Text('A duração vai atrás, tal como está.'),
               onTap: () async {
                 Navigator.pop(dialogContext);
-                await _cancelarReservaDialog(context, ref, booking, estado);
+                await _remarcarReservaDialog(context, ref, booking);
               },
             ),
-        ],
+            if (booking.status != BookingStatus.cancelled)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.event_busy_outlined,
+                  color: Theme.of(dialogContext).colorScheme.error,
+                ),
+                title: Text(
+                  'Cancelar reserva',
+                  style: TextStyle(
+                    color: Theme.of(dialogContext).colorScheme.error,
+                  ),
+                ),
+                subtitle: const Text(
+                  'A máquina volta a ficar livre no período.',
+                ),
+                onTap: () async {
+                  Navigator.pop(dialogContext);
+                  await _cancelarReservaDialog(context, ref, booking, estado);
+                },
+              ),
+          ],
         ),
       ),
     ),

@@ -26,7 +26,9 @@ String machineStatusLabel(MachineStatus status) => switch (status) {
   MachineStatus.stopped => 'Disponível',
 };
 
-enum LeadStatus { newLead, contacted, proposal, lost, converted }
+/// `qualified`: a lead já foi falada e tem interesse real; falta o contacto
+/// extra (reunião) e o fecho. Acrescentado no fim: serializa-se por nome.
+enum LeadStatus { newLead, contacted, proposal, lost, converted, qualified }
 
 /// De onde veio a lead. É o que torna o CAC por canal calculável — sem origem
 /// não há forma de dividir a publicidade pelos clientes que ela trouxe.
@@ -48,6 +50,9 @@ enum LeadSource {
 
   /// Importada da agenda do telemóvel.
   agenda,
+
+  /// O operador foi à procura: prospecção feita por ele no terreno.
+  ownProspecting,
 }
 
 String leadSourceLabel(LeadSource origem) => switch (origem) {
@@ -58,6 +63,7 @@ String leadSourceLabel(LeadSource origem) => switch (origem) {
   LeadSource.landingPage => 'Site',
   LeadSource.whatsapp => 'WhatsApp',
   LeadSource.agenda => 'Agenda',
+  LeadSource.ownProspecting => 'Prospecção própria',
   LeadSource.other => 'Outro',
 };
 
@@ -67,6 +73,7 @@ String leadStatusLabel(LeadStatus estado) => switch (estado) {
   LeadStatus.proposal => 'Com proposta',
   LeadStatus.lost => 'Perdida',
   LeadStatus.converted => 'Convertida',
+  LeadStatus.qualified => 'Qualificada',
 };
 
 /// O que uma entrada do calendário de Reservas é. Uma reunião não tem
@@ -169,8 +176,13 @@ class Customer {
     this.companyId = 'local-company',
     this.archived = false,
     this.createdAt,
+    this.operadorResponsavelId,
   });
   final String id, name, phone, notes;
+
+  /// Operador que cuida deste cliente (entregas, recolhas, relação). Cliente
+  /// antigo que volte a alugar não é lead: é uma reserva com este responsável.
+  final String? operadorResponsavelId;
   final String companyId;
   final String? taxId, email, address, postalCode, locality;
 
@@ -217,6 +229,7 @@ class Customer {
     String? locality,
     String? notes,
     bool? archived,
+    String? operadorResponsavelId,
   }) => Customer(
     id: id,
     name: name ?? this.name,
@@ -232,7 +245,17 @@ class Customer {
     // Não é editável: a data de entrada de um cliente não se corrige a partir
     // de um formulário de edição.
     createdAt: createdAt,
+    operadorResponsavelId: operadorResponsavelId ?? this.operadorResponsavelId,
   );
+}
+
+/// Telemóvel só com dígitos e sem o indicativo português, para comparar
+/// «+351 913 000 001» com «913000001».
+String telefoneNormalizado(String telefone) {
+  var d = telefone.replaceAll(RegExp(r'\D'), '');
+  if (d.startsWith('00351')) d = d.substring(5);
+  if (d.startsWith('351') && d.length > 9) d = d.substring(3);
+  return d;
 }
 
 /// Mensagem de erro se faltar o nome ou o telemóvel de uma lead; `null` se

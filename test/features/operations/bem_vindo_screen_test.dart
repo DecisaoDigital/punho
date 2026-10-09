@@ -12,7 +12,9 @@ import 'package:fist/shared/widgets/simbolo_punho.dart';
 void main() {
   Future<void> abrir(WidgetTester tester) async {
     await tester.pumpWidget(
-      MaterialApp(home: BemVindoScreen(nome: 'Alfredo', aoAvancar: () {})),
+      MaterialApp(
+        home: BemVindoScreen(nome: 'Alfredo', aoAvancar: () {}),
+      ),
     );
     await tester.pumpAndSettle();
   }
