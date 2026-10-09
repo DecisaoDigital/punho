@@ -1,3 +1,4 @@
+import 'package:fist/core/validacao_de_contacto.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -1786,10 +1787,10 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
       d: TextEditingController(
         text:
             (current?.tarifas
-                        .where((t) => t.dias == d)
-                        .map((t) => (t.cents / 100).toStringAsFixed(2))
-                        .firstOrNull) ??
-                '',
+                .where((t) => t.dias == d)
+                .map((t) => (t.cents / 100).toStringAsFixed(2))
+                .firstOrNull) ??
+            '',
       ),
   };
   var aplicarACategoria = true;
@@ -1897,7 +1898,9 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
       for (final d in _periodosDaTabela)
         CampoDeTexto(
           controlador: tabela[d]!,
-          rotulo: d == 1 ? '1 dia (€)' : (d == 30 ? '1 mês — 30 dias (€)' : '$d dias (€)'),
+          rotulo: d == 1
+              ? '1 dia (€)'
+              : (d == 30 ? '1 mês — 30 dias (€)' : '$d dias (€)'),
           teclado: const TextInputType.numberWithOptions(decimal: true),
         ),
       CampoLargo(
@@ -2479,6 +2482,14 @@ class _FormularioDeClienteState extends State<_FormularioDeCliente> {
           setState(
             () => erro = 'O telemóvel é obrigatório — é por onde se lhe chega.',
           );
+          return;
+        }
+        final formato =
+            erroDeTelemovel(phone.text) ??
+            erroDeNif(taxId.text) ??
+            erroDeEmail(email.text);
+        if (formato != null) {
+          setState(() => erro = formato);
           return;
         }
         final anterior = current;
