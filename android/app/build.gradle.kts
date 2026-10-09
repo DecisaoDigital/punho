@@ -34,6 +34,8 @@ android {
     ndkVersion = "27.0.12077973"
 
     compileOptions {
+        // flutter_local_notifications usa java.time no Android antigo.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -103,6 +105,7 @@ flutter {
 }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     // As versões têm de casar com as que o plugin `integration_test` já põe no
     // classpath — subir qualquer uma faz o Gradle recusar por "consistent
     // resolution".

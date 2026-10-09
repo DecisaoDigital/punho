@@ -1,3 +1,4 @@
+import 'core/lembretes/lembretes_providers.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
@@ -193,8 +194,10 @@ class _FistAppState extends ConsumerState<FistApp> {
     // quando foi usado nem que versão lá está agora.
     ref.watch(pingsProvider);
     final Widget destino = CadeadoGate(
-      child: FistUpdateBannerWrapper(
-        child: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),
+      child: ObservadorDeLembretes(
+        child: FistUpdateBannerWrapper(
+          child: SupabaseConfig.enabled ? const AuthGate() : const AppShell(),
+        ),
       ),
     );
     // Sem os `--dart-define` a app não fica avariada: fica **local**, com o

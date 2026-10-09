@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/layout/ecra_de_formulario.dart';
+import '../../../core/lembretes/agendador.dart';
+import '../../../core/lembretes/lembretes_providers.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/operations.dart';
 import '../../auth/acesso_providers.dart';
@@ -174,6 +176,7 @@ class _FormularioDeReuniaoState extends ConsumerState<FormularioDeReuniao> {
           ],
           onChanged: (v) => setState(() => lembrete = v),
         ),
+        if (lembrete != null) const CampoLargo(CartaoDoAlarme()),
         CampoDeTexto(
           controlador: notas,
           rotulo: 'Notas',
@@ -202,6 +205,11 @@ class _FormularioDeReuniaoState extends ConsumerState<FormularioDeReuniao> {
             criadoPorUid: _uidDoUtilizador(ref),
           );
           _guardarUltimoLembrete(lembrete);
+          if (lembrete != null) {
+            // Só aqui, na 1.ª reunião com aviso: nunca no arranque.
+            final agendador = ref.read(agendadorProvider);
+            agendador.pedirPermissoes();
+          }
         }
         Navigator.pop(context);
       },
@@ -283,4 +291,118 @@ class FaixaDeReunioes extends ConsumerWidget {
       ref.read(operationsProvider.notifier).cancelarReuniao(r.id);
     }
   }
+}
+
+/// Diz se o alarme vai mesmo tocar neste telemóvel, e deixa experimentar.
+class CartaoDoAlarme extends ConsumerStatefulWidget {
+  const CartaoDoAlarme({super.key});
+
+  @override
+  ConsumerState<CartaoDoAlarme> createState() => _CartaoDoAlarmeState();
+}
+
+class _CartaoDoAlarmeState extends ConsumerState<CartaoDoAlarme> {
+  PermissoesDoAlarme? _permissoes;
+  bool _testeAgendado = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ler();
+  }
+
+  Future<void> _ler() async {
+    try {
+      final p = await ref.read(agendadorProvider).permissoes();
+      if (mounted) setState(() => _permissoes = p);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = _permissoes;
+    final tema = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'O aviso toca neste telemóvel, depois de ele sincronizar a reunião.',
+          style: tema.bodySmall,
+        ),
+        if (p != null && !p.tudo) ...[
+          const SizedBox(height: 4),
+          Text(
+            p.notificacoes
+                ? 'Falta autorizar «Alarmes e lembretes» para tocar à hora certa.'
+                : 'Falta autorizar as notificações para o aviso aparecer.',
+            style: tema.bodySmall?.copyWith(color: Colors.red.shade700),
+          ),
+        ],
+        Wrap(
+          spacing: 8,
+          children: [
+            if (p != null && !p.tudo)
+              TextButton(
+                onPressed: () async {
+                  final novo = await ref
+                      .read(agendadorProvider)
+                      .pedirPermissoes();
+                  if (mounted) setState(() => _permissoes = novo);
+                },
+                child: const Text('Autorizar'),
+              ),
+            TextButton(
+              onPressed: () async {
+                await ref.read(agendadorProvider).pedirPermissoes();
+                await ref.read(agendadorProvider).testar();
+                if (mounted) setState(() => _testeAgendado = true);
+              },
+              child: Text(
+                _testeAgendado
+                    ? 'Teste marcado para daqui a 1 min'
+                    : 'Testar alarme (daqui a 1 min)',
+              ),
+            ),
+            TextButton(
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (_) => const _AjudaDoAlarme(),
+              ),
+              child: const Text('Não tocou?'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _AjudaDoAlarme extends StatelessWidget {
+  const _AjudaDoAlarme();
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Para o alarme tocar sempre'),
+    content: const SingleChildScrollView(
+      child: Text(
+        'Alguns telemóveis (Xiaomi/MIUI, Samsung, Huawei, Oppo) adormecem as '
+        'apps para poupar bateria e o aviso pode falhar. Faz uma vez:\n\n'
+        '1. Definições › Apps › Fist › Poupança de bateria › «Sem restrições».\n'
+        '2. Definições › Apps › Fist › «Arranque automático» ligado '
+        '(Xiaomi).\n'
+        '3. Definições › Apps › Fist › Notificações › permitir, e '
+        '«Alarmes e lembretes» ligado.\n'
+        '4. Nas apps recentes, mantém o Fist e carrega no cadeado '
+        '(não o feches a deslizar).\n\n'
+        'Depois carrega em «Testar alarme» e bloqueia o ecrã: tem de tocar '
+        'ao fim de 1 minuto.',
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Fechar'),
+      ),
+    ],
+  );
 }
