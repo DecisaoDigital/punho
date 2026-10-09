@@ -174,9 +174,18 @@ class PerfilPopup extends ConsumerWidget {
               ],
               if (SupabaseConfig.enabled) ...[
                 OutlinedButton.icon(
-                  onPressed: () => _enviarSugestao(context),
+                  onPressed: () async {
+                    await _enviarSugestao(context);
+                    ref.invalidate(respostasSugestoesProvider);
+                  },
                   icon: const Icon(Icons.lightbulb_outline),
-                  label: const Text('Sugestões'),
+                  label: Text(
+                    (ref.watch(respostasSugestoesProvider).valueOrNull ??
+                                const [])
+                            .any((r) => !r.lida)
+                        ? 'Sugestões · resposta nova'
+                        : 'Sugestões',
+                  ),
                 ),
                 const SizedBox(height: 8),
               ],
@@ -596,6 +605,25 @@ class _SugestaoState extends State<_Sugestao> {
   final _texto = TextEditingController();
   String? erro;
   bool aEnviar = false;
+  List<RespostaSugestao> _respostas = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _verRespostas();
+  }
+
+  /// As respostas do César contam como vistas ao abrir este ecrã.
+  Future<void> _verRespostas() async {
+    try {
+      final r = await SugestoesService(
+        Supabase.instance.client,
+      ).respostas(machineId: widget.machineId, marcarLidas: true);
+      if (mounted) setState(() => _respostas = r);
+    } catch (_) {
+      // Sem rede: fica por marcar, volta a tentar-se.
+    }
+  }
 
   @override
   void dispose() {
@@ -609,6 +637,30 @@ class _SugestaoState extends State<_Sugestao> {
     rotuloGuardar: aEnviar ? 'A enviar…' : 'Enviar',
     guardarAtivo: !aEnviar,
     campos: [
+      if (_respostas.isNotEmpty) ...[
+        const CampoLargo(
+          Text(
+            'Respostas às tuas sugestões',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+        for (final r in _respostas)
+          CampoLargo(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Sugeriste: ${r.sugestao}',
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 4),
+                Text(r.texto),
+              ],
+            ),
+          ),
+      ],
       const CampoLargo(
         Text('Escreve o que quiseres — chega directamente ao César.'),
       ),
