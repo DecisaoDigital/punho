@@ -140,7 +140,9 @@ void main() {
     final state = c.read(operationsProvider);
     expect(customer.name, 'Ana Costa');
     expect(state.customers.where((x) => x.phone == lead.phone), hasLength(1));
-    expect(state.leads.single.status, LeadStatus.converted);
+    // Ficha criada, negócio por fechar: só a reserva confirmada converte.
+    expect(state.leads.single.status, isNot(LeadStatus.converted));
+    expect(state.leads.single.convertedCustomerId, customer.id);
   });
 
   test('calcula máquinas disponíveis e sem trabalhar', () {

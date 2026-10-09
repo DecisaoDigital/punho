@@ -79,7 +79,8 @@ class _DadosPessoaisScreenState extends ConsumerState<DadosPessoaisScreen> {
             textInputAction: TextInputAction.search,
             onSubmitted: (_) => _procurar(),
             decoration: InputDecoration(
-              labelText: 'Quem procurar — nome, contribuinte, telefone ou email',
+              labelText:
+                  'Quem procurar — nome, contribuinte, telefone ou email',
               border: const OutlineInputBorder(),
               suffixIcon: IconButton(
                 onPressed: _procurar,
@@ -409,10 +410,7 @@ class _Nota extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    titulo,
-                    style: textos.titleSmall?.copyWith(color: cor),
-                  ),
+                  Text(titulo, style: textos.titleSmall?.copyWith(color: cor)),
                   const SizedBox(height: 4),
                   Text(detalhe, style: textos.bodySmall),
                 ],

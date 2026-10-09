@@ -127,3 +127,6 @@ dist/
 
 # Dependências do teste de tabulação do portal (npm i jsdom)
 node_modules/
+
+# Firebase (projecto punho-fist)
+android/app/google-services.json

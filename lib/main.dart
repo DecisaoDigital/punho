@@ -1,3 +1,5 @@
+import 'core/avisos/avisos_de_leads.dart';
+import 'core/lembretes/lembretes_providers.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
@@ -15,14 +17,15 @@ import 'core/diagnostico/relator_de_erros.dart';
 import 'shared/widgets/splash_punho.dart';
 
 import 'core/licenca/licenca_provider.dart';
+import 'core/licenca/machine_id.dart';
 import 'features/licenca/presentation/licenca_fist_gate.dart';
 import 'core/telemetria/pings_provider.dart';
-import 'core/licenca/machine_id.dart';
 import 'core/operations/operations_controller.dart';
 import 'core/theme/punho_theme.dart';
 import 'core/config/supabase_config.dart';
 import 'data/repositories/operation_repository.dart';
 import 'features/auth/presentation/auth_gate.dart';
+import 'core/push/push_de_leads.dart';
 import 'features/shell/presentation/app_shell.dart';
 import 'features/sync/sync_providers.dart';
 import 'features/updates/presentation/update_banner_wrapper.dart';
@@ -174,10 +177,16 @@ class _FistAppState extends ConsumerState<FistApp> {
     // quando foi usado nem que versão lá está agora.
     ref.watch(pingsProvider);
     final Widget destino = CadeadoGate(
-      child: FistUpdateBannerWrapper(
-        child: SupabaseConfig.enabled
-              ? const LicencaFistGate(child: AuthGate())
-              : const AppShell(),
+      child: ObservadorDeLeadsNovas(
+        child: ObservadorDeLembretes(
+          child: ObservadorDePush(
+            child: FistUpdateBannerWrapper(
+              child: SupabaseConfig.enabled
+                  ? const LicencaFistGate(child: AuthGate())
+                  : const AppShell(),
+            ),
+          ),
+        ),
       ),
     );
     // Sem os `--dart-define` a app não fica avariada: fica **local**, com o
@@ -194,6 +203,7 @@ class _FistAppState extends ConsumerState<FistApp> {
             child: destino,
           );
     return MaterialApp(
+      scaffoldMessengerKey: mensageiroGlobal,
       title: 'Fist',
       debugShowCheckedModeBanner: false,
       theme: FistTheme.light,

@@ -14,6 +14,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// O `google-services.json` não vai para o git. Sem ele (CI, outro PC) a app
+// compila na mesma, com o push desligado — ver `PushDeLeads`.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     // Identidade permanente da app. `com.example.*` é o placeholder do
     // template do Flutter e a Google Play recusa-o à entrada — ficou cá dentro
@@ -34,6 +40,8 @@ android {
     ndkVersion = "27.0.12077973"
 
     compileOptions {
+        // flutter_local_notifications usa java.time no Android antigo.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -103,6 +111,7 @@ flutter {
 }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     // As versões têm de casar com as que o plugin `integration_test` já põe no
     // classpath — subir qualquer uma faz o Gradle recusar por "consistent
     // resolution".

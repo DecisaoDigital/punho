@@ -1,3 +1,4 @@
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/layout/ecra_de_formulario.dart';
@@ -67,6 +68,11 @@ class _CollaboratorShellState extends ConsumerState<CollaboratorShell> {
               'Nova lead',
               Icons.person_add_alt_1,
               () => _newLead(context, ref, id),
+            ),
+            _Action(
+              'Para contactar hoje',
+              Icons.phone_in_talk,
+              () => _paraContactar(context, ref, id),
             ),
             _Action(
               'As minhas marcações',
@@ -189,6 +195,7 @@ class _FormularioDeLeadDoColaborador extends StatefulWidget {
 class _FormularioDeLeadDoColaboradorState
     extends State<_FormularioDeLeadDoColaborador> {
   String? erro;
+  LeadSource origem = LeadSource.ownProspecting;
 
   @override
   Widget build(BuildContext context) => EcraDeFormulario(
@@ -206,29 +213,87 @@ class _FormularioDeLeadDoColaboradorState
         rotulo: 'Telemóvel',
         teclado: TextInputType.phone,
       ),
+      DropdownButtonFormField<LeadSource>(
+        isExpanded: true,
+        initialValue: origem,
+        decoration: const InputDecoration(labelText: 'Origem'),
+        items: [
+          for (final o in LeadSource.values)
+            DropdownMenuItem(value: o, child: Text(leadSourceLabel(o))),
+        ],
+        onChanged: (v) => setState(() => origem = v ?? origem),
+      ),
     ],
     aoGuardar: () {
       // Antes o botão não fazia nada quando faltava um dos dois, e não dizia
       // porquê — ficava-se a carregar sem perceber.
-      if (widget.nome.text.trim().isEmpty ||
-          widget.telemovel.text.trim().isEmpty) {
-        setState(() => erro = 'A lead precisa do nome e do telemóvel.');
+      final problema = validarLead(widget.nome.text, widget.telemovel.text);
+      if (problema != null) {
+        setState(() => erro = problema);
         return;
       }
-      widget.ref
-          .read(operationsProvider.notifier)
-          .addLead(
-            Lead(
-              id: 'l${DateTime.now().microsecondsSinceEpoch}',
-              name: widget.nome.text.trim(),
-              phone: widget.telemovel.text.trim(),
-              status: LeadStatus.newLead,
-              createdAt: DateTime.now(),
-              collaboratorResponsibleId: widget.colaboradorId,
-            ),
-          );
+      try {
+        widget.ref
+            .read(operationsProvider.notifier)
+            .addLead(
+              Lead(
+                id: 'l${DateTime.now().microsecondsSinceEpoch}',
+                name: widget.nome.text.trim(),
+                phone: widget.telemovel.text.trim(),
+                status: LeadStatus.newLead,
+                createdAt: DateTime.now(),
+                source: origem,
+                collaboratorResponsibleId: widget.colaboradorId,
+              ),
+            );
+      } on StateError catch (e) {
+        setState(() => erro = e.message);
+        return;
+      }
       Navigator.pop(context);
     },
+  );
+}
+
+/// As leads que o gestor (ou ele próprio) lhe atribuiu e ainda estão abertas,
+/// com o que há a fazer a seguir. É a «lista de tarefas» do operador, que não
+/// tem o ecrã de Tarefas do gestor.
+void _paraContactar(BuildContext c, WidgetRef ref, String id) {
+  final abertas = ref
+      .read(operationsProvider)
+      .leads
+      .where(
+        (l) =>
+            l.collaboratorResponsibleId == id &&
+            l.status != LeadStatus.converted &&
+            l.status != LeadStatus.lost,
+      )
+      .toList();
+  Navigator.push(
+    c,
+    MaterialPageRoute(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: const Text('Para contactar hoje')),
+        body: abertas.isEmpty
+            ? const Center(child: Text('Sem leads por tratar.'))
+            : ListView(
+                children: [
+                  for (final l in abertas)
+                    ListTile(
+                      title: Text(l.name),
+                      subtitle: Text(
+                        '${l.phone} · ${leadStatusLabel(l.status)}',
+                      ),
+                      trailing: IconButton(
+                        tooltip: 'Ligar',
+                        icon: const Icon(Icons.call),
+                        onPressed: () => launchUrl(Uri(scheme: 'tel', path: l.phone)),
+                      ),
+                    ),
+                ],
+              ),
+      ),
+    ),
   );
 }
 

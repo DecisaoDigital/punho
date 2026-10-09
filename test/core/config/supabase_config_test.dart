@@ -63,7 +63,8 @@ void main() {
       expect(
         fonte.indexOf('SupabaseConfig.assertConfiguredOrCrash()'),
         lessThan(fonte.indexOf('runZonedGuarded')),
-        reason: 'a trava ficou dentro da zona guardada — o crash seria engolido',
+        reason:
+            'a trava ficou dentro da zona guardada — o crash seria engolido',
       );
     });
   });

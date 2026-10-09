@@ -97,8 +97,7 @@ class _ServicoFalso implements EmpresaSyncService {
       const ResultadoDaFicha.entregue();
 
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      super.noSuchMethod(invocation);
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 /// O repositório local a sério, em memória — o mesmo que a app usa no modo de

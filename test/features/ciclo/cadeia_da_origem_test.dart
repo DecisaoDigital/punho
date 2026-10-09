@@ -40,7 +40,8 @@ void main() {
     final cliente = notifier.convertLead(lead());
 
     final convertida = c.read(operationsProvider).leads.single;
-    expect(convertida.status, LeadStatus.converted);
+    // Criar a ficha liga a lead ao cliente; só o fecho (reserva) converte.
+    expect(convertida.status, isNot(LeadStatus.converted));
     expect(convertida.convertedCustomerId, cliente.id);
   });
 
@@ -65,10 +66,10 @@ void main() {
   test('a lead que bate num cliente existente aponta para esse cliente', () {
     final c = containerVazio();
     final notifier = c.read(operationsProvider.notifier);
+    notifier.addLead(lead(telefone: '913 1'));
     notifier.addCustomer(
       const Customer(id: 'c-ja-existe', name: 'Obra do Porto', phone: '913 1'),
     );
-    notifier.addLead(lead(telefone: '913 1'));
 
     // A conversão recusa-se — mas a origem daquele cliente ficou a saber-se
     // aqui, e é esse o elo que interessa guardar.

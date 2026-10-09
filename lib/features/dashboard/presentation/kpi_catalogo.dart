@@ -1266,6 +1266,7 @@ CelulaSemaforo kpiLeadsPipeline(OperationsState estado, DateTime now) {
   const abertas = {
     LeadStatus.newLead,
     LeadStatus.contacted,
+    LeadStatus.qualified,
     LeadStatus.proposal,
   };
   final emAberto = estado.leads.where((l) => abertas.contains(l.status)).length;

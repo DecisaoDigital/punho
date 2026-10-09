@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/auth/auth_rules.dart';
+import '../../../core/push/push_de_leads.dart';
 import '../../../core/orientacao/orientacao_do_contexto.dart';
 import '../../collaborator/presentation/collaborator_shell.dart';
 import '../../shell/presentation/app_shell.dart';
@@ -114,7 +115,10 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         return NovaPalavraPasseScreen(
           // Desistir tem de fechar a sessão que o link abriu. Deixá-la aberta
           // era dar entrada a quem só clicou num email.
-          aoDesistir: () => Supabase.instance.client.auth.signOut(),
+          aoDesistir: () async {
+            await PushDeLeads.esquecer();
+            await Supabase.instance.client.auth.signOut();
+          },
         );
       }
       // Ter sessão não chega: quem decide é o AcessoGate.
@@ -145,16 +149,28 @@ class AcessoGate extends ConsumerWidget {
           DecisaoAcesso.app =>
             acesso.eGestor
                 ? const AppShell()
-                : CollaboratorShell(
-                    collaboratorId: ref
-                        .read(acessoServiceProvider)
-                        .utilizadorId,
-                    titulo: 'Colaborador',
-                  ),
+                : ref
+                      .watch(fichaDoUtilizadorProvider)
+                      .when(
+                        loading: () => const Scaffold(
+                          body: Center(child: CircularProgressIndicator()),
+                        ),
+                        // Sem ficha (ou sem rede): cai no uid da conta, como
+                        // até aqui, e o operador continua a poder trabalhar.
+                        error: (_, __) => _shellDoColaborador(ref, null),
+                        data: (ficha) => _shellDoColaborador(ref, ficha),
+                      ),
           DecisaoAcesso.pendente => const PedidoEmAnaliseScreen(),
           DecisaoAcesso.semPedido => const PedirAcessoScreen(),
           DecisaoAcesso.indisponivel => const AcessoIndisponivelScreen(),
         },
+      );
+
+  Widget _shellDoColaborador(WidgetRef ref, String? ficha) =>
+      CollaboratorShell(
+        collaboratorId:
+            ficha ?? ref.read(acessoServiceProvider).utilizadorId,
+        titulo: 'Colaborador',
       );
 
   Widget _erroPage(WidgetRef ref) => Scaffold(

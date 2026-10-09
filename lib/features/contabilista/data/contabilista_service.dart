@@ -17,8 +17,7 @@ import '../domain/contabilista.dart';
 ///
 /// Mudar isto **parte todos os convites já enviados** — o link é gravado no
 /// momento em que se cria o convite, não é resolvido depois.
-const portalContabilista =
-    'https://decisaodigital.tailb66396.ts.net/portal/';
+const portalContabilista = 'https://decisaodigital.tailb66396.ts.net/portal/';
 
 /// Link que o contabilista abre.
 String linkContabilista(String token) => '$portalContabilista?t=$token';

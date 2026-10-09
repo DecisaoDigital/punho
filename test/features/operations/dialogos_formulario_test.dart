@@ -332,6 +332,36 @@ void main() {
       expect(find.byType(EcraDeFormulario), findsNothing);
       expect(find.text('Obra Nova'), findsOneWidget);
     });
+
+    // Regressão: o `Navigator.pop` estava fora do `if`, por isso com um campo
+    // vazio o ecrã fechava sem gravar e sem dizer porquê.
+    for (final caso in [
+      ('só o telemóvel', '', '914 555 555'),
+      ('só o nome', 'Obra Nova', ''),
+      ('só espaços', '   ', '   '),
+    ]) {
+      testWidgets('com ${caso.$1} avisa, não fecha e não grava', (
+        tester,
+      ) async {
+        await abrirClientes(tester, const Size(1280, 800));
+        await tester.tap(find.text('Novo lead'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.widgetWithText(TextField, 'Nome'), caso.$2);
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Telemóvel'),
+          caso.$3,
+        );
+        await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(EcraDeFormulario), findsOneWidget);
+        expect(
+          find.text('A lead precisa do nome e do telemóvel.'),
+          findsOneWidget,
+        );
+      });
+    }
   });
 
   group('Diálogo de confirmação de reserva', () {

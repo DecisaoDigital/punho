@@ -175,8 +175,16 @@ void main() {
 
       final julho = tesourariaDoMes(cenario, agoraFixa);
 
-      expect(julho.recebidoCents, 100000, reason: 'o número grande é o recebido');
-      expect(julho.entradasPrevistasCents, 600000, reason: '1000 feito + 5000 marcado');
+      expect(
+        julho.recebidoCents,
+        100000,
+        reason: 'o número grande é o recebido',
+      );
+      expect(
+        julho.entradasPrevistasCents,
+        600000,
+        reason: '1000 feito + 5000 marcado',
+      );
       expect(julho.variacaoVsMesAnterior, closeTo(-40, 0.001));
       expect(julho.comparacao?.variacao, closeTo(-40, 0.001));
       expect(julho.comparacao?.homologo, isFalse);

@@ -24,11 +24,7 @@ void main() {
   setUp(() {
     espia = _ClienteQueAnotaOCorpo();
     servico = PedidosService(
-      SupabaseClient(
-        'https://exemplo.supabase.co',
-        'chave',
-        httpClient: espia,
-      ),
+      SupabaseClient('https://exemplo.supabase.co', 'chave', httpClient: espia),
     );
   });
 

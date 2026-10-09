@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../domain/models/arranjo_do_painel.dart';
@@ -945,7 +946,21 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'notes': item.notes,
     'photoPaths': item.photoPaths,
     'archived': item.archived,
+    // Só se escreve quando há tabela: uma chave `[]` nas máquinas antigas
+    // contava como «alteração» para o servidor e travava o operador.
+    if (item.tarifas.isNotEmpty)
+      'tarifas': [
+        for (final t in item.tarifas) {'dias': t.dias, 'cents': t.cents},
+      ],
   };
+
+  @visibleForTesting
+  static Map<String, Object?> machineToJson(Machine item) =>
+      _machineToJson(item);
+
+  @visibleForTesting
+  static Machine machineFromJson(Map<String, dynamic> data) =>
+      _machineFromJson(data);
 
   static Machine _machineFromJson(Map<String, dynamic> data) => Machine(
     id: _string(data, 'id'),
@@ -963,6 +978,16 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
         ? List<String>.from(data['photoPaths'] as List)
         : const [],
     archived: _bool(data, 'archived'),
+    tarifas: data['tarifas'] is List
+        ? [
+            for (final t in data['tarifas'] as List)
+              if (t is Map && t['dias'] is num && t['cents'] is num)
+                Tarifa(
+                  dias: (t['dias'] as num).toInt(),
+                  cents: (t['cents'] as num).toInt(),
+                ),
+          ]
+        : const [],
   );
 
   static Map<String, Object?> _historicalMonthToJson(HistoricalMonth item) => {
@@ -1001,6 +1026,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'companyId': item.companyId,
     'archived': item.archived,
     'createdAt': item.createdAt?.toIso8601String(),
+    'operadorResponsavelId': item.operadorResponsavelId,
   };
 
   static Customer _customerFromJson(Map<String, dynamic> data) => Customer(
@@ -1024,6 +1050,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     createdAt: _nullableString(data['createdAt']) == null
         ? Customer.dataDoId(_string(data, 'id'))
         : DateTime.parse(_string(data, 'createdAt')),
+    operadorResponsavelId: _nullableString(data['operadorResponsavelId']),
   );
 
   static Map<String, Object?> _leadToJson(Lead item) => {
@@ -1043,10 +1070,14 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     id: _string(data, 'id'),
     name: _string(data, 'name'),
     phone: _string(data, 'phone'),
-    status: LeadStatus.values.byName(_string(data, 'status', 'newLead')),
-    source: _nullableString(data['source']) == null
-        ? null
-        : LeadSource.values.byName(_string(data, 'source')),
+    // Valor que esta versão não conhece (uma versão futura): não rebenta.
+    status: LeadStatus.values.firstWhere(
+      (s) => s.name == _string(data, 'status', 'newLead'),
+      orElse: () => LeadStatus.newLead,
+    ),
+    source: LeadSource.values
+        .where((s) => s.name == _nullableString(data['source']))
+        .firstOrNull,
     createdAt: DateTime.parse(_string(data, 'createdAt')),
     summary: _string(data, 'summary'),
     collaboratorResponsibleId: _nullableString(
@@ -1073,7 +1104,18 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'customerNameSnapshot': item.customerNameSnapshot,
     'collaboratorNameSnapshot': item.collaboratorNameSnapshot,
     'notes': item.notes,
+    'tipo': item.tipo.name,
+    'lembreteMinutos': item.lembreteMinutos,
+    'criadoPorUid': item.criadoPorUid,
   };
+
+  @visibleForTesting
+  static Map<String, Object?> bookingToJson(Booking item) =>
+      _bookingToJson(item);
+
+  @visibleForTesting
+  static Booking bookingFromJson(Map<String, dynamic> data) =>
+      _bookingFromJson(data);
 
   static Booking _bookingFromJson(Map<String, dynamic> data) => Booking(
     id: _string(data, 'id'),
@@ -1090,6 +1132,14 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     customerNameSnapshot: _string(data, 'customerNameSnapshot'),
     collaboratorNameSnapshot: _string(data, 'collaboratorNameSnapshot'),
     notes: _string(data, 'notes'),
+    // Sem o campo (reservas antigas) ou com um valor que esta versão não
+    // conhece: vale como máquina. `byName` sem rede rebentava com um tipo novo.
+    tipo: BookingTipo.values.firstWhere(
+      (t) => t.name == data['tipo'],
+      orElse: () => BookingTipo.maquina,
+    ),
+    lembreteMinutos: _nullableInt(data['lembreteMinutos']),
+    criadoPorUid: _nullableString(data['criadoPorUid']),
   );
 
   static Map<String, Object?> _expenseToJson(Expense item) => {

@@ -173,32 +173,35 @@ void main() {
     );
   });
 
-  group('a ${larguraApertada.width.toInt()} dp — telemóvel estreito ao alto', () {
-    testWidgets('lista de clientes', (t) async {
-      await semTransbordo(
-        t,
-        const ClientsPage(),
-        tamanho: larguraApertada,
-        onde: 'A lista de clientes',
-      );
-    });
+  group(
+    'a ${larguraApertada.width.toInt()} dp — telemóvel estreito ao alto',
+    () {
+      testWidgets('lista de clientes', (t) async {
+        await semTransbordo(
+          t,
+          const ClientsPage(),
+          tamanho: larguraApertada,
+          onde: 'A lista de clientes',
+        );
+      });
 
-    testWidgets('lista de máquinas', (t) async {
-      await semTransbordo(
-        t,
-        const MachinesPage(),
-        tamanho: larguraApertada,
-        onde: 'A lista de máquinas',
-      );
-    });
+      testWidgets('lista de máquinas', (t) async {
+        await semTransbordo(
+          t,
+          const MachinesPage(),
+          tamanho: larguraApertada,
+          onde: 'A lista de máquinas',
+        );
+      });
 
-    testWidgets('extracto financeiro', (t) async {
-      await semTransbordo(
-        t,
-        const FinanceListPage(title: 'Despesas', expenses: true),
-        tamanho: larguraApertada,
-        onde: 'O extracto',
-      );
-    });
-  });
+      testWidgets('extracto financeiro', (t) async {
+        await semTransbordo(
+          t,
+          const FinanceListPage(title: 'Despesas', expenses: true),
+          tamanho: larguraApertada,
+          onde: 'O extracto',
+        );
+      });
+    },
+  );
 }

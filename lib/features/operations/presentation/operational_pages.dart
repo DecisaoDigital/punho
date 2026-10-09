@@ -26,6 +26,7 @@ import '../../../domain/models/historical_month.dart';
 import '../../auth/acesso_providers.dart';
 import '../../auth/domain/estado_acesso.dart';
 import 'bem_vindo_screen.dart';
+import 'reunioes_ui.dart';
 import 'boas_vindas_screen.dart';
 import 'mais_dados_screen.dart';
 import 'rascunho_do_onboarding.dart';
@@ -1778,6 +1779,20 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
   // contar dias alugados, mas não como dizer se isso compensou o que a
   // máquina custou. Opcionais os dois — quem não souber grava a máquina na
   // mesma, e a célula continua "Por apurar", agora com o motivo certo.
+  // Tabela de preços por período (opcional): 1, 3, 7 e 30 dias.
+  static const _periodosDaTabela = [1, 3, 7, 30];
+  late final Map<int, TextEditingController> tabela = {
+    for (final d in _periodosDaTabela)
+      d: TextEditingController(
+        text:
+            (current?.tarifas
+                        .where((t) => t.dias == d)
+                        .map((t) => (t.cents / 100).toStringAsFixed(2))
+                        .firstOrNull) ??
+                '',
+      ),
+  };
+  var aplicarACategoria = true;
   late final purchasePrice = TextEditingController(
     text: current?.purchasePriceCents == null
         ? ''
@@ -1795,6 +1810,12 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
       ? MachineStatus.available
       : current?.status ?? MachineStatus.available;
 
+  List<Tarifa> _tarifasDoFormulario() => [
+    for (final d in _periodosDaTabela)
+      if ((centsDeTexto(tabela[d]!.text) ?? 0) > 0)
+        Tarifa(dias: d, cents: centsDeTexto(tabela[d]!.text)!),
+  ];
+
   /// Recusa mostrada dentro do formulário, logo por cima do rodapé.
   String? erro;
 
@@ -1804,6 +1825,9 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
     reference.dispose();
     category.dispose();
     dailyRate.dispose();
+    for (final c in tabela.values) {
+      c.dispose();
+    }
     purchasePrice.dispose();
     notes.dispose();
     photoPaths.dispose();
@@ -1864,6 +1888,29 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
     final notasEFotos = <Widget>[
       CampoDeTexto(controlador: notes, rotulo: 'Notas / manutenção', linhas: 3),
       CampoLargo(_FotografiasDaMaquina(photoPaths: photoPaths)),
+      CampoLargo(
+        Text(
+          'Tabela de preços por período (opcional)',
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+      ),
+      for (final d in _periodosDaTabela)
+        CampoDeTexto(
+          controlador: tabela[d]!,
+          rotulo: d == 1 ? '1 dia (€)' : (d == 30 ? '1 mês — 30 dias (€)' : '$d dias (€)'),
+          teclado: const TextInputType.numberWithOptions(decimal: true),
+        ),
+      CampoLargo(
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Aplicar a toda a categoria'),
+          subtitle: const Text(
+            'Todas as máquinas desta categoria ficam com a mesma tabela.',
+          ),
+          value: aplicarACategoria,
+          onChanged: (v) => setState(() => aplicarACategoria = v),
+        ),
+      ),
     ];
 
     return EcraDeFormulario(
@@ -1892,6 +1939,7 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
                 purchasePriceCents: centsDeTexto(purchasePrice.text),
                 notes: notes.text.trim(),
                 photoPaths: photoPaths.value,
+                tarifas: _tarifasDoFormulario(),
               )
             : Machine(
                 id: 'm${DateTime.now().microsecondsSinceEpoch}',
@@ -1904,8 +1952,17 @@ class _FormularioDeMaquinaState extends State<_FormularioDeMaquina> {
                 purchasePriceCents: centsDeTexto(purchasePrice.text),
                 notes: notes.text.trim(),
                 photoPaths: photoPaths.value,
+                tarifas: _tarifasDoFormulario(),
               );
         widget.notifier.saveMachine(machine);
+        if (aplicarACategoria &&
+            machine.tarifas.isNotEmpty &&
+            machine.category.trim().isNotEmpty) {
+          widget.notifier.aplicarTarifasACategoria(
+            machine.category,
+            machine.tarifas,
+          );
+        }
         // Depois de gravar, e nunca antes: quem tira uma fotografia da lista e
         // depois carrega em Cancelar tem de a manter. Sem `await` porque o
         // arquivo não pode atrasar o fecho do diálogo — e se falhar, fica lixo
@@ -2184,22 +2241,53 @@ class ClientsPage extends ConsumerWidget {
                   title: Text(l.name),
                   // `l.status.name` punha "newLead" e "proposal" à frente do
                   // utilizador — nomes de programador num ecrã de gestão.
-                  subtitle: Text('${l.phone} · ${leadStatusLabel(l.status)}'),
+                  subtitle: Text(
+                    '${l.phone} · ${leadStatusLabel(l.status)}'
+                    '${_operadorDaLead(state, l)}'
+                    '${l.convertedCustomerId != null && l.status != LeadStatus.converted ? ' · falta a reserva' : ''}',
+                  ),
                   trailing: l.status == LeadStatus.converted
                       ? null
-                      : TextButton(
-                          onPressed: () {
+                      : PopupMenuButton<Object>(
+                          tooltip: 'Estado da lead',
+                          onSelected: (acao) {
+                            final n = ref.read(operationsProvider.notifier);
+                            if (acao is LeadStatus) {
+                              n.setLeadStatus(l.id, acao);
+                              return;
+                            }
+                            if (acao == 'atribuir') {
+                              _atribuirLead(context, ref, l);
+                              return;
+                            }
                             try {
-                              ref
-                                  .read(operationsProvider.notifier)
-                                  .convertLead(l);
+                              n.convertLead(l);
                             } on StateError catch (error) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text(error.message)),
                               );
                             }
                           },
-                          child: const Text('Converter'),
+                          itemBuilder: (_) => [
+                            for (final e in const [
+                              LeadStatus.contacted,
+                              LeadStatus.qualified,
+                              LeadStatus.lost,
+                            ])
+                              PopupMenuItem<Object>(
+                                value: e,
+                                child: Text(leadStatusLabel(e)),
+                              ),
+                            const PopupMenuItem<Object>(
+                              value: 'atribuir',
+                              child: Text('Atribuir a um operador'),
+                            ),
+                            if (l.convertedCustomerId == null)
+                              const PopupMenuItem<Object>(
+                                value: 'cliente',
+                                child: Text('Criar ficha de cliente'),
+                              ),
+                          ],
                         ),
                 ),
               );
@@ -2209,6 +2297,46 @@ class ClientsPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _operadorDaLead(OperationsState state, Lead l) {
+  final id = l.collaboratorResponsibleId;
+  if (id == null) return ' · sem operador';
+  final ficha = state.collaborators.where((c) => c.id == id).firstOrNull;
+  return ficha == null ? '' : ' · ${ficha.name}';
+}
+
+Future<void> _atribuirLead(
+  BuildContext context,
+  WidgetRef ref,
+  Lead lead,
+) async {
+  final operadores = ref
+      .read(operationsProvider)
+      .collaborators
+      .where((c) => !c.archived)
+      .toList();
+  final escolha = await showDialog<Object>(
+    context: context,
+    builder: (_) => SimpleDialog(
+      title: Text('Quem trata de ${lead.name}?'),
+      children: [
+        for (final c in operadores)
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, c.id),
+            child: Text(c.name),
+          ),
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(context, ''),
+          child: const Text('Sem operador'),
+        ),
+      ],
+    ),
+  );
+  if (escolha == null) return;
+  ref
+      .read(operationsProvider.notifier)
+      .atribuirLead(lead.id, (escolha as String).isEmpty ? null : escolha);
 }
 
 /// Devolve o id do cliente criado ou editado, ou `null` se desistiu.
@@ -2453,6 +2581,8 @@ class _FormularioDeLead extends StatefulWidget {
 class _FormularioDeLeadState extends State<_FormularioDeLead> {
   final name = TextEditingController();
   final phone = TextEditingController();
+  String? erro;
+  LeadSource? origem;
 
   @override
   void dispose() {
@@ -2465,6 +2595,7 @@ class _FormularioDeLeadState extends State<_FormularioDeLead> {
   Widget build(BuildContext context) {
     return EcraDeFormulario(
       titulo: 'Novo lead',
+      aviso: erro,
       campos: [
         CampoLargo(
           Text(
@@ -2483,18 +2614,37 @@ class _FormularioDeLeadState extends State<_FormularioDeLead> {
           rotulo: 'Telemóvel',
           teclado: TextInputType.phone,
         ),
+        DropdownButtonFormField<LeadSource?>(
+          isExpanded: true,
+          initialValue: origem,
+          decoration: const InputDecoration(labelText: 'Origem (opcional)'),
+          items: [
+            for (final o in LeadSource.values)
+              DropdownMenuItem(value: o, child: Text(leadSourceLabel(o))),
+          ],
+          onChanged: (v) => setState(() => origem = v),
+        ),
       ],
       aoGuardar: () {
-        if (name.text.isNotEmpty && phone.text.isNotEmpty) {
+        final problema = validarLead(name.text, phone.text);
+        if (problema != null) {
+          setState(() => erro = problema);
+          return;
+        }
+        try {
           widget.notifier.addLead(
             Lead(
               id: 'l${DateTime.now().microsecondsSinceEpoch}',
-              name: name.text,
-              phone: phone.text,
+              name: name.text.trim(),
+              phone: phone.text.trim(),
               status: LeadStatus.newLead,
               createdAt: DateTime.now(),
+              source: origem,
             ),
           );
+        } on StateError catch (e) {
+          setState(() => erro = e.message);
+          return;
         }
         Navigator.pop(context);
       },
@@ -2672,6 +2822,11 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                   onPressed: _clearSelection,
                   child: const Text('Limpar seleção'),
                 );
+          final novaReuniao = IconButton(
+            tooltip: 'Nova reunião',
+            onPressed: () => abrirReuniao(context),
+            icon: const Icon(Icons.event_available_outlined),
+          );
           final reservar = FilledButton.icon(
             // Tamanho de origem, como os outros botões da app.
             //
@@ -2729,6 +2884,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                     // é dela, e o nome da máquina corta antes de transbordar.
                     Expanded(child: escolhaDeMaquina),
                     const SizedBox(width: 8),
+                    novaReuniao,
                     reservar,
                   ],
                 ),
@@ -2780,6 +2936,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
               // botão para a segunda linha.
               const SizedBox(width: 8),
               if (limparSelecao != null) limparSelecao,
+              novaReuniao,
               reservar,
             ],
           );
@@ -2807,6 +2964,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                 ),
               ),
             ),
+          const FaixaDeReunioes(),
           Expanded(
             child: _view == _CalendarView.week
                 ? _WeekBookingsCalendar(
@@ -3562,121 +3720,125 @@ Future<void> _bookingStatusDialog(
       // «Cancelada» é o único caminho para desfazer uma marcação enganada.
       content: SingleChildScrollView(
         child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (quando != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                quando,
-                style: Theme.of(dialogContext).textTheme.bodyMedium,
-              ),
-            ),
-          // As outras reservas da mesma célula. Sem esta lista, a segunda
-          // reserva de um meio-dia era invisível: não cabe na célula e nada
-          // dizia que existia.
-          if (vizinhas.isNotEmpty) ...[
-            Text(
-              vizinhas.length == 1
-                  ? 'Este meio-dia tem mais uma reserva:'
-                  : 'Este meio-dia tem mais ${vizinhas.length} reservas:',
-              style: Theme.of(dialogContext).textTheme.labelLarge,
-            ),
-            for (final outra in vizinhas)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  Icons.event_outlined,
-                  color: _bookingColor(outra.status),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (quando != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  quando,
+                  style: Theme.of(dialogContext).textTheme.bodyMedium,
                 ),
-                title: Text(
-                  '${_maquinasDaReserva(outra, estado)} · '
-                  '${_clienteDaReserva(outra, estado)}',
-                ),
-                subtitle: Text(_bookingStatusLabel(outra.status)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () async {
-                  Navigator.pop(dialogContext);
-                  await _bookingStatusDialog(
-                    context,
-                    ref,
-                    outra,
-                    naCelula: naCelula,
-                    quando: quando,
-                    state: state,
-                  );
-                },
               ),
-            const Divider(height: 8),
-          ],
-          // O valor previsto do trabalho, editável só pelo gestor. Um
-          // funcionário vê o número, não lhe toca — o ícone de lápis nem
-          // aparece e a linha não responde ao toque.
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.euro_outlined),
-            title: const Text('Valor previsto'),
-            subtitle: Text(_valorPrevistoLabel(booking.expectedValueCents)),
-            trailing: podeEditarValor ? const Icon(Icons.edit_outlined) : null,
-            enabled: podeEditarValor,
-            onTap: podeEditarValor
-                ? () async {
+            // As outras reservas da mesma célula. Sem esta lista, a segunda
+            // reserva de um meio-dia era invisível: não cabe na célula e nada
+            // dizia que existia.
+            if (vizinhas.isNotEmpty) ...[
+              Text(
+                vizinhas.length == 1
+                    ? 'Este meio-dia tem mais uma reserva:'
+                    : 'Este meio-dia tem mais ${vizinhas.length} reservas:',
+                style: Theme.of(dialogContext).textTheme.labelLarge,
+              ),
+              for (final outra in vizinhas)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.event_outlined,
+                    color: _bookingColor(outra.status),
+                  ),
+                  title: Text(
+                    '${_maquinasDaReserva(outra, estado)} · '
+                    '${_clienteDaReserva(outra, estado)}',
+                  ),
+                  subtitle: Text(_bookingStatusLabel(outra.status)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () async {
                     Navigator.pop(dialogContext);
-                    await _editarValorDaReservaDialog(context, ref, booking);
-                  }
-                : null,
-          ),
-          const Divider(height: 8),
-          // **O estado lê-se, não se escolhe.** Era uma lista de seis para
-          // carregar; agora é o relógio que manda a partir do dia de entrega —
-          // ver `estadoPeloRelogio`. Fica à vista porque continua a ser a
-          // primeira coisa que se quer saber.
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(
-              Icons.schedule_outlined,
-              color: _bookingColor(booking.status),
+                    await _bookingStatusDialog(
+                      context,
+                      ref,
+                      outra,
+                      naCelula: naCelula,
+                      quando: quando,
+                      state: state,
+                    );
+                  },
+                ),
+              const Divider(height: 8),
+            ],
+            // O valor previsto do trabalho, editável só pelo gestor. Um
+            // funcionário vê o número, não lhe toca — o ícone de lápis nem
+            // aparece e a linha não responde ao toque.
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.euro_outlined),
+              title: const Text('Valor previsto'),
+              subtitle: Text(_valorPrevistoLabel(booking.expectedValueCents)),
+              trailing: podeEditarValor
+                  ? const Icon(Icons.edit_outlined)
+                  : null,
+              enabled: podeEditarValor,
+              onTap: podeEditarValor
+                  ? () async {
+                      Navigator.pop(dialogContext);
+                      await _editarValorDaReservaDialog(context, ref, booking);
+                    }
+                  : null,
             ),
-            title: Text(_bookingStatusLabel(booking.status)),
-            subtitle: Text(
-              booking.status == BookingStatus.cancelled
-                  ? 'Cancelada — o tempo não a desfaz.'
-                  : 'Entrega-se no dia de início e conclui-se no fim, '
-                        'sozinha. Só o cancelamento é que é decidido.',
-            ),
-          ),
-          const Divider(height: 8),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.event_repeat_outlined),
-            title: const Text('Mudar de dia'),
-            subtitle: const Text('A duração vai atrás, tal como está.'),
-            onTap: () async {
-              Navigator.pop(dialogContext);
-              await _remarcarReservaDialog(context, ref, booking);
-            },
-          ),
-          if (booking.status != BookingStatus.cancelled)
+            const Divider(height: 8),
+            // **O estado lê-se, não se escolhe.** Era uma lista de seis para
+            // carregar; agora é o relógio que manda a partir do dia de entrega —
+            // ver `estadoPeloRelogio`. Fica à vista porque continua a ser a
+            // primeira coisa que se quer saber.
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(
-                Icons.event_busy_outlined,
-                color: Theme.of(dialogContext).colorScheme.error,
+                Icons.schedule_outlined,
+                color: _bookingColor(booking.status),
               ),
-              title: Text(
-                'Cancelar reserva',
-                style: TextStyle(
-                  color: Theme.of(dialogContext).colorScheme.error,
-                ),
+              title: Text(_bookingStatusLabel(booking.status)),
+              subtitle: Text(
+                booking.status == BookingStatus.cancelled
+                    ? 'Cancelada — o tempo não a desfaz.'
+                    : 'Entrega-se no dia de início e conclui-se no fim, '
+                          'sozinha. Só o cancelamento é que é decidido.',
               ),
-              subtitle: const Text('A máquina volta a ficar livre no período.'),
+            ),
+            const Divider(height: 8),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.event_repeat_outlined),
+              title: const Text('Mudar de dia'),
+              subtitle: const Text('A duração vai atrás, tal como está.'),
               onTap: () async {
                 Navigator.pop(dialogContext);
-                await _cancelarReservaDialog(context, ref, booking, estado);
+                await _remarcarReservaDialog(context, ref, booking);
               },
             ),
-        ],
+            if (booking.status != BookingStatus.cancelled)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.event_busy_outlined,
+                  color: Theme.of(dialogContext).colorScheme.error,
+                ),
+                title: Text(
+                  'Cancelar reserva',
+                  style: TextStyle(
+                    color: Theme.of(dialogContext).colorScheme.error,
+                  ),
+                ),
+                subtitle: const Text(
+                  'A máquina volta a ficar livre no período.',
+                ),
+                onTap: () async {
+                  Navigator.pop(dialogContext);
+                  await _cancelarReservaDialog(context, ref, booking, estado);
+                },
+              ),
+          ],
         ),
       ),
     ),

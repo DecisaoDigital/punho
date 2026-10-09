@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/licenca/licenca_fist.dart';
+import '../../../core/push/push_de_leads.dart';
 
 /// Texto do ecrã de bloqueio para cada fase que bloqueia.
 ({String titulo, String corpo, String? accao}) textoDoBloqueio(
@@ -99,7 +100,10 @@ class _EcraBloqueio extends ConsumerWidget {
                       child: Text(t.accao!),
                     ),
                   TextButton(
-                    onPressed: () => Supabase.instance.client.auth.signOut(),
+                    onPressed: () async {
+                      await PushDeLeads.esquecer();
+                      await Supabase.instance.client.auth.signOut();
+                    },
                     child: const Text('Terminar sessão'),
                   ),
                 ],

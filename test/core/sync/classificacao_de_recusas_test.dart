@@ -97,8 +97,16 @@ void main() {
 
   group('C — definitivo: quarentena com o que o servidor disse', () {
     test('os códigos que já se conheciam', () {
-      for (final codigo in ['23514', '23502', '23503', '22007', '22P02',
-        '42501', '23P01', 'P0001']) {
+      for (final codigo in [
+        '23514',
+        '23502',
+        '23503',
+        '22007',
+        '22P02',
+        '42501',
+        '23P01',
+        'P0001',
+      ]) {
         expect(classificarFalha(erro(codigo)), DestinoDaRecusa.definitivo);
       }
     });

@@ -125,11 +125,7 @@ void main() {
     // O passo passou a ser um dos comerciais: «Entregar» deixou de ser botão a
     // 13/8/2026, porque quem entrega é o relógio.
     final repo = _RepoCom([
-      trabalho(
-        id: 'b1',
-        estado: BookingStatus.proposalSent,
-        comecaDaquiA: 3,
-      ),
+      trabalho(id: 'b1', estado: BookingStatus.proposalSent, comecaDaquiA: 3),
     ]);
     final container = ProviderContainer(
       overrides: [

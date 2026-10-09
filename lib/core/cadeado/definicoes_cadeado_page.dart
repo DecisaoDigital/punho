@@ -322,11 +322,18 @@ class _DefinirPinScreenState extends State<DefinirPinScreen> {
                     Expanded(child: repetir),
                   ],
                 )
-              else ...[pin, const SizedBox(height: 12), repetir],
+              else ...[
+                pin,
+                const SizedBox(height: 12),
+                repetir,
+              ],
               if (_erro != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
-                  child: Text(_erro!, style: const TextStyle(color: Colors.red)),
+                  child: Text(
+                    _erro!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ),
             ],
           );

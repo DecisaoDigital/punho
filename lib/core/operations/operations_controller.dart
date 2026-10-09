@@ -14,6 +14,7 @@ import '../../domain/models/historical_month.dart';
 final operationRepositoryProvider = Provider<OperationRepository>(
   (ref) => LocalDemoOperationRepository(),
 );
+
 /// O relógio que decide o estado das marcações.
 ///
 /// Existe para ser trocado nos testes. Sem ele, qualquer teste com datas fixas
@@ -27,6 +28,9 @@ final operationsProvider =
     );
 
 const minimumBookingDuration = Duration(hours: 12);
+
+/// Uma reunião dura sempre uma hora; o utilizador só escolhe quando começa.
+const duracaoDaReuniao = Duration(hours: 1);
 
 /// Valor a escrever num campo opcional.
 ///
@@ -71,6 +75,7 @@ class OperationsState {
     this.customers = const [],
     this.leads = const [],
     this.bookings = const [],
+    this.reunioes = const [],
     this.expenses = const [],
     this.receipts = const [],
     this.collaborators = const [],
@@ -132,6 +137,11 @@ class OperationsState {
   final List<Customer> customers;
   final List<Lead> leads;
   final List<Booking> bookings;
+
+  /// Reuniões do calendário (`BookingTipo.reuniao`). Ficam FORA de [bookings]
+  /// de propósito: uma reunião não é aluguer, e quase tudo o que lê `bookings`
+  /// (KPIs, tarefas, passos, conflitos) conta máquinas e dinheiro.
+  final List<Booking> reunioes;
   final List<Expense> expenses;
   final List<Receipt> receipts;
   final List<Collaborator> collaborators;
@@ -193,6 +203,7 @@ class OperationsState {
     List<Customer>? customers,
     List<Lead>? leads,
     List<Booking>? bookings,
+    List<Booking>? reunioes,
     List<Expense>? expenses,
     List<Receipt>? receipts,
     List<Collaborator>? collaborators,
@@ -227,6 +238,7 @@ class OperationsState {
     customers: customers ?? this.customers,
     leads: leads ?? this.leads,
     bookings: bookings ?? this.bookings,
+    reunioes: reunioes ?? this.reunioes,
     expenses: expenses ?? this.expenses,
     receipts: receipts ?? this.receipts,
     collaborators: collaborators ?? this.collaborators,
@@ -267,6 +279,7 @@ class OperationsController extends Notifier<OperationsState> {
       customers: _repo.customers,
       leads: _repo.leads,
       bookings: _bookingsComORelogio(),
+      reunioes: _reunioesDoRepo(),
       expenses: _repo.expenses,
       receipts: _repo.receipts,
       collaborators: _repo.collaborators,
@@ -283,21 +296,28 @@ class OperationsController extends Notifier<OperationsState> {
   ///
   /// Não escreve nada quando não há nada a mexer, que é o caso comum.
   List<Booking> _bookingsComORelogio() {
-    final doRepo = _repo.bookings;
-    final mexidas = reservasAAvancar(doRepo, ref.read(relogioProvider)());
-    if (mexidas.isEmpty) return doRepo;
-    for (final reserva in mexidas) {
-      _repo.saveBooking(reserva);
+    final mexidas = reservasAAvancar(
+      _repo.bookings,
+      ref.read(relogioProvider)(),
+    );
+    if (mexidas.isNotEmpty) {
+      for (final reserva in mexidas) {
+        _repo.saveBooking(reserva);
+      }
+      _syncMachineCycle(mexidas.expand((r) => r.machineIds).toSet().toList());
     }
-    _syncMachineCycle(mexidas.expand((r) => r.machineIds).toSet().toList());
-    return _repo.bookings;
+    return _repo.bookings.where((b) => !b.eReuniao).toList();
   }
+
+  List<Booking> _reunioesDoRepo() =>
+      _repo.bookings.where((b) => b.eReuniao).toList();
 
   OperationsState _fromRepo() => state.copyWith(
     machines: _repo.machines,
     customers: _repo.customers,
     leads: _repo.leads,
     bookings: _bookingsComORelogio(),
+    reunioes: _reunioesDoRepo(),
     expenses: _repo.expenses,
     receipts: _repo.receipts,
     collaborators: _repo.collaborators,
@@ -548,6 +568,7 @@ class OperationsController extends Notifier<OperationsState> {
     customers: state.customers,
     leads: state.leads,
     bookings: state.bookings,
+    reunioes: state.reunioes,
     expenses: state.expenses,
     receipts: state.receipts,
     collaborators: state.collaborators,
@@ -664,9 +685,84 @@ class OperationsController extends Notifier<OperationsState> {
     return true;
   }
 
+  /// Uma lead é alguém que ainda não é cliente. Quem já tem ficha (mesmo
+  /// telemóvel, ignorando espaços e o +351) não entra como lead: é uma reserva
+  /// nova, com o operador responsável por esse cliente.
+  final Set<String> _leadsCriadasAqui = {};
+
+  /// Ids das leads registadas neste aparelho: o aviso de «lead nova» não deve
+  /// tocar a quem acabou de a escrever.
+  Set<String> get leadsCriadasAqui => Set.unmodifiable(_leadsCriadasAqui);
+
   void addLead(Lead item) {
+    final jaCliente = clienteComTelemovel(item.phone);
+    if (jaCliente != null) {
+      throw StateError(
+        'Já é cliente: ${jaCliente.name}. Marca antes uma reserva.',
+      );
+    }
     _repo.saveLead(item);
+    _leadsCriadasAqui.add(item.id);
     state = _fromRepo();
+  }
+
+  /// A tabela de preços é da categoria: todas as máquinas (não arquivadas)
+  /// dessa categoria passam a ter esta.
+  void aplicarTarifasACategoria(String categoria, List<Tarifa> tarifas) {
+    final alvo = categoria.trim().toLowerCase();
+    for (final m in state.machines) {
+      if (m.archived || m.category.trim().toLowerCase() != alvo) continue;
+      if (_mesmasTarifas(m.tarifas, tarifas)) continue;
+      _repo.saveMachine(m.copyWith(tarifas: tarifas));
+    }
+    state = _fromRepo();
+  }
+
+  static bool _mesmasTarifas(List<Tarifa> a, List<Tarifa> b) =>
+      a.length == b.length &&
+      [for (var i = 0; i < a.length; i++) a[i] == b[i]].every((x) => x);
+
+  /// Uma máquina livre da [categoria] no período (a primeira, por ordem de
+  /// cadastro), ou `null`. É a regra que a reserva por categoria usa: quem
+  /// regista diz a categoria que o cliente precisa e o sistema escolhe.
+  Machine? maquinaLivreDaCategoria(
+    String categoria,
+    DateTime start,
+    DateTime end,
+  ) {
+    final alvo = categoria.trim().toLowerCase();
+    return state.machines
+        .where((m) => m.category.trim().toLowerCase() == alvo)
+        .where((m) => machineAvailable(m.id, start, end))
+        .firstOrNull;
+  }
+
+  /// Diz quem trata esta lead (`Collaborator.id`), ou `null` para a devolver
+  /// à caixa «por atribuir».
+  void atribuirLead(String leadId, String? colaboradorId) {
+    final atual = state.leads.where((l) => l.id == leadId).firstOrNull;
+    if (atual == null) return;
+    _repo.saveLead(atual.copyWith(atribuidaA: () => colaboradorId));
+    state = _fromRepo();
+  }
+
+  /// Passa a lead para outro estado (contactada, qualificada, perdida...).
+  /// «Convertida» não se marca aqui: vem do fecho (ver [_fecharLeadSeConfirmada]).
+  void setLeadStatus(String leadId, LeadStatus status) {
+    if (status == LeadStatus.converted) return;
+    final atual = state.leads.where((l) => l.id == leadId).firstOrNull;
+    if (atual == null || atual.status == LeadStatus.converted) return;
+    _repo.saveLead(atual.copyWith(status: status));
+    state = _fromRepo();
+  }
+
+  /// O cliente (não arquivado) com este telemóvel, ou `null`.
+  Customer? clienteComTelemovel(String telemovel) {
+    final alvo = telefoneNormalizado(telemovel);
+    if (alvo.isEmpty) return null;
+    return state.customers
+        .where((c) => !c.archived && telefoneNormalizado(c.phone) == alvo)
+        .firstOrNull;
   }
 
   void addCustomer(Customer item) {
@@ -791,7 +887,7 @@ class OperationsController extends Notifier<OperationsState> {
   Customer convertLead(Lead lead) {
     final jaConvertida = state.leads
         .where((item) => item.id == lead.id)
-        .any((item) => item.status == LeadStatus.converted);
+        .any((item) => item.convertedCustomerId != null);
     final existente = state.customers
         .where(
           (customer) => lead.phone.isNotEmpty && customer.phone == lead.phone,
@@ -802,12 +898,7 @@ class OperationsController extends Notifier<OperationsState> {
       // Marca-se na mesma o cliente a que ela corresponde: a conversão não se
       // conclui, mas a origem daquele cliente ficou a saber-se aqui, e é
       // exactamente esse o elo que interessa guardar.
-      _repo.saveLead(
-        lead.copyWith(
-          status: LeadStatus.converted,
-          convertedCustomerId: existente.id,
-        ),
-      );
+      _repo.saveLead(lead.copyWith(convertedCustomerId: existente.id));
       state = _fromRepo();
       throw StateError(
         'Já existe um cliente com o telemóvel desta lead: ${existente.name}.',
@@ -824,12 +915,10 @@ class OperationsController extends Notifier<OperationsState> {
       createdAt: DateTime.now(),
     );
     _repo.saveCustomer(customer);
-    _repo.saveLead(
-      lead.copyWith(
-        status: LeadStatus.converted,
-        convertedCustomerId: customer.id,
-      ),
-    );
+    // Só liga: converter é fechar, e fechar é a reserva (ver
+    // [_ligarLeadAoPrimeiroTrabalho]). Ter a ficha do cliente não é ter o
+    // negócio.
+    _repo.saveLead(lead.copyWith(convertedCustomerId: customer.id));
     state = _fromRepo();
     return customer;
   }
@@ -850,7 +939,29 @@ class OperationsController extends Notifier<OperationsState> {
         )
         .firstOrNull;
     if (lead == null) return;
-    _repo.saveLead(lead.copyWith(bookingId: booking.id));
+    _repo.saveLead(
+      lead.copyWith(
+        bookingId: booking.id,
+        status: _fecha(booking.status) ? LeadStatus.converted : null,
+      ),
+    );
+  }
+
+  static bool _fecha(BookingStatus s) =>
+      s == BookingStatus.confirmed ||
+      s == BookingStatus.rented ||
+      s == BookingStatus.completed;
+
+  /// A reserva que a lead originou passou a confirmada: é o fecho.
+  void _fecharLeadSeConfirmada(Booking booking) {
+    if (!_fecha(booking.status)) return;
+    final lead = _repo.leads
+        .where(
+          (l) => l.bookingId == booking.id && l.status != LeadStatus.converted,
+        )
+        .firstOrNull;
+    if (lead == null) return;
+    _repo.saveLead(lead.copyWith(status: LeadStatus.converted));
   }
 
   BookingConflict? conflictFor({
@@ -891,6 +1002,65 @@ class OperationsController extends Notifier<OperationsState> {
     return !m.archived &&
         m.status != MachineStatus.maintenance &&
         conflictFor(machineIds: [id], startsAt: start, endsAt: end) == null;
+  }
+
+  /// Marca uma reunião com um cliente. Não é aluguer: sem máquina, sem preço,
+  /// sem conflitos, sem lead; nasce confirmada e dura [duracaoDaReuniao].
+  /// [criadoPorUid] é a conta de quem marca — é nela que o alarme toca.
+  Booking agendarReuniao({
+    required String customerId,
+    required DateTime inicio,
+    int? lembreteMinutos,
+    String notes = '',
+    String? criadoPorUid,
+  }) {
+    final cliente = state.customers.firstWhere((c) => c.id == customerId);
+    final reuniao = Booking(
+      id: 'reuniao-${DateTime.now().microsecondsSinceEpoch}',
+      customerId: customerId,
+      machineIds: const [],
+      startsAt: inicio,
+      endsAt: inicio.add(duracaoDaReuniao),
+      status: BookingStatus.confirmed,
+      notes: notes,
+      customerNameSnapshot: cliente.name,
+      tipo: BookingTipo.reuniao,
+      lembreteMinutos: lembreteMinutos,
+      criadoPorUid: criadoPorUid,
+    );
+    _repo.saveBooking(reuniao);
+    state = _fromRepo();
+    return reuniao;
+  }
+
+  /// Muda a hora de uma reunião (e o lembrete, se vier). A duração mantém-se.
+  void remarcarReuniao(String id, DateTime inicio, {int? lembreteMinutos}) {
+    final atual = state.reunioes.firstWhere((r) => r.id == id);
+    final duracao = atual.endsAt.difference(atual.startsAt);
+    _repo.saveBooking(
+      Booking(
+        id: atual.id,
+        customerId: atual.customerId,
+        machineIds: atual.machineIds,
+        startsAt: inicio,
+        endsAt: inicio.add(duracao),
+        status: atual.status,
+        notes: atual.notes,
+        companyId: atual.companyId,
+        customerNameSnapshot: atual.customerNameSnapshot,
+        collaboratorNameSnapshot: atual.collaboratorNameSnapshot,
+        tipo: atual.tipo,
+        lembreteMinutos: lembreteMinutos ?? atual.lembreteMinutos,
+        criadoPorUid: atual.criadoPorUid,
+      ),
+    );
+    state = _fromRepo();
+  }
+
+  void cancelarReuniao(String id) {
+    final atual = state.reunioes.firstWhere((r) => r.id == id);
+    _repo.saveBooking(atual.copyWith(status: BookingStatus.cancelled));
+    state = _fromRepo();
   }
 
   BookingConflict? addBooking(Booking booking) {
@@ -957,6 +1127,9 @@ class OperationsController extends Notifier<OperationsState> {
         collaboratorNameSnapshot: booking.collaboratorNameSnapshot.isEmpty
             ? collaboratorName
             : booking.collaboratorNameSnapshot,
+        tipo: booking.tipo,
+        lembreteMinutos: booking.lembreteMinutos,
+        criadoPorUid: booking.criadoPorUid,
       ),
     );
     _ligarLeadAoPrimeiroTrabalho(booking);
@@ -982,6 +1155,7 @@ class OperationsController extends Notifier<OperationsState> {
       }
     }
     _repo.saveBooking(current.copyWith(status: status));
+    _fecharLeadSeConfirmada(current.copyWith(status: status));
     _syncMachineCycle(current.machineIds);
     state = _fromRepo();
     return null;
@@ -1034,6 +1208,9 @@ class OperationsController extends Notifier<OperationsState> {
         companyId: atual.companyId,
         customerNameSnapshot: atual.customerNameSnapshot,
         collaboratorNameSnapshot: atual.collaboratorNameSnapshot,
+        tipo: atual.tipo,
+        lembreteMinutos: atual.lembreteMinutos,
+        criadoPorUid: atual.criadoPorUid,
       ),
     );
     _syncMachineCycle(atual.machineIds);
