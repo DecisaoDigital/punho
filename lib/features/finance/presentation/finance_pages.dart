@@ -56,12 +56,26 @@ class FinanceListPage extends ConsumerWidget {
                         '${item.date.day}/${item.date.month} · ${item.note.isEmpty ? 'Sem nota' : item.note}',
                       ),
                       trailing: item is Expense
-                          ? Chip(
-                              label: Text(
-                                item.status == ExpensePaymentStatus.paid
-                                    ? 'Paga'
-                                    : 'Por pagar',
-                              ),
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Chip(
+                                  label: Text(
+                                    item.status == ExpensePaymentStatus.paid
+                                        ? 'Paga'
+                                        : 'Por pagar',
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline),
+                                  tooltip: 'Eliminar despesa',
+                                  onPressed: () => _confirmarEliminarDespesa(
+                                    context,
+                                    ref,
+                                    item,
+                                  ),
+                                ),
+                              ],
                             )
                           : const Chip(label: Text('Recebido')),
                     ),
@@ -74,6 +88,55 @@ class FinanceListPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Confirmação + 6 segundos para anular, como em eliminar cliente.
+Future<void> _confirmarEliminarDespesa(
+  BuildContext context,
+  WidgetRef ref,
+  Expense despesa,
+) async {
+  final valor = _money(despesa.amountCents);
+  final confirmado = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => AlertDialog(
+      title: Text('Eliminar a despesa de $valor?'),
+      content: const Text(
+        'Sai da lista e deixa de contar nas contas. Pode anular logo a seguir.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Eliminar'),
+        ),
+      ],
+    ),
+  );
+  if (confirmado != true || !context.mounted) return;
+
+  final notifier = ref.read(operationsProvider.notifier);
+  notifier.archiveExpense(despesa.id);
+  if (!context.mounted) return;
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text('Despesa de $valor eliminada.'),
+      duration: const Duration(seconds: 6),
+      action: SnackBarAction(
+        label: 'Anular',
+        onPressed: () => notifier.unarchiveExpense(despesa.id),
+      ),
+    ),
+  );
 }
 
 class RegisterExpensePage extends ConsumerStatefulWidget {

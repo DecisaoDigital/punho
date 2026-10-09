@@ -186,6 +186,22 @@ class Expense extends LedgerMovement {
   final String? documentPath;
   final String? recordedByCollaboratorId;
   final DocumentDataSource dataSource;
+
+  Expense copyWith({bool? archived}) => Expense(
+    id: id,
+    date: date,
+    amountCents: amountCents,
+    category: category,
+    status: status,
+    note: note,
+    description: description,
+    machineId: machineId,
+    vehicleId: vehicleId,
+    documentPath: documentPath,
+    recordedByCollaboratorId: recordedByCollaboratorId,
+    dataSource: dataSource,
+    archived: archived ?? this.archived,
+  );
 }
 
 class Receipt extends LedgerMovement {

@@ -317,7 +317,7 @@ class OperationsController extends Notifier<OperationsState> {
       leads: _repo.leads,
       bookings: _bookingsComORelogio(),
       reunioes: _reunioesDoRepo(),
-      expenses: _repo.expenses,
+      expenses: _repo.expenses.where((x) => !x.archived).toList(),
       receipts: _repo.receipts,
       collaborators: _repo.collaborators,
       vehicles: _repo.vehicles,
@@ -355,7 +355,7 @@ class OperationsController extends Notifier<OperationsState> {
     leads: _repo.leads,
     bookings: _bookingsComORelogio(),
     reunioes: _reunioesDoRepo(),
-    expenses: _repo.expenses,
+    expenses: _repo.expenses.where((x) => !x.archived).toList(),
     receipts: _repo.receipts,
     collaborators: _repo.collaborators,
     vehicles: _repo.vehicles,
@@ -836,6 +836,20 @@ class OperationsController extends Notifier<OperationsState> {
     final atual = state.customers.where((x) => x.id == id).firstOrNull;
     if (atual == null) return;
     _repo.saveCustomer(atual.copyWith(archived: false));
+    state = _fromRepo();
+  }
+
+  /// Eliminar despesa é soft-delete, como nos clientes: sai das listas e de
+  /// todas as contas (o estado só leva as não arquivadas), mas a linha fica no
+  /// registo e o «Anular» devolve-a.
+  void archiveExpense(String id) => _marcarDespesa(id, arquivada: true);
+
+  void unarchiveExpense(String id) => _marcarDespesa(id, arquivada: false);
+
+  void _marcarDespesa(String id, {required bool arquivada}) {
+    final atual = _repo.expenses.where((x) => x.id == id).firstOrNull;
+    if (atual == null) return;
+    _repo.saveExpense(atual.copyWith(archived: arquivada));
     state = _fromRepo();
   }
 
