@@ -159,7 +159,16 @@ $fn$;
 revoke all on function public.punho_operacoes_carimbar_reuniao()
   from public, anon, authenticated;
 
-drop trigger if exists punho_operacoes_carimbo_reuniao on public.punho_operacoes;
-create trigger punho_operacoes_carimbo_reuniao
-  before insert on public.punho_operacoes
-  for each row execute function public.punho_operacoes_carimbar_reuniao();
+do $t$
+begin
+  if not exists (
+    select 1 from pg_trigger
+     where tgrelid = 'public.punho_operacoes'::regclass
+       and tgname = 'punho_operacoes_carimbo_reuniao'
+  ) then
+    create trigger punho_operacoes_carimbo_reuniao
+      before insert on public.punho_operacoes
+      for each row execute function public.punho_operacoes_carimbar_reuniao();
+  end if;
+end
+$t$;
