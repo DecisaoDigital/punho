@@ -26,6 +26,7 @@ import '../../../domain/models/historical_month.dart';
 import '../../auth/acesso_providers.dart';
 import '../../auth/domain/estado_acesso.dart';
 import 'bem_vindo_screen.dart';
+import 'reunioes_ui.dart';
 import 'boas_vindas_screen.dart';
 import 'mais_dados_screen.dart';
 import 'rascunho_do_onboarding.dart';
@@ -2677,6 +2678,11 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                   onPressed: _clearSelection,
                   child: const Text('Limpar seleção'),
                 );
+          final novaReuniao = IconButton(
+            tooltip: 'Nova reunião',
+            onPressed: () => abrirReuniao(context),
+            icon: const Icon(Icons.event_available_outlined),
+          );
           final reservar = FilledButton.icon(
             // Tamanho de origem, como os outros botões da app.
             //
@@ -2734,6 +2740,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                     // é dela, e o nome da máquina corta antes de transbordar.
                     Expanded(child: escolhaDeMaquina),
                     const SizedBox(width: 8),
+                    novaReuniao,
                     reservar,
                   ],
                 ),
@@ -2785,6 +2792,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
               // botão para a segunda linha.
               const SizedBox(width: 8),
               if (limparSelecao != null) limparSelecao,
+              novaReuniao,
               reservar,
             ],
           );
@@ -2812,6 +2820,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                 ),
               ),
             ),
+          const FaixaDeReunioes(),
           Expanded(
             child: _view == _CalendarView.week
                 ? _WeekBookingsCalendar(
