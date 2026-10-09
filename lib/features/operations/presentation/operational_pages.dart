@@ -2453,6 +2453,7 @@ class _FormularioDeLead extends StatefulWidget {
 class _FormularioDeLeadState extends State<_FormularioDeLead> {
   final name = TextEditingController();
   final phone = TextEditingController();
+  String? erro;
 
   @override
   void dispose() {
@@ -2465,6 +2466,7 @@ class _FormularioDeLeadState extends State<_FormularioDeLead> {
   Widget build(BuildContext context) {
     return EcraDeFormulario(
       titulo: 'Novo lead',
+      aviso: erro,
       campos: [
         CampoLargo(
           Text(
@@ -2485,17 +2487,20 @@ class _FormularioDeLeadState extends State<_FormularioDeLead> {
         ),
       ],
       aoGuardar: () {
-        if (name.text.isNotEmpty && phone.text.isNotEmpty) {
-          widget.notifier.addLead(
-            Lead(
-              id: 'l${DateTime.now().microsecondsSinceEpoch}',
-              name: name.text,
-              phone: phone.text,
-              status: LeadStatus.newLead,
-              createdAt: DateTime.now(),
-            ),
-          );
+        final problema = validarLead(name.text, phone.text);
+        if (problema != null) {
+          setState(() => erro = problema);
+          return;
         }
+        widget.notifier.addLead(
+          Lead(
+            id: 'l${DateTime.now().microsecondsSinceEpoch}',
+            name: name.text.trim(),
+            phone: phone.text.trim(),
+            status: LeadStatus.newLead,
+            createdAt: DateTime.now(),
+          ),
+        );
         Navigator.pop(context);
       },
     );

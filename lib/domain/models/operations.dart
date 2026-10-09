@@ -230,6 +230,14 @@ class Customer {
   );
 }
 
+/// Mensagem de erro se faltar o nome ou o telemóvel de uma lead; `null` se
+/// estiver completa. Partilhada pelos dois formulários (gestor e colaborador)
+/// para que não voltem a divergir: o do gestor fechava sem gravar nem avisar.
+String? validarLead(String nome, String telemovel) =>
+    nome.trim().isEmpty || telemovel.trim().isEmpty
+    ? 'A lead precisa do nome e do telemóvel.'
+    : null;
+
 class Lead {
   const Lead({
     required this.id,

@@ -210,9 +210,9 @@ class _FormularioDeLeadDoColaboradorState
     aoGuardar: () {
       // Antes o botão não fazia nada quando faltava um dos dois, e não dizia
       // porquê — ficava-se a carregar sem perceber.
-      if (widget.nome.text.trim().isEmpty ||
-          widget.telemovel.text.trim().isEmpty) {
-        setState(() => erro = 'A lead precisa do nome e do telemóvel.');
+      final problema = validarLead(widget.nome.text, widget.telemovel.text);
+      if (problema != null) {
+        setState(() => erro = problema);
         return;
       }
       widget.ref
