@@ -1,6 +1,16 @@
 # Licença do Fist por funcionário — desenho
 
-> Estado: **desenho, por implementar**. 2026-10-09, com o Cesar.
+> Estado a 2026-10-09: **servidor feito e provado; falta o telemóvel e o Control.**
+> **Modelo final** (supera as secções «Mudança de dados» e «Funções» abaixo, escritas antes de
+> ler `punho_subscricoes`): a licença é uma linha por **empresa** em `licencas`
+> (`empresa_id`, `machine_id = 'empresa:<uuid>'`); o funcionário é um lugar em `punho_membros`
+> dentro do limite de `punho_subscricoes` (packs de 3 operadores; o gestor inclui o escritório);
+> aparelhos em `fist_dispositivos` (máx. 2) e sessão única em `fist_sessoes`.
+> Função nova **`licenca-fist`** (exige sessão); `registar-terminal` e `validar-licenca` ficam
+> como estão para as apps já instaladas. Prova: `supabase/tests/licenca_fist_rest.sh` (12 de 12).
+> Falta: o Fist chamar a função após o login e bloquear às 28 h sem resposta; o Control
+> mostrar a empresa em vez do aparelho; limite em múltiplos de 3.
+> Decisão do Cesar.
 > Decisão dele: **um email, uma licença**. A licença é do funcionário e nunca do dispositivo.
 > Contraparte no WashInvoice (presa ao PC): `washinvoice-pos/docs/seguranca/identidade_do_terminal.md`.
 
