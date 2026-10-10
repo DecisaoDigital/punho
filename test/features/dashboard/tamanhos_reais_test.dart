@@ -63,6 +63,15 @@ void main() {
       // termo da comparação em euros e, no break even, ainda o dia previsto e a
       // origem da margem.
       ['vendas-mes', 'lucro-mes', 'estrutura-mes', 'break-even-mes'],
+      // O ecrã com os dois gráficos (10 Out 2026): três cartões de número em
+      // cima e os gráficos por baixo.
+      [
+        'break-even-mes',
+        'tendencia-mes',
+        'entradas-mes',
+        'grafico-faturacao-mensal',
+        'grafico-total-por-ano',
+      ],
       ['lucro-mes-anterior', 'lucro-mes', 'break-even-mes', 'margem-bruta'],
       // Os três de 13 de Agosto: o dinheiro que já devia ter entrado, o que
       // ainda tem de sair, e o activo que não está a render.

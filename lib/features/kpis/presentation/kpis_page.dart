@@ -413,7 +413,9 @@ class _LinhaDeKpi extends ConsumerWidget {
             Expanded(
               child: AbrirDestinoDoKpi(
                 destino: null,
-                cadeia: filhosDe(kpi.id).isEmpty ? null : kpi.id,
+                cadeia: filhosDe(kpi.id).isEmpty && !temGrafico(kpi.id)
+                    ? null
+                    : kpi.id,
                 agora: now,
                 child: kpi.celula(estado, now).deitada(),
               ),

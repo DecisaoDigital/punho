@@ -207,11 +207,30 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 /// é uma leitura de cinco segundos, é uma tabela.
 const _porEcra = 4;
 
-/// Parte a lista escolhida em ecrãs de [_porEcra], pela ordem que ela traz.
-List<List<KpiDefinicao>> _paginar(List<KpiDefinicao> kpis) => [
-  for (var i = 0; i < kpis.length; i += _porEcra)
-    kpis.sublist(i, (i + _porEcra).clamp(0, kpis.length)),
-];
+/// Parte a lista escolhida em ecrãs, pela ordem que ela traz.
+///
+/// Sem gráficos cabem [_porEcra] KPIs (grelha 2×2). Com gráficos o ecrã é
+/// outro: até três cartões de número em cima e até dois gráficos em baixo.
+List<List<KpiDefinicao>> _paginar(List<KpiDefinicao> kpis) {
+  final paginas = <List<KpiDefinicao>>[];
+  var atual = <KpiDefinicao>[];
+  bool cabe(List<KpiDefinicao> pagina, KpiDefinicao novo) {
+    final cheia = [...pagina, novo];
+    final graficos = cheia.where((k) => k.grafico != null).length;
+    if (graficos == 0) return cheia.length <= _porEcra;
+    return graficos <= 2 && cheia.length - graficos <= 3;
+  }
+
+  for (final kpi in kpis) {
+    if (!cabe(atual, kpi)) {
+      paginas.add(atual);
+      atual = [];
+    }
+    atual.add(kpi);
+  }
+  if (atual.isNotEmpty) paginas.add(atual);
+  return paginas;
+}
 
 /// O painel de quem ainda não escolheu nada.
 ///

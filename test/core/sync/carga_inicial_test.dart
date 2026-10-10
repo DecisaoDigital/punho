@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fist/core/sync/sincronizacao_entre_dispositivos.dart';
 import 'package:fist/data/repositories/operation_repository.dart';
 import 'package:fist/domain/models/operations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -116,5 +117,26 @@ void main() {
 
     expect(registadas, isEmpty);
     expect(repo.machines.any((m) => m.id == 'remota'), isTrue);
+  });
+
+  test('um lote grande grava no aparelho uma só vez, não uma por operação', () {
+    // Aparelho novo a puxar anos de histórico: gravar o estado inteiro a cada
+    // operação deixava a app presa (14 mil operações, 10/10/2026).
+    final linhas = [
+      for (var i = 0; i < 500; i++)
+        {
+          'seq': i + 1,
+          'entidade': 'customer',
+          'entidade_id': 'c$i',
+          'payload': {'id': 'c$i', 'name': 'Cliente $i', 'phone': '912345678'},
+        },
+    ];
+    final antes = repo.gravacoesNoAparelho;
+
+    final r = aplicarLinhas(repo, linhas);
+
+    expect(r.aplicadas, 500);
+    expect(repo.customers.length, 500);
+    expect(repo.gravacoesNoAparelho - antes, 1);
   });
 }

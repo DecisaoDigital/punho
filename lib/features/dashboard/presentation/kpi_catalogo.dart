@@ -16,6 +16,8 @@
 /// está pronto a subir ao painel a dizer verdade.
 library;
 
+import 'package:flutter/widgets.dart' show Widget;
+
 import '../../../core/guidance/guidance_engine.dart';
 import '../../../core/navigation/app_destination.dart';
 import '../../../core/kpis/apreciacao.dart';
@@ -30,7 +32,9 @@ import '../../../core/operations/operations_controller.dart';
 import '../../../domain/models/arranjo_do_painel.dart';
 import '../../../domain/models/finance.dart';
 import '../../../domain/models/operations.dart';
+import '../../kpis/presentation/grafico_do_mes.dart';
 import 'widgets/celula_semaforo.dart';
+import 'widgets/grelha_com_graficos.dart';
 import 'widgets/kpi_grid_2x2.dart';
 
 // ---------------------------------------------------------------------------
@@ -61,6 +65,7 @@ class KpiDefinicao {
     required this.desbloqueio,
     this.destino,
     this.pai,
+    this.grafico,
   });
 
   /// Estável, kebab-case. Serve de chave para a promoção manual ao painel.
@@ -99,6 +104,11 @@ class KpiDefinicao {
   /// A cadeia é uma árvore, e é verificada como tal: ver
   /// `test/core/kpis/cadeia_test.dart`.
   final String? pai;
+
+  /// Quando existe, este KPI é um **gráfico**: no painel ocupa o seu cartão em
+  /// vez da [celula], que fica para a lista dos KPIs (um resumo do que o
+  /// gráfico mostra). Escolhe-se e ordena-se como qualquer outro.
+  final Widget Function(OperationsState, DateTime)? grafico;
 
   /// Fonte cheia = a célula não está à espera de dados.
   bool fonteCheia(OperationsState s, DateTime now) =>
@@ -170,6 +180,24 @@ const catalogoKpis = <KpiDefinicao>[
     desbloqueio: 'Despesas de estrutura + vendas (deste mês ou dos anteriores)',
     destino: AppDestination.finances,
     pai: 'lucro-mes',
+  ),
+  // Os gráficos do painel: escolhem-se aqui como os outros. Ocupam o seu
+  // cartão (o da linha de baixo), por isso cabem dois por ecrã.
+  KpiDefinicao(
+    id: 'grafico-faturacao-mensal',
+    titulo: 'Faturação mês a mês',
+    celula: kpiGraficoMensal,
+    contaVerificada: true,
+    desbloqueio: 'Reservas com valor (ou o histórico mensal preenchido)',
+    grafico: _graficoMensal,
+  ),
+  KpiDefinicao(
+    id: 'grafico-total-por-ano',
+    titulo: 'Total por ano',
+    celula: kpiGraficoAnos,
+    contaVerificada: true,
+    desbloqueio: 'Reservas com valor (ou o histórico mensal preenchido)',
+    grafico: _graficoAnos,
   ),
   // Fora do carrossel — nascidas já na "KPIs (todos)", hoje (9 Ago 2026).
   KpiDefinicao(
@@ -460,6 +488,9 @@ KpiDefinicao? kpiPorId(String id) {
 ///
 /// Lista vazia é uma resposta legítima: uma folha da árvore não tem por onde se
 /// desdobrar, e é aí que a explicação acaba e começa a acção.
+/// KPIs folha que, mesmo assim, abrem a página com o gráfico.
+bool temGrafico(String id) => id == 'break-even-mes';
+
 List<KpiDefinicao> filhosDe(String id) => [
   for (final k in catalogoKpis)
     if (k.pai == id) k,
@@ -1726,5 +1757,58 @@ CelulaSemaforo kpiSaldoPrevisto(OperationsState estado, DateTime now) {
     subtexto:
         '${_euros(previsao.entradasPrevistasCents)} € previstos a entrar − '
         '${_euros(previsao.saidasPrevistasCents!)} € a sair',
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Os gráficos
+// ---------------------------------------------------------------------------
+
+Widget _graficoMensal(OperationsState estado, DateTime now) => CartaoDeGrafico(
+  child: GraficoDoMes(estado: estado, now: now, altura: null, compacto: true),
+);
+
+Widget _graficoAnos(OperationsState estado, DateTime now) => CartaoDeGrafico(
+  child: GraficoDosAnos(estado: estado, now: now),
+);
+
+/// A célula do gráfico mensal **na lista dos KPIs**: o que ele mostra, em
+/// palavras. No painel é o próprio gráfico que aparece.
+CelulaSemaforo kpiGraficoMensal(OperationsState estado, DateTime now) {
+  final serie = serieAnual(estado, now, now.year);
+  if (!serie.temDados) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Gráfico · Faturação mês a mês',
+      texto: 'Ainda sem faturação para desenhar',
+      subtexto: 'Termina uma reserva com valor e as colunas aparecem.',
+    );
+  }
+  return CelulaSemaforo(
+    nivel: NivelSemaforo.verde,
+    rotulo: 'Gráfico · Faturação mês a mês',
+    texto: 'Uma coluna por mês, ${now.year}',
+    subtexto:
+        'Com o break even de cada mês e a média do ano. '
+        '${serie.anos.length > 1 ? 'Setas para os anos anteriores.' : ''}',
+  );
+}
+
+/// Idem para o gráfico dos totais por ano.
+CelulaSemaforo kpiGraficoAnos(OperationsState estado, DateTime now) {
+  final anos = totaisPorAno(estado, now);
+  if (anos.isEmpty || anos.every((a) => a.faturacaoCents <= 0)) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Gráfico · Total por ano',
+      texto: 'Ainda sem anos para comparar',
+      subtexto: 'Precisa de faturação num ano para o desenhar.',
+    );
+  }
+  return CelulaSemaforo(
+    nivel: NivelSemaforo.verde,
+    rotulo: 'Gráfico · Total por ano',
+    texto: '${anos.length} ${anos.length == 1 ? 'ano' : 'anos'} lado a lado',
+    subtexto: 'Faturação, despesa e lucro de cada ano.',
   );
 }

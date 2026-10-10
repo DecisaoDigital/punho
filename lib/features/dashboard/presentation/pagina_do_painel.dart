@@ -6,6 +6,7 @@ import '../../../core/navigation/navigation_controller.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../kpis/presentation/cadeia_do_kpi_page.dart';
 import 'kpi_catalogo.dart';
+import 'widgets/grelha_com_graficos.dart';
 import 'widgets/grelha_de_kpis.dart';
 
 /// **Um ecrã do painel: até quatro KPIs, na ordem em que o gestor os pôs.**
@@ -33,27 +34,42 @@ class PaginaDoPainel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final estado = ref.watch(operationsProvider);
     final now = agora ?? DateTime.now();
-    return GrelhaDeKpis(
-      celulas: [
-        for (final id in ids)
-          if (kpiPorId(id) case final kpi?)
-            AbrirDestinoDoKpi(
-              destino: kpi.destino,
-              // **Um KPI com filhos abre a cadeia; uma folha vai direita à
-              // acção.** É a regra inteira do toque no painel.
-              //
-              // Só se pode descer onde há alguma coisa por baixo: as «Entregas
-              // hoje» não têm explicação nenhuma para dar, e abrir uma página
-              // que só repetisse a célula era um toque a mais para chegar ao
-              // mesmo sítio. Já o Lucro tem — e mandar quem lhe toca para as
-              // Finanças, sem lhe dizer primeiro o que se mexeu, é despachá-lo
-              // para o sítio certo com a pergunta errada na cabeça.
-              cadeia: filhosDe(kpi.id).isEmpty ? null : kpi.id,
-              agora: agora,
-              child: kpi.celula(estado, now),
-            ),
-      ],
-    );
+    // **Os gráficos são KPIs como os outros** (escolhem-se na lista dos KPIs):
+    // os cartões de número vão em cima, iguais entre si, e os gráficos por
+    // baixo, também iguais. Sem gráficos, a grelha 2×2 de sempre.
+    final kpis = [
+      for (final id in ids)
+        if (kpiPorId(id) case final kpi?) kpi,
+    ];
+    final graficos = [
+      for (final kpi in kpis)
+        if (kpi.grafico case final desenhar?) desenhar(estado, now),
+    ];
+    final celulas = [
+      for (final kpi in kpis)
+        if (kpi.grafico == null)
+          AbrirDestinoDoKpi(
+            destino: kpi.destino,
+            // **Um KPI com filhos abre a cadeia; uma folha vai direita à
+            // acção.** É a regra inteira do toque no painel.
+            //
+            // Só se pode descer onde há alguma coisa por baixo: as «Entregas
+            // hoje» não têm explicação nenhuma para dar, e abrir uma página
+            // que só repetisse a célula era um toque a mais para chegar ao
+            // mesmo sítio. Já o Lucro tem — e mandar quem lhe toca para as
+            // Finanças, sem lhe dizer primeiro o que se mexeu, é despachá-lo
+            // para o sítio certo com a pergunta errada na cabeça.
+            cadeia: filhosDe(kpi.id).isEmpty && !temGrafico(kpi.id)
+                ? null
+                : kpi.id,
+            agora: agora,
+            child: kpi.celula(estado, now),
+          ),
+    ];
+    if (graficos.isNotEmpty) {
+      return GrelhaComGraficos(celulas: celulas, graficos: graficos);
+    }
+    return GrelhaDeKpis(celulas: celulas);
   }
 }
 

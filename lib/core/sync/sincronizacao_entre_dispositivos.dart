@@ -78,31 +78,34 @@ LoteDeOperacoes prepararLote(
 }) {
   var aplicadas = 0;
   var recusadas = 0;
-  for (final json in linhas) {
-    // Uma entidade com edição nossa ainda por enviar tem a versão local mais
-    // recente: reaplicar por cima o eco de uma operação mais antiga (a nossa
-    // ou de outro aparelho) desfazia-a até ao ciclo seguinte. A nossa sobe a
-    // seguir e ganha por `seq`, portanto saltar aqui não perde nada.
-    if (comEdicaoPendente.contains(
-      '${json['entidade']}/${json['entidade_id']}',
-    )) {
-      continue;
+  // Gravar no aparelho uma só vez no fim: ver `aplicarEmLote`.
+  repositorio.aplicarEmLote(() {
+    for (final json in linhas) {
+      // Uma entidade com edição nossa ainda por enviar tem a versão local mais
+      // recente: reaplicar por cima o eco de uma operação mais antiga (a nossa
+      // ou de outro aparelho) desfazia-a até ao ciclo seguinte. A nossa sobe a
+      // seguir e ganha por `seq`, portanto saltar aqui não perde nada.
+      if (comEdicaoPendente.contains(
+        '${json['entidade']}/${json['entidade_id']}',
+      )) {
+        continue;
+      }
+      try {
+        repositorio.aplicarOperacaoRemota(
+          json['entidade'] as String,
+          Map<String, dynamic>.from(json['payload'] as Map),
+        );
+        aplicadas++;
+      } catch (erro) {
+        recusadas++;
+        debugPrint(
+          '[Sync] linha ${json['seq']} '
+          '(${json['entidade']}/${json['entidade_id']}) não se aplicou: $erro '
+          '— segue-se em frente',
+        );
+      }
     }
-    try {
-      repositorio.aplicarOperacaoRemota(
-        json['entidade'] as String,
-        Map<String, dynamic>.from(json['payload'] as Map),
-      );
-      aplicadas++;
-    } catch (erro) {
-      recusadas++;
-      debugPrint(
-        '[Sync] linha ${json['seq']} '
-        '(${json['entidade']}/${json['entidade_id']}) não se aplicou: $erro '
-        '— segue-se em frente',
-      );
-    }
-  }
+  });
   return (aplicadas: aplicadas, recusadas: recusadas);
 }
 

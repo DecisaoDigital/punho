@@ -89,8 +89,13 @@ void main() {
       // parcela do mês corrente, é a régua com que se lê. Como filho do Lucro
       // do mês apareceria na lista do «o que está por trás deste número», e o
       // mês passado não está por trás de nada — está ao lado.
+      //
+      // Os dois gráficos (10 Out 2026) também: desenham números que já estão
+      // noutros KPIs, não explicam nenhum — escolhem-se na lista como os outros.
       expect(raizesDaCadeia.map((k) => k.id), [
         'lucro-mes-anterior',
+        'grafico-faturacao-mensal',
+        'grafico-total-por-ano',
         'caixa',
         'recomendacao-dia',
       ]);
@@ -121,7 +126,14 @@ void main() {
         // mandar ninguém — está dito no próprio `desbloqueio`. A recomendação
         // do dia: já é ela o destino, aponta para onde agir em vez de ter um
         // sítio próprio.
-        ['recomendacao-dia', 'satisfacao-cliente'],
+        // Os dois gráficos do painel: são o próprio ecrã, não há para onde
+        // mandar ninguém depois de os ver.
+        [
+          'grafico-faturacao-mensal',
+          'grafico-total-por-ano',
+          'recomendacao-dia',
+          'satisfacao-cliente',
+        ],
         reason: 'folhas sem destino: $becos',
       );
     });

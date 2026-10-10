@@ -242,3 +242,166 @@ BreakEvenDoMes? breakEvenDoMes(OperationsState s, DateTime now) {
     diaPrevisto: previsto,
   );
 }
+
+/// **Um ano em colunas**: a faturação de cada mês, com o break even como a
+/// única linha.
+///
+/// Mesma fonte de vendas que o break even (data em que o trabalho acaba), por
+/// isso o gráfico e o cartão nunca discordam. Um mês sem reservas com valor
+/// cai no que o contabilista declarou (`revenueReceivedCents`) e vem marcado
+/// como [declarado]; sem nenhuma das duas fontes fica `null` (sem coluna).
+class SerieAnual {
+  const SerieAnual({
+    required this.ano,
+    required this.meses,
+    required this.declarado,
+    required this.mesAtual,
+    required this.breakEven,
+    required this.breakEvenEstimado,
+    required this.anos,
+    required this.maximoDeTodosOsAnos,
+  });
+
+  final int ano;
+
+  /// Faturação de Janeiro a Dezembro; `null` quando não há dados desse mês.
+  final List<int?> meses;
+
+  /// `true` nos meses vindos do histórico do contabilista e não das reservas.
+  final List<bool> declarado;
+
+  /// Mês (1–12) ainda a decorrer neste ano, ou `null` se o ano já fechou. A
+  /// coluna é o acumulado até hoje, nunca pro-ratado.
+  final int? mesAtual;
+
+  /// O break even **de cada mês**: a despesa toda desse mês (fixa e variável,
+  /// de competência). Sem despesas lançadas cai no que o contabilista pagou
+  /// nesse mês; sem nenhuma das duas é `null` — nunca a régua de outro mês. No
+  /// mês a decorrer é o alvo de agora ([breakEvenEstimado] quando é uma média).
+  final List<int?> breakEven;
+  final bool breakEvenEstimado;
+
+  /// Média dos break evens dos meses com dados — a segunda linha do gráfico.
+  int? get mediaDoAno {
+    final v = breakEven.whereType<int>().toList();
+    return v.isEmpty ? null : (v.reduce((a, b) => a + b) / v.length).round();
+  }
+
+  /// Anos navegáveis, do mais antigo com dados até ao actual.
+  final List<int> anos;
+
+  /// O maior valor (coluna ou break even) de **todos** os anos: o gráfico usa o
+  /// mesmo topo em cada ano, para anos diferentes se compararem a olho.
+  final int maximoDeTodosOsAnos;
+
+  bool get temDados => meses.any((m) => m != null && m > 0);
+}
+
+int? _faturacaoDoMes(OperationsState s, DateTime mes) {
+  if (_vendasDoMes(s, mes).isNotEmpty) return _vendasCents(s, mes);
+  return s.historicalMonth(mes.year, mes.month)?.revenueReceivedCents;
+}
+
+int? _breakEvenDoMes(OperationsState s, DateTime now, DateTime mes) {
+  if (mes.year == now.year && mes.month == now.month) {
+    return breakEvenDoMes(s, now)?.alvoCents;
+  }
+  final lancada = _despesaCents(s, mes);
+  if (lancada > 0) return lancada;
+  return s.historicalMonth(mes.year, mes.month)?.paidExpensesCents;
+}
+
+SerieAnual serieAnual(OperationsState s, DateTime now, int ano) =>
+    _serieAnual(s, now, ano, comTopoComum: true);
+
+SerieAnual _serieAnual(
+  OperationsState s,
+  DateTime now,
+  int ano, {
+  required bool comTopoComum,
+}) {
+  var primeiro = now.year;
+  for (final b in s.bookings) {
+    if (b.status != BookingStatus.cancelled &&
+        (b.expectedValueCents ?? 0) > 0 &&
+        b.endsAt.year < primeiro) {
+      primeiro = b.endsAt.year;
+    }
+  }
+  for (final h in s.historicalMonths) {
+    if (h.revenueReceivedCents != null && h.year < primeiro) primeiro = h.year;
+  }
+  final alvo = breakEvenDoMes(s, now);
+  var maximo = 0;
+  if (comTopoComum) {
+    for (var a = primeiro; a <= now.year; a++) {
+      final outro = _serieAnual(s, now, a, comTopoComum: false);
+      for (final v in [...outro.meses, ...outro.breakEven]) {
+        if (v != null && v > maximo) maximo = v;
+      }
+    }
+  }
+  return SerieAnual(
+    maximoDeTodosOsAnos: maximo,
+    ano: ano,
+    meses: [
+      for (var m = 1; m <= 12; m++)
+        DateTime(ano, m).isAfter(now)
+            ? null
+            : _faturacaoDoMes(s, DateTime(ano, m)),
+    ],
+    declarado: [
+      for (var m = 1; m <= 12; m++)
+        _vendasDoMes(s, DateTime(ano, m)).isEmpty &&
+            s.historicalMonth(ano, m)?.revenueReceivedCents != null,
+    ],
+    mesAtual: ano == now.year ? now.month : null,
+    breakEven: [
+      for (var m = 1; m <= 12; m++)
+        DateTime(ano, m).isAfter(now)
+            ? null
+            : _breakEvenDoMes(s, now, DateTime(ano, m)),
+    ],
+    breakEvenEstimado: alvo?.estimado ?? false,
+    anos: [for (var a = primeiro; a <= now.year; a++) a],
+  );
+}
+
+/// Os totais de um ano, para o gráfico que compara os anos entre si.
+class AnoTotal {
+  const AnoTotal({
+    required this.ano,
+    required this.faturacaoCents,
+    required this.despesaCents,
+    required this.parcial,
+  });
+
+  final int ano;
+  final int faturacaoCents;
+
+  /// A soma dos break evens dos meses do ano, ou seja, a despesa toda.
+  final int despesaCents;
+
+  /// `true` no ano a decorrer: soma até hoje, e não o ano inteiro.
+  final bool parcial;
+
+  int get lucroCents => faturacaoCents - despesaCents;
+}
+
+/// Um total por cada ano com dados, do mais antigo ao actual.
+List<AnoTotal> totaisPorAno(OperationsState s, DateTime now) {
+  final anos = serieAnual(s, now, now.year).anos;
+  return [
+    for (final a in anos)
+      if (_serieAnual(s, now, a, comTopoComum: false) case final serie)
+        AnoTotal(
+          ano: a,
+          faturacaoCents: serie.meses.whereType<int>().fold(0, (t, v) => t + v),
+          despesaCents: serie.breakEven.whereType<int>().fold(
+            0,
+            (t, v) => t + v,
+          ),
+          parcial: a == now.year,
+        ),
+  ];
+}

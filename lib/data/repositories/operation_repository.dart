@@ -382,6 +382,32 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
   /// ser enviada, que voltaria a chegar — um eco sem fim entre dois telemóveis.
   bool _aAplicarRemoto = false;
 
+  /// Quantas vezes o estado foi gravado no aparelho. Só existe para os testes
+  /// provarem que um lote grava uma vez e não uma por operação.
+  @visibleForTesting
+  int gravacoesNoAparelho = 0;
+
+  /// `true` dentro de [aplicarEmLote]: a gravação no aparelho fica para o fim.
+  bool _emLote = false;
+
+  /// Aplica várias operações remotas **gravando o estado uma só vez no fim**.
+  ///
+  /// Cada `aplicarOperacaoRemota` gravava o estado inteiro (`jsonEncode` de tudo
+  /// o que a empresa tem). Com poucas operações não se nota; num aparelho novo
+  /// que puxa o histórico de anos — 14 mil operações a 10/10/2026, na empresa de
+  /// demonstração — são 14 mil gravações de um estado que vai crescendo: a
+  /// app ficava a trabalhar a 200 % de CPU, com o ecrã a pedir para esperar, e
+  /// o cursor nunca chegava a ser guardado.
+  void aplicarEmLote(void Function() corpo) {
+    _emLote = true;
+    try {
+      corpo();
+    } finally {
+      _emLote = false;
+      _persist();
+    }
+  }
+
   void _registar(String entidade, String id, Map<String, Object?> payload) {
     if (_aAplicarRemoto) return;
     aoRegistarOperacao?.call(entidade, id, payload);
@@ -531,7 +557,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
           // novo.
           return;
       }
-      _persist();
+      if (!_emLote) _persist();
     } finally {
       _aAplicarRemoto = false;
     }
@@ -801,6 +827,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
 
   void _persist() {
     if (!_guardaNoAparelho) return;
+    gravacoesNoAparelho++;
     final data = _operationalPayload();
     data['sync'] = {
       'remoteRevision': _remoteRevision,
