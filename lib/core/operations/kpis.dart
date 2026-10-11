@@ -378,11 +378,7 @@ int _porReceberDeReservasDoMes(OperationsState state, DateTime mes) {
         0,
         (sum, b) =>
             sum +
-            bookingPendingCents(
-              b.expectedValueCents ?? 0,
-              b.id,
-              state.receipts,
-            ),
+            pendenteDaReserva(state, b),
       );
 }
 
@@ -421,6 +417,25 @@ PrevisaoDoMes previsaoDoMes(OperationsState state, DateTime now) {
   );
 }
 
+final _recebidoPorReserva = Expando<Map<String, int>>('recebido por reserva');
+
+/// O que falta receber de [b]. Equivale a `bookingPendingCents`, mas soma os
+/// recibos uma única vez por estado em vez de os percorrer a cada reserva.
+int pendenteDaReserva(OperationsState state, Booking b) {
+  final recebido = _recebidoPorReserva[state] ??= () {
+    final m = <String, int>{};
+    for (final r in state.receipts) {
+      if (r.archived) continue;
+      final id = r.bookingId;
+      if (id == null) continue;
+      m[id] = (m[id] ?? 0) + r.amountCents;
+    }
+    return m;
+  }();
+  final esperado = b.expectedValueCents ?? 0;
+  return (esperado - (recebido[b.id] ?? 0)).clamp(0, esperado);
+}
+
 /// Reserva com dinheiro em atraso.
 class CobrancaEmAtraso {
   const CobrancaEmAtraso({
@@ -447,11 +462,7 @@ List<CobrancaEmAtraso> cobrancasPorReceber(
   final resultado = <CobrancaEmAtraso>[];
   for (final booking in state.bookings) {
     if (booking.status == BookingStatus.cancelled) continue;
-    final divida = bookingPendingCents(
-      booking.expectedValueCents ?? 0,
-      booking.id,
-      state.receipts,
-    );
+    final divida = pendenteDaReserva(state, booking);
     if (divida <= 0) continue;
     // Reserva que ainda não terminou não tem atraso nenhum — tem zero. Conta
     // para o "por receber" (é dinheiro esperado) e nunca para o "em atraso".

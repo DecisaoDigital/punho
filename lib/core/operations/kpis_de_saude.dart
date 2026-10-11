@@ -292,7 +292,7 @@ CicloDeTesouraria? cicloDeTesouraria(
       .fold<int>(
         0,
         (t, b) =>
-            t + bookingPendingCents(b.expectedValueCents!, b.id, s.receipts),
+            t + pendenteDaReserva(s, b),
       );
 
   final despesasDaJanela = _soma(_despesas(s, de: de, ate: ate));

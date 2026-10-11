@@ -122,8 +122,31 @@ class BreakEvenDoMes {
       alvoCents <= 0 ? null : vendasCents / alvoCents * 100;
 }
 
-DateTime _inicioDoMes(DateTime d) => DateTime(d.year, d.month);
 DateTime _fimDoMes(DateTime d) => DateTime(d.year, d.month + 1, 0);
+
+/// **Um mês, uma pasta.** `_vendasDoMes` e `_despesasDoMes` eram chamados vários
+/// vezes por mês, por série, por ano, por KPI, e cada chamada varria os recibos
+/// e as despesas todos: com 5 000 linhas a página dos KPIs gastava 11 s no i9 e
+/// 23 s num portátil. Agrupa-se uma vez por estado (a lista só muda quando o
+/// estado muda) e cada consulta passa a ser um acesso por chave. O critério é o
+/// de [isInPeriod] — o mês civil local da data.
+int _chaveDoMes(DateTime d) => d.year * 12 + d.month - 1;
+
+Map<int, List<T>> _agruparPorMes<T>(
+  Iterable<T> itens,
+  DateTime Function(T) data,
+) {
+  final mapa = <int, List<T>>{};
+  for (final item in itens) {
+    final d = data(item);
+    final local = d.isUtc ? d.toLocal() : d;
+    (mapa[_chaveDoMes(local)] ??= <T>[]).add(item);
+  }
+  return mapa;
+}
+
+final _recibosPorMes = Expando<Map<int, List<Receipt>>>('recibos por mês');
+final _despesasPorMes = Expando<Map<int, List<Expense>>>('despesas por mês');
 
 /// **Os recebimentos do mês** — o dinheiro que entrou, e não o que se vendeu.
 ///
@@ -131,13 +154,12 @@ DateTime _fimDoMes(DateTime d) => DateTime(d.year, d.month + 1, 0);
 /// entrou, não com o que ainda lhe devem. O que entra depois do fim do mês
 /// conta para o mês em que entra. Cada empresário pode pensar de outro modo,
 /// mas esta é a regra de partida.
-Iterable<Receipt> _vendasDoMes(OperationsState s, DateTime mes) {
-  final inicio = _inicioDoMes(mes);
-  final fim = _fimDoMes(mes);
-  return s.receipts.where(
-    (r) => !r.archived && r.amountCents > 0 && isInPeriod(r.date, inicio, fim),
-  );
-}
+Iterable<Receipt> _vendasDoMes(OperationsState s, DateTime mes) =>
+    (_recibosPorMes[s] ??= _agruparPorMes(
+      s.receipts.where((r) => !r.archived && r.amountCents > 0),
+      (r) => r.date,
+    ))[_chaveDoMes(mes)] ??
+    const [];
 
 int _vendasCents(OperationsState s, DateTime mes) =>
     _vendasDoMes(s, mes).fold(0, (t, r) => t + r.amountCents);
@@ -147,13 +169,12 @@ int _vendasCents(OperationsState s, DateTime mes) =>
 /// Pagas e por pagar, porque é de competência: uma despesa lançada em Abril e
 /// paga em Junho é um custo de Abril. Arquivadas fora — arquivar é a forma de
 /// dizer que aquilo não conta.
-Iterable<Expense> _despesasDoMes(OperationsState s, DateTime mes) {
-  final inicio = _inicioDoMes(mes);
-  final fim = _fimDoMes(mes);
-  return s.expenses.where(
-    (e) => !e.archived && isInPeriod(e.date, inicio, fim),
-  );
-}
+Iterable<Expense> _despesasDoMes(OperationsState s, DateTime mes) =>
+    (_despesasPorMes[s] ??= _agruparPorMes(
+      s.expenses.where((e) => !e.archived),
+      (e) => e.date,
+    ))[_chaveDoMes(mes)] ??
+    const [];
 
 int _despesaCents(OperationsState s, DateTime mes) =>
     _despesasDoMes(s, mes).fold(0, (t, e) => t + e.amountCents);
