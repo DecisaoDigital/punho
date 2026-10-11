@@ -22,16 +22,24 @@ class DotsIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Text(
-        '${activo + 1}/${nomes.length} · ${nomes[activo]}',
-        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+      ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 260),
+        child: Text(
+          '${activo + 1}/${nomes.length} · ${nomes[activo]}',
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
       const SizedBox(width: 12),
-      for (var i = 0; i < nomes.length; i++)
-        Padding(
-          padding: const EdgeInsets.only(right: 5),
-          child: _Ponto(activo: i == activo, onTap: () => onEscolher(i)),
-        ),
+      // Com mais de uma dúzia de ecrãs os pontos não cabem: fica o contador.
+      if (nomes.length <= 12)
+        for (var i = 0; i < nomes.length; i++)
+          Padding(
+            // Com uma dúzia de ecrãs os pontos apertam-se, para o rodapé caber.
+            padding: EdgeInsets.only(right: nomes.length > 8 ? 1 : 5),
+            child: _Ponto(activo: i == activo, onTap: () => onEscolher(i)),
+          ),
       // Os três nomes — anterior, activo, seguinte — são um conjunto único:
       // 50 dp entre cada um, encostados à margem direita (o resto do painel
       // encosta a 15, por isso o último nome desconta o seu próprio ar).

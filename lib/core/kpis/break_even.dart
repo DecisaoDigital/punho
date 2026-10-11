@@ -317,7 +317,26 @@ int? _breakEvenDoMes(OperationsState s, DateTime now, DateTime mes) {
 SerieAnual serieAnual(OperationsState s, DateTime now, int ano) =>
     _serieAnual(s, now, ano, comTopoComum: true);
 
+/// Uma série por estado, dia, ano e modo. O gráfico dos anos e o da
+/// faturação pedem cada ano várias vezes (o topo comum percorre todos os anos
+/// outra vez), e cada mês varre as reservas e despesas todas: com 5 000
+/// linhas eram 3 s no i9 e o Redmi ficava «a não responder».
+final _series = Expando<Map<(DateTime, int, bool), SerieAnual>>(
+  'séries anuais',
+);
+
 SerieAnual _serieAnual(
+  OperationsState s,
+  DateTime now,
+  int ano, {
+  required bool comTopoComum,
+}) => (_series[s] ??= {}).putIfAbsent((
+  DateTime(now.year, now.month, now.day),
+  ano,
+  comTopoComum,
+), () => _calcularSerieAnual(s, now, ano, comTopoComum: comTopoComum));
+
+SerieAnual _calcularSerieAnual(
   OperationsState s,
   DateTime now,
   int ano, {

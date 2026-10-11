@@ -53,7 +53,32 @@ enum LeadSource {
 
   /// O operador foi à procura: prospecção feita por ele no terreno.
   ownProspecting,
+
+  /// A pessoa entrou no local sem ter sido procurada.
+  walkIn,
+
+  /// Chegou por um botão ou ligação do Instagram.
+  instagram,
+
+  /// Chegou por uma ligação ou botão do LinkedIn.
+  linkedin,
 }
+
+/// Como a pessoa nos conheceu — o que o operador pode escolher. WhatsApp e
+/// agenda são por onde se fala, não de onde se vem: continuam a existir nos
+/// contactos antigos, mas já não se oferecem (César, 11 Out 2026).
+const leadSourceEscolhas = <LeadSource>[
+  LeadSource.landingPage,
+  LeadSource.referral,
+  LeadSource.ownProspecting,
+  LeadSource.walkIn,
+  LeadSource.facebook,
+  LeadSource.instagram,
+  LeadSource.linkedin,
+  LeadSource.google,
+  LeadSource.call,
+  LeadSource.other,
+];
 
 String leadSourceLabel(LeadSource origem) => switch (origem) {
   LeadSource.call => 'Chamada',
@@ -63,8 +88,11 @@ String leadSourceLabel(LeadSource origem) => switch (origem) {
   LeadSource.landingPage => 'Site',
   LeadSource.whatsapp => 'WhatsApp',
   LeadSource.agenda => 'Agenda',
-  LeadSource.ownProspecting => 'Prospecção própria',
-  LeadSource.other => 'Outro',
+  LeadSource.ownProspecting => 'Porta a porta',
+  LeadSource.walkIn => 'Veio ao local',
+  LeadSource.instagram => 'Instagram',
+  LeadSource.linkedin => 'LinkedIn',
+  LeadSource.other => 'Outro / não sei',
 };
 
 String leadStatusLabel(LeadStatus estado) => switch (estado) {

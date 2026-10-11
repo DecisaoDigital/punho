@@ -185,21 +185,24 @@ void main() {
       expect(find.byType(CadeiaDoKpiPage), findsOneWidget);
     });
 
-    testWidgets('uma folha também abre: a explicação primeiro, a acção a seguir', (tester) async {
-      // As «Entregas hoje» não têm nada por baixo. Até 11 Out 2026 iam directas
-      // à acção; agora, como todo o cartão ensina como se chega ao número
-      // (regra do César), abrem a explicação — que acaba no botão da acção.
-      await montarLandscape(
-        tester,
-        containerCom(abrilDeSustos()),
-        const PaginaDoPainel(ids: ['entregas-hoje'], agora: null),
-        tamanho: const Size(2177, 1080),
-      );
-      await tester.tap(find.textContaining('ENTREGAS HOJE').first);
-      await tester.pumpAndSettle();
+    testWidgets(
+      'uma folha também abre: a explicação primeiro, a acção a seguir',
+      (tester) async {
+        // As «Entregas hoje» não têm nada por baixo. Até 11 Out 2026 iam directas
+        // à acção; agora, como todo o cartão ensina como se chega ao número
+        // (regra do César), abrem a explicação — que acaba no botão da acção.
+        await montarLandscape(
+          tester,
+          containerCom(abrilDeSustos()),
+          const PaginaDoPainel(ids: ['entregas-hoje'], agora: null),
+          tamanho: const Size(2177, 1080),
+        );
+        await tester.tap(find.textContaining('ENTREGAS HOJE').first);
+        await tester.pumpAndSettle();
 
-      expect(find.byType(CadeiaDoKpiPage), findsOneWidget);
-      expect(find.text('Como se chega a este número'), findsOneWidget);
-    });
+        expect(find.byType(CadeiaDoKpiPage), findsOneWidget);
+        expect(find.text('Como se chega a este número'), findsOneWidget);
+      },
+    );
   });
 }

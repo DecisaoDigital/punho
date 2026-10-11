@@ -325,6 +325,16 @@ void main() {
         find.widgetWithText(TextField, 'Telemóvel'),
         '914 555 555',
       );
+      // A origem é obrigatória: sem ela diz porquê e não grava.
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Diz como a pessoa nos conheceu.'), findsOneWidget);
+      expect(find.byType(EcraDeFormulario), findsOneWidget);
+
+      await tester.tap(find.text('Como nos conheceu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Site').last);
+      await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
       await tester.pumpAndSettle();
 

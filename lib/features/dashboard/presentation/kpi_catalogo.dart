@@ -34,6 +34,9 @@ import '../../../domain/models/arranjo_do_painel.dart';
 import '../../../domain/models/finance.dart';
 import '../../../domain/models/operations.dart';
 import '../../kpis/presentation/grafico_do_mes.dart';
+import 'kpi_equipa.dart';
+import 'kpi_graficos_extra.dart';
+import 'kpi_origem.dart';
 import 'kpi_explicacoes.dart';
 import 'widgets/celula_semaforo.dart';
 import 'widgets/grelha_com_graficos.dart';
@@ -62,13 +65,13 @@ class KpiDefinicao {
   const KpiDefinicao({
     required this.id,
     required this.titulo,
-    required this.celula,
+    required CelulaSemaforo Function(OperationsState, DateTime) celula,
     required this.contaVerificada,
     required this.desbloqueio,
     this.destino,
     this.pai,
     this.grafico,
-  });
+  }) : _calcula = celula;
 
   /// Estável, kebab-case. Serve de chave para a promoção manual ao painel.
   final String id;
@@ -76,8 +79,24 @@ class KpiDefinicao {
   /// O rótulo humano, o mesmo que a célula mostra.
   final String titulo;
 
+  final CelulaSemaforo Function(OperationsState, DateTime) _calcula;
+
   /// Constrói a célula a partir do estado. Pura em `(state, now)`.
-  final CelulaSemaforo Function(OperationsState, DateTime) celula;
+  ///
+  /// **Calculada uma vez por estado.** Cada KPI é lido várias vezes por ecrã —
+  /// estado de verdade, célula, sugestão — e com 5 000 reservas e recibos
+  /// alguns custam 300 ms a 7 s no i9; o «KPIs (todos)» travava o Redmi com a
+  /// app «não está a responder» (11 Out 2026). O estado é imutável, por isso
+  /// o resultado vale enquanto for o mesmo objecto e o mesmo minuto.
+  CelulaSemaforo celula(OperationsState s, DateTime now) {
+    final minuto = now.millisecondsSinceEpoch ~/ 60000;
+    var guardado = _memoria[s];
+    if (guardado == null || guardado.minuto != minuto) {
+      guardado = _Memoria(minuto);
+      _memoria[s] = guardado;
+    }
+    return guardado.celulas.putIfAbsent(id, () => _calcula(s, now));
+  }
 
   /// Já confirmámos a fórmula? É o crivo humano — não se computa. Vira `true` à
   /// medida que verificamos cada KPI, um a um.
@@ -126,6 +145,14 @@ class KpiDefinicao {
 // ---------------------------------------------------------------------------
 // O catálogo
 // ---------------------------------------------------------------------------
+
+class _Memoria {
+  _Memoria(this.minuto);
+  final int minuto;
+  final celulas = <String, CelulaSemaforo>{};
+}
+
+final _memoria = Expando<_Memoria>('células dos KPIs');
 
 const catalogoKpis = <KpiDefinicao>[
   // -------------------------------------------------------------------------
@@ -200,6 +227,152 @@ const catalogoKpis = <KpiDefinicao>[
     contaVerificada: true,
     desbloqueio: 'Reservas com valor (ou o histórico mensal preenchido)',
     grafico: _graficoAnos,
+  ),
+  // Ecrã «Origem dos clientes» (11 Out 2026): de onde vêm os contactos.
+  KpiDefinicao(
+    id: 'contactos-novos',
+    titulo: 'Contactos novos',
+    celula: kpiContactosNovos,
+    contaVerificada: true,
+    desbloqueio: 'Contactos registados (com a origem escolhida)',
+    destino: AppDestination.clients,
+  ),
+  KpiDefinicao(
+    id: 'viraram-clientes',
+    titulo: 'Viraram clientes',
+    celula: kpiViraramClientes,
+    contaVerificada: true,
+    desbloqueio: 'Contactos registados e marcados como convertidos',
+    destino: AppDestination.clients,
+  ),
+  KpiDefinicao(
+    id: 'melhor-canal',
+    titulo: 'Melhor canal',
+    celula: kpiMelhorCanal,
+    contaVerificada: true,
+    desbloqueio: 'Contactos com origem que já viraram clientes',
+    destino: AppDestination.clients,
+  ),
+  KpiDefinicao(
+    id: 'grafico-contactos-por-origem',
+    titulo: 'De onde vêm os contactos',
+    celula: kpiGraficoContactos,
+    contaVerificada: true,
+    desbloqueio: 'Contactos registados (com a origem escolhida)',
+    grafico: graficoContactosPorOrigem,
+  ),
+  KpiDefinicao(
+    id: 'grafico-conversao-por-canal',
+    titulo: 'Conversão por canal',
+    celula: kpiGraficoConversao,
+    contaVerificada: true,
+    desbloqueio: 'Contactos registados e marcados como convertidos',
+    grafico: graficoConversaoPorCanal,
+  ),
+  // Ecrã «Colaboradores» (11 Out 2026): quem cobra e quem angaria.
+  KpiDefinicao(
+    id: 'quem-mais-cobrou',
+    titulo: 'Quem mais cobrou',
+    celula: kpiQuemMaisCobrou,
+    contaVerificada: true,
+    desbloqueio: 'Recebimentos com o colaborador que os registou',
+    destino: AppDestination.employees,
+  ),
+  KpiDefinicao(
+    id: 'quem-mais-angariou',
+    titulo: 'Quem mais angariou',
+    celula: kpiQuemMaisAngariou,
+    contaVerificada: true,
+    desbloqueio: 'Contactos atribuídos a um colaborador',
+    destino: AppDestination.employees,
+  ),
+  KpiDefinicao(
+    id: 'cobrado-por-colaborador',
+    titulo: 'Cobrado por colaborador',
+    celula: kpiCobradoPorColaborador,
+    contaVerificada: true,
+    desbloqueio: 'Recebimentos com o colaborador que os registou',
+    destino: AppDestination.employees,
+  ),
+  KpiDefinicao(
+    id: 'grafico-cobrado-por-colaborador',
+    titulo: 'Cobrado por colaborador (gráfico)',
+    celula: kpiGraficoCobrado,
+    contaVerificada: true,
+    desbloqueio: 'Recebimentos com o colaborador que os registou',
+    grafico: graficoCobradoPorColaborador,
+  ),
+  KpiDefinicao(
+    id: 'grafico-angariados-por-colaborador',
+    titulo: 'Contactos por colaborador (gráfico)',
+    celula: kpiGraficoAngariados,
+    contaVerificada: true,
+    desbloqueio: 'Contactos atribuídos a um colaborador',
+    grafico: graficoAngariadosPorColaborador,
+  ),
+  KpiDefinicao(
+    id: 'grafico-entrou-vs-saiu',
+    titulo: 'Entrou vs saiu (gráfico)',
+    celula: kpiGraficoEntrouVsSaiu,
+    contaVerificada: true,
+    desbloqueio: 'Recebimentos ou despesas pagas',
+    grafico: graficoEntrouVsSaiu,
+  ),
+  KpiDefinicao(
+    id: 'grafico-a-receber-antiguidade',
+    titulo: 'A receber por antiguidade (gráfico)',
+    celula: kpiGraficoAReceber,
+    contaVerificada: true,
+    desbloqueio: 'Reservas com valor por receber',
+    grafico: graficoAReceberPorAntiguidade,
+  ),
+  KpiDefinicao(
+    id: 'grafico-receita-por-cliente',
+    titulo: 'Receita por cliente (gráfico)',
+    celula: kpiGraficoReceitaCliente,
+    contaVerificada: true,
+    desbloqueio: 'Recebimentos associados a clientes',
+    grafico: graficoReceitaPorCliente,
+  ),
+  KpiDefinicao(
+    id: 'grafico-clientes-novos-mes',
+    titulo: 'Clientes novos por mês (gráfico)',
+    celula: kpiGraficoClientesNovos,
+    contaVerificada: true,
+    desbloqueio: 'Clientes registados',
+    grafico: graficoClientesNovos,
+  ),
+  KpiDefinicao(
+    id: 'grafico-ocupacao-por-maquina',
+    titulo: 'Ocupação por máquina (gráfico)',
+    celula: kpiGraficoOcupacao,
+    contaVerificada: true,
+    desbloqueio: 'Reservas com máquinas',
+    grafico: graficoOcupacaoPorMaquina,
+  ),
+  KpiDefinicao(
+    id: 'grafico-reservas-por-dia',
+    titulo: 'Reservas por dia da semana (gráfico)',
+    celula: kpiGraficoReservasDia,
+    contaVerificada: true,
+    desbloqueio: 'Reservas marcadas',
+    grafico: graficoReservasPorDia,
+  ),
+  KpiDefinicao(
+    id: 'grafico-despesas-por-categoria',
+    titulo: 'Despesas por categoria (gráfico)',
+    celula: kpiGraficoDespesasCategoria,
+    contaVerificada: true,
+    desbloqueio: 'Despesas pagas',
+    grafico: graficoDespesasPorCategoria,
+  ),
+  KpiDefinicao(
+    id: 'grafico-despesa-por-mes',
+    titulo: 'Despesa por mês (gráfico)',
+    celula: kpiGraficoDespesaMes,
+    contaVerificada: true,
+    desbloqueio: 'Despesas pagas',
+    grafico: graficoDespesaPorMes,
   ),
   // Fora do carrossel — nascidas já na "KPIs (todos)", hoje (9 Ago 2026).
   KpiDefinicao(

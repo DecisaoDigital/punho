@@ -55,12 +55,12 @@ void main() {
       // E os dois gráficos do painel (10 Out 2026), que se escolhem como os
       // outros: a faturação mês a mês e o total por ano.
       // nome que faltava à percentagem de utilização.
-      expect(catalogoKpis, hasLength(36));
+      expect(catalogoKpis, hasLength(54));
       expect(kpiPorId('caixa'), isNotNull);
       expect(kpiPorId('tendencia-mes'), isNotNull);
 
       final ids = catalogoKpis.map((k) => k.id).toSet();
-      expect(ids, hasLength(36), reason: 'ids têm de ser únicos');
+      expect(ids, hasLength(54), reason: 'ids têm de ser únicos');
 
       for (final k in catalogoKpis) {
         expect(k.id, isNotEmpty);

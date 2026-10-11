@@ -73,6 +73,10 @@ class LeadEntrada {
     'whatsapp' => LeadSource.whatsapp,
     'telefone' => LeadSource.call,
     'agenda' => LeadSource.agenda,
+    'facebook' => LeadSource.facebook,
+    'instagram' => LeadSource.instagram,
+    'linkedin' => LeadSource.linkedin,
+    'google' => LeadSource.google,
     _ => LeadSource.other,
   };
 

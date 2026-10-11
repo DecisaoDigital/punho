@@ -137,7 +137,6 @@ void main() {
   });
 }
 
-
 class _Vazio extends LocalDemoOperationRepository {
   _Vazio() {
     resetAll();

@@ -183,6 +183,7 @@ TesourariaMes tesourariaDoMes(
   final anterior = DateTime(mes.year, mes.month - 1);
   final homologo = DateTime(mes.year - 1, mes.month);
   final diasNoMes = fim.day;
+  final datadas = categoriasComRubricaDatada(state);
   return TesourariaMes(
     mes: inicio,
     recebidoCents: receiptTotal(state.receipts, inicio, fim),
@@ -197,9 +198,7 @@ TesourariaMes tesourariaDoMes(
     // saída. É a mesma regra que já valia para os salários em
     // `custosMesAgregados` — a fonte declarada manda.
     pagoCents: paidExpenseTotal(
-      state.expenses.where(
-        (e) => !categoriasComRubricaDatada(state).contains(e.category),
-      ),
+      state.expenses.where((e) => !datadas.contains(e.category)),
       inicio,
       fim,
     ),
@@ -214,16 +213,38 @@ TesourariaMes tesourariaDoMes(
     // anterior declarado, porque só este ramo é que olhava para os recibos crus.
     recebidoMesAnteriorCents: _recebidoDoMesComHistorico(state, anterior),
     recebidoMesHomologoCents: _recebidoDoMesComHistorico(state, homologo),
-    serieDiariaCents: [
-      for (var dia = 1; dia <= diasNoMes; dia++)
-        receiptTotal(
-          state.receipts,
-          DateTime(inicio.year, inicio.month, dia),
-          DateTime(inicio.year, inicio.month, dia),
-        ),
-    ],
+    // Uma passagem pelos recibos, e não uma por dia do mês.
+    serieDiariaCents: () {
+      final porDia = List<int>.filled(diasNoMes, 0);
+      for (final r in state.receipts) {
+        if (r.archived ||
+            r.date.year != inicio.year ||
+            r.date.month != inicio.month) {
+          continue;
+        }
+        porDia[r.date.day - 1] += r.amountCents;
+      }
+      return porDia;
+    }(),
   );
 }
+
+/// Recebido por mês (`ano * 12 + mês`), somado uma vez por lista de
+/// recebimentos. A previsão por crescimento pede ~500 meses; somar 5 000
+/// recibos para cada um custava segundos no telemóvel. Mesma conta que
+/// `receiptTotal` sobre o mês inteiro.
+final _porMes = Expando<Map<int, int>>('recebido por mês');
+
+Map<int, int> _recebidoPorMes(List<Receipt> recibos) =>
+    _porMes[recibos] ??= () {
+      final m = <int, int>{};
+      for (final r in recibos) {
+        if (r.archived) continue;
+        final k = r.date.year * 12 + r.date.month;
+        m[k] = (m[k] ?? 0) + r.amountCents;
+      }
+      return m;
+    }();
 
 /// Recebido de um mês de referência (homólogo **ou** mês anterior), com o
 /// histórico mensal como rede de segurança.
@@ -244,11 +265,8 @@ TesourariaMes tesourariaDoMes(
 /// zero — e é esse zero que faz `variacaoVsHomologo` sair `null` em vez de uma
 /// percentagem fabricada (regra do ficheiro, ver comentário no topo).
 int _recebidoDoMesComHistorico(OperationsState state, DateTime mes) {
-  final registado = receiptTotal(
-    state.receipts,
-    _inicioDoMes(mes),
-    _fimDoMes(mes),
-  );
+  final registado =
+      _recebidoPorMes(state.receipts)[mes.year * 12 + mes.month] ?? 0;
   if (registado > 0) return registado;
   return state.historicalMonth(mes.year, mes.month)?.revenueReceivedCents ?? 0;
 }
@@ -710,7 +728,20 @@ class PulsoOperacional {
 String _euros(int cents) => '${(cents / 100).round()} €';
 
 /// Uma passagem pelas reservas, todas as contagens do slide 2.
-PulsoOperacional pulsoOperacional(OperationsState state, DateTime now) {
+/// Calculado uma vez por estado e dia: seis KPIs do painel lêem o pulso, e
+/// cada leitura percorria as reservas e as cobranças todas.
+final _pulsos = Expando<Map<DateTime, PulsoOperacional>>('pulso operacional');
+
+PulsoOperacional pulsoOperacional(OperationsState state, DateTime now) =>
+    (_pulsos[state] ??= {}).putIfAbsent(
+      _dia(now),
+      () => _calcularPulsoOperacional(state, now),
+    );
+
+PulsoOperacional _calcularPulsoOperacional(
+  OperationsState state,
+  DateTime now,
+) {
   final hoje = _dia(now);
   final daquiA48h = hoje.add(const Duration(days: 2));
 

@@ -211,6 +211,184 @@ const _explicacoes = <String, ExplicacaoDoKpi>{
     parabens:
         'Ninguém te deve dinheiro vencido. A equipa está de parabéns! Mantém o hábito de cobrar logo e a caixa agradece.',
   ),
+  'contactos-novos': ExplicacaoDoKpi(
+    comoSeChega:
+        'Quantas pessoas te procuraram, ou que foste procurar, neste mês: conta os contactos criados desde o dia 1, seja qual for a origem. É um número que informa, por isso é azul: não é bom nem mau, é o ponto de partida do funil.',
+    paraMelhorar: [
+      'Põe a ligação do teu funil nos botões do Facebook, Instagram e LinkedIn.',
+      'Pede a cada cliente satisfeito que te indique alguém.',
+    ],
+    parabens:
+        'Estão a chegar pessoas. Garante agora que cada contacto recebe resposta no mesmo dia.',
+  ),
+  'viraram-clientes': ExplicacaoDoKpi(
+    comoSeChega:
+        'Dos contactos criados neste mês, quantos já se tornaram clientes: convertidos a dividir pelos contactos, em percentagem. Verde a partir de 40%, laranja entre 20% e 40%, vermelho abaixo de 20%. Os pontos mostram a diferença face ao mês anterior.',
+    paraMelhorar: [
+      'Responde a cada contacto no próprio dia: quem espera três dias costuma ir a outro.',
+      'Apresenta preço e prazo logo na primeira conversa, e marca uma data para decidir.',
+    ],
+    parabens:
+        'Mais de 4 em cada 10 contactos viram clientes. Parabéns à equipa! Descobre que canal mais ajuda e dá-lhe mais atenção.',
+  ),
+  'melhor-canal': ExplicacaoDoKpi(
+    comoSeChega:
+        'O canal que mais contactos transformou em clientes este mês (em empate, o que trouxe mais contactos). Mostra de onde vem o negócio que fecha, não só o que faz barulho.',
+    paraMelhorar: [
+      'Regista a origem de cada contacto novo, mesmo quando parece óbvia.',
+      'Marca como convertido o contacto que fechou, para o canal ganhar crédito.',
+    ],
+    parabens:
+        'Já sabes de onde vem o teu negócio. Dedica mais tempo a este canal e vê se consegues repetir o resultado.',
+  ),
+  'grafico-entrou-vs-saiu': ExplicacaoDoKpi(
+    comoSeChega:
+        'Cada mês tem uma barra com o que entrou (recebimentos) e, ao lado, o que já saiu (despesas pagas). Num mês a decorrer o «saiu» ainda vai crescer: nem tudo foi pago.',
+    paraMelhorar: [
+      'Se saiu mais do que entrou em vários meses, vê as despesas por categoria e corta o que não traz clientes.',
+      'Se entra pouco, olha para o que está por receber: pode estar parado em dívidas.',
+    ],
+    parabens:
+        'Entra mais do que sai. É assim que uma empresa ganha folga para crescer.',
+  ),
+  'grafico-a-receber-antiguidade': ExplicacaoDoKpi(
+    comoSeChega:
+        'Soma o que clientes ainda te devem e separa por há quanto tempo a reserva terminou: em prazo, até 30 dias, 31 a 60 e mais de 60. Quanto mais à direita, mais difícil de cobrar.',
+    paraMelhorar: [
+      'Liga hoje aos clientes das faixas mais antigas; a dívida velha raramente melhora sozinha.',
+      'Pede sinal ou pagamento no ato da entrega aos clientes que costumam atrasar.',
+    ],
+    parabens:
+        'Quase nada está atrasado. Cobrar a tempo mantém a tesouraria saudável.',
+  ),
+  'grafico-receita-por-cliente': ExplicacaoDoKpi(
+    comoSeChega:
+        'Os 5 clientes que mais pagaram este ano, pelo total dos recebimentos registados. Mostra de quem depende o negócio.',
+    paraMelhorar: [
+      'Se um cliente pesa demasiado, procura mais clientes parecidos para não depender de um só.',
+      'Fala com os maiores: perceber o que valorizam ajuda a manter e a encontrar outros iguais.',
+    ],
+    parabens:
+        'A receita está repartida por bons clientes. Continua a cuidar deles.',
+  ),
+  'grafico-clientes-novos-mes': ExplicacaoDoKpi(
+    comoSeChega:
+        'Quantos clientes foram registados em cada um dos últimos 6 meses, pela data em que entraram na app.',
+    paraMelhorar: [
+      'Se as barras descem, volta aos canais que mais contactos trouxeram (ecrã Origem dos clientes).',
+      'Pede a cada cliente satisfeito que te indique outro.',
+    ],
+    parabens:
+        'Estão a entrar clientes novos de forma consistente. Bom trabalho, equipa.',
+  ),
+  'grafico-ocupacao-por-maquina': ExplicacaoDoKpi(
+    comoSeChega:
+        'Para cada máquina, a percentagem dos dias deste mês (até hoje) em que esteve reservada. Uma máquina parada é dinheiro parado.',
+    paraMelhorar: [
+      'Máquinas com pouca ocupação: baixa o preço, oferece-as em pacote ou promove-as.',
+      'Se todas estão quase cheias, considera comprar mais uma.',
+    ],
+    parabens:
+        'As máquinas estão a trabalhar bem. Cada dia reservado é receita.',
+  ),
+  'grafico-reservas-por-dia': ExplicacaoDoKpi(
+    comoSeChega:
+        'Conta, nos últimos 90 dias, quantas reservas começam em cada dia da semana. Mostra quando a procura é maior.',
+    paraMelhorar: [
+      'Nos dias fracos, faz promoções ou propostas a clientes antigos.',
+      'Nos dias fortes, garante máquinas e equipa disponíveis.',
+    ],
+    parabens:
+        'A procura está bem distribuída pela semana. Isso facilita planear a equipa.',
+  ),
+  'grafico-despesas-por-categoria': ExplicacaoDoKpi(
+    comoSeChega:
+        'As despesas já pagas este mês, somadas por categoria; mostra as 6 maiores. É para onde vai o dinheiro.',
+    paraMelhorar: [
+      'Ataca primeiro a categoria maior: uma poupança pequena ali vale mais que várias pequenas.',
+      'Compara com o mês passado: aumentos sem razão são o primeiro sítio a cortar.',
+    ],
+    parabens: 'A despesa está controlada e bem distribuída.',
+  ),
+  'grafico-despesa-por-mes': ExplicacaoDoKpi(
+    comoSeChega:
+        'O total de despesas pagas em cada um dos últimos 6 meses. Mostra se os custos estão a subir.',
+    paraMelhorar: [
+      'Se sobem sem as vendas subirem, procura o que mudou (renda, salários, avarias).',
+      'Define um teto mensal e acompanha aqui.',
+    ],
+    parabens:
+        'A despesa mantém-se estável. Custos controlados dão margem para investir.',
+  ),
+  'grafico-contactos-por-origem': ExplicacaoDoKpi(
+    comoSeChega:
+        'Cada barra é um canal e o comprimento é o número de contactos que trouxe este mês. «Sem origem» são contactos a que ninguém escolheu o canal: quanto mais curta essa barra, melhor os dados.',
+    paraMelhorar: [
+      'Se «Sem origem» for grande, passa a escolher «Como nos conheceu» ao criar cada contacto.',
+      'Se um canal domina, vê o que acontece quando ele falha: não deixes o negócio dependente de um só.',
+    ],
+    parabens:
+        'Os contactos chegam por vários canais. Está bem distribuído, e isso protege o negócio.',
+  ),
+  'grafico-conversao-por-canal': ExplicacaoDoKpi(
+    comoSeChega:
+        'Para cada canal, a percentagem dos contactos deste mês que já se tornaram clientes. Um canal com muitos contactos e pouca conversão gasta tempo; um com poucos e muita conversão merece mais atenção.',
+    paraMelhorar: [
+      'Nos canais que não fecham, vê o que se diz na primeira resposta e simplifica.',
+      'Nos que fecham bem, tenta trazer mais contactos: é onde o esforço rende mais.',
+    ],
+    parabens: 'Há canais a fechar bem. Repete o que fazes neles nos outros.',
+  ),
+  'quem-mais-cobrou': ExplicacaoDoKpi(
+    comoSeChega:
+        'O colaborador com mais dinheiro registado como cobrado neste mês, somando os recebimentos que cada um registou, e a parte que isso representa do total cobrado.',
+    paraMelhorar: [
+      'Garante que cada recebimento é registado por quem o recebe, para o nome certo ficar associado.',
+      'Se uma pessoa cobra quase tudo, partilha com a equipa como ela faz.',
+    ],
+    parabens:
+        'Há quem esteja a cobrar bem. Parabéns! Reconhecer quem traz o dinheiro para dentro motiva toda a equipa.',
+  ),
+  'quem-mais-angariou': ExplicacaoDoKpi(
+    comoSeChega:
+        'O colaborador com mais contactos novos criados neste mês: prospecção na rua, clientes que entraram no local, telefonemas. Mostra também quantos desses já são clientes.',
+    paraMelhorar: [
+      'Convida quem tem tempo livre, no escritório ou na loja, a procurar clientes: cada contacto fica no nome de quem o trouxe.',
+      'Considera um pequeno prémio mensal para quem mais traz clientes.',
+    ],
+    parabens:
+        'Alguém está a trazer clientes novos. Parabéns à equipa! Um prémio ao melhor angariador do mês faz toda a gente querer ser o próximo.',
+  ),
+  'cobrado-por-colaborador': ExplicacaoDoKpi(
+    comoSeChega:
+        'O dinheiro cobrado este mês a dividir pelos colaboradores que cobraram alguma coisa. É um número que informa, por isso é azul: serve para ver se a cobrança está bem repartida.',
+    paraMelhorar: [
+      'Se a média é baixa, vê quem pode ajudar a cobrar na recolha das máquinas.',
+      'Pede que todos registem o recebimento no momento.',
+    ],
+    parabens:
+        'A cobrança está bem espalhada pela equipa. Isso protege a empresa quando alguém falta.',
+  ),
+  'grafico-cobrado-por-colaborador': ExplicacaoDoKpi(
+    comoSeChega:
+        'Cada barra é um colaborador e o comprimento é o dinheiro que registou como cobrado este mês. Só aparecem os que cobraram alguma coisa.',
+    paraMelhorar: [
+      'Se uma barra domina, a empresa depende dessa pessoa: forma mais alguém para cobrar.',
+      'Se faltam nomes, os recebimentos podem estar a ser registados sem dizer quem os fez.',
+    ],
+    parabens:
+        'Várias pessoas a cobrar: a empresa não depende de uma só. Bom trabalho, equipa!',
+  ),
+  'grafico-angariados-por-colaborador': ExplicacaoDoKpi(
+    comoSeChega:
+        'Cada barra é um colaborador e o comprimento é o número de contactos novos que trouxe este mês. Quem não trouxe nenhum não aparece.',
+    paraMelhorar: [
+      'Se só uma pessoa angaria, convida as outras: quem tem uma hora livre pode procurar clientes.',
+      'Mostra este gráfico à equipa uma vez por semana: ver o próprio nome motiva.',
+    ],
+    parabens:
+        'Há várias pessoas a trazer clientes. Está aí o crescimento da empresa!',
+  ),
   'clientes-novos-30d': ExplicacaoDoKpi(
     comoSeChega:
         'Quantos clientes foram registados nos últimos 30 dias e, destes, quantos já têm reserva. Laranja quando não entrou ninguém novo. Uma empresa que não angaria clientes vive só dos que já tem.',

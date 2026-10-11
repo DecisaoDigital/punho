@@ -32,18 +32,25 @@ void main() {
     n.addLead(lead('1000002', resp: 'ficha-1'));
     n.addLead(lead('1000003', s: LeadStatus.lost));
 
-    var t = tarefasPendentes(c.read(operationsProvider), agora)
-        .where((x) => x.id == 'leads-por-atribuir');
+    var t = tarefasPendentes(
+      c.read(operationsProvider),
+      agora,
+    ).where((x) => x.id == 'leads-por-atribuir');
     expect(t.single.titulo, '1 lead por atribuir a um operador');
 
     n.atribuirLead('1000001', 'ficha-2');
     expect(
-      c.read(operationsProvider).leads.firstWhere((l) => l.id == '1000001')
+      c
+          .read(operationsProvider)
+          .leads
+          .firstWhere((l) => l.id == '1000001')
           .collaboratorResponsibleId,
       'ficha-2',
     );
-    t = tarefasPendentes(c.read(operationsProvider), agora)
-        .where((x) => x.id == 'leads-por-atribuir');
+    t = tarefasPendentes(
+      c.read(operationsProvider),
+      agora,
+    ).where((x) => x.id == 'leads-por-atribuir');
     expect(t, isEmpty);
   });
 

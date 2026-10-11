@@ -195,7 +195,9 @@ class _FormularioDeLeadDoColaborador extends StatefulWidget {
 class _FormularioDeLeadDoColaboradorState
     extends State<_FormularioDeLeadDoColaborador> {
   String? erro;
-  LeadSource origem = LeadSource.ownProspecting;
+  // O operador que cria o contacto na sua app andou a prospectar: a origem é
+  // «porta a porta» e fica atribuída a ele, sem lhe perguntar nada.
+  static const origem = LeadSource.ownProspecting;
 
   @override
   Widget build(BuildContext context) => EcraDeFormulario(
@@ -212,16 +214,6 @@ class _FormularioDeLeadDoColaboradorState
         controlador: widget.telemovel,
         rotulo: 'Telemóvel',
         teclado: TextInputType.phone,
-      ),
-      DropdownButtonFormField<LeadSource>(
-        isExpanded: true,
-        initialValue: origem,
-        decoration: const InputDecoration(labelText: 'Origem'),
-        items: [
-          for (final o in LeadSource.values)
-            DropdownMenuItem(value: o, child: Text(leadSourceLabel(o))),
-        ],
-        onChanged: (v) => setState(() => origem = v ?? origem),
       ),
     ],
     aoGuardar: () {

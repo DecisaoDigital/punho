@@ -2628,9 +2628,9 @@ class _FormularioDeLeadState extends State<_FormularioDeLead> {
         DropdownButtonFormField<LeadSource?>(
           isExpanded: true,
           initialValue: origem,
-          decoration: const InputDecoration(labelText: 'Origem (opcional)'),
+          decoration: const InputDecoration(labelText: 'Como nos conheceu'),
           items: [
-            for (final o in LeadSource.values)
+            for (final o in leadSourceEscolhas)
               DropdownMenuItem(value: o, child: Text(leadSourceLabel(o))),
           ],
           onChanged: (v) => setState(() => origem = v),
@@ -2640,6 +2640,10 @@ class _FormularioDeLeadState extends State<_FormularioDeLead> {
         final problema = validarLead(name.text, phone.text);
         if (problema != null) {
           setState(() => erro = problema);
+          return;
+        }
+        if (origem == null) {
+          setState(() => erro = 'Diz como a pessoa nos conheceu.');
           return;
         }
         try {
