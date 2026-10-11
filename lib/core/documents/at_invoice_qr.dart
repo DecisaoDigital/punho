@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 
 /// Dados úteis extraídos do QR das faturas portuguesas.
@@ -28,7 +30,12 @@ class AtInvoiceQrData {
 }
 
 abstract final class AtInvoiceQrReader {
+  /// Só há leitor de QR em Android e iOS (ML Kit). No Windows devolve `null`,
+  /// como uma foto sem código: a despesa fica com o documento anexado e o
+  /// utilizador preenche os valores à mão, em vez de o fluxo rebentar com um
+  /// `MissingPluginException`.
   static Future<AtInvoiceQrData?> readFromImage(String imagePath) async {
+    if (!(Platform.isAndroid || Platform.isIOS)) return null;
     final scanner = BarcodeScanner(formats: [BarcodeFormat.qrCode]);
     try {
       final codes = await scanner.processImage(

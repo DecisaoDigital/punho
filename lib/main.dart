@@ -16,6 +16,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_platfor
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/cadeado/cadeado_gate.dart';
+import 'core/layout/escala_de_desktop.dart';
 import 'core/diagnostico/relator_de_erros.dart';
 import 'shared/widgets/splash_punho.dart';
 
@@ -226,6 +227,11 @@ class _FistAppState extends ConsumerState<FistApp> {
       theme: FistTheme.light,
       // Sem isto os seletores do sistema (data) saem em inglês.
       locale: const Locale('pt', 'PT'),
+      // Windows: a janela é vista como um telemóvel deitado maior, em vez de
+      // esticar o layout do telemóvel por 1920 px.
+      builder: (context, child) => Platform.isWindows && child != null
+          ? EscalaDeDesktop(child: child)
+          : child ?? const SizedBox.shrink(),
       supportedLocales: const [Locale('pt', 'PT')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: _splashTerminou

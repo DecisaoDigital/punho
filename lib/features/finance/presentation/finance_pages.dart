@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/format/campos.dart';
@@ -210,15 +211,18 @@ class _RegisterExpensePageState extends ConsumerState<RegisterExpensePage> {
                     icon: const Icon(Icons.attach_file),
                     label: const Text('Escolher ficheiro'),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      final path =
-                          await ExpenseDocumentCapture.captureFromCamera();
-                      if (path != null) await _useInvoicePhoto(path);
-                    },
-                    icon: const Icon(Icons.document_scanner_outlined),
-                    label: const Text('Tirar e ler QR'),
-                  ),
+                  // Sem câmara nem leitor de QR no desktop: lá só se escolhe
+                  // o ficheiro.
+                  if (Platform.isAndroid || Platform.isIOS)
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final path =
+                            await ExpenseDocumentCapture.captureFromCamera();
+                        if (path != null) await _useInvoicePhoto(path);
+                      },
+                      icon: const Icon(Icons.document_scanner_outlined),
+                      label: const Text('Tirar e ler QR'),
+                    ),
                 ],
               ),
               if (documentPath != null)

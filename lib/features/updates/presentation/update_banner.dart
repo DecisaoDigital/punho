@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -145,7 +147,9 @@ class _Accao extends ConsumerWidget {
       case FaseDoUpdate.disponivel:
         // Sem hash publicado não há instalação automática — o ficheiro não pode
         // ser verificado, e o caminho antigo é melhor do que instalar às cegas.
-        if ((update.sha256 ?? '').isEmpty) {
+        // Fora do Android (Windows) também não há instalação automática: o
+        // instalador `.exe` descarrega-se pelo browser e corre-se por cima.
+        if (!Platform.isAndroid || (update.sha256 ?? '').isEmpty) {
           return FilledButton(
             onPressed: () => launchUrl(
               Uri.parse(update.downloadUrl),
