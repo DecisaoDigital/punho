@@ -12,7 +12,7 @@ void main() {
   test('1920x1010 amplia até ao máximo e mantém o espaço lógico >= referência', () {
     const janela = Size(1920, 1010);
     final s = EscalaDeDesktop.escalaPara(janela);
-    expect(s, 2.0);
+    expect(s, 1.6);
     expect(janela.width / s, greaterThanOrEqualTo(820));
     expect(janela.height / s, greaterThanOrEqualTo(392));
   });

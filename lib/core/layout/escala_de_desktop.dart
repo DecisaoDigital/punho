@@ -8,9 +8,9 @@ import 'package:flutter/widgets.dart';
 const double _larguraReferencia = 820;
 const double _alturaReferencia = 392;
 
-/// Até onde se amplia. Mais do que isto e um ecrã de 1920 px fica com a letra
-/// de um cartaz.
-const double _escalaMaxima = 2.0;
+/// Até onde se amplia. A barra lateral tem dez itens de ~57 dp: acima de 1,6×
+/// já não cabem num ecrã de 1080 px sem rolar, e a letra passa a ser de cartaz.
+const double _escalaMaxima = 1.6;
 
 /// Escala a interface inteira num ecrã grande (Windows), em vez de a esticar.
 ///
