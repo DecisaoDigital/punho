@@ -1,3 +1,4 @@
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/push/push_de_leads.dart';
@@ -202,6 +203,7 @@ class SupabaseAcessoService implements AcessoService {
     // `app: 'punho'` é o que o trigger de auth.users usa para distinguir este
     // registo dos do POS, que partilham o mesmo projecto Supabase. Com o
     // `machine_id` ao lado, é também o par que identifica o terminal.
+    final versao = await _versaoInstalada();
     final resposta = await _client.auth.signUp(
       email: email,
       password: palavraPasse,
@@ -211,6 +213,7 @@ class SupabaseAcessoService implements AcessoService {
         'empresa': empresa,
         'perfil': perfil,
         if (machineId != null && machineId.isNotEmpty) 'machine_id': machineId,
+        'versao': ?versao,
         if (codigoConvite != null && codigoConvite.isNotEmpty)
           'convite': codigoConvite,
       },
@@ -274,5 +277,14 @@ class SupabaseAcessoService implements AcessoService {
   Future<void> terminarSessao() async {
     await PushDeLeads.esquecer();
     await _client.auth.signOut();
+  }
+}
+
+/// A versão nua (`0.3.79`), como o ping a envia; nula se não se conseguir ler.
+Future<String?> _versaoInstalada() async {
+  try {
+    return (await PackageInfo.fromPlatform()).version;
+  } catch (_) {
+    return null;
   }
 }

@@ -208,9 +208,12 @@ class _LinhaDePedido extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => ListTile(
     title: Text(pedido.comoSeChama),
     subtitle: Text(
-      pedido.nifDeclarado == null
-          ? pedido.email
-          : '${pedido.email} · contribuinte ${pedido.nifDeclarado}',
+      [
+        pedido.nifDeclarado == null
+            ? pedido.email
+            : '${pedido.email} · contribuinte ${pedido.nifDeclarado}',
+        if (pedido.mensagem != null) 'Suporte: ${pedido.mensagem}',
+      ].join('\n'),
     ),
     trailing: FilledButton(
       onPressed: () => _decidir(context, ref),
@@ -266,6 +269,14 @@ class _DialogoDeDecisaoState extends ConsumerState<_DialogoDeDecisao> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.pedido.email),
+            if (widget.pedido.mensagem != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Mensagem do suporte: ${widget.pedido.mensagem}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
             if (widget.pedido.nifDeclarado != null)
               Text('Contribuinte declarado: ${widget.pedido.nifDeclarado}'),
             const SizedBox(height: 16),

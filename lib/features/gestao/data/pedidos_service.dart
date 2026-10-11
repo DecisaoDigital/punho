@@ -14,6 +14,7 @@ class PedidoPendente {
     this.nome,
     this.nifDeclarado,
     this.app,
+    this.mensagem,
   });
 
   factory PedidoPendente.fromJson(Map<String, dynamic> json) => PedidoPendente(
@@ -25,11 +26,15 @@ class PedidoPendente {
     nome: json['nome'] as String?,
     nifDeclarado: json['nif_declarado'] as String?,
     app: json['app'] as String?,
+    mensagem: json['mensagem'] as String?,
   );
 
   final String id, email;
   final DateTime criadoEm;
   final String? nome, nifDeclarado, app;
+
+  /// O que o suporte escreveu ao reencaminhar o pedido («confirma os dados»…).
+  final String? mensagem;
 
   /// Como apresentar quem pede. Sem nome fica o email — é o único
   /// identificador que existe sempre, e é melhor que um espaço em branco.
