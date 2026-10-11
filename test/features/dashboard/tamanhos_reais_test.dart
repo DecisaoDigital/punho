@@ -212,7 +212,7 @@ void main() {
         ),
         tamanho: tamanho,
       );
-      expect(find.textContaining('média dos meses anteriores'), findsWidgets);
+      expect(find.textContaining('Paga-se com'), findsWidgets);
     }
   });
 

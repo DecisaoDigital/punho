@@ -137,9 +137,9 @@ void main() {
       // venda, a 15, não chega lá.
       await abrir(tester, 'lucro-mes');
 
-      expect(find.textContaining('BREAK EVEN DO MÊS'), findsWidgets);
-      expect(find.textContaining('O mês paga-se com 4300 €'), findsOneWidget);
-      expect(find.textContaining('não chega este mês'), findsOneWidget);
+      expect(find.textContaining('LUCRO BRUTO DO MÊS'), findsWidgets);
+      expect(find.textContaining('Paga-se com 4300 €'), findsOneWidget);
+      expect(find.textContaining('ao ritmo de hoje não chega'), findsOneWidget);
     });
   });
 
@@ -161,6 +161,12 @@ void main() {
   group('o caminho para a acção', () {
     testWidgets('a explicação acaba num botão que leva lá', (tester) async {
       await abrir(tester, 'lucro-mes');
+      // A página cresceu com a explicação do cartão: o botão fica mais abaixo.
+      await tester.scrollUntilVisible(
+        find.textContaining('Ir a '),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.textContaining('Ir a '), findsOneWidget);
     });
   });
@@ -179,9 +185,10 @@ void main() {
       expect(find.byType(CadeiaDoKpiPage), findsOneWidget);
     });
 
-    testWidgets('uma folha não abre — vai directa à acção', (tester) async {
-      // As «Entregas hoje» não têm nada por baixo. Abrir uma página que só
-      // repetisse a célula era um toque a mais para chegar ao mesmo sítio.
+    testWidgets('uma folha também abre: a explicação primeiro, a acção a seguir', (tester) async {
+      // As «Entregas hoje» não têm nada por baixo. Até 11 Out 2026 iam directas
+      // à acção; agora, como todo o cartão ensina como se chega ao número
+      // (regra do César), abrem a explicação — que acaba no botão da acção.
       await montarLandscape(
         tester,
         containerCom(abrilDeSustos()),
@@ -191,7 +198,8 @@ void main() {
       await tester.tap(find.textContaining('ENTREGAS HOJE').first);
       await tester.pumpAndSettle();
 
-      expect(find.byType(CadeiaDoKpiPage), findsNothing);
+      expect(find.byType(CadeiaDoKpiPage), findsOneWidget);
+      expect(find.text('Como se chega a este número'), findsOneWidget);
     });
   });
 }

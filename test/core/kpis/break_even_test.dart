@@ -22,6 +22,14 @@ import 'package:fist/domain/models/operations.dart';
 /// breack even é o valor para manter a empresa em operaçao»*. O alvo é o que a
 /// casa gasta num mês, todas as rubricas incluídas.
 void main() {
+  Receipt recebido(String id, DateTime fim, int cents) => Receipt(
+    id: 'r$id',
+    date: fim,
+    amountCents: cents,
+    customerId: 'c1',
+    method: PaymentMethod.cash,
+  );
+
   Booking venda(String id, DateTime fim, int cents) => Booking(
     id: id,
     customerId: 'c1',
@@ -50,6 +58,7 @@ void main() {
       // média, e é essa média que se paga todos os meses.
       final estado = OperationsState(
         bookings: [venda('a', DateTime(2026, 8, 5, 18), 100000)],
+        receipts: [recebido('a', DateTime(2026, 8, 5, 18), 100000)],
         expenses: [
           despesa('e', DateTime(2026, 8, 2), 200000, ExpenseCategory.rent),
           despesa('d', DateTime(2026, 8, 5), 20000, ExpenseCategory.supplies),
@@ -63,12 +72,29 @@ void main() {
       expect(be.atingido, isFalse);
     });
 
+    test('conta o dinheiro que entrou no mês, não o serviço que acabou', () {
+      // Regra do César (11 Out 2026): o que se paga depois do fim do mês conta
+      // para o mês em que entra. Serviço de Julho pago em Agosto é de Agosto.
+      final estado = OperationsState(
+        bookings: [venda('j', DateTime(2026, 7, 30, 18), 100000)],
+        receipts: [recebido('j', DateTime(2026, 8, 3, 12), 100000)],
+        expenses: [
+          despesa('e', DateTime(2026, 8, 2), 200000, ExpenseCategory.rent),
+        ],
+      );
+      final be = breakEvenDoMes(estado, emAgosto)!;
+
+      expect(be.vendasCents, 100000);
+      expect(be.faltaCents, 100000);
+    });
+
     test('vendendo o alvo, o lucro do mês dá zero', () {
       // É esta a ligação entre os dois KPIs: o break even é a despesa do mês e
       // o lucro é o que passa dela. Se um dia deixarem de bater, um deles está
       // a contar uma despesa que o outro não conta.
       final estado = OperationsState(
         bookings: [venda('a', DateTime(2026, 8, 5, 18), 225000)],
+        receipts: [recebido('a', DateTime(2026, 8, 5, 18), 225000)],
         expenses: [
           despesa('e', DateTime(2026, 8, 2), 200000, ExpenseCategory.rent),
           despesa('d', DateTime(2026, 8, 5), 20000, ExpenseCategory.supplies),
@@ -83,6 +109,7 @@ void main() {
     test('sem despesa nenhuma, em mês nenhum, não se inventa um alvo', () {
       final estado = OperationsState(
         bookings: [venda('a', DateTime(2026, 8, 5, 18), 100000)],
+        receipts: [recebido('a', DateTime(2026, 8, 5, 18), 100000)],
       );
       expect(breakEvenDoMes(estado, emAgosto), isNull);
       expect(
@@ -102,6 +129,12 @@ void main() {
         venda('j', DateTime(2026, 6, 10, 18), 300000),
         venda('l', DateTime(2026, 7, 10, 18), 300000),
         venda('a', DateTime(2026, 8, 1, 18), 50000),
+      ],
+      receipts: [
+        recebido('m', DateTime(2026, 5, 10, 18), 300000),
+        recebido('j', DateTime(2026, 6, 10, 18), 300000),
+        recebido('l', DateTime(2026, 7, 10, 18), 300000),
+        recebido('a', DateTime(2026, 8, 1, 18), 50000),
       ],
       expenses: [
         despesa('m1', DateTime(2026, 5, 3), 200000, ExpenseCategory.rent),
@@ -149,6 +182,7 @@ void main() {
       // Julho), não 733 € — um mês por preencher não é um mês barato.
       final estado = OperationsState(
         bookings: [venda('l', DateTime(2026, 7, 10, 18), 300000)],
+        receipts: [recebido('l', DateTime(2026, 7, 10, 18), 300000)],
         expenses: [
           despesa('l1', DateTime(2026, 7, 3), 200000, ExpenseCategory.rent),
           despesa('l2', DateTime(2026, 7, 9), 20000, ExpenseCategory.supplies),
@@ -194,6 +228,11 @@ void main() {
           venda('b', DateTime(2026, 8, 11, 18), 100000),
           venda('c', DateTime(2026, 8, 20, 18), 100000),
         ],
+        receipts: [
+          recebido('a', DateTime(2026, 8, 4, 18), 100000),
+          recebido('b', DateTime(2026, 8, 11, 18), 100000),
+          recebido('c', DateTime(2026, 8, 20, 18), 100000),
+        ],
         expenses: [
           despesa('e', DateTime(2026, 8, 2), 240000, ExpenseCategory.rent),
         ],
@@ -209,6 +248,7 @@ void main() {
       // 1000 € vendidos em 10 dias = 100 €/dia. Alvo nos 2000 € → dia 20.
       final estado = OperationsState(
         bookings: [venda('a', DateTime(2026, 8, 5, 18), 100000)],
+        receipts: [recebido('a', DateTime(2026, 8, 5, 18), 100000)],
         expenses: [
           despesa('e', DateTime(2026, 8, 2), 200000, ExpenseCategory.rent),
         ],
@@ -226,6 +266,7 @@ void main() {
       // uma promessa que este KPI não faz.
       final estado = OperationsState(
         bookings: [venda('a', DateTime(2026, 8, 5, 18), 10000)],
+        receipts: [recebido('a', DateTime(2026, 8, 5, 18), 10000)],
         expenses: [
           despesa('e', DateTime(2026, 8, 2), 200000, ExpenseCategory.rent),
         ],
@@ -247,6 +288,7 @@ void main() {
     /// **acima** dos 2 321 € já lançados em Agosto, e por isso é ela o alvo.
     OperationsState comoEstaNaBase() => OperationsState(
       bookings: [venda('a', DateTime(2026, 8, 6, 18), 264300)],
+      receipts: [recebido('a', DateTime(2026, 8, 6, 18), 264300)],
       expenses: [
         despesa('m', DateTime(2026, 5, 4), 235694, ExpenseCategory.rent),
         despesa('j', DateTime(2026, 6, 4), 234496, ExpenseCategory.rent),

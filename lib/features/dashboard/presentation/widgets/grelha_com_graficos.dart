@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// **O ecrã do painel com os dois gráficos:** até três KPIs em cima, todos do
 /// mesmo tamanho, e em baixo os gráficos lado a lado, também iguais entre si.
 ///
-/// Os cartões de número são mais baixos do que os de gráfico (4 para 6 de
+/// Os cartões de número são mais baixos do que os de gráfico (5 para 5, depois de
 /// altura), e nenhum muda de tamanho para o outro caber. Como [GrelhaDeKpis],
 /// mede o espaço que lhe dão em vez de lhe impor uma proporção: o painel tem de
 /// se ver inteiro, sem scroll.

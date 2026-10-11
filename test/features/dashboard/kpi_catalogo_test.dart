@@ -33,7 +33,7 @@ void main() {
   );
 
   group('o catálogo está inteiro', () {
-    test('tem os trinta e cinco KPIs, com ids únicos e títulos', () {
+    test('tem os trinta e seis KPIs, com ids únicos e títulos', () {
       // Doze do painel antigo + a Caixa e a Tendência do mês (nascidas na
       // bancada) + os onze de 10 de Agosto de 2026: os sete que a auditoria
       // (`docs/AUDITORIA_KPIS_EMPRESA.md`) dava como não cobertos, as duas que
@@ -55,12 +55,12 @@ void main() {
       // E os dois gráficos do painel (10 Out 2026), que se escolhem como os
       // outros: a faturação mês a mês e o total por ano.
       // nome que faltava à percentagem de utilização.
-      expect(catalogoKpis, hasLength(35));
+      expect(catalogoKpis, hasLength(36));
       expect(kpiPorId('caixa'), isNotNull);
       expect(kpiPorId('tendencia-mes'), isNotNull);
 
       final ids = catalogoKpis.map((k) => k.id).toSet();
-      expect(ids, hasLength(35), reason: 'ids têm de ser únicos');
+      expect(ids, hasLength(36), reason: 'ids têm de ser únicos');
 
       for (final k in catalogoKpis) {
         expect(k.id, isNotEmpty);

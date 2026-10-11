@@ -22,6 +22,7 @@ import '../../../core/guidance/guidance_engine.dart';
 import '../../../core/navigation/app_destination.dart';
 import '../../../core/kpis/apreciacao.dart';
 import '../../../core/kpis/break_even.dart';
+import '../../../core/kpis/meta_do_mes.dart';
 import '../../../core/kpis/dinheiro_por_mexer.dart';
 import '../../../core/kpis/maquina_parada.dart';
 import '../../../core/operations/caixa.dart';
@@ -33,6 +34,7 @@ import '../../../domain/models/arranjo_do_painel.dart';
 import '../../../domain/models/finance.dart';
 import '../../../domain/models/operations.dart';
 import '../../kpis/presentation/grafico_do_mes.dart';
+import 'kpi_explicacoes.dart';
 import 'widgets/celula_semaforo.dart';
 import 'widgets/grelha_com_graficos.dart';
 import 'widgets/kpi_grid_2x2.dart';
@@ -169,7 +171,7 @@ const catalogoKpis = <KpiDefinicao>[
   ),
   KpiDefinicao(
     id: 'break-even-mes',
-    titulo: 'Break even do mês',
+    titulo: 'Lucro bruto do mês',
     celula: kpiBreakEven,
     // Como os três mestres: a conta foi conferida contra os números que estão
     // em produção (`test/core/kpis/break_even_test.dart` fixa Agosto de 2026 da
@@ -218,6 +220,16 @@ const catalogoKpis = <KpiDefinicao>[
         '(recibos ou histórico do contabilista)',
     pai: 'caixa',
     destino: AppDestination.finances,
+  ),
+  KpiDefinicao(
+    id: 'meta-mes',
+    titulo: 'Meta do mês',
+    celula: kpiMeta,
+    contaVerificada: true,
+    desbloqueio:
+        'Responder, em Empresa › Metas, quanto prevês crescer neste trimestre '
+        '(e haver o mesmo mês do ano passado)',
+    destino: AppDestination.metas,
   ),
   // Slide 1 — Síntese
   KpiDefinicao(
@@ -489,7 +501,8 @@ KpiDefinicao? kpiPorId(String id) {
 /// Lista vazia é uma resposta legítima: uma folha da árvore não tem por onde se
 /// desdobrar, e é aí que a explicação acaba e começa a acção.
 /// KPIs folha que, mesmo assim, abrem a página com o gráfico.
-bool temGrafico(String id) => id == 'break-even-mes';
+bool temGrafico(String id) =>
+    explicacaoDe(id) != null || kpiPorId(id)?.grafico != null;
 
 List<KpiDefinicao> filhosDe(String id) => [
   for (final k in catalogoKpis)
@@ -708,7 +721,7 @@ CelulaSemaforo kpiBreakEven(OperationsState estado, DateTime now) {
   if (be == null) {
     return CelulaSemaforo(
       nivel: NivelSemaforo.aguarda,
-      rotulo: 'Break even do mês',
+      rotulo: 'Lucro bruto do mês',
       texto: motivoSemBreakEven(estado, now) ?? 'Por apurar',
       subtexto: 'Diz quanto falta vender para o mês se pagar a si próprio.',
     );
@@ -727,10 +740,13 @@ CelulaSemaforo kpiBreakEven(OperationsState estado, DateTime now) {
 
   if (be.atingido) {
     final dia = be.diaEmQuePassou;
+    // Passou a zero: o número muda de sinal e fica verde. Até lá é negativo.
     return CelulaSemaforo(
       nivel: NivelSemaforo.verde,
-      rotulo: 'Break even do mês',
-      texto: 'O mês já se paga',
+      rotulo: 'Lucro bruto do mês',
+      valor: '+ ${_euros(-be.faltaCents)}',
+      unidade: '€ de lucro bruto',
+      valorEmDestaque: true,
       subtexto: dia == null
           ? 'Bastavam ${_euros(be.alvoCents)} € e vais em ${_euros(be.vendasCents)} €$origem'
           : 'Passou a $dia de $mes, nos ${_euros(be.alvoCents)} € vendidos$origem',
@@ -738,15 +754,19 @@ CelulaSemaforo kpiBreakEven(OperationsState estado, DateTime now) {
   }
 
   final previsto = be.diaPrevisto;
+  // Negativo até cobrir as despesas do mês (pedido do César, 11 Out 2026).
+  // Laranja enquanto há tempo ou o ritmo ainda chega; vermelho só quando já
+  // passou meio mês e ao ritmo de hoje não chega — no início ainda não é grave.
+  final grave = previsto == null && now.day > 15;
   return CelulaSemaforo(
-    nivel: NivelSemaforo.laranja,
-    rotulo: 'Break even do mês',
-    valor: _euros(be.faltaCents),
-    unidade: '€ ainda por vender',
+    nivel: grave ? NivelSemaforo.vermelho : NivelSemaforo.laranja,
+    rotulo: 'Lucro bruto do mês',
+    valor: '− ${_euros(be.faltaCents)}',
+    unidade: '€ até ao break even',
     valorEmDestaque: true,
     subtexto:
-        'O mês paga-se com ${_euros(be.alvoCents)} € · '
-        '${previsto == null ? 'ao ritmo de hoje não chega este mês' : 'ao ritmo de hoje chega a $previsto de $mes'}$origem',
+        'Paga-se com ${_euros(be.alvoCents)} € · '
+        '${previsto == null ? 'ao ritmo de hoje não chega' : 'chega a $previsto de $mes'}',
   );
 }
 
@@ -823,6 +843,32 @@ CelulaSemaforo kpiTendencia(OperationsState estado, DateTime now) {
           'contabilista responder o passado — e a tendência aparece.',
     );
   }
+  // Com histórico, a previsão vem do crescimento dos anos anteriores (pedido do
+  // César, 11 Out 2026). Sem o mesmo mês do ano passado, fica a conta da
+  // agenda e a comparação com o mês passado, como antes.
+  final cresc = previsaoPorCrescimento(estado, now);
+  if (cresc != null) {
+    // Fixa desde a última hora do mês anterior: só olha para meses fechados,
+    // e o que entra ou não entra este mês não lhe mexe. No fim do mês vê-se o
+    // quanto acertou (11 Out 2026).
+    final previsto = cresc.previstoCents;
+    final face = (previsto - cresc.homologoCents) / cresc.homologoCents * 100;
+    // É uma meta a bater e a ultrapassar (César, 11 Out 2026): mostra-se quanto
+    // dela já entrou.
+    final recebido = mes.recebidoCents;
+    final feito = previsto <= 0 ? 0.0 : recebido / previsto;
+    // Uma meta é informação, não veredicto: azul (César, 11 Out 2026).
+    return CelulaSemaforo(
+      nivel: NivelSemaforo.informativo,
+      rotulo: 'Tendência do mês',
+      valor: _euros(previsto),
+      unidade: '€ de meta do mês',
+      subtexto:
+          'Entrou ${_euros(recebido)} € (${(feito * 100).round()}%) · '
+          '${face >= 0 ? '▲' : '▼'} ${face.abs().round()}% vs ano passado',
+      valorEmDestaque: true,
+    );
+  }
   final tendencia = variacao == null
       ? 'Sem mês passado para comparar'
       : '${variacao >= 0 ? '▲' : '▼'} '
@@ -835,6 +881,48 @@ CelulaSemaforo kpiTendencia(OperationsState estado, DateTime now) {
     valor: _euros(mes.entradasPrevistasCents),
     unidade: '€ previsto este mês',
     subtexto: tendencia,
+    valorEmDestaque: true,
+  );
+}
+
+/// **Meta do mês** — a que o empresário fixou para o trimestre ao responder
+/// «quanto prevês crescer?». Diferente da Tendência, que é a app a olhar para
+/// trás: aqui o número é uma promessa dele, e o card diz quanto já se cumpriu.
+CelulaSemaforo kpiMeta(OperationsState estado, DateTime now) {
+  final g = estado.metasDeCrescimento[chaveDoTrimestre(now)];
+  if (g == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Meta do mês',
+      texto: 'Quanto prevês crescer?',
+      subtexto: 'Toca para responder em Empresa › Metas',
+    );
+  }
+  final meta = metaDoMes(estado, now);
+  if (meta == null) {
+    return const CelulaSemaforo(
+      nivel: NivelSemaforo.aguarda,
+      rotulo: 'Meta do mês',
+      texto: 'Sem o mesmo mês do ano passado',
+      subtexto: 'A meta parte dele; sem ele não há de onde a tirar.',
+    );
+  }
+  final diasNoMes = DateTime(now.year, now.month + 1, 0).day;
+  final calendario = now.day / diasNoMes;
+  final nivel = meta.cumprido >= calendario * 0.75
+      ? NivelSemaforo.verde
+      : meta.cumprido >= calendario * 0.4
+      ? NivelSemaforo.laranja
+      : NivelSemaforo.vermelho;
+  final pontos = (meta.crescimento * 100).round();
+  return CelulaSemaforo(
+    nivel: nivel,
+    rotulo: 'Meta do mês',
+    valor: _euros(meta.metaCents),
+    unidade: '€ de meta',
+    subtexto:
+        'Entrou ${_euros(meta.recebidoCents)} € (${(meta.cumprido * 100).round()}%) · '
+        'previste ${pontos >= 0 ? '+' : '−'}${pontos.abs()}% neste trimestre',
     valorEmDestaque: true,
   );
 }

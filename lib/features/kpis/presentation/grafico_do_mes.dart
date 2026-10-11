@@ -508,10 +508,10 @@ class _ColunasPainter extends CustomPainter {
 
     final maximo = s.maximoDeTodosOsAnos;
     if (maximo <= 0) return;
-    // Folga de 70% acima do valor mais alto de qualquer ano (13,7k
-    // pede 24k): as colunas não encostam ao tecto e o tecto nunca passa do
+    // Folga de 30% acima do valor mais alto de qualquer ano (13,7k
+    // pede 18k): as colunas não encostam ao tecto e o tecto nunca passa do
     // dobro. Sobe sozinho quando um mês bater o máximo.
-    final topoEscala = _escalaBonita((maximo * 1.7).round(), folga: 1.0);
+    final topoEscala = _escalaBonita((maximo * 1.3).round(), folga: 1.0);
     double y(int cents) => area.bottom - area.height * cents / topoEscala;
 
     final grelha = Paint()

@@ -167,7 +167,9 @@ SugestaoDoPainel? _peloPiorFilho(
 int _gravidade(NivelSemaforo nivel) => switch (nivel) {
   NivelSemaforo.vermelho => 2,
   NivelSemaforo.laranja => 1,
-  NivelSemaforo.verde || NivelSemaforo.aguarda => 0,
+  NivelSemaforo.verde ||
+  NivelSemaforo.aguarda ||
+  NivelSemaforo.informativo => 0,
 };
 
 String _euros(int cents) => '${(cents / 100).round()} €';

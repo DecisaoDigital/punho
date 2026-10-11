@@ -7,8 +7,9 @@ import '../../../core/navigation/navigation_controller.dart';
 import '../../../core/operations/kpis_da_cadeia.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../dashboard/presentation/kpi_catalogo.dart';
+import '../../dashboard/presentation/kpi_explicacoes.dart';
+import '../../dashboard/presentation/widgets/celula_semaforo.dart';
 import '../../dashboard/presentation/widgets/kpi_grid_2x2.dart';
-import 'grafico_do_mes.dart';
 
 /// **O ecrã de atenção** — o que está por trás de um número.
 ///
@@ -79,44 +80,21 @@ class CadeiaDoKpiPage extends ConsumerWidget {
             // solta numa lista pede altura infinita e rebenta o layout. A
             // deitada é a que serve uma linha da largura toda — e a altura é a
             // medida, `AlturaDoKpi.deitado`, não um número inventado aqui.
-            if (kpi.id == 'break-even-mes' &&
-                MediaQuery.sizeOf(context).width >= 600)
-              // Deitado, o gráfico ao lado do número: por baixo ficava meio
-              // fora do ecrã (medido no Redmi a 10/10/2026).
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          height: AlturaDoKpi.deitado,
-                          child: kpi.celula(estado, now).deitada(),
-                        ),
-                        const SizedBox(height: 12),
-                        _Comparacao(kpiId: kpi.id, estado: estado, now: now),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 2,
-                    child: GraficoDoMes(estado: estado, now: now, altura: 150),
-                  ),
-                ],
-              )
-            else ...[
-              SizedBox(
-                height: AlturaDoKpi.deitado,
-                child: kpi.celula(estado, now).deitada(),
+            SizedBox(
+              height: AlturaDoKpi.deitado,
+              child: kpi.celula(estado, now).deitada(),
+            ),
+            const SizedBox(height: 16),
+            _Comparacao(kpiId: kpi.id, estado: estado, now: now),
+            if (explicacaoDe(kpi.id) case final e?)
+              _ComoSeChegaLa(
+                explicacao: e,
+                nivel: kpi.celula(estado, now).nivel,
+                desbloqueio: kpi.desbloqueio,
               ),
-              const SizedBox(height: 16),
-              _Comparacao(kpiId: kpi.id, estado: estado, now: now),
-              if (kpi.id == 'break-even-mes') ...[
-                GraficoDoMes(estado: estado, now: now),
-              ],
-            ],
+            // Os cartões-gráfico abrem o gráfico por inteiro.
+            if (kpi.grafico != null)
+              SizedBox(height: 240, child: kpi.grafico!(estado, now)),
             const SizedBox(height: 16),
             if (kpi.id == 'lucro-mes')
               _Explicacao(estado: estado, now: now, agora: agora),
@@ -187,6 +165,79 @@ class _Migalhas extends StatelessWidget {
           ),
           Text(' › ', style: tt.bodySmall),
         ],
+      ],
+    );
+  }
+}
+
+/// **Como se chega a este número** — a explicação que cada cartão traz, para
+/// quem o abre perceber de onde vem e o que ele ensina.
+class _ComoSeChegaLa extends StatelessWidget {
+  const _ComoSeChegaLa({
+    required this.explicacao,
+    required this.nivel,
+    required this.desbloqueio,
+  });
+
+  final ExplicacaoDoKpi explicacao;
+  final NivelSemaforo nivel;
+  final String desbloqueio;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
+
+    Widget caixa(String titulo, List<Widget> filhos) => Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(titulo, style: tt.titleSmall),
+              const SizedBox(height: 6),
+              ...filhos,
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final (tituloDoConselho, conselho) = switch (nivel) {
+      NivelSemaforo.verde => (
+        'Bom trabalho',
+        [Text(explicacao.parabens, style: tt.bodyMedium)],
+      ),
+      NivelSemaforo.aguarda => (
+        'O que falta para este número aparecer',
+        [Text(desbloqueio, style: tt.bodyMedium)],
+      ),
+      _ => (
+        'O que podes fazer',
+        [
+          for (final dica in explicacao.paraMelhorar)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text('• $dica', style: tt.bodyMedium),
+            ),
+        ],
+      ),
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        caixa('Como se chega a este número', [
+          Text(explicacao.comoSeChega, style: tt.bodyMedium),
+        ]),
+        caixa(tituloDoConselho, conselho),
+        const SizedBox(height: 4),
       ],
     );
   }

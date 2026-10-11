@@ -253,6 +253,11 @@ int _recebidoDoMesComHistorico(OperationsState state, DateTime mes) {
   return state.historicalMonth(mes.year, mes.month)?.revenueReceivedCents ?? 0;
 }
 
+/// Recebido de um mês (registado, ou do histórico mensal quando não há
+/// recebimentos). Público para as metas.
+int recebidoNoMes(OperationsState state, DateTime mes) =>
+    _recebidoDoMesComHistorico(state, mes);
+
 /// Resultado do mês, sem prometer lucro.
 ///
 /// Devolve `null` quando não há movimentos nenhuns: "recebido − pago" com os
@@ -1699,4 +1704,108 @@ Recommendation? recomendacaoDaSemana(
     tsuPatronal += estimativa.tsuEntidadePatronalCents;
   }
   return (bruto: bruto, tsuPatronal: tsuPatronal, total: bruto + tsuPatronal);
+}
+
+/// **A previsão do mês pelo crescimento**, e não só pela agenda.
+///
+/// Pedido do César (11 Out 2026): a agenda só mostra o que já está marcado, e
+/// a meio do mês isso é sempre pouco. A tendência olha para trás:
+///
+///  1. **Crescimento médio:** de ano para ano, só com meses fechados (o mês a
+///     decorrer fica de fora) e comparando meses iguais — Jan–Set de 2026 contra
+///     Jan–Set de 2025, 2025 contra 2024, e por aí fora. O par mais recente
+///     pesa a dobrar: é o ritmo de agora.
+///  2. **O que este mês costuma fazer:** em cada par de anos, quanto o mês
+///     cresceu acima ou abaixo do crescimento médio desse par (Outubro cresceu
+///     8% quando o ano cresceu 10% → costuma ficar 2 pontos abaixo).
+///  3. **Previsto** = o mesmo mês do ano passado × (1 + média + desvio do mês).
+///
+/// Quanto mais anos houver, mais afinada. É uma previsão, não uma promessa. Sem
+/// o mesmo mês do ano passado não há base e devolve `null`.
+class PrevisaoPorCrescimento {
+  const PrevisaoPorCrescimento({
+    required this.previstoCents,
+    required this.homologoCents,
+    required this.crescimentoMedio,
+    required this.desvioDoMes,
+    required this.pares,
+  });
+
+  final int previstoCents;
+
+  /// O mesmo mês do ano passado, a base da conta.
+  final int homologoCents;
+
+  /// Crescimento médio ano a ano, em fração (0,30 = 30%).
+  final double crescimentoMedio;
+
+  /// Quanto este mês costuma ficar acima (+) ou abaixo (−) da média, em fração.
+  /// Zero quando só há um par de anos e não há com que comparar o mês.
+  final double desvioDoMes;
+
+  /// Quantos pares de anos entraram na média.
+  final int pares;
+
+  double get crescimentoAplicado => crescimentoMedio + desvioDoMes;
+}
+
+PrevisaoPorCrescimento? previsaoPorCrescimento(
+  OperationsState state,
+  DateTime now,
+) {
+  final inicioDoMes = DateTime(now.year, now.month);
+  int receita(int ano, int mes) {
+    final d = DateTime(ano, mes);
+    if (!d.isBefore(inicioDoMes)) return 0; // o mês a decorrer não conta
+    return _recebidoDoMesComHistorico(state, d);
+  }
+
+  final homologo = _recebidoDoMesComHistorico(
+    state,
+    DateTime(now.year - 1, now.month),
+  );
+  if (homologo <= 0) return null;
+
+  final medias = <double>[];
+  final pesos = <double>[];
+  final desvios = <double>[];
+  for (var ano = now.year; ano >= now.year - 10; ano--) {
+    var atual = 0;
+    var anterior = 0;
+    for (var m = 1; m <= 12; m++) {
+      final a = receita(ano, m);
+      final b = receita(ano - 1, m);
+      if (a > 0 && b > 0) {
+        atual += a;
+        anterior += b;
+      }
+    }
+    if (anterior <= 0) continue;
+    final g = atual / anterior - 1;
+    medias.add(g);
+    pesos.add(ano == now.year ? 2 : 1);
+    final a = receita(ano, now.month);
+    final b = receita(ano - 1, now.month);
+    if (a > 0 && b > 0) desvios.add((a / b - 1) - g);
+  }
+  if (medias.isEmpty) return null;
+
+  var soma = 0.0;
+  var peso = 0.0;
+  for (var i = 0; i < medias.length; i++) {
+    soma += medias[i] * pesos[i];
+    peso += pesos[i];
+  }
+  final media = soma / peso;
+  final desvio = desvios.isEmpty
+      ? 0.0
+      : desvios.reduce((x, y) => x + y) / desvios.length;
+  final previsto = (homologo * (1 + media + desvio)).round();
+  return PrevisaoPorCrescimento(
+    previstoCents: previsto < 0 ? 0 : previsto,
+    homologoCents: homologo,
+    crescimentoMedio: media,
+    desvioDoMes: desvio,
+    pares: medias.length,
+  );
 }

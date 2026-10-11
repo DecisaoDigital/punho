@@ -25,6 +25,14 @@ import '../dashboard/fixtura.dart';
 void main() {
   final agosto = DateTime(2026, 8, 13, 21);
 
+  Receipt recebido(String id, DateTime fim, int cents) => Receipt(
+    id: 'r$id',
+    date: fim,
+    amountCents: cents,
+    customerId: 'c1',
+    method: PaymentMethod.cash,
+  );
+
   Booking venda(String id, DateTime fim, int cents) => Booking(
     id: id,
     customerId: 'c1',
@@ -56,6 +64,10 @@ void main() {
     bookings: [
       venda('h', DateTime(2025, 8, 6, 18), vendasHomologo),
       venda('a', DateTime(2026, 8, 6, 18), vendasAgora),
+    ],
+    receipts: [
+      recebido('h', DateTime(2025, 8, 6, 18), vendasHomologo),
+      recebido('a', DateTime(2026, 8, 6, 18), vendasAgora),
     ],
     expenses: [
       despesa('eh', DateTime(2025, 8, 4), estruturaHomologo),
@@ -115,7 +127,7 @@ void main() {
       expect(s.kpi.id, 'break-even-mes');
       expect(
         s.motivo,
-        'Lucro do mês está em alerta, e Break even do mês também — '
+        'Lucro do mês está em alerta, e Lucro bruto do mês também — '
         'é aí que se vê porquê.',
       );
     });

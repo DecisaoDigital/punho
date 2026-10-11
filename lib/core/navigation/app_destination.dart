@@ -47,7 +47,10 @@ enum AppDestination {
   // rebentar. Apagá-los agora obrigava a mudar tudo isso na mesma sprint.
   // ---------------------------------------------------------------------
   finances('Finanças', Icons.credit_card_outlined),
-  vehicles('Veículos', Icons.local_shipping_outlined);
+  vehicles('Veículos', Icons.local_shipping_outlined),
+
+  /// Onde se responde à meta do trimestre (aba de Empresa).
+  metas('Metas', Icons.flag_outlined);
 
   const AppDestination(this.label, this.icon);
   final String label;
@@ -60,6 +63,7 @@ enum AppDestination {
   AbaDaEmpresa? get abaDeEmpresa => switch (this) {
     AppDestination.finances => AbaDaEmpresa.financas,
     AppDestination.vehicles => AbaDaEmpresa.veiculos,
+    AppDestination.metas => AbaDaEmpresa.metas,
     _ => null,
   };
 }
@@ -75,6 +79,10 @@ enum AbaDaEmpresa {
   /// cinco minutos.
   historico('Histórico', Icons.history_outlined),
   custosFixos('Custos fixos', Icons.receipt_long_outlined),
+
+  /// O crescimento que o empresário prevê para cada trimestre — de onde sai a
+  /// «Meta do mês».
+  metas('Metas', Icons.flag_outlined),
   veiculos('Veículos', Icons.local_shipping_outlined),
   financas('Finanças', Icons.credit_card_outlined),
   estado('Estado', Icons.event_note_outlined);

@@ -70,6 +70,7 @@ class OperationsState {
     this.maintenanceLastYearCents,
     this.fixedMonthlyCostsCents,
     this.custosFixos = const [],
+    this.metasDeCrescimento = const {},
     this.historicalMonths = const [],
     this.machines = const [],
     this.customers = const [],
@@ -124,6 +125,9 @@ class OperationsState {
 
   /// As rubricas do custo fixo: renda, electricidade, seguros, o que houver.
   final List<CustoFixo> custosFixos;
+
+  /// Crescimento previsto pelo empresário por trimestre (`AAAA-Tn` → fração).
+  final Map<String, double> metasDeCrescimento;
 
   /// O custo fixo mensal a usar em todo o lado.
   ///
@@ -235,6 +239,7 @@ class OperationsState {
     int? maintenanceLastYearCents,
     int? fixedMonthlyCostsCents,
     List<CustoFixo>? custosFixos,
+    Map<String, double>? metasDeCrescimento,
     List<HistoricalMonth>? historicalMonths,
     List<Machine>? machines,
     List<Customer>? customers,
@@ -270,6 +275,7 @@ class OperationsState {
     fixedMonthlyCostsCents:
         fixedMonthlyCostsCents ?? this.fixedMonthlyCostsCents,
     custosFixos: custosFixos ?? this.custosFixos,
+    metasDeCrescimento: metasDeCrescimento ?? this.metasDeCrescimento,
     historicalMonths: historicalMonths ?? this.historicalMonths,
     machines: machines ?? this.machines,
     customers: customers ?? this.customers,
@@ -311,6 +317,7 @@ class OperationsController extends Notifier<OperationsState> {
       maintenanceLastYearCents: onboarding?.maintenanceLastYearCents,
       fixedMonthlyCostsCents: onboarding?.fixedMonthlyCostsCents,
       custosFixos: onboarding?.custosFixos ?? const [],
+      metasDeCrescimento: onboarding?.metasDeCrescimento ?? const {},
       historicalMonths: _repo.historicalMonths,
       machines: _repo.machines,
       customers: _repo.customers,
@@ -518,6 +525,7 @@ class OperationsController extends Notifier<OperationsState> {
     Campo<int>? maintenanceLastYearCents,
     Campo<int>? fixedMonthlyCostsCents,
     List<CustoFixo>? custosFixos,
+    Map<String, double>? metasDeCrescimento,
   }) {
     final actual = _repo.onboarding;
     if (actual == null) return;
@@ -564,6 +572,7 @@ class OperationsController extends Notifier<OperationsState> {
         actual.fixedMonthlyCostsCents,
       ),
       custosFixos: custosFixos ?? actual.custosFixos,
+      metasDeCrescimento: metasDeCrescimento ?? actual.metasDeCrescimento,
     );
     _repo.saveOnboarding(novo);
     // Subir ou descer o total declarado não cria nem apaga máquina nenhuma —
@@ -600,6 +609,7 @@ class OperationsController extends Notifier<OperationsState> {
     maintenanceLastYearCents: dados.maintenanceLastYearCents,
     fixedMonthlyCostsCents: dados.fixedMonthlyCostsCents,
     custosFixos: dados.custosFixos,
+    metasDeCrescimento: dados.metasDeCrescimento,
     historicalMonths: state.historicalMonths,
     machines: state.machines,
     customers: state.customers,

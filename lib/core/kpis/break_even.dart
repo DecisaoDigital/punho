@@ -125,19 +125,22 @@ class BreakEvenDoMes {
 DateTime _inicioDoMes(DateTime d) => DateTime(d.year, d.month);
 DateTime _fimDoMes(DateTime d) => DateTime(d.year, d.month + 1, 0);
 
-Iterable<Booking> _vendasDoMes(OperationsState s, DateTime mes) {
+/// **Os recebimentos do mês** — o dinheiro que entrou, e não o que se vendeu.
+///
+/// Decisão do César (11 Out 2026): um empresário conta com o dinheiro que
+/// entrou, não com o que ainda lhe devem. O que entra depois do fim do mês
+/// conta para o mês em que entra. Cada empresário pode pensar de outro modo,
+/// mas esta é a regra de partida.
+Iterable<Receipt> _vendasDoMes(OperationsState s, DateTime mes) {
   final inicio = _inicioDoMes(mes);
   final fim = _fimDoMes(mes);
-  return s.bookings.where(
-    (b) =>
-        b.status != BookingStatus.cancelled &&
-        (b.expectedValueCents ?? 0) > 0 &&
-        isInPeriod(b.endsAt, inicio, fim),
+  return s.receipts.where(
+    (r) => !r.archived && r.amountCents > 0 && isInPeriod(r.date, inicio, fim),
   );
 }
 
 int _vendasCents(OperationsState s, DateTime mes) =>
-    _vendasDoMes(s, mes).fold(0, (t, b) => t + b.expectedValueCents!);
+    _vendasDoMes(s, mes).fold(0, (t, r) => t + r.amountCents);
 
 /// **Todas as despesas do mês, sem excepção de categoria.**
 ///
@@ -176,11 +179,11 @@ int? _mediaDaDespesa(OperationsState s, DateTime now) {
 /// ordem em que os trabalhos acabaram. `null` se nunca chegaram lá.
 int? _diaEmQuePassou(OperationsState s, DateTime now, int alvoCents) {
   final vendas = _vendasDoMes(s, now).toList()
-    ..sort((a, b) => a.endsAt.compareTo(b.endsAt));
+    ..sort((a, b) => a.date.compareTo(b.date));
   var acumulado = 0;
   for (final venda in vendas) {
-    acumulado += venda.expectedValueCents!;
-    if (acumulado >= alvoCents) return venda.endsAt.day;
+    acumulado += venda.amountCents;
+    if (acumulado >= alvoCents) return venda.date.day;
   }
   return null;
 }

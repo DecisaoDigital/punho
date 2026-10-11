@@ -12,6 +12,7 @@ import '../../contabilista/presentation/historico_contabilista_page.dart';
 import '../../finance/presentation/financas_page.dart';
 import '../../sync/sync_providers.dart';
 import '../../workforce/presentation/workforce_pages.dart';
+import 'aba_metas.dart';
 import '../../../core/sync/registo_de_operacoes.dart';
 
 /// Tudo o que é da empresa, num sítio só (Decisão 2).
@@ -77,6 +78,7 @@ class _EmpresaPageState extends ConsumerState<EmpresaPage>
         const _AbaRegimeFiscal(),
         const HistoricoContabilistaPage(),
         const _AbaCustosFixos(),
+        const AbaMetas(),
         const VehiclesPage(),
         const FinancasPage(),
         const _AbaEstado(),

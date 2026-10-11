@@ -97,6 +97,8 @@ void main() {
         'grafico-faturacao-mensal',
         'grafico-total-por-ano',
         'caixa',
+        // A meta é uma promessa do empresário, não uma parcela de nada.
+        'meta-mes',
         'recomendacao-dia',
       ]);
     });

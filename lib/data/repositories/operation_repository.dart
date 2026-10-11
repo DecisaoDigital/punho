@@ -65,6 +65,7 @@ class OnboardingData {
     this.maintenanceLastYearCents,
     this.fixedMonthlyCostsCents,
     this.custosFixos = const [],
+    this.metasDeCrescimento = const {},
   });
 
   final String? ownerName;
@@ -90,6 +91,11 @@ class OnboardingData {
   /// redondo antigo — que fica só para quem já o tinha preenchido.
   final List<CustoFixo> custosFixos;
 
+  /// O crescimento que o empresário prevê para cada trimestre, em fração
+  /// (0,15 = 15%), por chave `AAAA-Tn` (`2026-T4`). Respondido por ele, a cada
+  /// trimestre; é daqui que sai a «Meta do mês».
+  final Map<String, double> metasDeCrescimento;
+
   OnboardingData copyWith({
     String? ownerName,
     String? companyTaxId,
@@ -103,6 +109,7 @@ class OnboardingData {
     int? maintenanceLastYearCents,
     int? fixedMonthlyCostsCents,
     List<CustoFixo>? custosFixos,
+    Map<String, double>? metasDeCrescimento,
   }) => OnboardingData(
     ownerName: ownerName ?? this.ownerName,
     companyName: companyName,
@@ -125,6 +132,7 @@ class OnboardingData {
     fixedMonthlyCostsCents:
         fixedMonthlyCostsCents ?? this.fixedMonthlyCostsCents,
     custosFixos: custosFixos ?? this.custosFixos,
+    metasDeCrescimento: metasDeCrescimento ?? this.metasDeCrescimento,
   );
 }
 
@@ -779,6 +787,7 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
             'custosFixos': onboarding!.custosFixos
                 .map((c) => c.toJson())
                 .toList(),
+            'metasDeCrescimento': onboarding!.metasDeCrescimento,
           },
     'machines': _machines.map(_machineToJson).toList(),
     'customers': _customers.map(_customerToJson).toList(),
@@ -914,6 +923,13 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
           for (final linha in (onboardingJson['custosFixos'] as List? ?? []))
             CustoFixo.fromJson(Map<String, dynamic>.from(linha as Map)),
         ],
+        // Ausente nas gravações anteriores: sem metas, não há meta.
+        metasDeCrescimento: {
+          for (final e in (_mapOrNull(onboardingJson['metasDeCrescimento']) ??
+                  const <String, dynamic>{})
+              .entries)
+            if (e.value is num) e.key: (e.value as num).toDouble(),
+        },
       );
     }
     // O histórico mensal fica **dentro** do que é da empresa: é declarado pelo

@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 /// Laranja é cor de aviso: quem abre a app pela primeira vez não lê "ainda não
 /// me deste dados", lê "está tudo mal". A falta de dados não é um problema do
 /// negócio, é o princípio dele — e tem de se ver que é diferente.
-enum NivelSemaforo { verde, laranja, vermelho, aguarda }
+enum NivelSemaforo { verde, laranja, vermelho, aguarda, informativo }
 
 /// Célula reutilizável do dashboard, com bordo lateral colorido por urgência.
 ///
@@ -71,6 +71,8 @@ class CelulaSemaforo extends StatelessWidget {
     final cor = switch (nivel) {
       NivelSemaforo.verde => const Color(0xFF3DC97A),
       NivelSemaforo.laranja => const Color(0xFFFFB246),
+      // Número que informa e não julga (meta, previsão): nem bom nem mau.
+      NivelSemaforo.informativo => const Color(0xFF4DA3FF),
       NivelSemaforo.vermelho => const Color(0xFFFF5C6E),
       // Do tema, e não uma constante: tem de se ler nos dois fundos, e o que
       // se quer aqui é presença discreta — a faixa existe, mas não chama.
@@ -214,25 +216,31 @@ class CelulaSemaforo extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           if (valor != null)
-            RichText(
-              overflow: TextOverflow.ellipsis,
-              text: TextSpan(
-                style: tt.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: valorEmDestaque ? cor : cs.onSurface,
-                  height: 1.1,
-                ),
-                children: [
-                  TextSpan(text: valor),
-                  if (unidade != null)
-                    TextSpan(
-                      text: ' ${unidade!}',
-                      style: tt.labelMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
+            // Encolhe em vez de cortar: com três cartões lado a lado o número
+            // com a unidade («2200 € ainda por vender») não cabe em 256 dp e
+            // perdia o fim (medido no Redmi, 11 Out 2026).
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: RichText(
+                text: TextSpan(
+                  style: tt.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: valorEmDestaque ? cor : cs.onSurface,
+                    height: 1.1,
+                  ),
+                  children: [
+                    TextSpan(text: valor),
+                    if (unidade != null)
+                      TextSpan(
+                        text: ' ${unidade!}',
+                        style: tt.labelMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             )
           else

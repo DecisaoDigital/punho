@@ -8,6 +8,14 @@ import 'package:fist/domain/models/operations.dart';
 import 'package:fist/features/kpis/presentation/grafico_do_mes.dart';
 
 void main() {
+  Receipt recebido(String id, DateTime fim, int cents) => Receipt(
+    id: 'r$id',
+    date: fim,
+    amountCents: cents,
+    customerId: 'c1',
+    method: PaymentMethod.cash,
+  );
+
   Booking venda(String id, DateTime fim, int cents) => Booking(
     id: id,
     customerId: 'c1',
@@ -26,6 +34,12 @@ void main() {
       venda('b', DateTime(2026, 8, 10, 18), 20000),
       venda('d', DateTime(2026, 7, 3, 18), 30000),
       venda('e', DateTime(2025, 3, 28, 18), 50000),
+    ],
+    receipts: [
+      recebido('a', DateTime(2026, 8, 2, 18), 10000),
+      recebido('b', DateTime(2026, 8, 10, 18), 20000),
+      recebido('d', DateTime(2026, 7, 3, 18), 30000),
+      recebido('e', DateTime(2025, 3, 28, 18), 50000),
     ],
     historicalMonths: const [
       HistoricalMonth(year: 2024, month: 5, revenueReceivedCents: 70000),
