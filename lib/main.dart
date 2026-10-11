@@ -1,3 +1,4 @@
+import 'core/armazenamento/prefs_windows_diferido.dart';
 import 'core/avisos/avisos_de_leads.dart';
 import 'core/lembretes/lembretes_providers.dart';
 import 'dart:async';
@@ -11,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/cadeado/cadeado_gate.dart';
@@ -58,6 +60,20 @@ RelatorDeErros? relatorDeErros;
 
 Future<void> _arrancar() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // No Windows o plugin oficial reescreve o ficheiro todo (vários MB) a cada
+  // gravação e a sincronização inicial deixava a janela em «Não responde».
+  // Tem de ser antes de qualquer `SharedPreferences.getInstance()`.
+  if (Platform.isWindows) {
+    final prefsWindows = PrefsWindowsDiferido();
+    SharedPreferencesStorePlatform.instance = prefsWindows;
+    AppLifecycleListener(
+      onExitRequested: () async {
+        await prefsWindows.descarregar();
+        return AppExitResponse.exit;
+      },
+      onDetach: () => unawaited(prefsWindows.descarregar()),
+    );
+  }
   relatorDeErros = await _prepararRelator();
   _instalarCapturaDeErros();
   // A área das notificações pertence visualmente à moldura da app. Sem esta
