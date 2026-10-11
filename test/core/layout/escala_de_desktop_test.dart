@@ -20,7 +20,7 @@ void main() {
   test('1280x720 amplia sem passar a altura de referência', () {
     const janela = Size(1280, 720);
     final s = EscalaDeDesktop.escalaPara(janela);
-    expect(s, closeTo(1.56, 0.01));
+    expect(s, 1.5);
     expect(janela.height / s, greaterThanOrEqualTo(392));
   });
 }
