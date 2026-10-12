@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/layout/margens_do_canvas.dart';
+import '../../../core/layout/titulo_de_pagina.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../core/operations/painel_controller.dart';
 import '../../dashboard/presentation/kpi_catalogo.dart';
@@ -102,11 +103,17 @@ class KpisPage extends ConsumerWidget {
             // No Windows o cartão começa depois da coluna da caixa de marcar: o texto
             // de cima acompanha o eixo dos cartões e não o da coluna.
             padding: margem.copyWith(
-              top: _arPorCimaDaLista,
+              top: Platform.isWindows
+                  ? MargensDoCanvas.vertical
+                  : _arPorCimaDaLista,
               left: MargensDoCanvas.lateral,
             ),
             sliver: SliverList.list(
               children: [
+                if (Platform.isWindows) ...[
+                  const TituloDePagina(texto: 'KPIs'),
+                  const SizedBox(height: 2),
+                ],
                 // **Sem título repetido e com uma linha só de explicação.**
                 //
                 // O ecrã já se chama «KPIs (todos)» na barra lateral, e a

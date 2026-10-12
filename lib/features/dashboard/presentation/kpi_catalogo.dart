@@ -764,6 +764,22 @@ String _comparado(MesComparado m) {
   return 'Primeiro mês com registos — ainda não há com que comparar';
 }
 
+/// A mini-comparação dos cartões grandes: o mês contra o mesmo termo que a
+/// nota escrita usa (homólogo, senão mês anterior). `null` sem termo ou com
+/// valores negativos — barras de lucro negativo enganariam.
+ComparacaoMini? _miniComparacao(MesComparado m) {
+  final homologa = m.homologoCents != null && m.variacaoHomologa != null;
+  final termo = homologa ? m.homologoCents : m.mesAnteriorCents;
+  if (termo == null || termo <= 0 || m.valorCents < 0) return null;
+  return ComparacaoMini(
+    atual: m.valorCents.toDouble(),
+    termo: termo.toDouble(),
+    textoAtual: '${_euros(m.valorCents)} €',
+    textoTermo: '${_euros(termo)} €',
+    rotuloTermo: homologa ? 'Ano passado' : 'Mês passado',
+  );
+}
+
 /// Euros com o sinal à frente quando são negativos. O menos é o tipográfico
 /// (−), o mesmo que a célula do Lucro usa: o hífen do teclado lê-se como
 /// separador e não como sinal.
@@ -799,6 +815,7 @@ CelulaSemaforo kpiVendas(OperationsState estado, DateTime now) {
     valor: _euros(mes.valorCents),
     unidade: '€ vendidos',
     subtexto: _comparado(mes),
+    comparacao: _miniComparacao(mes),
     valorEmDestaque: true,
   );
 }
@@ -832,6 +849,7 @@ CelulaSemaforo kpiLucro(OperationsState estado, DateTime now) {
     subtexto: margem == null
         ? _comparado(mes)
         : 'Margem ${margem.round()}% · ${_comparado(mes)}',
+    comparacao: _miniComparacao(mes),
     valorEmDestaque: true,
   );
 }
@@ -861,6 +879,7 @@ CelulaSemaforo kpiLucroMesAnterior(OperationsState estado, DateTime now) {
     valor: '${positivo ? '+' : '−'} ${_euros(mes.valorCents.abs())}',
     unidade: '€ de ${positivo ? 'lucro' : 'prejuízo'} em $nome',
     subtexto: _comparado(mes),
+    comparacao: _miniComparacao(mes),
     valorEmDestaque: true,
   );
 }
@@ -888,6 +907,7 @@ CelulaSemaforo kpiEstrutura(OperationsState estado, DateTime now) {
     valor: _euros(mes.valorCents),
     unidade: '€ para ter a casa aberta',
     subtexto: _comparado(mes),
+    comparacao: _miniComparacao(mes),
     valorEmDestaque: true,
   );
 }

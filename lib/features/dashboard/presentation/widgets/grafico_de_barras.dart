@@ -7,6 +7,8 @@
 // training or to generate derivative works without written permission.
 // SPDX-License-Identifier: LicenseRef-Proprietary
 
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 
 /// Uma barra: o nome à esquerda, o comprimento pelo [valor], o [texto] à direita.
@@ -39,18 +41,29 @@ class GraficoDeBarras extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final pequeno = tt.labelSmall?.copyWith(fontSize: 10);
+    final win = Platform.isWindows;
+    final pequeno = win
+        ? tt.labelMedium
+        : tt.labelSmall?.copyWith(fontSize: 10);
     final maximo = barras.fold<double>(0, (m, b) => b.valor > m ? b.valor : m);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          titulo,
-          style: pequeno?.copyWith(fontWeight: FontWeight.w600),
+          // No Windows o título é o rótulo dos cartões da página 1: mesmo
+          // estilo, mesma distância à aresta.
+          win ? titulo.toUpperCase() : titulo,
+          style: win
+              ? pequeno?.copyWith(
+                  color: cs.onSurfaceVariant,
+                  letterSpacing: 0.8,
+                  fontWeight: FontWeight.w600,
+                )
+              : pequeno?.copyWith(fontWeight: FontWeight.w600),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: win ? 8 : 2),
         Expanded(
           child: barras.isEmpty
               ? Center(child: Text(vazio, style: tt.bodySmall))
@@ -61,7 +74,7 @@ class GraficoDeBarras extends StatelessWidget {
                         child: Row(
                           children: [
                             SizedBox(
-                              width: 78,
+                              width: win ? 120 : 78,
                               child: Text(
                                 b.nome,
                                 style: pequeno?.copyWith(
@@ -76,6 +89,15 @@ class GraficoDeBarras extends StatelessWidget {
                             Expanded(
                               child: LayoutBuilder(
                                 builder: (context, caixa) {
+                                  // Windows: a barra ocupa ~60% da linha (entre
+                                  // 10 e 30 dp) em vez de um fio de 10 dp com
+                                  // ar por cima e por baixo.
+                                  final grossura = win
+                                      ? (caixa.maxHeight * 0.6).clamp(
+                                          10.0,
+                                          30.0,
+                                        )
+                                      : 10.0;
                                   final largura = maximo <= 0
                                       ? 0.0
                                       : (caixa.maxWidth - 44) *
@@ -87,7 +109,7 @@ class GraficoDeBarras extends StatelessWidget {
                                         width: largura < 1 && b.valor > 0
                                             ? 1
                                             : largura,
-                                        height: 10,
+                                        height: grossura,
                                         color: cor,
                                       ),
                                       const SizedBox(width: 4),

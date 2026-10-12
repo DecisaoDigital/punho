@@ -19,6 +19,23 @@ import 'package:flutter/material.dart';
 /// negócio, é o princípio dele — e tem de se ver que é diferente.
 enum NivelSemaforo { verde, laranja, vermelho, aguarda, informativo }
 
+/// O mês a decorrer contra o seu termo de comparação (ano passado ou mês
+/// passado), com os valores que o KPI já calculou. Só se desenha nos cartões
+/// grandes do Windows; a nota por escrito continua a ser o [subtexto].
+class ComparacaoMini {
+  const ComparacaoMini({
+    required this.atual,
+    required this.termo,
+    required this.textoAtual,
+    required this.textoTermo,
+    required this.rotuloTermo,
+  });
+
+  /// Magnitudes (≥ 0) para o comprimento das barras.
+  final double atual, termo;
+  final String textoAtual, textoTermo, rotuloTermo;
+}
+
 /// Célula reutilizável do dashboard, com bordo lateral colorido por urgência.
 ///
 /// Padrão editorial: rótulo pequeno em maiúsculas, valor grande (ou texto se
@@ -35,6 +52,8 @@ class CelulaSemaforo extends StatelessWidget {
     this.valorEmDestaque = false,
     this.emLinha = false,
     this.reservaDireita = 0,
+    this.comparacao,
+    this.notas = const [],
   }) : assert(valor != null || texto != null, 'valor ou texto obrigatório');
 
   final NivelSemaforo nivel;
@@ -68,6 +87,28 @@ class CelulaSemaforo extends StatelessWidget {
   /// (Windows: caixa de marcar e pega de arrastar da lista de KPIs).
   final double reservaDireita;
 
+  /// Mini-comparação com o termo, para os cartões grandes do Windows.
+  final ComparacaoMini? comparacao;
+
+  /// Linhas de contexto (cadeia, como se calcula, apreciação) que só cabem nos
+  /// cartões grandes do Windows. Vêm do que o detalhe do KPI já mostra.
+  final List<String> notas;
+
+  /// A mesma célula com [notas] acrescentadas.
+  CelulaSemaforo comNotas(List<String> novas) => CelulaSemaforo(
+    nivel: nivel,
+    rotulo: rotulo,
+    valor: valor,
+    unidade: unidade,
+    texto: texto,
+    subtexto: subtexto,
+    valorEmDestaque: valorEmDestaque,
+    emLinha: emLinha,
+    reservaDireita: reservaDireita,
+    comparacao: comparacao,
+    notas: novas,
+  );
+
   /// A mesma célula, deitada. Para quem recebe uma célula já construída — a
   /// bancada recebe-as do catálogo e não sabe fazê-las.
   CelulaSemaforo deitada({double reservaDireita = 0}) => CelulaSemaforo(
@@ -80,6 +121,8 @@ class CelulaSemaforo extends StatelessWidget {
     valorEmDestaque: valorEmDestaque,
     emLinha: true,
     reservaDireita: reservaDireita,
+    comparacao: comparacao,
+    notas: notas,
   );
 
   @override
@@ -227,14 +270,32 @@ class CelulaSemaforo extends StatelessWidget {
   /// Windows: o cartão é grande e o conteúdo era repartido pelos extremos
   /// (`spaceBetween`), deixando ~125 px de ar entre rótulo e número. Aqui
   /// rótulo, número e nota formam um bloco único, centrado, com o número maior.
-  Widget _conteudoWindows(BuildContext context, Color cor) {
+  Widget _conteudoWindows(BuildContext context, Color cor) => LayoutBuilder(
+    builder: (context, c) {
+      // Cartão grande (grelha 2×2 de poucos KPIs): número maior, nota
+      // inteira e, quando o KPI tem termo, a mini-comparação. Nos cartões
+      // da grelha 3×3 fica como estava.
+      final grande = c.maxHeight >= 250;
+      return _conteudoWindowsCom(context, cor, grande, c.maxHeight);
+    },
+  );
+
+  Widget _conteudoWindowsCom(
+    BuildContext context,
+    Color cor,
+    bool grande,
+    double altura,
+  ) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+    final comp = grande ? comparacao : null;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      padding: EdgeInsets.fromLTRB(16, grande ? 14 : 10, 16, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: grande
+            ? MainAxisAlignment.start
+            : MainAxisAlignment.center,
         children: [
           Text(
             rotulo.toUpperCase(),
@@ -246,7 +307,7 @@ class CelulaSemaforo extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: grande ? 8 : 10),
           if (valor != null)
             FittedBox(
               fit: BoxFit.scaleDown,
@@ -254,7 +315,7 @@ class CelulaSemaforo extends StatelessWidget {
               child: RichText(
                 text: TextSpan(
                   style: tt.displaySmall?.copyWith(
-                    fontSize: 44,
+                    fontSize: grande ? 52.0 : 44,
                     fontWeight: FontWeight.w800,
                     color: valorEmDestaque ? cor : cs.onSurface,
                     height: 1.1,
@@ -276,21 +337,33 @@ class CelulaSemaforo extends StatelessWidget {
           else
             Text(
               texto!,
-              style: tt.titleMedium?.copyWith(
+              style: (grande ? tt.titleLarge : tt.titleMedium)?.copyWith(
                 fontWeight: FontWeight.w600,
                 height: 1.25,
               ),
-              maxLines: nivel == NivelSemaforo.aguarda ? 1 : 3,
+              maxLines: nivel == NivelSemaforo.aguarda ? 1 : (grande ? 5 : 3),
               overflow: TextOverflow.ellipsis,
             ),
           if (subtexto != null) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: grande ? 6 : 10),
             Text(
               subtexto!,
-              style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
-              maxLines: 4,
+              style: (grande ? tt.bodyLarge : tt.bodyMedium)?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+              maxLines: grande ? 2 : 4,
               overflow: TextOverflow.ellipsis,
             ),
+          ],
+          if (comp != null) ...[
+            const SizedBox(height: 10),
+            _MiniComparacao(comparacao: comp, cor: cor),
+          ],
+          if (grande && notas.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Divider(height: 1, color: cs.outlineVariant),
+            const SizedBox(height: 6),
+            Expanded(child: _Notas(notas: notas)),
           ],
         ],
       ),
@@ -381,6 +454,102 @@ class CelulaSemaforo extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Duas barras, este mês e o termo, à mesma escala.
+class _MiniComparacao extends StatelessWidget {
+  const _MiniComparacao({required this.comparacao, required this.cor});
+
+  final ComparacaoMini comparacao;
+  final Color cor;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final estilo = Theme.of(
+      context,
+    ).textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant);
+    final maximo = comparacao.atual > comparacao.termo
+        ? comparacao.atual
+        : comparacao.termo;
+    Widget linha(String rotulo, double v, String texto, Color c) => Row(
+      children: [
+        SizedBox(width: 92, child: Text(rotulo, style: estilo)),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, caixa) {
+              final largura = maximo <= 0
+                  ? 0.0
+                  : (caixa.maxWidth - 80) * v / maximo;
+              return Row(
+                children: [
+                  Container(
+                    width: largura < 2 && v > 0 ? 2 : largura,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: c,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(texto, style: estilo),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+    return Column(
+      children: [
+        linha('Este mês', comparacao.atual, comparacao.textoAtual, cor),
+        const SizedBox(height: 6),
+        linha(
+          comparacao.rotuloTermo,
+          comparacao.termo,
+          comparacao.textoTermo,
+          cs.outline,
+        ),
+      ],
+    );
+  }
+}
+
+/// As linhas de contexto, as que couberem na altura que sobra (cada uma até
+/// duas linhas de texto); o resto fica para o detalhe, ao toque.
+class _Notas extends StatelessWidget {
+  const _Notas({required this.notas});
+
+  final List<String> notas;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final estilo = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant, height: 1.25);
+    return LayoutBuilder(
+      builder: (context, c) {
+        // 2 linhas de ~18 px + 4 de ar por nota.
+        final cabem = (c.maxHeight / 42).floor().clamp(0, notas.length);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < cabem; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  notas[i],
+                  style: estilo,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

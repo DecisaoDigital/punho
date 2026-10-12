@@ -26,6 +26,7 @@ import '../../../core/empresa_sync/ficha_da_empresa.dart';
 import '../../../core/format/campos.dart';
 import '../../../core/layout/ecra_de_formulario.dart';
 import '../../../core/layout/margens_do_canvas.dart';
+import '../../../core/layout/titulo_de_pagina.dart';
 import '../../../core/theme/punho_theme.dart';
 import '../../../core/media/machine_image_store.dart';
 import '../../../core/operations/operations_controller.dart';
@@ -2162,7 +2163,7 @@ class ClientsPage extends ConsumerWidget {
     // As quentes têm a sua caixa por cima; aqui ficam as já validadas.
     final leadsTratadas = state.leads.where((l) => !l.quente).toList();
     return _PageFrame(
-      title: 'Clientes e leads',
+      title: 'Clientes',
       action: Wrap(
         spacing: 8,
         children: [
@@ -5049,7 +5050,7 @@ class _PageFrame extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Só o action (botão de acção principal do ecrã), alinhado à direita.
-          Align(alignment: Alignment.centerRight, child: action),
+          TituloDePagina(texto: title, accao: action),
           const SizedBox(height: 8),
           Expanded(child: child),
         ],

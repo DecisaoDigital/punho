@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/layout/margens_do_canvas.dart';
+import '../../../core/layout/titulo_de_pagina.dart';
 import '../../../core/navigation/app_destination.dart';
 import '../../../core/navigation/navigation_controller.dart';
 import '../../../core/operations/operations_controller.dart';
@@ -177,14 +178,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               // A saudação e os pontinhos lá em baixo não são setas: somam o ar
               // que a margem do painel desconta por causa delas, para ficarem à
               // mesma distância da barra que o texto de qualquer outro menu.
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: MargensDoCanvas.arDaSeta,
-                ),
-                child: _Saudacao(
-                  state: state,
-                  agora: agora,
-                  compacto: cabecalhoCompacto,
+              Align(
+                alignment: Platform.isWindows
+                    ? Alignment.centerLeft
+                    : Alignment.topCenter,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: _setasAoLado ? MargensDoCanvas.arDaSeta : 0,
+                  ),
+                  child: _Saudacao(
+                    state: state,
+                    agora: agora,
+                    compacto: cabecalhoCompacto,
+                  ),
                 ),
               ),
               SizedBox(height: cabecalhoCompacto ? 2 : 10),
@@ -245,7 +251,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
 /// Quantos KPIs cabem num ecrã. É a grelha 2×2 de sempre: mais do que isto não
 /// é uma leitura de cinco segundos, é uma tabela.
-final _porEcra = Platform.isWindows ? 9 : 4;
+final _porEcra = Platform.isWindows ? 6 : 4;
 
 /// Parte a lista escolhida em ecrãs, pela ordem que ela traz.
 ///
@@ -393,11 +399,9 @@ class _Saudacao extends StatelessWidget {
   // um alvo de toque de 48 dp a decidir a altura de uma linha de 19.
   @override
   Widget build(BuildContext context) => Column(
-    // No Windows o bloco é centrado linha a linha: com `start` o nome (mais
-    // curto que a data) ficava ~38 px à esquerda do eixo dos cartões.
-    crossAxisAlignment: Platform.isWindows
-        ? CrossAxisAlignment.center
-        : CrossAxisAlignment.start,
+    // Alinhado à esquerda, no eixo dos cartões, como o título de todas as
+    // páginas (decisão do Cesar, 12 Out 2026; antes estava centrado).
+    crossAxisAlignment: CrossAxisAlignment.start,
     mainAxisSize: MainAxisSize.min,
     children: [
       if (compacto) ...[
@@ -415,11 +419,18 @@ class _Saudacao extends StatelessWidget {
           _nome,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          style: Platform.isWindows
+              ? estiloDoTituloDePagina(context)
+              : Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
         ),
-        Text(_data, style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          _data,
+          style: Platform.isWindows
+              ? Theme.of(context).textTheme.bodyMedium
+              : Theme.of(context).textTheme.bodySmall,
+        ),
       ],
     ],
   );

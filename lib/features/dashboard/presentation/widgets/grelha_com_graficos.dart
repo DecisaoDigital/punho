@@ -66,7 +66,9 @@ class CartaoDeGrafico extends StatelessWidget {
       border: Border.all(color: const Color(0xFFE5E3DA)),
     ),
     child: Padding(
-      padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+      padding: Platform.isWindows
+          ? const EdgeInsets.fromLTRB(20, 10, 20, 10)
+          : const EdgeInsets.fromLTRB(8, 6, 8, 6),
       child: child,
     ),
   );

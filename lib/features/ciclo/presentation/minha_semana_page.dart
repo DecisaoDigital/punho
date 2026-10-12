@@ -7,6 +7,8 @@
 // training or to generate derivative works without written permission.
 // SPDX-License-Identifier: LicenseRef-Proprietary
 
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,6 +16,7 @@ import '../../../core/ciclo/proximo_passo.dart';
 import '../../../core/format/campos.dart';
 import '../../../core/layout/ecra_de_formulario.dart';
 import '../../../core/layout/margens_do_canvas.dart';
+import '../../../core/layout/titulo_de_pagina.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../core/operations/preco_da_reserva.dart';
 import '../../../domain/models/operations.dart';
@@ -63,6 +66,10 @@ class MinhaSemanaPage extends ConsumerWidget {
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (Platform.isWindows) ...[
+                    const TituloDePagina(texto: 'A minha semana'),
+                    const SizedBox(height: 2),
+                  ],
                   _Resumo(total: trabalhos.length, atrasados: atrasados),
                   const SizedBox(height: 8),
                   Expanded(

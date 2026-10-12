@@ -34,18 +34,38 @@ class GrelhaDeKpis extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, restricoes) {
-      // Windows: 3 colunas × 3 linhas de cartões mais baixos (até 9 por ecrã),
-      // em vez de 4 cartões esticados a metade do ecrã cada.
-      if (Platform.isWindows) {
-        final l = (restricoes.maxWidth - 2 * _entreCelulas) / 3;
-        final a = (restricoes.maxHeight - 2 * _entreCelulas) / 3;
-        return GridView.count(
-          crossAxisCount: 3,
-          crossAxisSpacing: _entreCelulas,
-          mainAxisSpacing: _entreCelulas,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: a <= 0 ? 1 : l / a,
-          children: celulas,
+      // Windows: 3 colunas × 2 linhas (até 6 KPIs por ecrã). A última linha, se
+      // incompleta, reparte a largura toda.
+      if (Platform.isWindows && celulas.isNotEmpty) {
+        final n = celulas.length;
+        const colunas = 3;
+        final linhas = (n + colunas - 1) ~/ colunas;
+        // Duas linhas de altura fixa, mesmo com menos KPIs: os cartões não
+        // crescem quando há poucos (decisão do Cesar, 12 Out 2026).
+        return Column(
+          children: [
+            for (var r = 0; r < 2; r++) ...[
+              if (r > 0) const SizedBox(height: _entreCelulas),
+              Expanded(
+                child: r >= linhas
+                    ? const SizedBox.shrink()
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (
+                            var i = r * colunas;
+                            i < n && i < (r + 1) * colunas;
+                            i++
+                          ) ...[
+                            if (i > r * colunas)
+                              const SizedBox(width: _entreCelulas),
+                            Expanded(child: celulas[i]),
+                          ],
+                        ],
+                      ),
+              ),
+            ],
+          ],
         );
       }
       final largura = (restricoes.maxWidth - _entreCelulas) / 2;

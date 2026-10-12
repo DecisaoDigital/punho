@@ -7,6 +7,8 @@
 // training or to generate derivative works without written permission.
 // SPDX-License-Identifier: LicenseRef-Proprietary
 
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,6 +17,8 @@ import '../../../core/navigation/navigation_controller.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../kpis/presentation/cadeia_do_kpi_page.dart';
 import 'kpi_catalogo.dart';
+import 'kpi_explicacoes.dart';
+import 'widgets/celula_semaforo.dart';
 import 'widgets/grelha_com_graficos.dart';
 import 'widgets/grelha_de_kpis.dart';
 
@@ -72,7 +76,7 @@ class PaginaDoPainel extends ConsumerWidget {
                 ? null
                 : kpi.id,
             agora: agora,
-            child: kpi.celula(estado, now),
+            child: _comNotas(kpi, estado, now),
           ),
     ];
     if (graficos.isNotEmpty) {
@@ -128,4 +132,50 @@ class AbrirDestinoDoKpi extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// A célula do KPI e, no Windows, as notas que o detalhe já mostra: o que
+/// compõe o número (filhos da cadeia), como se chega a ele e a apreciação.
+/// Tudo vem de dados já calculados — nada é inventado.
+Widget _comNotas(KpiDefinicao kpi, OperationsState estado, DateTime now) {
+  final celula = kpi.celula(estado, now);
+  if (!Platform.isWindows || celula.nivel == NivelSemaforo.aguarda) {
+    return celula;
+  }
+  final notas = <String>[];
+  final filhos = [
+    for (final f in filhosDe(kpi.id))
+      if (f.grafico == null &&
+          f.celula(estado, now).nivel != NivelSemaforo.aguarda)
+        f,
+  ];
+  if (filhos.isNotEmpty) {
+    notas.add(
+      'Composto por: ${[for (final f in filhos) _resumo(f.celula(estado, now))].join(' · ')}',
+    );
+  }
+  final e = explicacaoDe(kpi.id);
+  if (e != null) {
+    notas.add('Como se chega: ${_primeiraFrase(e.comoSeChega)}');
+    final apreciacao = switch (celula.nivel) {
+      NivelSemaforo.verde => _primeiraFrase(e.parabens),
+      NivelSemaforo.laranja || NivelSemaforo.vermelho =>
+        e.paraMelhorar.isEmpty ? null : e.paraMelhorar.first,
+      _ => null,
+    };
+    if (apreciacao != null) notas.add(apreciacao);
+  }
+  return notas.isEmpty ? celula : celula.comNotas(notas);
+}
+
+String _resumo(CelulaSemaforo c) {
+  final v = c.valor;
+  if (v == null) return c.rotulo;
+  final un = c.unidade?.split(' ').first;
+  return '${c.rotulo} $v${un == null ? '' : ' $un'}';
+}
+
+String _primeiraFrase(String t) {
+  final i = t.indexOf(RegExp(r'[.!?](\s|$)'));
+  return i < 0 ? t : t.substring(0, i + 1);
 }

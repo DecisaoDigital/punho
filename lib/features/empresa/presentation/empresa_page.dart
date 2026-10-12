@@ -7,6 +7,8 @@
 // training or to generate derivative works without written permission.
 // SPDX-License-Identifier: LicenseRef-Proprietary
 
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -126,7 +128,7 @@ class _AbaDados extends ConsumerWidget {
     ].where(_temTexto).join('\n');
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      padding: EdgeInsets.fromLTRB(_ladoDaAba, 16, _ladoDaAba, 20),
       children: [
         Text(
           estado.companyName.trim().isEmpty
@@ -364,7 +366,9 @@ class _AbaRegimeFiscalState extends ConsumerState<_AbaRegimeFiscal> {
     final cores = Theme.of(context).colorScheme;
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(
+        _ladoDaAba,
+      ).copyWith(left: _ladoDaAba, right: _ladoDaAba),
       children: [
         Text('Regime actual', style: textos.labelLarge),
         const SizedBox(height: 6),
@@ -545,7 +549,9 @@ class _AbaCustosFixosState extends ConsumerState<_AbaCustosFixos> {
     final textos = Theme.of(context).textTheme;
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(
+        _ladoDaAba,
+      ).copyWith(left: _ladoDaAba, right: _ladoDaAba),
       children: [
         Text('Custos fixos mensais', style: textos.labelLarge),
         const SizedBox(height: 6),
@@ -635,7 +641,9 @@ class _AbaEstado extends ConsumerWidget {
     final theme = Theme.of(context);
     final conflitos = ref.watch(conflitosDeReservaProvider);
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(
+        _ladoDaAba,
+      ).copyWith(left: _ladoDaAba, right: _ladoDaAba),
       children: [
         Text('Conflitos de reserva', style: theme.textTheme.titleMedium),
         const SizedBox(height: 4),
@@ -912,3 +920,7 @@ class _RetratosEmColunas extends StatelessWidget {
     },
   );
 }
+
+/// Margem lateral das abas: no Windows a do canvas (15), para o texto ficar no
+/// eixo dos outros ecrãs; no telemóvel continua a ser 20.
+final double _ladoDaAba = Platform.isWindows ? 15 : 20;
