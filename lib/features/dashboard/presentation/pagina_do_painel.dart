@@ -76,7 +76,12 @@ class PaginaDoPainel extends ConsumerWidget {
                 ? null
                 : kpi.id,
             agora: agora,
-            child: _comNotas(kpi, estado, now),
+            child: _comNotas(
+              kpi,
+              estado,
+              now,
+              detalhado: graficos.isEmpty && kpis.length <= 4,
+            ),
           ),
     ];
     if (graficos.isNotEmpty) {
@@ -137,7 +142,12 @@ class AbrirDestinoDoKpi extends ConsumerWidget {
 /// A célula do KPI e, no Windows, as notas que o detalhe já mostra: o que
 /// compõe o número (filhos da cadeia), como se chega a ele e a apreciação.
 /// Tudo vem de dados já calculados — nada é inventado.
-Widget _comNotas(KpiDefinicao kpi, OperationsState estado, DateTime now) {
+Widget _comNotas(
+  KpiDefinicao kpi,
+  OperationsState estado,
+  DateTime now, {
+  bool detalhado = false,
+}) {
   final celula = kpi.celula(estado, now);
   if (!Platform.isWindows || celula.nivel == NivelSemaforo.aguarda) {
     return celula;
@@ -156,14 +166,23 @@ Widget _comNotas(KpiDefinicao kpi, OperationsState estado, DateTime now) {
   }
   final e = explicacaoDe(kpi.id);
   if (e != null) {
-    notas.add('Como se chega: ${_primeiraFrase(e.comoSeChega)}');
+    notas.add(
+      'Como se chega: ${detalhado ? e.comoSeChega : _primeiraFrase(e.comoSeChega)}',
+    );
     final apreciacao = switch (celula.nivel) {
-      NivelSemaforo.verde => _primeiraFrase(e.parabens),
+      NivelSemaforo.verde =>
+        detalhado ? e.parabens : _primeiraFrase(e.parabens),
       NivelSemaforo.laranja || NivelSemaforo.vermelho =>
         e.paraMelhorar.isEmpty ? null : e.paraMelhorar.first,
       _ => null,
     };
     if (apreciacao != null) notas.add(apreciacao);
+    // Com poucos KPIs no ecrã há altura para as restantes dicas.
+    if (detalhado &&
+        (celula.nivel == NivelSemaforo.laranja ||
+            celula.nivel == NivelSemaforo.vermelho)) {
+      notas.addAll(e.paraMelhorar.skip(1));
+    }
   }
   return notas.isEmpty ? celula : celula.comNotas(notas);
 }

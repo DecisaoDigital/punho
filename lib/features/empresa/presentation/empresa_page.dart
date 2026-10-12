@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/format/campos.dart';
 import '../../../core/layout/margens_do_canvas.dart';
+import '../../dashboard/presentation/kpi_catalogo.dart' show kpiPorId;
 import '../../../core/layout/titulo_de_pagina.dart';
 import '../../../core/finance/regime_fiscal.dart';
 import '../../../core/navigation/app_destination.dart';
@@ -231,6 +232,7 @@ class _AbaDados extends ConsumerWidget {
             label: const Text('Editar dados da empresa'),
           ),
         ),
+        if (Platform.isWindows) ..._numerosDaEmpresa(estado),
       ],
     );
   }
@@ -952,3 +954,56 @@ class _RetratosEmColunas extends StatelessWidget {
 /// Margem lateral das abas: no Windows a do canvas (15), para o texto ficar no
 /// eixo dos outros ecrãs; no telemóvel continua a ser 20.
 final double _ladoDaAba = Platform.isWindows ? 15 : 20;
+
+/// Windows: os números do mês já calculados, por baixo dos dados, para o ecrã
+/// não ficar vazio — três indicadores e dois gráficos do catálogo do Painel.
+List<Widget> _numerosDaEmpresa(OperationsState estado) {
+  final agora = DateTime.now();
+  Widget indicador(String id) {
+    final kpi = kpiPorId(id);
+    return Expanded(
+      child: kpi == null ? const SizedBox.shrink() : kpi.celula(estado, agora),
+    );
+  }
+
+  Widget grafico(String id) {
+    final desenhar = kpiPorId(id)?.grafico;
+    return Expanded(
+      child: desenhar == null
+          ? const SizedBox.shrink()
+          : desenhar(estado, agora),
+    );
+  }
+
+  return [
+    const SizedBox(height: 24),
+    Text(
+      'Os números do mês',
+      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+    ),
+    const SizedBox(height: 10),
+    SizedBox(
+      height: 190,
+      child: Row(
+        children: [
+          indicador('lucro-mes'),
+          const SizedBox(width: 10),
+          indicador('break-even-mes'),
+          const SizedBox(width: 10),
+          indicador('caixa'),
+        ],
+      ),
+    ),
+    const SizedBox(height: 10),
+    SizedBox(
+      height: 280,
+      child: Row(
+        children: [
+          grafico('grafico-faturacao-mensal'),
+          const SizedBox(width: 10),
+          grafico('grafico-total-por-ano'),
+        ],
+      ),
+    ),
+  ];
+}

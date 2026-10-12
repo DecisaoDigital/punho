@@ -8,6 +8,7 @@
 // SPDX-License-Identifier: LicenseRef-Proprietary
 
 import 'package:fist/core/validacao_de_contacto.dart';
+import 'package:fist/features/dashboard/presentation/kpi_graficos_extra.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -1413,77 +1414,113 @@ class MachinesPage extends ConsumerWidget {
         icon: const Icon(Icons.add),
         label: const Text('Adicionar máquina'),
       ),
-      child: ListView(
-        children: [
-          for (final m in machines)
-            Card(
-              // Compacto de propósito: em landscape mobile só cabiam três
-              // máquinas e meia, e quem tem vinte passava a vida a rolar. A
-              // altura da linha era dada pela miniatura de 64 dp e pelo
-              // espaçamento por omissão do ListTile — os dois encolheram.
-              margin: const EdgeInsets.symmetric(vertical: 3),
-              child: ListTile(
-                dense: true,
-                visualDensity: VisualDensity.compact,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 2,
-                ),
-                minLeadingWidth: 44,
-                minVerticalPadding: 4,
-                leading: _MachineThumbnail(machine: m),
-                // maxLines+ellipsis obrigatórios: sem eles o Flutter parte o
-                // texto em coluna vertical de caracteres quando o trailing
-                // (chip + 4 botões) rouba a largura toda em ecrãs estreitos.
-                title: Text(
-                  m.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(
-                  // Só o que existe. Interpolar os dois às cegas deixava um
-                  // "Lavadora 8 kg · " com o ponto pendurado no ar sempre que
-                  // faltava a referência — e falta em quase todas as máquinas
-                  // criadas em lote (visto no Redmi, 04-08-2026).
-                  [
-                    m.category,
-                    m.reference,
-                  ].where((valor) => valor.trim().isNotEmpty).join(' · '),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                // A linha inteira abre a ficha, como na lista de clientes.
-                onTap: () => _formularioDeMaquina(context, ref, m),
-                // Um só controlo de estado: o chip. Havia três (o chip, um
-                // PopupMenuButton com `swap_horiz` que o Cesar leu como "duas
-                // setas", e um botão "Disponível" quando estava parada) — todos
-                // para o mesmo fim.
-                trailing: Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    _MachineStatusChip(machine: m),
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined),
-                      tooltip: 'Editar máquina',
-                      onPressed: () => _formularioDeMaquina(context, ref, m),
-                    ),
-                    if (podeEliminarMaquinas(ref))
+      child: _ComResumoDeMaquinas(
+        mostrar: Platform.isWindows,
+        child: ListView(
+          children: [
+            for (final m in machines)
+              Card(
+                // Compacto de propósito: em landscape mobile só cabiam três
+                // máquinas e meia, e quem tem vinte passava a vida a rolar. A
+                // altura da linha era dada pela miniatura de 64 dp e pelo
+                // espaçamento por omissão do ListTile — os dois encolheram.
+                margin: const EdgeInsets.symmetric(vertical: 3),
+                child: ListTile(
+                  dense: true,
+                  visualDensity: VisualDensity.compact,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 2,
+                  ),
+                  minLeadingWidth: 44,
+                  minVerticalPadding: 4,
+                  leading: _MachineThumbnail(machine: m),
+                  // maxLines+ellipsis obrigatórios: sem eles o Flutter parte o
+                  // texto em coluna vertical de caracteres quando o trailing
+                  // (chip + 4 botões) rouba a largura toda em ecrãs estreitos.
+                  title: Text(
+                    m.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    // Só o que existe. Interpolar os dois às cegas deixava um
+                    // "Lavadora 8 kg · " com o ponto pendurado no ar sempre que
+                    // faltava a referência — e falta em quase todas as máquinas
+                    // criadas em lote (visto no Redmi, 04-08-2026).
+                    [
+                      m.category,
+                      m.reference,
+                    ].where((valor) => valor.trim().isNotEmpty).join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  // A linha inteira abre a ficha, como na lista de clientes.
+                  onTap: () => _formularioDeMaquina(context, ref, m),
+                  // Um só controlo de estado: o chip. Havia três (o chip, um
+                  // PopupMenuButton com `swap_horiz` que o Cesar leu como "duas
+                  // setas", e um botão "Disponível" quando estava parada) — todos
+                  // para o mesmo fim.
+                  trailing: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      _MachineStatusChip(machine: m),
                       IconButton(
-                        // Caixote e não `archive_outlined`: o Cesar leu o ícone
-                        // de arquivo como "mover de sítio" e tocou sem querer.
-                        // Por dentro continua a ser soft-delete (`archived`),
-                        // mas o utilizador lê "Eliminar" em todo o lado.
-                        icon: const Icon(Icons.delete_outline),
-                        tooltip: 'Eliminar máquina',
-                        onPressed: () =>
-                            _confirmarEliminarMaquina(context, ref, m),
+                        icon: const Icon(Icons.edit_outlined),
+                        tooltip: 'Editar máquina',
+                        onPressed: () => _formularioDeMaquina(context, ref, m),
                       ),
-                  ],
+                      if (podeEliminarMaquinas(ref))
+                        IconButton(
+                          // Caixote e não `archive_outlined`: o Cesar leu o ícone
+                          // de arquivo como "mover de sítio" e tocou sem querer.
+                          // Por dentro continua a ser soft-delete (`archived`),
+                          // mas o utilizador lê "Eliminar" em todo o lado.
+                          icon: const Icon(Icons.delete_outline),
+                          tooltip: 'Eliminar máquina',
+                          onPressed: () =>
+                              _confirmarEliminarMaquina(context, ref, m),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+}
+
+/// Windows: por baixo da lista, dois gráficos com números já calculados
+/// (ocupação por máquina e reservas por dia da semana), em vez de deixar o
+/// resto do ecrã vazio. Noutras plataformas só a lista.
+class _ComResumoDeMaquinas extends ConsumerWidget {
+  const _ComResumoDeMaquinas({required this.mostrar, required this.child});
+
+  final bool mostrar;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!mostrar) return child;
+    final estado = ref.watch(operationsProvider);
+    final agora = DateTime.now();
+    return Column(
+      children: [
+        Expanded(child: child),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 300,
+          child: Row(
+            children: [
+              Expanded(child: graficoOcupacaoPorMaquina(estado, agora)),
+              const SizedBox(width: 10),
+              Expanded(child: graficoReservasPorDia(estado, agora)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

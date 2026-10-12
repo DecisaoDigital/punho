@@ -42,10 +42,11 @@ class GrelhaDeKpis extends StatelessWidget {
         // baixos (como os de cima nas páginas com gráficos) e não crescem.
         final colunas = n == 4 ? 4 : 3;
         final linhas = (n + colunas - 1) ~/ colunas;
-        final altura = ((restricoes.maxHeight - _entreCelulas) / 2).clamp(
-          0.0,
-          300.0,
-        );
+        // Com 3 ou 4 cartões há altura de sobra e a nota de cada um (explicação
+        // e dicas) enche-a; com mais, ficam baixos.
+        final altura = n == 3 || n == 4
+            ? restricoes.maxHeight
+            : ((restricoes.maxHeight - _entreCelulas) / 2).clamp(0.0, 300.0);
         return Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
