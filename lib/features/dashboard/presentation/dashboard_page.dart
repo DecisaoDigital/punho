@@ -57,13 +57,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _setaAnterior() => _SetaLateral(
     icone: Icons.chevron_left,
-    tooltip: 'Ecrã anterior',
+    // No Windows o tooltip tapava cantos de cartões e a legenda dos gráficos.
+    tooltip: Platform.isWindows ? null : 'Ecrã anterior',
     onPressed: _slide == 0 ? null : () => _irPara(_slide - 1),
   );
 
   Widget _setaSeguinte(int total) => _SetaLateral(
     icone: Icons.chevron_right,
-    tooltip: 'Ecrã seguinte',
+    tooltip: Platform.isWindows ? null : 'Ecrã seguinte',
     onPressed: _slide == total - 1 ? null : () => _irPara(_slide + 1),
   );
 
@@ -73,6 +74,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           children: [
             _setaAnterior(),
             Expanded(child: pontos),
+            // As etiquetas à direita ficam a ≥24 dp da seta.
+            const SizedBox(width: 24),
             _setaSeguinte(total),
           ],
         );
@@ -443,7 +446,7 @@ class _SetaLateral extends StatelessWidget {
     required this.onPressed,
   });
   final IconData icone;
-  final String tooltip;
+  final String? tooltip;
   final VoidCallback? onPressed;
 
   @override

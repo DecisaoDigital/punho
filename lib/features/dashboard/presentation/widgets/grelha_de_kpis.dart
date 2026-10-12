@@ -61,6 +61,17 @@ class GrelhaDeKpis extends StatelessWidget {
                               const SizedBox(width: _entreCelulas),
                             Expanded(child: celulas[i]),
                           ],
+                          // Linha incompleta: as colunas mantêm a largura das
+                          // de cima (grelha 3×2 consistente), sem cartões
+                          // largos desproporcionados.
+                          for (
+                            var i = n - r * colunas;
+                            i < colunas && n - r * colunas < colunas;
+                            i++
+                          ) ...[
+                            const SizedBox(width: _entreCelulas),
+                            const Expanded(child: SizedBox.shrink()),
+                          ],
                         ],
                       ),
               ),

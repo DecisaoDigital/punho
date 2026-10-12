@@ -532,8 +532,22 @@ class _Notas extends StatelessWidget {
     ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant, height: 1.25);
     return LayoutBuilder(
       builder: (context, c) {
-        // 2 linhas de ~18 px + 4 de ar por nota.
-        final cabem = (c.maxHeight / 42).floor().clamp(0, notas.length);
+        // Cada nota aparece inteira (até 6 linhas); mede-se o texto para só
+        // se desenharem as notas que cabem na altura que sobra.
+        var gasto = 0.0;
+        var cabem = 0;
+        for (final nota in notas) {
+          final medida = TextPainter(
+            text: TextSpan(text: nota, style: estilo),
+            textDirection: TextDirection.ltr,
+            maxLines: 6,
+          )..layout(maxWidth: c.maxWidth);
+          final h = medida.height + 4;
+          medida.dispose();
+          if (gasto + h > c.maxHeight) break;
+          gasto += h;
+          cabem++;
+        }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -543,7 +557,7 @@ class _Notas extends StatelessWidget {
                 child: Text(
                   notas[i],
                   style: estilo,
-                  maxLines: 2,
+                  maxLines: 6,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),

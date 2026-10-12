@@ -36,7 +36,12 @@ class GrelhaComGraficos extends StatelessWidget {
     children: [
       Expanded(flex: Platform.isWindows ? 3 : 4, child: _linha(celulas)),
       const SizedBox(height: _entre),
-      Expanded(flex: Platform.isWindows ? 7 : 6, child: _linha(graficos)),
+      // Um gráfico sozinho ocupa a largura toda: fica mais baixo para não
+      // virar um cartão largo gigante.
+      Expanded(
+        flex: Platform.isWindows ? (graficos.length == 1 ? 5 : 7) : 6,
+        child: _linha(graficos),
+      ),
     ],
   );
 
