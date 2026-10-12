@@ -1,3 +1,6 @@
+
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -46,6 +49,32 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   /// Quantas páginas há neste momento. Muda quando o gestor marca ou desmarca
   /// um KPI, e é por isso que não pode ser constante.
   int _quantasPaginas = 0;
+
+  /// No telemóvel as setas ficam ao lado dos cartões; no Windows descem para a
+  /// linha dos pontos, para os cartões terem a mesma margem das outras páginas.
+  bool get _setasAoLado => !Platform.isWindows;
+
+  Widget _setaAnterior() => _SetaLateral(
+    icone: Icons.chevron_left,
+    tooltip: 'Ecrã anterior',
+    onPressed: _slide == 0 ? null : () => _irPara(_slide - 1),
+  );
+
+  Widget _setaSeguinte(int total) => _SetaLateral(
+    icone: Icons.chevron_right,
+    tooltip: 'Ecrã seguinte',
+    onPressed: _slide == total - 1 ? null : () => _irPara(_slide + 1),
+  );
+
+  Widget _linhaDosPontos(int total, Widget pontos) => _setasAoLado
+      ? pontos
+      : Row(
+          children: [
+            _setaAnterior(),
+            Expanded(child: pontos),
+            _setaSeguinte(total),
+          ],
+        );
 
   @override
   void dispose() {
@@ -115,10 +144,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           // O topo só decide a distância porque a saudação encosta ao topo da
           // sua linha; enquanto esteve centrada contra o botão de editar, quem
           // mandava era a altura do botão e mexer aqui não fazia nada.
-          padding: const EdgeInsets.fromLTRB(
-            MargensDoCanvas.lateralNoCarrossel,
+          //
+          // No Windows as setas saem de ao lado dos cartões (descem para a
+          // linha dos pontos): os cartões começam à mesma distância da barra
+          // que as listas dos outros menus, em vez de 30 dp mais para dentro.
+          padding: EdgeInsets.fromLTRB(
+            _setasAoLado
+                ? MargensDoCanvas.lateralNoCarrossel
+                : MargensDoCanvas.lateral,
             MargensDoCanvas.vertical,
-            MargensDoCanvas.lateralNoCarrossel,
+            _setasAoLado
+                ? MargensDoCanvas.lateralNoCarrossel
+                : MargensDoCanvas.lateral,
             MargensDoCanvas.vertical,
           ),
           child: Column(
@@ -149,20 +186,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 Expanded(
                   child: Row(
                     children: [
-                      _SetaLateral(
-                        icone: Icons.chevron_left,
-                        tooltip: 'Ecrã anterior',
-                        onPressed: _slide == 0
-                            ? null
-                            : () => _irPara(_slide - 1),
-                      ),
+                      if (_setasAoLado) _setaAnterior(),
                       Expanded(
                         child: PageView.builder(
                           controller: _controller,
                           onPageChanged: (i) => setState(() => _slide = i),
                           itemCount: paginas.length,
                           itemBuilder: (context, i) => Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: _setasAoLado ? 4 : 0,
+                            ),
                             child: PaginaDoPainel(
                               ids: [for (final kpi in paginas[i]) kpi.id],
                               agora: widget.agora,
@@ -170,28 +203,27 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           ),
                         ),
                       ),
-                      _SetaLateral(
-                        icone: Icons.chevron_right,
-                        tooltip: 'Ecrã seguinte',
-                        onPressed: _slide == paginas.length - 1
-                            ? null
-                            : () => _irPara(_slide + 1),
-                      ),
+                      if (_setasAoLado) _setaSeguinte(paginas.length),
                     ],
                   ),
                 ),
                 const SizedBox(height: 6),
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: MargensDoCanvas.arDaSeta,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: _setasAoLado ? MargensDoCanvas.arDaSeta : 0,
                   ),
-                  child: DotsIndicator(
-                    // Cada ecrã chama-se pelo primeiro KPI que lá está. Podia
-                    // ser "Painel 1, 2, 3" — mas quem lê a barra quer saber o
-                    // que está do outro lado, e um número não diz nada.
-                    nomes: [for (final pagina in paginas) pagina.first.titulo],
-                    activo: _slide,
-                    onEscolher: _irPara,
+                  child: _linhaDosPontos(
+                    paginas.length,
+                    DotsIndicator(
+                      // Cada ecrã chama-se pelo primeiro KPI que lá está. Podia
+                      // ser "Painel 1, 2, 3" — mas quem lê a barra quer saber o
+                      // que está do outro lado, e um número não diz nada.
+                      nomes: [
+                        for (final pagina in paginas) pagina.first.titulo,
+                      ],
+                      activo: _slide,
+                      onEscolher: _irPara,
+                    ),
                   ),
                 ),
               ],
@@ -353,7 +385,11 @@ class _Saudacao extends StatelessWidget {
   // um alvo de toque de 48 dp a decidir a altura de uma linha de 19.
   @override
   Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
+    // No Windows o bloco é centrado linha a linha: com `start` o nome (mais
+    // curto que a data) ficava ~38 px à esquerda do eixo dos cartões.
+    crossAxisAlignment: Platform.isWindows
+        ? CrossAxisAlignment.center
+        : CrossAxisAlignment.start,
     mainAxisSize: MainAxisSize.min,
     children: [
       if (compacto) ...[

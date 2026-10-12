@@ -218,7 +218,81 @@ class CelulaSemaforo extends StatelessWidget {
     );
   }
 
+  /// Windows: o cartão é grande e o conteúdo era repartido pelos extremos
+  /// (`spaceBetween`), deixando ~125 px de ar entre rótulo e número. Aqui
+  /// rótulo, número e nota formam um bloco único, centrado, com o número maior.
+  Widget _conteudoWindows(BuildContext context, Color cor) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            rotulo.toUpperCase(),
+            style: tt.labelMedium?.copyWith(
+              color: cs.onSurfaceVariant,
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 10),
+          if (valor != null)
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: RichText(
+                text: TextSpan(
+                  style: tt.displaySmall?.copyWith(
+                    fontSize: 44,
+                    fontWeight: FontWeight.w800,
+                    color: valorEmDestaque ? cor : cs.onSurface,
+                    height: 1.1,
+                  ),
+                  children: [
+                    TextSpan(text: valor),
+                    if (unidade != null)
+                      TextSpan(
+                        text: ' ${unidade!}',
+                        style: tt.titleMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Text(
+              texto!,
+              style: tt.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                height: 1.25,
+              ),
+              maxLines: nivel == NivelSemaforo.aguarda ? 1 : 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          if (subtexto != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              subtexto!,
+              style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _conteudo(BuildContext context, Color cor) {
+    if (Platform.isWindows) return _conteudoWindows(context, cor);
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     return Padding(
@@ -248,14 +322,15 @@ class CelulaSemaforo extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: RichText(
                 text: TextSpan(
-                  style: (Platform.isWindows
-                          ? tt.headlineMedium
-                          : tt.headlineSmall)
-                      ?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: valorEmDestaque ? cor : cs.onSurface,
-                    height: 1.1,
-                  ),
+                  style:
+                      (Platform.isWindows
+                              ? tt.headlineMedium
+                              : tt.headlineSmall)
+                          ?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: valorEmDestaque ? cor : cs.onSurface,
+                            height: 1.1,
+                          ),
                   children: [
                     TextSpan(text: valor),
                     if (unidade != null)

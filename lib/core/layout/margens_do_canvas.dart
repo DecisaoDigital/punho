@@ -1,3 +1,6 @@
+
+import 'dart:io' show Platform;
+
 /// As margens do conteúdo dentro do canvas — os números que se mudam a pedido.
 ///
 /// O canvas é a área branca à direita da barra lateral, abaixo da faixa das
@@ -53,3 +56,7 @@ class MargensDoCanvas {
   /// duas vezes — a primeira letra caía a 24 dp do topo contra 12 no painel.
   static const verticalComBotaoNoTopo = 4.5;
 }
+
+  /// Largura da barra lateral. No Windows 104: com 88 os rótulos «A minha
+  /// semana» e «Colaboradores» saíam cortados; no telemóvel não muda.
+  static final larguraDaBarra = Platform.isWindows ? 104.0 : 88.0;

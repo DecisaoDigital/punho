@@ -18,6 +18,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/auth/auth_rules.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../../core/layout/ecra_de_formulario.dart';
+import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/licenca/machine_id.dart';
 import '../../../core/operations/operations_controller.dart';
 import '../../../shared/widgets/versao_app.dart';
@@ -84,15 +85,15 @@ class PerfilPopup extends ConsumerWidget {
       // No Windows a barra lateral (88 dp) fica à esquerda e o conteúdo é o
       // que sobra: o diálogo centra-se nesse eixo, e não na janela inteira.
       insetPadding: noWindows
-          ? const EdgeInsets.fromLTRB(40 + 88, 24, 40, 24)
+          ? EdgeInsets.fromLTRB(40 + MargensDoCanvas.larguraDaBarra, 24, 40, 24)
           : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: noWindows ? 480 : 380,
+          maxWidth: noWindows ? 600 : 380,
           maxHeight: MediaQuery.sizeOf(context).height - 24,
         ),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(noWindows ? 20 : 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -135,119 +136,27 @@ class PerfilPopup extends ConsumerWidget {
                 const SizedBox(height: 4),
                 const _Linha(rotulo: 'Perfil', valor: 'Gestor (demonstração)'),
               ],
-              const SizedBox(height: 20),
-              if (comSessao) ...[
-                OutlinedButton.icon(
-                  onPressed: () => _abrirDadosDaEmpresa(context),
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Editar dados da empresa'),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () => _mudarPalavraPasse(context),
-                  icon: const Icon(Icons.lock_outline),
-                  label: const Text('Mudar palavra-passe'),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const DefinicoesCadeadoPage(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.fingerprint),
-                  label: const Text('Cadeado (PIN + biometria)'),
-                ),
-                if (acesso?.eGestor ?? false) ...[
-                  const SizedBox(height: 8),
-                  FilledButton.icon(
-                    onPressed: () => _abrirConvites(context),
-                    icon: const Icon(Icons.person_add_alt),
-                    label: const Text('Convidar membros'),
-                  ),
-                  const SizedBox(height: 8),
-                  // Convidar e autorizar são dois momentos separados por dias:
-                  // o convite sai hoje, a pessoa inscreve-se quando puder. Sem
-                  // uma entrada própria, quem se inscreveu ficava à espera sem
-                  // que o gestor tivesse onde reparar nele.
-                  // Só o gerente gere a equipa: a administrativa tem os poderes
-                  // dele mas não decide o que os outros veem.
-                  if (!(ref
-                          .watch(minhaFuncaoProvider)
-                          .valueOrNull
-                          ?.eAdministrativa ??
-                      false)) ...[
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const AcessosDaEquipaScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.manage_accounts_outlined),
-                      label: const Text('Acessos da equipa'),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  OutlinedButton.icon(
-                    onPressed: () => _abrirPedidos(context),
-                    icon: const Icon(Icons.how_to_reg_outlined),
-                    label: const Text('Pedidos de acesso'),
-                  ),
-                  const SizedBox(height: 8),
-                  // «Apaguem os meus dados» é um pedido com prazo legal e sem
-                  // sítio próprio na app até aqui. Vive no perfil do gestor
-                  // porque é ele quem responde por eles — e porque não é uma
-                  // coisa que se faça no dia-a-dia, ao lado de cobrar.
-                  OutlinedButton.icon(
-                    onPressed: () => _abrirDadosPessoais(context),
-                    icon: const Icon(Icons.privacy_tip_outlined),
-                    label: const Text('Apagar dados de uma pessoa'),
-                  ),
-                ],
-                const SizedBox(height: 8),
-              ],
-              if (SupabaseConfig.enabled) ...[
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    await _enviarSugestao(context);
-                    ref.invalidate(respostasSugestoesProvider);
-                  },
-                  icon: const Icon(Icons.lightbulb_outline),
-                  label: Text(
-                    (ref.watch(respostasSugestoesProvider).valueOrNull ??
-                                const [])
-                            .any((r) => !r.lida)
-                        ? 'Sugestões · resposta nova'
-                        : 'Sugestões',
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-              if (comSessao)
-                OutlinedButton.icon(
-                  onPressed: () => _terminarSessao(context, ref),
-                  icon: Icon(Icons.logout, color: cores.error),
-                  label: Text(
-                    'Terminar sessão',
-                    style: TextStyle(color: cores.error),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: cores.error),
-                  ),
-                )
-              else
+              SizedBox(height: noWindows ? 12 : 20),
+              ..._acoes(
+                context,
+                ref,
+                comSessao: comSessao,
+                eGestor: acesso?.eGestor ?? false,
+                cores: cores,
+                naoEAdministrativa:
+                    !(ref
+                            .watch(minhaFuncaoProvider)
+                            .valueOrNull
+                            ?.eAdministrativa ??
+                        false),
+              ),
+              if (!comSessao)
                 Text(
                   'Estás em modo demonstração local — não há sessão para '
                   'terminar.',
                   style: textos.bodySmall,
                 ),
-              const SizedBox(height: 16),
+              SizedBox(height: noWindows ? 8 : 16),
               // Identidade desta instalação (chave da empresa, aparelho, plano
               // e validade). É o que se pede ao telefone quando algo não bate
               // certo — e o sítio onde se vê a chave mestre a existir.
@@ -280,6 +189,134 @@ class PerfilPopup extends ConsumerWidget {
   /// Depois do `signOut` quem redirecciona é o `AuthGate`, que observa
   /// `onAuthStateChange` — não se chama `Navigator` à mão daqui. O
   /// `invalidate` força o estado de acesso a ser relido, para o gate não
+  /// Os botões de acção do Perfil. No telemóvel, uma coluna (como sempre); no
+  /// Windows, duas colunas — a lista inteira, até «Válida até», cabe sem rolar.
+  List<Widget> _acoes(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool comSessao,
+    required bool eGestor,
+    required ColorScheme cores,
+    required bool naoEAdministrativa,
+  }) {
+    final botoes = <Widget>[
+      if (comSessao) ...[
+        OutlinedButton.icon(
+          onPressed: () => _abrirDadosDaEmpresa(context),
+          icon: const Icon(Icons.edit_outlined),
+          label: const Text('Editar dados da empresa'),
+        ),
+        OutlinedButton.icon(
+          onPressed: () => _mudarPalavraPasse(context),
+          icon: const Icon(Icons.lock_outline),
+          label: const Text('Mudar palavra-passe'),
+        ),
+        OutlinedButton.icon(
+          onPressed: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const DefinicoesCadeadoPage(),
+              ),
+            );
+          },
+          icon: const Icon(Icons.fingerprint),
+          label: const Text('Cadeado (PIN + biometria)'),
+        ),
+        if (eGestor) ...[
+          FilledButton.icon(
+            onPressed: () => _abrirConvites(context),
+            icon: const Icon(Icons.person_add_alt),
+            label: const Text('Convidar membros'),
+          ),
+          // Convidar e autorizar são dois momentos separados por dias: o
+          // convite sai hoje, a pessoa inscreve-se quando puder. Sem uma
+          // entrada própria, quem se inscreveu ficava à espera sem que o
+          // gestor tivesse onde reparar nele. Só o gerente gere a equipa: a
+          // administrativa tem os poderes dele mas não decide o que os outros
+          // veem.
+          if (naoEAdministrativa)
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const AcessosDaEquipaScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.manage_accounts_outlined),
+              label: const Text('Acessos da equipa'),
+            ),
+          OutlinedButton.icon(
+            onPressed: () => _abrirPedidos(context),
+            icon: const Icon(Icons.how_to_reg_outlined),
+            label: const Text('Pedidos de acesso'),
+          ),
+          // «Apaguem os meus dados» é um pedido com prazo legal e sem sítio
+          // próprio na app até aqui. Vive no perfil do gestor porque é ele
+          // quem responde por eles — e porque não é uma coisa que se faça no
+          // dia-a-dia, ao lado de cobrar.
+          OutlinedButton.icon(
+            onPressed: () => _abrirDadosPessoais(context),
+            icon: const Icon(Icons.privacy_tip_outlined),
+            label: const Text('Apagar dados de uma pessoa'),
+          ),
+        ],
+      ],
+      if (SupabaseConfig.enabled)
+        OutlinedButton.icon(
+          onPressed: () async {
+            await _enviarSugestao(context);
+            ref.invalidate(respostasSugestoesProvider);
+          },
+          icon: const Icon(Icons.lightbulb_outline),
+          label: Text(
+            (ref.watch(respostasSugestoesProvider).valueOrNull ?? const []).any(
+                  (r) => !r.lida,
+                )
+                ? 'Sugestões · resposta nova'
+                : 'Sugestões',
+          ),
+        ),
+      if (comSessao)
+        OutlinedButton.icon(
+          onPressed: () => _terminarSessao(context, ref),
+          icon: Icon(Icons.logout, color: cores.error),
+          label: Text('Terminar sessão', style: TextStyle(color: cores.error)),
+          style: OutlinedButton.styleFrom(side: BorderSide(color: cores.error)),
+        ),
+    ];
+    if (botoes.isEmpty) return const [];
+
+    if (Platform.isWindows) {
+      return [
+        LayoutBuilder(
+          builder: (context, c) {
+            const folga = 8.0;
+            final largura = (c.maxWidth - folga) / 2;
+            return Wrap(
+              spacing: folga,
+              runSpacing: folga,
+              children: [
+                for (final b in botoes) SizedBox(width: largura, child: b),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 8),
+      ];
+    }
+    return [
+      for (var i = 0; i < botoes.length; i++) ...[
+        if (i > 0) const SizedBox(height: 8),
+        botoes[i],
+      ],
+      // Sem sessão não há «Terminar sessão» e o aviso vem logo a seguir.
+      if (!comSessao) const SizedBox(height: 8),
+    ];
+  }
+
   /// decidir com a adesão antiga em cache.
   void _abrirDadosDaEmpresa(BuildContext context) {
     final navegador = Navigator.of(context, rootNavigator: true);

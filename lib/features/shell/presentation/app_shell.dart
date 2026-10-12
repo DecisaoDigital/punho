@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/layout/margens_do_canvas.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../../core/empresa_sync/ficha_recebida_provider.dart';
 import '../../../core/orientacao/orientacao_do_contexto.dart';
@@ -329,7 +330,7 @@ class _Sidebar extends ConsumerWidget {
     // da câmara fica desse lado e o `SafeArea` de baixo empurra o conteúdo para
     // dentro. Sem somar aqui, os 88 dp passavam a 54 e os rótulos apertavam —
     // a barra ficava diferente conforme o lado para que se roda o telemóvel.
-    width: 88 + MediaQuery.paddingOf(context).left,
+    width: MargensDoCanvas.larguraDaBarra + MediaQuery.paddingOf(context).left,
     color: FistTheme.navyDeep,
     child: SafeArea(
       top: false,
