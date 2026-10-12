@@ -213,6 +213,14 @@ Win32Window::MessageHandler(HWND hwnd,
       }
       return 0;
 
+    case WM_SETFOCUS:
+      // O teclado só chega ao Flutter se o foco estiver na vista (child), não
+      // na janela de topo: sem isto o PIN não recebia teclas físicas.
+      if (child_content_ != nullptr) {
+        SetFocus(child_content_);
+      }
+      return 0;
+
     case WM_DWMCOLORIZATIONCOLORCHANGED:
       UpdateTheme(hwnd);
       return 0;
