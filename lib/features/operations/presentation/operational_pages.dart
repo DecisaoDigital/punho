@@ -3243,7 +3243,7 @@ class _NavegacaoDeDatas extends StatelessWidget {
 /// Largura da coluna à esquerda da grelha (Manhã/Tarde). No Windows é estreita
 /// — texto na vertical — para as margens esquerda e direita da grelha serem
 /// iguais; o mês não tem coluna.
-final double _colunaEsquerdaDoCalendario = Platform.isWindows ? 24 : 86;
+final double _colunaEsquerdaDoCalendario = Platform.isWindows ? 0 : 86;
 
 class _WeekBookingsCalendar extends ConsumerWidget {
   const _WeekBookingsCalendar({
@@ -3364,12 +3364,18 @@ class _WeekSlotRow extends ConsumerWidget {
         // ecrã, e a 15 certos ficavam a competir com o Semana/Mês por cima.
         // O Semana/Mês fica nos 15 — é ele que marca a coluna.
         child: Platform.isWindows
-            ? Center(
-                child: RotatedBox(
-                  quarterTurns: 3,
-                  child: Text(
-                    label,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
+            // Largura 0: o rótulo desenha-se para a esquerda, dentro da margem.
+            ? OverflowBox(
+                minWidth: 24,
+                maxWidth: 24,
+                alignment: Alignment.centerRight,
+                child: Center(
+                  child: RotatedBox(
+                    quarterTurns: 3,
+                    child: Text(
+                      label,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
                   ),
                 ),
               )

@@ -38,7 +38,8 @@ class GrelhaDeKpis extends StatelessWidget {
       // incompleta, reparte a largura toda.
       if (Platform.isWindows && celulas.isNotEmpty) {
         final n = celulas.length;
-        const colunas = 3;
+        // Quatro cartões ficam 2×2 (sem buraco nem cartão largo sozinho).
+        final colunas = n == 4 ? 2 : 3;
         final linhas = (n + colunas - 1) ~/ colunas;
         // Duas linhas de altura fixa, mesmo com menos KPIs: os cartões não
         // crescem quando há poucos (decisão do Cesar, 12 Out 2026).
@@ -61,17 +62,7 @@ class GrelhaDeKpis extends StatelessWidget {
                               const SizedBox(width: _entreCelulas),
                             Expanded(child: celulas[i]),
                           ],
-                          // Linha incompleta: as colunas mantêm a largura das
-                          // de cima (grelha 3×2 consistente), sem cartões
-                          // largos desproporcionados.
-                          for (
-                            var i = n - r * colunas;
-                            i < colunas && n - r * colunas < colunas;
-                            i++
-                          ) ...[
-                            const SizedBox(width: _entreCelulas),
-                            const Expanded(child: SizedBox.shrink()),
-                          ],
+
                         ],
                       ),
               ),
