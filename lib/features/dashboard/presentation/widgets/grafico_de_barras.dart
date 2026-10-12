@@ -74,7 +74,7 @@ class GraficoDeBarras extends StatelessWidget {
                         child: Row(
                           children: [
                             SizedBox(
-                              width: win ? 120 : 78,
+                              width: win ? 170 : 78,
                               child: Text(
                                 b.nome,
                                 style: pequeno?.copyWith(

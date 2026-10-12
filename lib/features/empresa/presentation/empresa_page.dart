@@ -97,7 +97,11 @@ class _EmpresaPageState extends ConsumerState<EmpresaPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(width: MargensDoCanvas.lateral),
-                    const TituloDePagina(texto: 'Empresa', larguraFixa: true),
+                    const TituloDePagina(
+                      texto: 'Empresa',
+                      larguraFixa: true,
+                      cor: Colors.white,
+                    ),
                     const SizedBox(width: 24),
                     Expanded(child: _barraDeAbas()),
                   ],

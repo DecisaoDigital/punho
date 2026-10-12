@@ -236,7 +236,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       // ser "Painel 1, 2, 3" — mas quem lê a barra quer saber o
                       // que está do outro lado, e um número não diz nada.
                       nomes: [
-                        for (final pagina in paginas) pagina.first.titulo,
+                        for (final pagina in paginas)
+                          pagina.first.titulo.replaceAll(' (gráfico)', ''),
                       ],
                       activo: _slide,
                       onEscolher: _irPara,

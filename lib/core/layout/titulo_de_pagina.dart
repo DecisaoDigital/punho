@@ -23,7 +23,11 @@ class TituloDePagina extends StatelessWidget {
     required this.texto,
     this.accao,
     this.larguraFixa = false,
+    this.cor,
   });
+
+  /// Cor do texto quando o título está sobre um fundo escuro.
+  final Color? cor;
 
   /// Dentro de uma linha sem largura definida (ex.: ao lado de abas): o título
   /// ocupa só o que o texto pede.
@@ -40,7 +44,11 @@ class TituloDePagina extends StatelessWidget {
           : Align(alignment: Alignment.centerRight, child: accao);
     }
     if (larguraFixa) {
-      return Text(texto, maxLines: 1, style: estiloDoTituloDePagina(context));
+      return Text(
+        texto,
+        maxLines: 1,
+        style: estiloDoTituloDePagina(context)?.copyWith(color: cor),
+      );
     }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,

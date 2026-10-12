@@ -299,7 +299,14 @@ class PerfilPopup extends ConsumerWidget {
               spacing: folga,
               runSpacing: folga,
               children: [
-                for (final b in botoes) SizedBox(width: largura, child: b),
+                for (var i = 0; i < botoes.length; i++)
+                  // Número ímpar: o último ocupa a linha toda (sem buraco).
+                  SizedBox(
+                    width: i == botoes.length - 1 && botoes.length.isOdd
+                        ? c.maxWidth
+                        : largura,
+                    child: botoes[i],
+                  ),
               ],
             );
           },
