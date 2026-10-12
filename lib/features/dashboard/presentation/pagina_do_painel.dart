@@ -67,9 +67,15 @@ class PaginaDoPainel extends ConsumerWidget {
       for (final id in relacionados)
         if (kpiPorId(id)?.grafico case final desenhar?) desenhar(estado, now),
     ];
+    // Windows: um ecrã só de gráficos leva em cima o resumo de cada um (já
+    // calculado), para a fila dos cartões existir sempre e com o mesmo tamanho.
+    final resumos =
+        Platform.isWindows &&
+        kpis.isNotEmpty &&
+        kpis.every((k) => k.grafico != null);
     final celulas = [
       for (final kpi in kpis)
-        if (kpi.grafico == null)
+        if (kpi.grafico == null || resumos)
           AbrirDestinoDoKpi(
             destino: kpi.destino,
             // **Um KPI com filhos abre a cadeia; uma folha vai direita à

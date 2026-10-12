@@ -279,7 +279,7 @@ class CelulaSemaforo extends StatelessWidget {
       // Cartão grande (grelha 2×2 de poucos KPIs): número maior, nota
       // inteira e, quando o KPI tem termo, a mini-comparação. Nos cartões
       // da grelha 3×3 fica como estava.
-      final grande = c.maxHeight >= 250;
+      final grande = c.maxHeight >= (Platform.isWindows ? 200 : 250);
       return _conteudoWindowsCom(context, cor, grande, c.maxHeight);
     },
   );
