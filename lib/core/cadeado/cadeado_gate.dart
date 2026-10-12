@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../config/supabase_config.dart';
 import '../orientacao/orientacao_do_contexto.dart';
 import '../theme/punho_theme.dart';
 import 'cadeado_service.dart';
@@ -33,6 +38,7 @@ class _CadeadoGateState extends ConsumerState<CadeadoGate>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _contaSub?.cancel();
     super.dispose();
   }
 
@@ -57,11 +63,29 @@ class _CadeadoGateState extends ConsumerState<CadeadoGate>
     if (!mounted) return;
     if (temPin) _bloquear();
     setState(() => _decidido = true);
+    _ouvirConta(svc);
+  }
+
+  StreamSubscription<AuthState>? _contaSub;
+
+  /// O PIN é da conta: ao entrar (e ao regressar) alinha-se o deste aparelho com
+  /// o do servidor. Num aparelho novo, o PIN passa a existir depois do login.
+  void _ouvirConta(CadeadoService svc) {
+    if (!SupabaseConfig.enabled) return;
+    unawaited(svc.sincronizarComConta());
+    _contaSub = Supabase.instance.client.auth.onAuthStateChange.listen((s) {
+      if (s.event == AuthChangeEvent.signedIn) {
+        unawaited(svc.sincronizarComConta());
+      }
+    });
   }
 
   @override
   Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
     final svc = ref.read(cadeadoServiceProvider);
+    if (state == AppLifecycleState.resumed && SupabaseConfig.enabled) {
+      unawaited(svc.sincronizarComConta());
+    }
     if (!await svc.temPinDefinido()) return;
 
     // Já bloqueado não há nada a fazer, e é também assim que se ignora o

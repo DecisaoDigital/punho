@@ -7,6 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../config/supabase_config.dart';
 
 /// Cadeado local (biometria + PIN fallback) — task #201 + pedido do Cesar
 /// para bloquear ao voltar de background após inactividade.
@@ -90,6 +93,69 @@ class CadeadoService {
     final hash = _hash(pin, salt);
     await _secure.write(key: _kPinSalt, value: salt);
     await _secure.write(key: _kPinHash, value: hash);
+    await _subirParaAConta(salt, hash);
+  }
+
+  // ── PIN da conta ─────────────────────────────────────────────────────────
+  //
+  // O PIN pertence à conta, não ao aparelho: guarda-se também no servidor
+  // (`fist_pins`, só salt + hash, uma linha por utilizador) e cada aparelho
+  // puxa-o ao entrar. Tudo best-effort: sem rede o PIN local continua a valer.
+
+  User? get _utilizador {
+    if (!SupabaseConfig.enabled) return null;
+    try {
+      return Supabase.instance.client.auth.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _subirParaAConta(String salt, String hash) async {
+    final u = _utilizador;
+    if (u == null) return;
+    try {
+      await Supabase.instance.client.from('fist_pins').upsert({
+        'user_id': u.id,
+        'salt': salt,
+        'hash': hash,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      });
+    } catch (e) {
+      debugPrint('pin: não subiu para a conta: $e');
+    }
+  }
+
+  /// Alinha o PIN deste aparelho com o da conta. O servidor manda: se a conta
+  /// tem PIN e o local é outro (ou não existe), passa a valer o da conta. Se a
+  /// conta ainda não tem e este aparelho tem, sobe — assim os PINs que já
+  /// existiam passam a ser da conta. Devolve `true` se o PIN local mudou.
+  Future<bool> sincronizarComConta() async {
+    final u = _utilizador;
+    if (u == null) return false;
+    try {
+      final linha = await Supabase.instance.client
+          .from('fist_pins')
+          .select('salt, hash')
+          .eq('user_id', u.id)
+          .maybeSingle();
+      final saltLocal = await _secure.read(key: _kPinSalt);
+      final hashLocal = await _secure.read(key: _kPinHash);
+      if (linha != null) {
+        final salt = linha['salt'] as String;
+        final hash = linha['hash'] as String;
+        if (salt == saltLocal && hash == hashLocal) return false;
+        await _secure.write(key: _kPinSalt, value: salt);
+        await _secure.write(key: _kPinHash, value: hash);
+        return true;
+      }
+      if (saltLocal != null && hashLocal != null) {
+        await _subirParaAConta(saltLocal, hashLocal);
+      }
+    } catch (e) {
+      debugPrint('pin: sincronização com a conta falhou: $e');
+    }
+    return false;
   }
 
   Future<bool> validarPin(String pin) async {
@@ -102,6 +168,17 @@ class CadeadoService {
   Future<void> apagarPin() async {
     await _secure.delete(key: _kPinHash);
     await _secure.delete(key: _kPinSalt);
+    final u = _utilizador;
+    if (u != null) {
+      try {
+        await Supabase.instance.client
+            .from('fist_pins')
+            .delete()
+            .eq('user_id', u.id);
+      } catch (e) {
+        debugPrint('pin: não apagou da conta: $e');
+      }
+    }
   }
 
   /// Pede a digital/rosto ao sistema.
