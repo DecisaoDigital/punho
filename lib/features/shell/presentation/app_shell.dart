@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -243,7 +245,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                         padding: EdgeInsets.only(
                           right: MediaQuery.paddingOf(context).right,
                         ),
-                        child: content,
+                        child: _ContentorQueRespira(child: content),
                       ),
                     ),
                   ],
@@ -673,4 +675,31 @@ class _EmptyPage extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// No Windows o conteúdo não se esparrama até às arestas: tem uma largura
+/// máxima, centrada, e 17 dp de ar a somar aos 15 do canvas (32 de cada lado).
+/// Nos telemóveis não faz nada — lá cada dp conta.
+class _ContentorQueRespira extends StatelessWidget {
+  const _ContentorQueRespira({required this.child});
+  final Widget child;
+
+  static const _larguraMaxima = 1200.0;
+  static const _arExtra = 17.0;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!Platform.isWindows) return child;
+    // Margem calculada e não `Align`: assim o conteúdo mantém restrições
+    // apertadas e as páginas continuam a ocupar a altura toda.
+    return LayoutBuilder(
+      builder: (context, c) {
+        final lado = ((c.maxWidth - _larguraMaxima) / 2).clamp(0.0, 9999.0);
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: lado + _arExtra),
+          child: child,
+        );
+      },
+    );
+  }
 }
