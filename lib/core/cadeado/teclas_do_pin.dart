@@ -16,7 +16,7 @@ import 'package:flutter/widgets.dart';
 /// as teclas: dígitos 0-9 da linha de cima e do bloco numérico, Backspace a
 /// apagar, Enter a confirmar. Devolve `ignored` para tudo o resto, para não
 /// roubar teclas (Tab, atalhos) nem campos de texto.
-class TeclasDoPin extends StatelessWidget {
+class TeclasDoPin extends StatefulWidget {
   const TeclasDoPin({
     super.key,
     required this.child,
@@ -57,8 +57,31 @@ class TeclasDoPin extends StatelessWidget {
     LogicalKeyboardKey.numpad9: '9',
   };
 
+  @override
+  State<TeclasDoPin> createState() => _TeclasDoPinState();
+}
+
+class _TeclasDoPinState extends State<TeclasDoPin> {
+  final _foco = FocusNode(debugLabel: 'TeclasDoPin');
+
+  @override
+  void initState() {
+    super.initState();
+    // `autofocus` não chega: o cadeado vive em cima do shell, no mesmo escopo,
+    // e o foco já lá estava. Pede-se à força depois do primeiro frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _foco.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _foco.dispose();
+    super.dispose();
+  }
+
   KeyEventResult _aoTeclar(FocusNode _, KeyEvent e) {
-    if (!activo || e is KeyUpEvent) return KeyEventResult.ignored;
+    if (!widget.activo || e is KeyUpEvent) return KeyEventResult.ignored;
     final teclado = HardwareKeyboard.instance;
     // Ctrl/Alt/Meta são atalhos de quem os carrega; Shift+dígito é símbolo.
     if (teclado.isControlPressed ||
@@ -67,26 +90,33 @@ class TeclasDoPin extends StatelessWidget {
       return KeyEventResult.ignored;
     }
     final k = e.logicalKey;
-    final digito = _linhaDeCima[k];
+    final digito = TeclasDoPin._linhaDeCima[k];
     if (digito != null) {
       if (e is KeyRepeatEvent || teclado.isShiftPressed) {
         return KeyEventResult.handled;
       }
-      aoDigito(digito);
+      widget.aoDigito(digito);
       return KeyEventResult.handled;
     }
     if (k == LogicalKeyboardKey.backspace) {
-      aoApagar();
+      widget.aoApagar();
       return KeyEventResult.handled;
     }
     if (k == LogicalKeyboardKey.enter || k == LogicalKeyboardKey.numpadEnter) {
-      if (e is KeyDownEvent) aoConfirmar();
+      if (e is KeyDownEvent) widget.aoConfirmar();
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
   }
 
   @override
-  Widget build(BuildContext context) =>
-      Focus(autofocus: true, onKeyEvent: _aoTeclar, child: child);
+  Widget build(BuildContext context) => Listener(
+    onPointerDown: (_) => _foco.requestFocus(),
+    child: Focus(
+      focusNode: _foco,
+      autofocus: true,
+      onKeyEvent: _aoTeclar,
+      child: widget.child,
+    ),
+  );
 }
