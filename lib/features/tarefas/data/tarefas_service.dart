@@ -229,7 +229,7 @@ List<Tarefa> tarefasPendentes(
             ? 'Completar a ficha de ${incompletos.single.name}'
             : 'Completar ${incompletos.length} fichas de colaborador',
         subtitulo: 'Falta custo ou horário — sem isso não há custo por hora',
-        cta: 'Abrir Funcionários',
+        cta: 'Abrir Colaboradores',
         destino: DestinoTarefa.colaboradores,
       ),
     );
@@ -251,7 +251,7 @@ List<Tarefa> tarefasPendentes(
             ? '1 colaborador por registar'
             : '${state.declaredCollaboratorCount} colaboradores por registar',
         subtitulo: 'Declarou equipa no onboarding mas não há ninguém registado',
-        cta: 'Abrir Funcionários',
+        cta: 'Abrir Colaboradores',
         destino: DestinoTarefa.colaboradores,
       ),
     );

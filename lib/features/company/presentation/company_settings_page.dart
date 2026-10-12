@@ -337,7 +337,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
             _collaborators,
             'Colaboradores',
             teclado: TextInputType.number,
-            ajuda: 'A zero, a área de Funcionários desaparece do menu.',
+            ajuda: 'A zero, a área de Colaboradores desaparece do menu.',
           ),
           _campo(
             _vehicles,
