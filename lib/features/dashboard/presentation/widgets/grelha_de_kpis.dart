@@ -37,15 +37,11 @@ class GrelhaDeKpis extends StatelessWidget {
       // Windows: 3 colunas × 2 linhas (até 6 KPIs por ecrã). A última linha, se
       // incompleta, reparte a largura toda.
       if (Platform.isWindows && celulas.isNotEmpty) {
+        // Mesmo tamanho dos cartões de todas as páginas: 3 colunas e 1/3 da
+        // altura (como na fila de cima das páginas com gráficos).
+        final altura = (restricoes.maxHeight - _entreCelulas) / 3;
         final n = celulas.length;
-        // Quatro cartões ficam numa só fila; senão 3 por linha. Os cartões são
-        // baixos (como os de cima nas páginas com gráficos) e não crescem.
-        final colunas = n == 4 ? 2 : 3;
-        final linhas = (n + colunas - 1) ~/ colunas;
-        // Com 3 ou 4 cartões há altura de sobra e a nota de cada um (explicação
-        // e dicas) enche-a; com mais, ficam baixos.
-        final meia = (restricoes.maxHeight - _entreCelulas) / 2;
-        final altura = n <= 4 ? meia : meia.clamp(0.0, 300.0);
+        final linhas = (n + 2) ~/ 3;
         return Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
@@ -56,13 +52,13 @@ class GrelhaDeKpis extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (
-                      var i = r * colunas;
-                      i < n && i < (r + 1) * colunas;
-                      i++
-                    ) ...[
-                      if (i > r * colunas) const SizedBox(width: _entreCelulas),
-                      Expanded(child: celulas[i]),
+                    for (var i = 0; i < 3; i++) ...[
+                      if (i > 0) const SizedBox(width: _entreCelulas),
+                      Expanded(
+                        child: r * 3 + i < n
+                            ? celulas[r * 3 + i]
+                            : const SizedBox.shrink(),
+                      ),
                     ],
                   ],
                 ),

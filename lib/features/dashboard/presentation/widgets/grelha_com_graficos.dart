@@ -23,7 +23,7 @@ class GrelhaComGraficos extends StatelessWidget {
     super.key,
     required this.celulas,
     required this.graficos,
-  }) : assert(celulas.length <= 4);
+  }) : assert(celulas.length <= 3);
 
   final List<Widget> celulas;
   final List<Widget> graficos;
@@ -34,14 +34,30 @@ class GrelhaComGraficos extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      // Sem cartões de número, os gráficos ocupam a altura toda.
+      // Windows: a fila dos cartões tem sempre 3 colunas e 1/3 da altura —
+      // o mesmo tamanho em todas as páginas, haja 1, 2 ou 3 cartões.
       if (celulas.isNotEmpty) ...[
-        Expanded(flex: Platform.isWindows ? 1 : 4, child: _linha(celulas)),
+        Expanded(
+          flex: Platform.isWindows ? 1 : 4,
+          child: Platform.isWindows ? _linhaDeTres(celulas) : _linha(celulas),
+        ),
         const SizedBox(height: _entre),
       ],
-      // Um gráfico sozinho ocupa a largura toda: fica mais baixo para não
-      // virar um cartão largo gigante.
       Expanded(flex: Platform.isWindows ? 2 : 6, child: _linha(graficos)),
+    ],
+  );
+
+  /// Três colunas fixas: com menos de 3 cartões ficam as colunas vazias, para
+  /// os que existem não esticarem.
+  Widget _linhaDeTres(List<Widget> filhos) => Row(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (var i = 0; i < 3; i++) ...[
+        if (i > 0) const SizedBox(width: _entre),
+        Expanded(
+          child: i < filhos.length ? filhos[i] : const SizedBox.shrink(),
+        ),
+      ],
     ],
   );
 

@@ -262,6 +262,27 @@ final _porEcra = Platform.isWindows ? 6 : 4;
 /// Sem gráficos cabem [_porEcra] KPIs (grelha 2×2). Com gráficos o ecrã é
 /// outro: até três cartões de número em cima e até dois gráficos em baixo.
 List<List<KpiDefinicao>> _paginar(List<KpiDefinicao> kpis) {
+  if (Platform.isWindows) {
+    // Windows: todas as páginas têm a mesma forma — até 3 cartões e até 2
+    // gráficos, pela ordem em que o gestor os pôs. Os cartões têm sempre o
+    // mesmo tamanho; o que sobra de uma coluna fica para os gráficos.
+    final cartoes = [
+      for (final k in kpis)
+        if (k.grafico == null) k,
+    ];
+    final graficos = [
+      for (final k in kpis)
+        if (k.grafico != null) k,
+    ];
+    final n = [
+      (cartoes.length + 2) ~/ 3,
+      (graficos.length + 1) ~/ 2,
+    ].reduce((a, b) => a > b ? a : b);
+    return [
+      for (var i = 0; i < n; i++)
+        [...cartoes.skip(i * 3).take(3), ...graficos.skip(i * 2).take(2)],
+    ];
+  }
   final paginas = <List<KpiDefinicao>>[];
   var atual = <KpiDefinicao>[];
   bool cabe(List<KpiDefinicao> pagina, KpiDefinicao novo) {

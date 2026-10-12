@@ -101,7 +101,7 @@ class PaginaDoPainel extends ConsumerWidget {
 /// Gráficos do mesmo assunto dos KPIs de um ecrã (até 2), por ordem de
 /// aparição. Só para ecrãs de 3 ou 4 KPIs.
 List<String> _graficosRelacionados(List<KpiDefinicao> kpis) {
-  if (kpis.length < 3 || kpis.length > 4) return const [];
+  if (kpis.isEmpty || kpis.length > 3) return const [];
   const porKpi = <String, List<String>>{
     'contactos-novos': [
       'grafico-contactos-por-origem',
