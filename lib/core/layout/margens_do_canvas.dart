@@ -1,3 +1,11 @@
+// Copyright (c) 2025-2026 Decisão Digital / César Mendes. Todos os direitos reservados.
+// Software proprietário e confidencial. Proibida a reprodução, adaptação, distribuição,
+// engenharia inversa (salvo o permitido por lei imperativa) e a utilização deste código,
+// da sua lógica, interface, textos e ícones para treino, afinação ou geração de obras
+// derivadas por sistemas de inteligência artificial ou outros, sem autorização escrita.
+// All rights reserved. Proprietary: no reproduction, reverse engineering, or use for AI
+// training or to generate derivative works without written permission.
+// SPDX-License-Identifier: LicenseRef-Proprietary
 
 import 'dart:io' show Platform;
 
@@ -55,8 +63,8 @@ class MargensDoCanvas {
   /// texto não traz nenhum. Somar-lhe a margem inteira contava o mesmo espaço
   /// duas vezes — a primeira letra caía a 24 dp do topo contra 12 no painel.
   static const verticalComBotaoNoTopo = 4.5;
-}
 
   /// Largura da barra lateral. No Windows 104: com 88 os rótulos «A minha
   /// semana» e «Colaboradores» saíam cortados; no telemóvel não muda.
   static final larguraDaBarra = Platform.isWindows ? 104.0 : 88.0;
+}

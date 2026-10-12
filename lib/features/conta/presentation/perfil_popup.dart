@@ -163,6 +163,11 @@ class PerfilPopup extends ConsumerWidget {
               const DiagnosticoLicenca(),
               const SizedBox(height: 8),
               const _Versao(),
+              const SizedBox(height: 4),
+              Text(
+                '© 2026 Decisão Digital / César Mendes. Todos os direitos reservados. Software proprietário: o código, a interface, os textos e os ícones desta aplicação estão protegidos por direito de autor. Não é permitida a cópia, a engenharia inversa (salvo nos limites da lei) nem a utilização para treino ou geração de produtos semelhantes por sistemas de IA.',
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -184,11 +189,6 @@ class PerfilPopup extends ConsumerWidget {
     );
   }
 
-  /// Confirmação antes de sair, e nunca um diálogo preso.
-  ///
-  /// Depois do `signOut` quem redirecciona é o `AuthGate`, que observa
-  /// `onAuthStateChange` — não se chama `Navigator` à mão daqui. O
-  /// `invalidate` força o estado de acesso a ser relido, para o gate não
   /// Os botões de acção do Perfil. No telemóvel, uma coluna (como sempre); no
   /// Windows, duas colunas — a lista inteira, até «Válida até», cabe sem rolar.
   List<Widget> _acoes(
@@ -227,7 +227,7 @@ class PerfilPopup extends ConsumerWidget {
           FilledButton.icon(
             onPressed: () => _abrirConvites(context),
             icon: const Icon(Icons.person_add_alt),
-            label: const Text('Convidar membros'),
+            label: const Text('Convidar operadores'),
           ),
           // Convidar e autorizar são dois momentos separados por dias: o
           // convite sai hoje, a pessoa inscreve-se quando puder. Sem uma
@@ -317,6 +317,11 @@ class PerfilPopup extends ConsumerWidget {
     ];
   }
 
+  /// Confirmação antes de sair, e nunca um diálogo preso.
+  ///
+  /// Depois do `signOut` quem redirecciona é o `AuthGate`, que observa
+  /// `onAuthStateChange` — não se chama `Navigator` à mão daqui. O
+  /// `invalidate` força o estado de acesso a ser relido, para o gate não
   /// decidir com a adesão antiga em cache.
   void _abrirDadosDaEmpresa(BuildContext context) {
     final navegador = Navigator.of(context, rootNavigator: true);

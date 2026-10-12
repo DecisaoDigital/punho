@@ -1,3 +1,12 @@
+// Copyright (c) 2025-2026 Decisão Digital / César Mendes. Todos os direitos reservados.
+// Software proprietário e confidencial. Proibida a reprodução, adaptação, distribuição,
+// engenharia inversa (salvo o permitido por lei imperativa) e a utilização deste código,
+// da sua lógica, interface, textos e ícones para treino, afinação ou geração de obras
+// derivadas por sistemas de inteligência artificial ou outros, sem autorização escrita.
+// All rights reserved. Proprietary: no reproduction, reverse engineering, or use for AI
+// training or to generate derivative works without written permission.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -62,9 +71,13 @@ class DiagnosticoLicenca extends ConsumerWidget {
               _Linha(rotulo: 'Empresa', valor: info.nome ?? '—'),
               _Linha(rotulo: 'NIF', valor: info.nif ?? '—'),
               _Linha(rotulo: 'Plano', valor: info.plano ?? '—'),
-              _Linha(rotulo: 'Estado', valor: _estado(info)),
+              _Linha(rotulo: 'Estado', valor: _estado(info), destaque: true),
               if (info.validade != null)
-                _Linha(rotulo: 'Válida até', valor: _data(info.validade!)),
+                _Linha(
+                  rotulo: 'Válida até',
+                  valor: _data(info.validade!),
+                  destaque: true,
+                ),
             ],
           ],
         );
@@ -102,6 +115,9 @@ class _Linha extends StatelessWidget {
   final bool copiavel;
   final bool esbatido;
 
+  /// Estado e validade: o que se olha primeiro. Azul e dois tamanhos acima.
+  final bool destaque;
+
   /// Valor a copiar quando o mostrado está encurtado.
   final String? valorCompleto;
 
@@ -110,6 +126,7 @@ class _Linha extends StatelessWidget {
     required this.valor,
     this.copiavel = false,
     this.esbatido = false,
+    this.destaque = false,
     this.valorCompleto,
   });
 
@@ -117,6 +134,9 @@ class _Linha extends StatelessWidget {
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
     final cores = Theme.of(context).colorScheme;
+    final azul = Colors.blue.shade700;
+    final base = textos.bodySmall;
+    final tamanho = (base?.fontSize ?? 12) + (destaque ? 4 : 0);
 
     final linha = Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -127,15 +147,21 @@ class _Linha extends StatelessWidget {
             width: 118,
             child: Text(
               rotulo,
-              style: textos.bodySmall?.copyWith(color: cores.outline),
+              style: base?.copyWith(
+                color: destaque ? azul : cores.outline,
+                fontSize: tamanho,
+                fontWeight: destaque ? FontWeight.w700 : null,
+              ),
             ),
           ),
           Expanded(
             child: Text(
               valor,
-              style: textos.bodySmall?.copyWith(
+              style: base?.copyWith(
                 fontFeatures: const [FontFeature.tabularFigures()],
-                color: esbatido ? cores.outline : null,
+                color: destaque ? azul : (esbatido ? cores.outline : null),
+                fontSize: tamanho,
+                fontWeight: destaque ? FontWeight.w700 : null,
               ),
             ),
           ),

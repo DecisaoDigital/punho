@@ -1,3 +1,14 @@
+// Copyright (c) 2025-2026 Decisão Digital / César Mendes. Todos os direitos reservados.
+// Software proprietário e confidencial. Proibida a reprodução, adaptação, distribuição,
+// engenharia inversa (salvo o permitido por lei imperativa) e a utilização deste código,
+// da sua lógica, interface, textos e ícones para treino, afinação ou geração de obras
+// derivadas por sistemas de inteligência artificial ou outros, sem autorização escrita.
+// All rights reserved. Proprietary: no reproduction, reverse engineering, or use for AI
+// training or to generate derivative works without written permission.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 
 /// Os quatro KPIs de um slide, 2×2, sempre inteiros no ecrã.
@@ -23,6 +34,20 @@ class GrelhaDeKpis extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, restricoes) {
+      // Windows: 3 colunas × 3 linhas de cartões mais baixos (até 9 por ecrã),
+      // em vez de 4 cartões esticados a metade do ecrã cada.
+      if (Platform.isWindows) {
+        final l = (restricoes.maxWidth - 2 * _entreCelulas) / 3;
+        final a = (restricoes.maxHeight - 2 * _entreCelulas) / 3;
+        return GridView.count(
+          crossAxisCount: 3,
+          crossAxisSpacing: _entreCelulas,
+          mainAxisSpacing: _entreCelulas,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: a <= 0 ? 1 : l / a,
+          children: celulas,
+        );
+      }
       final largura = (restricoes.maxWidth - _entreCelulas) / 2;
       final altura = (restricoes.maxHeight - _entreCelulas) / 2;
       return GridView.count(

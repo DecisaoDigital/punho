@@ -1,5 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { validarHorarioPedido } from "./horario.ts";
+import { validarCategoria } from "./categorias.ts";
+import { configPublica, lerConfig, type Tipo } from "./config.ts";
 
 // Recebe leads de fora da app: landing page, WhatsApp, agenda.
 //
@@ -23,6 +26,9 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // `texto` é o que faz a prova; `versao` e `url` só ajudam a reconstituir a
 // página. Quem não manda nada e vem de um canal onde a pessoa nos procurou
 // (telefone, WhatsApp, agenda) tem base legal própria e não precisa disto.
+
+const VIAS = ["funil", "bot", "manual"];
+const TIPOS = ["servico", "aluguer", "venda"] as const;
 
 const ORIGENS = ["landing_page", "whatsapp", "telefone", "agenda", "manual", "outro"];
 
@@ -86,6 +92,24 @@ function emailPlausivel(email: string | null | undefined): boolean {
 }
 
 Deno.serve(async (req: Request) => {
+  // O assistente pergunta-nos como se chama a empresa, como se chama ele e o que ela
+  // oferece. Nunca os horários: esses valida o servidor. O `empresa_id` não adivinha-se.
+  if (req.method === "GET") {
+    const id = (new URL(req.url).searchParams.get("empresa_id") ?? "").trim();
+    if (!/^[0-9a-f-]{36}$/i.test(id)) {
+      return new Response(JSON.stringify({ erro: "empresa_invalida" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const c = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data } = await c.from("punho_atendimento_config").select("*").eq("empresa_id", id).maybeSingle();
+    const cfg = lerConfig(data);
+    return new Response(JSON.stringify(cfg ? configPublica(cfg) : { erro: "sem_configuracao" }), {
+      status: cfg ? 200 : 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ erro: "metodo_nao_suportado" }), {
       status: 405,
@@ -120,6 +144,22 @@ Deno.serve(async (req: Request) => {
   const mensagem = corpo.mensagem ? String(corpo.mensagem).trim().slice(0, 2000) : null;
   const telefone = normalizarTelefone(telefoneOriginal);
 
+  // A ficha do CRM. Tudo opcional: o que não vem fica em branco e a ficha
+  // mostra «x/6». Quem capta (funil ou assistente) só entrega; quem valida é
+  // sempre uma pessoa, do lado do Fist.
+  const curto = (v: unknown, n: number) => {
+    const t = v ? String(v).trim().slice(0, n) : "";
+    return t.length > 0 ? t : null;
+  };
+  const negocio = curto(corpo.negocio, 200);
+  const codigoPostal = curto(corpo.codigo_postal, 12);
+  const localidade = curto(corpo.localidade, 120);
+  const morada = curto(corpo.morada, 300);
+  const interesse = curto(corpo.interesse, 300);
+  const via = VIAS.includes(String(corpo.via)) ? String(corpo.via) : null;
+  // O horário pedido valida-se contra o da empresa. Se não cabe, a lead entra na
+  // mesma — sem o horário — e a resposta diz porquê, para o assistente voltar a
+  // perguntar. Perder a lead por causa de uma hora mal dita seria pior.
   // A prova, quando vem, vale para qualquer canal — e quando não vem, o canal
   // responde por si. Um `outro` sem prova fica sem base legal, e é para ficar:
   // «não sei de onde veio isto» é uma resposta melhor do que inventar uma.
@@ -147,6 +187,43 @@ Deno.serve(async (req: Request) => {
       headers: { "Content-Type": "application/json" },
     });
   }
+
+  // O contexto da empresa: o que oferece, as suas categorias e os seus horários.
+  // Nada disto vive no código; sem configuração só se exige o que é universal.
+  const { data: linhaConfig } = await cliente
+    .from("punho_atendimento_config")
+    .select("*")
+    .eq("empresa_id", empresaId)
+    .maybeSingle();
+  const config = lerConfig(linhaConfig);
+
+  const tipoPedido = (TIPOS as readonly string[]).includes(String(corpo.tipo))
+    ? (String(corpo.tipo) as Tipo)
+    : null;
+  // Um tipo que a empresa não oferece não se guarda: a lead entra na mesma e a
+  // resposta diz o que a empresa oferece, para se voltar a perguntar.
+  const tipoOferecido = tipoPedido === null || !config || config.tipos.length === 0 ||
+    config.tipos.includes(tipoPedido);
+  const tipo = tipoOferecido ? tipoPedido : null;
+  const respostaTipo = tipoOferecido
+    ? { ok: true }
+    : { ok: false, motivo: "nao_oferecido", opcoes: config!.tipos };
+  // Dias de aluguer pedidos. Se ficam fora da tabela de preços é a app que o
+  // diz (a tabela vive nas máquinas): essa lead não entra na escala de entregas,
+  // vai a um humano, de preferência o gerente.
+  const dias = Number(corpo.periodo_dias);
+  const periodoDias = tipo === "aluguer" && Number.isInteger(dias) && dias >= 1 && dias <= 3650
+    ? dias
+    : null;
+  const horario = validarHorarioPedido(corpo.horario_pedido, config, tipo);
+  // Quem pede serviço, aluguer ou venda tem de dizer a categoria; sem isso a
+  // lead entra na mesma e a resposta devolve as opções para se voltar a perguntar.
+  const categoria = validarCategoria(corpo.categoria, config, tipo !== null);
+  const categoriaGuardada = categoria.ok ? categoria.categoria : null;
+  const respostaCategoria = categoria.ok
+    ? { ok: true }
+    : { ok: false, motivo: categoria.motivo, opcoes: categoria.opcoes };
+
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
 
@@ -197,19 +274,63 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // Deduplicação: o mesmo número já entrou nos últimos 30 dias e ainda não foi
-  // processado. Não se cria uma segunda — seria a mesma pessoa a contar duas
-  // vezes na conversão.
-  if (classificacao === "aceite" && telefone) {
+  // Deduplicação: o mesmo número já entrou nos últimos 30 dias. Não se cria uma
+  // segunda — seria a mesma pessoa a contar duas vezes na conversão.
+  //
+  // Se a primeira ainda não foi puxada pela app, a repetição **completa-a**: é a
+  // pessoa a acrescentar o que faltava (a zona, o dia pedido). Só preenche
+  // buracos e actualiza o pedido; nunca apaga nem reescreve o que já lá estava.
+  // Se já foi processada, não há nada a actualizar — fica retida para alguém ver.
+  if (classificacao !== "descartada" && telefone) {
     const desde = new Date(Date.now() - 30 * 86400_000).toISOString();
     const { data: repetida } = await cliente
       .from("punho_leads_entrada")
-      .select("id")
+      .select(
+        "id, processada_em, nome, email, negocio, codigo_postal, localidade, morada",
+      )
       .eq("empresa_id", empresaId)
       .eq("telefone_e164", telefone)
       .gte("recebida_em", desde)
+      .order("recebida_em", { ascending: false })
       .limit(1);
-    if (repetida && repetida.length > 0) {
+    const anterior = repetida?.[0];
+    if (anterior && !anterior.processada_em) {
+      const preencher = (atual: string | null, novo: string | null) =>
+        atual && atual.trim().length > 0 ? undefined : (novo ?? undefined);
+      const campos: Record<string, unknown> = {
+        nome: preencher(anterior.nome, nome),
+        email: preencher(anterior.email, emailPlausivel(email) ? email : null),
+        negocio: preencher(anterior.negocio, negocio),
+        codigo_postal: preencher(anterior.codigo_postal, codigoPostal),
+        localidade: preencher(anterior.localidade, localidade),
+        morada: preencher(anterior.morada, morada),
+        // O pedido mais recente é o que vale.
+        interesse: interesse ?? undefined,
+        tipo: tipo ?? undefined,
+        categoria: categoriaGuardada ?? undefined,
+        periodo_dias: periodoDias ?? undefined,
+        horario_pedido: horario.ok ? (horario.instante ?? undefined) : undefined,
+        mensagem: mensagem ?? undefined,
+      };
+      for (const k of Object.keys(campos)) {
+        if (campos[k] === undefined) delete campos[k];
+      }
+      if (Object.keys(campos).length > 0) {
+        await cliente.from("punho_leads_entrada").update(campos).eq("id", anterior.id);
+      }
+      return new Response(
+        JSON.stringify({
+          recebida: true,
+          id: anterior.id,
+          atualizada: true,
+          horario: horario.ok ? { ok: true } : { ok: false, motivo: horario.motivo },
+          categoria: respostaCategoria,
+          tipo: respostaTipo,
+        }),
+        { headers: { "Content-Type": "application/json" } },
+      );
+    }
+    if (anterior && classificacao === "aceite") {
       classificacao = "retida";
       motivo = "o mesmo número já tinha entrado nos últimos 30 dias";
     }
@@ -238,6 +359,16 @@ Deno.serve(async (req: Request) => {
       telefone_original: telefoneOriginal,
       email: emailPlausivel(email) ? email : null,
       mensagem,
+      negocio,
+      codigo_postal: codigoPostal,
+      localidade,
+      morada,
+      interesse,
+      tipo,
+      categoria: categoriaGuardada,
+      periodo_dias: periodoDias,
+      horario_pedido: horario.ok ? horario.instante : null,
+      via,
       classificacao,
       motivo,
       payload_bruto: corpo,
@@ -264,7 +395,13 @@ Deno.serve(async (req: Request) => {
   // A resposta é sempre a mesma para quem submete, mesmo quando é descartada:
   // dizer a um robô que foi apanhado é ensiná-lo a passar à próxima.
   return new Response(
-    JSON.stringify({ recebida: true, id: inserida.id }),
+    JSON.stringify({
+      recebida: true,
+      id: inserida.id,
+      horario: horario.ok ? { ok: true } : { ok: false, motivo: horario.motivo },
+      categoria: respostaCategoria,
+      tipo: respostaTipo,
+    }),
     { headers: { "Content-Type": "application/json" } },
   );
 });

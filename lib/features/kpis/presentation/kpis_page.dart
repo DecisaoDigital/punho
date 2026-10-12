@@ -103,8 +103,7 @@ class KpisPage extends ConsumerWidget {
             // de cima acompanha o eixo dos cartões e não o da coluna.
             padding: margem.copyWith(
               top: _arPorCimaDaLista,
-              left: MargensDoCanvas.lateral +
-                  (Platform.isWindows ? _larguraDaMarca : 0),
+              left: MargensDoCanvas.lateral,
             ),
             sliver: SliverList.list(
               children: [
@@ -401,73 +400,137 @@ class _LinhaDeKpi extends ConsumerWidget {
         // medida (`AlturaDoKpi.deitado`), não inventada — e é aqui que a
         // bancada deixou de gastar 150 dp e metade da largura por KPI.
         height: AlturaDoKpi.deitado,
-        child: Row(
-          children: [
-            SizedBox(
-              width: _larguraDaMarca,
-              child: marcado == null
-                  ? null
-                  : Checkbox(
-                      value: marcado,
-                      onChanged: (novo) => ref
-                          .read(painelProvider.notifier)
-                          .alternar(kpi.id, escolher: novo ?? false),
-                      // Lido em voz alta, "caixa de verificação, marcada" não
-                      // diz de quê: numa lista de catorze linhas iguais isso
-                      // não chega.
-                      semanticLabel: '${kpi.titulo} no painel',
+        child: Platform.isWindows
+            ? _noWindows(context, ref, marcado, indice)
+            : Row(
+                children: [
+                  SizedBox(
+                    width: _larguraDaMarca,
+                    child: marcado == null
+                        ? null
+                        : Checkbox(
+                            value: marcado,
+                            onChanged: (novo) => ref
+                                .read(painelProvider.notifier)
+                                .alternar(kpi.id, escolher: novo ?? false),
+                            // Lido em voz alta, "caixa de verificação, marcada" não
+                            // diz de quê: numa lista de catorze linhas iguais isso
+                            // não chega.
+                            semanticLabel: '${kpi.titulo} no painel',
+                          ),
+                  ),
+                  // **O cartão não pega.** Chegou a pegar — meio segundo em cima dele
+                  // levantava-o — e o César cortou: «não quero o card todo a ficar
+                  // activo, deve ser só nos 6 pontinhos e pouco mais». O cartão é
+                  // para se ler; quem manda nele é a pega, aqui à direita.
+                  //
+                  // Um toque simples é outra coisa e não colide com nada: abre a
+                  // cadeia deste KPI, quando ele tem alguma coisa por baixo. Numa
+                  // folha não abre — não há degrau para descer, e um toque que não
+                  // faz nada ensina a não tocar.
+                  Expanded(
+                    child: AbrirDestinoDoKpi(
+                      destino: null,
+                      cadeia: filhosDe(kpi.id).isEmpty && !temGrafico(kpi.id)
+                          ? null
+                          : kpi.id,
+                      agora: now,
+                      child: kpi.celula(estado, now).deitada(),
                     ),
-            ),
-            // **O cartão não pega.** Chegou a pegar — meio segundo em cima dele
-            // levantava-o — e o César cortou: «não quero o card todo a ficar
-            // activo, deve ser só nos 6 pontinhos e pouco mais». O cartão é
-            // para se ler; quem manda nele é a pega, aqui à direita.
-            //
-            // Um toque simples é outra coisa e não colide com nada: abre a
-            // cadeia deste KPI, quando ele tem alguma coisa por baixo. Numa
-            // folha não abre — não há degrau para descer, e um toque que não
-            // faz nada ensina a não tocar.
-            Expanded(
-              child: AbrirDestinoDoKpi(
-                destino: null,
-                cadeia: filhosDe(kpi.id).isEmpty && !temGrafico(kpi.id)
-                    ? null
-                    : kpi.id,
-                agora: now,
-                child: kpi.celula(estado, now).deitada(),
+                  ),
+                  SizedBox(
+                    width: _larguraDaPega,
+                    child: indice == null
+                        ? null
+                        : ReorderableDragStartListener(
+                            index: indice,
+                            // **Sem `Tooltip`.** O tooltip abre ao fim de meio
+                            // segundo de dedo em cima e leva o gesto com ele: quem
+                            // segurava a pega à espera de a poder mexer via aparecer
+                            // um balão preto e o cartão não saía do sítio. A dica
+                            // não valia o gesto que custava — o que ela dizia passou
+                            // para a semântica, onde não disputa nada.
+                            child: Semantics(
+                              label: 'Arrastar ${kpi.titulo} para ordenar',
+                              // Opaco e a ocupar a coluna toda: o alvo era o ícone de
+                              // 24 dp no meio de 40, e falhar a pega parecia a app a
+                              // não responder.
+                              child: Container(
+                                color: Colors.transparent,
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  Icons.drag_indicator,
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
+                              ),
+                            ),
+                          ),
+                  ),
+                ],
               ),
-            ),
-            SizedBox(
-              width: _larguraDaPega,
-              child: indice == null
-                  ? null
-                  : ReorderableDragStartListener(
-                      index: indice,
-                      // **Sem `Tooltip`.** O tooltip abre ao fim de meio
-                      // segundo de dedo em cima e leva o gesto com ele: quem
-                      // segurava a pega à espera de a poder mexer via aparecer
-                      // um balão preto e o cartão não saía do sítio. A dica
-                      // não valia o gesto que custava — o que ela dizia passou
-                      // para a semântica, onde não disputa nada.
-                      child: Semantics(
-                        label: 'Arrastar ${kpi.titulo} para ordenar',
-                        // Opaco e a ocupar a coluna toda: o alvo era o ícone de
-                        // 24 dp no meio de 40, e falhar a pega parecia a app a
-                        // não responder.
-                        child: Container(
-                          color: Colors.transparent,
-                          alignment: Alignment.center,
-                          child: Icon(
-                            Icons.drag_indicator,
-                            color: Theme.of(context).colorScheme.outline,
+      ),
+    );
+  }
+
+  /// Windows: o cartão ocupa a largura toda da margem (como nas outras páginas)
+  /// e a caixa de marcar e a pega ficam dentro dele, à direita — o rato não
+  /// precisa de alvos de 48 dp, e assim a lista começa a ~31 px da barra.
+  Widget _noWindows(
+    BuildContext context,
+    WidgetRef ref,
+    bool? marcado,
+    int? indice,
+  ) {
+    final cartao = AbrirDestinoDoKpi(
+      destino: null,
+      cadeia: filhosDe(kpi.id).isEmpty && !temGrafico(kpi.id) ? null : kpi.id,
+      agora: now,
+      child: kpi.celula(estado, now).deitada(reservaDireita: 76),
+    );
+    return Stack(
+      children: [
+        Positioned.fill(child: cartao),
+        Positioned(
+          right: 6,
+          top: 0,
+          bottom: 0,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 34,
+                child: marcado == null
+                    ? null
+                    : Checkbox(
+                        value: marcado,
+                        onChanged: (novo) => ref
+                            .read(painelProvider.notifier)
+                            .alternar(kpi.id, escolher: novo ?? false),
+                        semanticLabel: '${kpi.titulo} no painel',
+                      ),
+              ),
+              SizedBox(
+                width: 34,
+                child: indice == null
+                    ? null
+                    : ReorderableDragStartListener(
+                        index: indice,
+                        child: Semantics(
+                          label: 'Arrastar ${kpi.titulo} para ordenar',
+                          child: Container(
+                            color: Colors.transparent,
+                            alignment: Alignment.center,
+                            child: Icon(
+                              Icons.drag_indicator,
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

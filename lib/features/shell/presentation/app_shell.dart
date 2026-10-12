@@ -688,14 +688,14 @@ class _EmptyPage extends StatelessWidget {
 }
 
 /// No Windows o conteúdo não se esparrama até às arestas: tem uma largura
-/// máxima, centrada, e 9 dp de ar a somar aos 15 do canvas (24 de cada lado).
+/// máxima, centrada, e 13 dp de ar a somar aos 15 do canvas (28 de cada lado: 32 era de mais, 24 encostava).
 /// Nos telemóveis não faz nada — lá cada dp conta.
 class _ContentorQueRespira extends StatelessWidget {
   const _ContentorQueRespira({required this.child});
   final Widget child;
 
   static const _larguraMaxima = 1440.0;
-  static const _arExtra = 9.0;
+  static const _arExtra = 13.0;
 
   @override
   Widget build(BuildContext context) {

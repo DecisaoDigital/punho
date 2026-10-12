@@ -1,3 +1,11 @@
+// Copyright (c) 2025-2026 Decisão Digital / César Mendes. Todos os direitos reservados.
+// Software proprietário e confidencial. Proibida a reprodução, adaptação, distribuição,
+// engenharia inversa (salvo o permitido por lei imperativa) e a utilização deste código,
+// da sua lógica, interface, textos e ícones para treino, afinação ou geração de obras
+// derivadas por sistemas de inteligência artificial ou outros, sem autorização escrita.
+// All rights reserved. Proprietary: no reproduction, reverse engineering, or use for AI
+// training or to generate derivative works without written permission.
+// SPDX-License-Identifier: LicenseRef-Proprietary
 
 import 'dart:io' show Platform;
 
@@ -42,14 +50,6 @@ class DashboardPage extends ConsumerStatefulWidget {
 }
 
 class _DashboardPageState extends ConsumerState<DashboardPage> {
-  final _controller = PageController();
-  final _foco = FocusNode();
-  int _slide = 0;
-
-  /// Quantas páginas há neste momento. Muda quando o gestor marca ou desmarca
-  /// um KPI, e é por isso que não pode ser constante.
-  int _quantasPaginas = 0;
-
   /// No telemóvel as setas ficam ao lado dos cartões; no Windows descem para a
   /// linha dos pontos, para os cartões terem a mesma margem das outras páginas.
   bool get _setasAoLado => !Platform.isWindows;
@@ -75,6 +75,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             _setaSeguinte(total),
           ],
         );
+
+  final _controller = PageController();
+  final _foco = FocusNode();
+  int _slide = 0;
+
+  /// Quantas páginas há neste momento. Muda quando o gestor marca ou desmarca
+  /// um KPI, e é por isso que não pode ser constante.
+  int _quantasPaginas = 0;
 
   @override
   void dispose() {
@@ -237,7 +245,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
 /// Quantos KPIs cabem num ecrã. É a grelha 2×2 de sempre: mais do que isto não
 /// é uma leitura de cinco segundos, é uma tabela.
-const _porEcra = 4;
+final _porEcra = Platform.isWindows ? 9 : 4;
 
 /// Parte a lista escolhida em ecrãs, pela ordem que ela traz.
 ///

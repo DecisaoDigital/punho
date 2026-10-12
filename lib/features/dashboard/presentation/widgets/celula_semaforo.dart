@@ -34,6 +34,7 @@ class CelulaSemaforo extends StatelessWidget {
     this.subtexto,
     this.valorEmDestaque = false,
     this.emLinha = false,
+    this.reservaDireita = 0,
   }) : assert(valor != null || texto != null, 'valor ou texto obrigatório');
 
   final NivelSemaforo nivel;
@@ -63,9 +64,13 @@ class CelulaSemaforo extends StatelessWidget {
   /// o `texto` e o `subtexto` juntam-se na segunda linha.
   final bool emLinha;
 
+  /// Ar extra à direita da célula deitada, para controlos postos por cima
+  /// (Windows: caixa de marcar e pega de arrastar da lista de KPIs).
+  final double reservaDireita;
+
   /// A mesma célula, deitada. Para quem recebe uma célula já construída — a
   /// bancada recebe-as do catálogo e não sabe fazê-las.
-  CelulaSemaforo deitada() => CelulaSemaforo(
+  CelulaSemaforo deitada({double reservaDireita = 0}) => CelulaSemaforo(
     nivel: nivel,
     rotulo: rotulo,
     valor: valor,
@@ -74,6 +79,7 @@ class CelulaSemaforo extends StatelessWidget {
     subtexto: subtexto,
     valorEmDestaque: valorEmDestaque,
     emLinha: true,
+    reservaDireita: reservaDireita,
   );
 
   @override
@@ -136,7 +142,7 @@ class CelulaSemaforo extends StatelessWidget {
     final segunda = _segundaLinha;
     return Padding(
       padding: Platform.isWindows
-          ? const EdgeInsets.fromLTRB(14, 10, 16, 10)
+          ? EdgeInsets.fromLTRB(14, 10, 16 + reservaDireita, 10)
           : const EdgeInsets.fromLTRB(10, 10, 14, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,3 +1,12 @@
+// Copyright (c) 2025-2026 Decisão Digital / César Mendes. Todos os direitos reservados.
+// Software proprietário e confidencial. Proibida a reprodução, adaptação, distribuição,
+// engenharia inversa (salvo o permitido por lei imperativa) e a utilização deste código,
+// da sua lógica, interface, textos e ícones para treino, afinação ou geração de obras
+// derivadas por sistemas de inteligência artificial ou outros, sem autorização escrita.
+// All rights reserved. Proprietary: no reproduction, reverse engineering, or use for AI
+// training or to generate derivative works without written permission.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/punho_theme.dart';
@@ -8,8 +17,12 @@ class BrandLockup extends StatelessWidget {
     super.key,
     this.compact = false,
     this.emFundoEscuro = false,
+    this.grande = false,
   });
   final bool compact;
+
+  /// Ecrã de entrada: símbolo ao dobro e letras maiores.
+  final bool grande;
 
   /// O lockup vive em dois sítios de fundo oposto: a barra lateral e o cadeado
   /// são navy, o onboarding e os ecrãs de conta são claros.
@@ -24,9 +37,9 @@ class BrandLockup extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      const SimboloFist(),
+      SimboloFist(lado: grande ? 76 : 38),
       if (!compact) ...[
-        const SizedBox(width: 10),
+        SizedBox(width: grande ? 16 : 10),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -34,7 +47,7 @@ class BrandLockup extends StatelessWidget {
               'Fist',
               style: TextStyle(
                 color: emFundoEscuro ? Colors.white : FistTheme.navyDeep,
-                fontSize: 21,
+                fontSize: grande ? 30 : 21,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -48,7 +61,7 @@ class BrandLockup extends StatelessWidget {
                 color: emFundoEscuro
                     ? const Color(0xFFB7C5CE)
                     : FistTheme.navyDeep.withValues(alpha: 0.62),
-                fontSize: 11,
+                fontSize: grande ? 15 : 11,
               ),
             ),
           ],
