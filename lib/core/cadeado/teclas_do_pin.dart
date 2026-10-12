@@ -7,8 +7,6 @@
 // training or to generate derivative works without written permission.
 // SPDX-License-Identifier: LicenseRef-Proprietary
 
-import 'dart:io';
-
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -73,9 +71,6 @@ class _TeclasDoPinState extends State<TeclasDoPin> {
     // chegava. O `HardwareKeyboard` entrega a tecla a quem estiver registado,
     // seja qual for o foco, antes de a árvore de foco a ver.
     HardwareKeyboard.instance.addHandler(_aoTeclar);
-    try {
-      File('C:\\build\\pin_keys.log').writeAsStringSync('INIT\n', mode: FileMode.append);
-    } catch (_) {}
   }
 
   @override
@@ -85,10 +80,6 @@ class _TeclasDoPinState extends State<TeclasDoPin> {
   }
 
   bool _aoTeclar(KeyEvent e) {
-    // DIAG-TEMPORARIO
-    try {
-      File('C:\\build\\pin_keys.log').writeAsStringSync('${e.runtimeType} ${e.logicalKey.keyLabel} ch=${e.character} act=${widget.activo}\n', mode: FileMode.append);
-    } catch (_) {}
     if (!mounted || !widget.activo || e is KeyUpEvent) return false;
     // Se um campo de texto tem o foco (ex. recuperar palavra-passe), as teclas
     // são dele.
