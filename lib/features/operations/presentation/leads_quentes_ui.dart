@@ -1,3 +1,14 @@
+// Copyright (c) 2025-2026 Decisão Digital / César Mendes. Todos os direitos reservados.
+// Software proprietário e confidencial. Proibida a reprodução, adaptação, distribuição,
+// engenharia inversa (salvo o permitido por lei imperativa) e a utilização deste código,
+// da sua lógica, interface, textos e ícones para treino, afinação ou geração de obras
+// derivadas por sistemas de inteligência artificial ou outros, sem autorização escrita.
+// All rights reserved. Proprietary: no reproduction, reverse engineering, or use for AI
+// training or to generate derivative works without written permission.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -28,7 +39,11 @@ class LeadsQuentesSecao extends ConsumerWidget {
     if (quentes.isEmpty) return const SizedBox.shrink();
     final n = ref.read(operationsProvider.notifier);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      // No Windows os cartões ocupam a largura toda, como a lista de clientes;
+      // encolhidos ao conteúdo ficavam a meio caminho dos botões do topo.
+      crossAxisAlignment: Platform.isWindows
+          ? CrossAxisAlignment.stretch
+          : CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 4),
@@ -39,6 +54,9 @@ class LeadsQuentesSecao extends ConsumerWidget {
         ),
         for (final l in quentes)
           Card(
+            margin: Platform.isWindows
+                ? const EdgeInsets.symmetric(vertical: 4)
+                : null,
             child: Padding(
               padding: const EdgeInsets.all(10),
               child: Column(

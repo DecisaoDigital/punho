@@ -1,3 +1,14 @@
+// Copyright (c) 2025-2026 Decisão Digital / César Mendes. Todos os direitos reservados.
+// Software proprietário e confidencial. Proibida a reprodução, adaptação, distribuição,
+// engenharia inversa (salvo o permitido por lei imperativa) e a utilização deste código,
+// da sua lógica, interface, textos e ícones para treino, afinação ou geração de obras
+// derivadas por sistemas de inteligência artificial ou outros, sem autorização escrita.
+// All rights reserved. Proprietary: no reproduction, reverse engineering, or use for AI
+// training or to generate derivative works without written permission.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/cadeado/definicoes_cadeado_page.dart';
@@ -68,10 +79,16 @@ class PerfilPopup extends ConsumerWidget {
         // Sem nome de responsável, o email identifica melhor do que "Gestor".
         : utilizador?.email ?? 'Gestor';
 
-    return Dialog(
+    final noWindows = Platform.isWindows;
+    final dialogo = Dialog(
+      // No Windows a barra lateral (88 dp) fica à esquerda e o conteúdo é o
+      // que sobra: o diálogo centra-se nesse eixo, e não na janela inteira.
+      insetPadding: noWindows
+          ? const EdgeInsets.fromLTRB(40 + 88, 24, 40, 24)
+          : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: 380,
+          maxWidth: noWindows ? 480 : 380,
           maxHeight: MediaQuery.sizeOf(context).height - 24,
         ),
         child: SingleChildScrollView(
@@ -248,6 +265,13 @@ class PerfilPopup extends ConsumerWidget {
           ),
         ),
       ),
+    );
+    // Botões mais baixos no Windows para a lista toda (até «Válido até») caber
+    // sem rolar. No telemóvel mantém-se o tamanho de sempre.
+    if (!noWindows) return dialogo;
+    return Theme(
+      data: Theme.of(context).copyWith(visualDensity: VisualDensity.compact),
+      child: dialogo,
     );
   }
 

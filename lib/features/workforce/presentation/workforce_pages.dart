@@ -1,3 +1,14 @@
+// Copyright (c) 2025-2026 Decisão Digital / César Mendes. Todos os direitos reservados.
+// Software proprietário e confidencial. Proibida a reprodução, adaptação, distribuição,
+// engenharia inversa (salvo o permitido por lei imperativa) e a utilização deste código,
+// da sua lógica, interface, textos e ícones para treino, afinação ou geração de obras
+// derivadas por sistemas de inteligência artificial ou outros, sem autorização escrita.
+// All rights reserved. Proprietary: no reproduction, reverse engineering, or use for AI
+// training or to generate derivative works without written permission.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
+import 'dart:io';
+
 import 'package:flutter/material.dart' hide TimeOfDay;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/finance/regime_fiscal.dart';
@@ -61,6 +72,14 @@ String _avisoDeLimiteExcedido(int ativos, int limite) {
       'autorizar.';
 }
 
+/// No Windows a frase larga deixava a última palavra sozinha numa linha: cola
+/// as duas últimas com um espaço sem quebra. No telemóvel fica como estava.
+String _semOrfa(String t) {
+  if (!Platform.isWindows) return t;
+  final i = t.lastIndexOf(' ');
+  return i < 0 ? t : '${t.substring(0, i)}\u00A0${t.substring(i + 1)}';
+}
+
 class CollaboratorsPage extends ConsumerWidget {
   const CollaboratorsPage({super.key, this.agora});
 
@@ -97,7 +116,9 @@ class CollaboratorsPage extends ConsumerWidget {
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
             Text(
-              mensagemVagasDeColaboradores(s.activeCollaborators, limite),
+              _semOrfa(
+                mensagemVagasDeColaboradores(s.activeCollaborators, limite),
+              ),
               // Cor de aviso só quando não há vagas livres — tal como o
               // `aviso` de `EcraDeFormulario`. Sem isto, o caso raro (mas
               // real) de a subscrição ter descido abaixo de quem já está
@@ -117,6 +138,11 @@ class CollaboratorsPage extends ConsumerWidget {
                 children: [
                   for (final c in colaboradores)
                     Card(
+                      // No Windows o cartão alinha com o título (a margem
+                      // por omissão do Card mete 4 dp de ar de cada lado).
+                      margin: Platform.isWindows
+                          ? const EdgeInsets.symmetric(vertical: 4)
+                          : null,
                       child: ListTile(
                         // Tocar na linha edita: era o gesto que o Cesar tentou
                         // primeiro e não fazia nada.
@@ -713,6 +739,11 @@ class VehiclesPage extends ConsumerWidget {
                 children: [
                   for (final v in veiculos)
                     Card(
+                      // No Windows o cartão alinha com o título (a margem
+                      // por omissão do Card mete 4 dp de ar de cada lado).
+                      margin: Platform.isWindows
+                          ? const EdgeInsets.symmetric(vertical: 4)
+                          : null,
                       child: ListTile(
                         // Tocar na linha edita, como nos colaboradores: era o
                         // gesto que não fazia nada antes desta correcção.

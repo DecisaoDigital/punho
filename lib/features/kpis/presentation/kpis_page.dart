@@ -1,3 +1,14 @@
+// Copyright (c) 2025-2026 Decisão Digital / César Mendes. Todos os direitos reservados.
+// Software proprietário e confidencial. Proibida a reprodução, adaptação, distribuição,
+// engenharia inversa (salvo o permitido por lei imperativa) e a utilização deste código,
+// da sua lógica, interface, textos e ícones para treino, afinação ou geração de obras
+// derivadas por sistemas de inteligência artificial ou outros, sem autorização escrita.
+// All rights reserved. Proprietary: no reproduction, reverse engineering, or use for AI
+// training or to generate derivative works without written permission.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -88,7 +99,13 @@ class KpisPage extends ConsumerWidget {
       child: CustomScrollView(
         slivers: [
           SliverPadding(
-            padding: margem.copyWith(top: _arPorCimaDaLista),
+            // No Windows o cartão começa depois da coluna da caixa de marcar: o texto
+            // de cima acompanha o eixo dos cartões e não o da coluna.
+            padding: margem.copyWith(
+              top: _arPorCimaDaLista,
+              left: MargensDoCanvas.lateral +
+                  (Platform.isWindows ? _larguraDaMarca : 0),
+            ),
             sliver: SliverList.list(
               children: [
                 // **Sem título repetido e com uma linha só de explicação.**

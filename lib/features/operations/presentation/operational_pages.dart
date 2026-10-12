@@ -1,3 +1,12 @@
+// Copyright (c) 2025-2026 Decisão Digital / César Mendes. Todos os direitos reservados.
+// Software proprietário e confidencial. Proibida a reprodução, adaptação, distribuição,
+// engenharia inversa (salvo o permitido por lei imperativa) e a utilização deste código,
+// da sua lógica, interface, textos e ícones para treino, afinação ou geração de obras
+// derivadas por sistemas de inteligência artificial ou outros, sem autorização escrita.
+// All rights reserved. Proprietary: no reproduction, reverse engineering, or use for AI
+// training or to generate derivative works without written permission.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 import 'package:fist/core/validacao_de_contacto.dart';
 import 'dart:async';
 import 'dart:io';
@@ -2253,6 +2262,9 @@ class ClientsPage extends ConsumerWidget {
             itemBuilder: (context, i) {
               final l = leadsTratadas[i];
               return Card(
+                margin: Platform.isWindows
+                    ? const EdgeInsets.symmetric(vertical: 4)
+                    : null,
                 child: ListTile(
                   title: Text(l.name),
                   // `l.status.name` punha "newLead" e "proposal" à frente do
