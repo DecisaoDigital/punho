@@ -1,3 +1,12 @@
+// Copyright (c) 2025-2026 Decisão Digital / César Mendes. Todos os direitos reservados.
+// Software proprietário e confidencial. Proibida a reprodução, adaptação, distribuição,
+// engenharia inversa (salvo o permitido por lei imperativa) e a utilização deste código,
+// da sua lógica, interface, textos e ícones para treino, afinação ou geração de obras
+// derivadas por sistemas de inteligência artificial ou outros, sem autorização escrita.
+// All rights reserved. Proprietary: no reproduction, reverse engineering, or use for AI
+// training or to generate derivative works without written permission.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -678,14 +687,14 @@ class _EmptyPage extends StatelessWidget {
 }
 
 /// No Windows o conteúdo não se esparrama até às arestas: tem uma largura
-/// máxima, centrada, e 17 dp de ar a somar aos 15 do canvas (32 de cada lado).
+/// máxima, centrada, e 9 dp de ar a somar aos 15 do canvas (24 de cada lado).
 /// Nos telemóveis não faz nada — lá cada dp conta.
 class _ContentorQueRespira extends StatelessWidget {
   const _ContentorQueRespira({required this.child});
   final Widget child;
 
-  static const _larguraMaxima = 1200.0;
-  static const _arExtra = 17.0;
+  static const _larguraMaxima = 1440.0;
+  static const _arExtra = 9.0;
 
   @override
   Widget build(BuildContext context) {

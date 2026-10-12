@@ -1,3 +1,12 @@
+// Copyright (c) 2025-2026 Decisão Digital / César Mendes. Todos os direitos reservados.
+// Software proprietário e confidencial. Proibida a reprodução, adaptação, distribuição,
+// engenharia inversa (salvo o permitido por lei imperativa) e a utilização deste código,
+// da sua lógica, interface, textos e ícones para treino, afinação ou geração de obras
+// derivadas por sistemas de inteligência artificial ou outros, sem autorização escrita.
+// All rights reserved. Proprietary: no reproduction, reverse engineering, or use for AI
+// training or to generate derivative works without written permission.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -127,7 +136,7 @@ class CelulaSemaforo extends StatelessWidget {
     final segunda = _segundaLinha;
     return Padding(
       padding: Platform.isWindows
-          ? const EdgeInsets.fromLTRB(20, 14, 24, 14)
+          ? const EdgeInsets.fromLTRB(14, 10, 16, 10)
           : const EdgeInsets.fromLTRB(10, 10, 14, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,7 +179,7 @@ class CelulaSemaforo extends StatelessWidget {
                     text: TextSpan(
                       style:
                           (Platform.isWindows
-                                  ? tt.headlineSmall
+                                  ? tt.headlineMedium
                                   : tt.titleLarge)
                               ?.copyWith(
                                 fontWeight: FontWeight.w800,
@@ -214,7 +223,7 @@ class CelulaSemaforo extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     return Padding(
       padding: Platform.isWindows
-          ? const EdgeInsets.fromLTRB(20, 18, 22, 18)
+          ? const EdgeInsets.fromLTRB(14, 10, 16, 10)
           : const EdgeInsets.fromLTRB(10, 12, 14, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,7 +248,10 @@ class CelulaSemaforo extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: RichText(
                 text: TextSpan(
-                  style: tt.headlineSmall?.copyWith(
+                  style: (Platform.isWindows
+                          ? tt.headlineMedium
+                          : tt.headlineSmall)
+                      ?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: valorEmDestaque ? cor : cs.onSurface,
                     height: 1.1,
@@ -274,14 +286,16 @@ class CelulaSemaforo extends StatelessWidget {
               // texto substituiu o "Por apurar", que tinha uma linha garantida
               // por ser curto. Com duas, o orçamento de altura estourava e o
               // painel transbordava 17 px — medido, não estimado.
-              maxLines: nivel == NivelSemaforo.aguarda ? 1 : 2,
+              maxLines: nivel == NivelSemaforo.aguarda
+                  ? 1
+                  : (Platform.isWindows ? 3 : 2),
               overflow: TextOverflow.ellipsis,
             ),
           if (subtexto != null)
             Text(
               subtexto!,
               style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-              maxLines: 2,
+              maxLines: Platform.isWindows ? 4 : 2,
               overflow: TextOverflow.ellipsis,
             ),
         ],
