@@ -553,6 +553,7 @@ class _Notas extends StatelessWidget {
           cabem++;
         }
         return Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             for (var i = 0; i < cabem; i++)
