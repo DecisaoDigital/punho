@@ -297,9 +297,7 @@ class CelulaSemaforo extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(16, grande ? 14 : 10, 16, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: grande && notas.isEmpty
-            ? MainAxisAlignment.start
-            : MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             rotulo.toUpperCase(),

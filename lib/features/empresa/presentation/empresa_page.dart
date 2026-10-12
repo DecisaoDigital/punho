@@ -81,6 +81,10 @@ class _EmpresaPageState extends ConsumerState<EmpresaPage>
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
+      // Windows: fundo transparente; a faixa navy desenha-se dentro das
+      // margens do conteúdo (abaixo), para ter a mesma largura dele.
+      backgroundColor: Platform.isWindows ? Colors.transparent : null,
+      surfaceTintColor: Platform.isWindows ? Colors.transparent : null,
       // Sem title: as 6 tabs ganham a area toda. O nome 'Empresa' ja aparece
       // no destino da sidebar e no rotulo permanente da app; repeti-lo aqui
       // so gastava vertical num telemovel.
@@ -93,19 +97,30 @@ class _EmpresaPageState extends ConsumerState<EmpresaPage>
                 52 + MargensDoCanvas.vertical,
               ),
               child: Padding(
-                padding: const EdgeInsets.only(top: MargensDoCanvas.vertical),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(width: MargensDoCanvas.lateral),
-                    const TituloDePagina(
-                      texto: 'Empresa',
-                      larguraFixa: true,
-                      cor: Colors.white,
-                    ),
-                    const SizedBox(width: 24),
-                    Expanded(child: _barraDeAbas()),
-                  ],
+                padding: const EdgeInsets.fromLTRB(
+                  MargensDoCanvas.lateral,
+                  MargensDoCanvas.vertical,
+                  MargensDoCanvas.lateral,
+                  0,
+                ),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).appBarTheme.backgroundColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(width: 16),
+                      const TituloDePagina(
+                        texto: 'Empresa',
+                        larguraFixa: true,
+                        cor: Colors.white,
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(child: _barraDeAbas()),
+                    ],
+                  ),
                 ),
               ),
             )
