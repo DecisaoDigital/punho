@@ -1417,6 +1417,7 @@ class MachinesPage extends ConsumerWidget {
       child: _ComResumoDeMaquinas(
         mostrar: Platform.isWindows,
         child: ListView(
+          shrinkWrap: Platform.isWindows,
           children: [
             for (final m in machines)
               Card(
@@ -1506,21 +1507,29 @@ class _ComResumoDeMaquinas extends ConsumerWidget {
     if (!mostrar) return child;
     final estado = ref.watch(operationsProvider);
     final agora = DateTime.now();
-    return Column(
-      children: [
-        Expanded(child: child),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 300,
-          child: Row(
-            children: [
-              Expanded(child: graficoOcupacaoPorMaquina(estado, agora)),
-              const SizedBox(width: 10),
-              Expanded(child: graficoReservasPorDia(estado, agora)),
-            ],
+    return LayoutBuilder(
+      builder: (context, c) => Column(
+        children: [
+          // A lista tem o seu tamanho (até deixar 260 aos gráficos) e os
+          // gráficos ficam com o resto do ecrã.
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: (c.maxHeight - 270).clamp(0.0, double.infinity),
+            ),
+            child: child,
           ),
-        ),
-      ],
+          const SizedBox(height: 10),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: graficoOcupacaoPorMaquina(estado, agora)),
+                const SizedBox(width: 10),
+                Expanded(child: graficoReservasPorDia(estado, agora)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -234,7 +234,9 @@ class CelulaSemaforo extends StatelessWidget {
                                   : tt.titleLarge)
                               ?.copyWith(
                                 fontWeight: FontWeight.w800,
-                                color: valorEmDestaque ? _corLegivel(cor) : cs.onSurface,
+                                color: valorEmDestaque
+                                    ? _corLegivel(cor)
+                                    : cs.onSurface,
                                 height: 1.1,
                               ),
                       children: [
@@ -353,7 +355,7 @@ class CelulaSemaforo extends StatelessWidget {
               style: (grande ? tt.bodyLarge : tt.bodyMedium)?.copyWith(
                 color: cs.onSurfaceVariant,
               ),
-              maxLines: grande ? 2 : 4,
+              maxLines: grande ? 3 : 4,
               overflow: TextOverflow.ellipsis,
             ),
           ],
@@ -409,7 +411,9 @@ class CelulaSemaforo extends StatelessWidget {
                               : tt.headlineSmall)
                           ?.copyWith(
                             fontWeight: FontWeight.w800,
-                            color: valorEmDestaque ? _corLegivel(cor) : cs.onSurface,
+                            color: valorEmDestaque
+                                ? _corLegivel(cor)
+                                : cs.onSurface,
                             height: 1.1,
                           ),
                   children: [
