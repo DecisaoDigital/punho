@@ -227,18 +227,34 @@ enum FinancePeriod { today, week, month, custom }
 bool isInPeriod(DateTime date, DateTime from, DateTime to) =>
     !date.isBefore(DateTime(from.year, from.month, from.day)) &&
     date.isBefore(DateTime(to.year, to.month, to.day + 1));
-int receiptTotal(Iterable<Receipt> items, DateTime from, DateTime to) => items
-    .where((x) => !x.archived && isInPeriod(x.date, from, to))
-    .fold(0, (sum, x) => sum + x.amountCents);
-int paidExpenseTotal(Iterable<Expense> items, DateTime from, DateTime to) =>
-    items
-        .where(
-          (x) =>
-              !x.archived &&
-              x.status == ExpensePaymentStatus.paid &&
-              isInPeriod(x.date, from, to),
-        )
-        .fold(0, (sum, x) => sum + x.amountCents);
+// Os limites calculam-se uma vez e não por item: `isInPeriod` fazia duas
+// construções de `DateTime` por recibo, e com milhares deles dominava o custo.
+int receiptTotal(Iterable<Receipt> items, DateTime from, DateTime to) {
+  final desde = DateTime(from.year, from.month, from.day);
+  final ate = DateTime(to.year, to.month, to.day + 1);
+  var soma = 0;
+  for (final x in items) {
+    if (!x.archived && !x.date.isBefore(desde) && x.date.isBefore(ate)) {
+      soma += x.amountCents;
+    }
+  }
+  return soma;
+}
+
+int paidExpenseTotal(Iterable<Expense> items, DateTime from, DateTime to) {
+  final desde = DateTime(from.year, from.month, from.day);
+  final ate = DateTime(to.year, to.month, to.day + 1);
+  var soma = 0;
+  for (final x in items) {
+    if (!x.archived &&
+        x.status == ExpensePaymentStatus.paid &&
+        !x.date.isBefore(desde) &&
+        x.date.isBefore(ate)) {
+      soma += x.amountCents;
+    }
+  }
+  return soma;
+}
 int unpaidExpenseTotal(Iterable<Expense> items) => items
     .where((x) => !x.archived && x.status == ExpensePaymentStatus.unpaid)
     .fold(0, (sum, x) => sum + x.amountCents);

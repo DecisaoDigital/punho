@@ -164,12 +164,18 @@ class GuidanceInput {
 class GuidanceEngine {
   List<Recommendation> evaluate(GuidanceInput input) {
     final result = <Recommendation>[];
-    final pending = input.bookings.fold(
-      0,
-      (sum, b) =>
-          sum +
-          bookingPendingCents(b.expectedValueCents ?? 0, b.id, input.receipts),
-    );
+    // Recebido por reserva, somado uma vez: percorrer todos os recibos a cada
+    // reserva custava segundos com milhares de ambos.
+    final recebido = <String, int>{};
+    for (final r in input.receipts) {
+      final id = r.bookingId;
+      if (r.archived || id == null) continue;
+      recebido[id] = (recebido[id] ?? 0) + r.amountCents;
+    }
+    final pending = input.bookings.fold(0, (sum, b) {
+      final esperado = b.expectedValueCents ?? 0;
+      return sum + (esperado - (recebido[b.id] ?? 0)).clamp(0, esperado);
+    });
     if (pending > 0) {
       result.add(
         Recommendation(

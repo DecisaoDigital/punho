@@ -111,10 +111,9 @@ CaixaDoMes _caixaAte(OperationsState state, DateTime inicio, DateTime ate) {
   // As categorias que já têm rubrica fixa declarada com data ficam de fora das
   // despesas: entram pelo valor declarado, e contá-las dos dois lados duplica
   // a saída. É a mesma regra de `tesourariaDoMes` — a fonte declarada manda.
+  final datadas = categoriasComRubricaDatada(state);
   final pagas = paidExpenseTotal(
-    state.expenses.where(
-      (e) => !categoriasComRubricaDatada(state).contains(e.category),
-    ),
+    state.expenses.where((e) => !datadas.contains(e.category)),
     inicio,
     ate,
   );
