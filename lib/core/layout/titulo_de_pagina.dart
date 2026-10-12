@@ -31,6 +31,7 @@ class TituloDePagina extends StatelessWidget {
           : Align(alignment: Alignment.centerRight, child: accao);
     }
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Text(

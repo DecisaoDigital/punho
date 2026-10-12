@@ -3240,6 +3240,11 @@ class _NavegacaoDeDatas extends StatelessWidget {
   }
 }
 
+/// Largura da coluna à esquerda da grelha (Manhã/Tarde). No Windows é estreita
+/// — texto na vertical — para as margens esquerda e direita da grelha serem
+/// iguais; o mês não tem coluna.
+final double _colunaEsquerdaDoCalendario = Platform.isWindows ? 24 : 86;
+
 class _WeekBookingsCalendar extends ConsumerWidget {
   const _WeekBookingsCalendar({
     required this.focus,
@@ -3271,11 +3276,18 @@ class _WeekBookingsCalendar extends ConsumerWidget {
     // ou cabem, ou o ecrã é que é pequeno, e aí encolhem-se as células.
     return Column(
       children: [
+        // Windows: o Semana/Mês tem linha própria e a coluna Manhã/Tarde é
+        // estreita (texto na vertical), para a grelha ter margens iguais.
+        if (Platform.isWindows)
+          Align(alignment: Alignment.centerLeft, child: cantoSuperior),
         Row(
           children: [
             // O canto por cima dos rótulos Manhã/Tarde estava vazio. É o único
             // sítio do calendário que não custa altura nenhuma a ninguém.
-            SizedBox(width: 86, child: cantoSuperior),
+            SizedBox(
+              width: _colunaEsquerdaDoCalendario,
+              child: Platform.isWindows ? null : cantoSuperior,
+            ),
             for (final day in days)
               Expanded(
                 child: Padding(
@@ -3341,7 +3353,7 @@ class _WeekSlotRow extends ConsumerWidget {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       SizedBox(
-        width: 86,
+        width: _colunaEsquerdaDoCalendario,
         // Encostado à margem, e não centrado nos 86 dp da coluna.
         //
         // Centrado, "Manhã" nascia a 36,7 dp da aresta do canvas — a margem de
@@ -3351,16 +3363,26 @@ class _WeekSlotRow extends ConsumerWidget {
         // Mais 10 dp só nestes dois: são rótulos de linha, não um começo de
         // ecrã, e a 15 certos ficavam a competir com o Semana/Mês por cima.
         // O Semana/Mês fica nos 15 — é ele que marca a coluna.
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 10),
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-          ),
-        ),
+        child: Platform.isWindows
+            ? Center(
+                child: RotatedBox(
+                  quarterTurns: 3,
+                  child: Text(
+                    label,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              )
+            : Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: Text(
+                    label,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
       ),
       for (final day in days)
         Expanded(
@@ -3476,9 +3498,14 @@ class _MonthBookingsCalendar extends ConsumerWidget {
     final machineBookings = _reservasDe(bookings, machineId);
     return Column(
       children: [
+        if (Platform.isWindows)
+          Align(alignment: Alignment.centerLeft, child: cantoSuperior),
         Row(
           children: [
-            SizedBox(width: 86, child: cantoSuperior),
+            SizedBox(
+              width: Platform.isWindows ? 0 : 86,
+              child: Platform.isWindows ? null : cantoSuperior,
+            ),
             for (final day in ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'])
               Expanded(child: Center(child: Text(day))),
           ],
@@ -3489,7 +3516,7 @@ class _MonthBookingsCalendar extends ConsumerWidget {
           // em cima têm de sair também daqui, senão os dias ficam a apontar
           // para a coluna errada.
           child: Padding(
-            padding: const EdgeInsets.only(left: 86),
+            padding: EdgeInsets.only(left: Platform.isWindows ? 0 : 86),
             // **O mês cabe no ecrã, ou não é um mês.**
             //
             // Com `childAspectRatio: 0.95` cada célula queria ficar quase
@@ -5040,9 +5067,14 @@ class _PageFrame extends StatelessWidget {
     child: Padding(
       // Estes ecrãs começam por um botão de acção, daí a margem de topo mais
       // curta. Os números vivem todos em [MargensDoCanvas].
-      padding: const EdgeInsets.fromLTRB(
+      //
+      // No Windows o título é texto e manda: topo igual ao do Painel e dos
+      // restantes ecrãs, com o botão encostado ao mesmo topo.
+      padding: EdgeInsets.fromLTRB(
         MargensDoCanvas.lateral,
-        MargensDoCanvas.verticalComBotaoNoTopo,
+        Platform.isWindows
+            ? MargensDoCanvas.vertical
+            : MargensDoCanvas.verticalComBotaoNoTopo,
         MargensDoCanvas.lateral,
         MargensDoCanvas.vertical,
       ),
