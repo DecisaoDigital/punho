@@ -95,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const BrandLockup(grande: true),
+                const BrandLockup(grande: true, entrada: true),
                 const SizedBox(height: 24),
                 Text(
                   'Iniciar sessão',

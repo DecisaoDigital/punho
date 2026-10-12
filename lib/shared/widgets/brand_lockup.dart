@@ -7,6 +7,9 @@
 // training or to generate derivative works without written permission.
 // SPDX-License-Identifier: LicenseRef-Proprietary
 
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:flutter/material.dart';
 
 import '../../core/theme/punho_theme.dart';
@@ -18,8 +21,24 @@ class BrandLockup extends StatelessWidget {
     this.compact = false,
     this.emFundoEscuro = false,
     this.grande = false,
+    this.entrada = false,
   });
   final bool compact;
+
+  /// Ecrã de entrada (login, PIN, registo, recuperação, onboarding). No Windows
+  /// (1920x1080 a 125%) o lockup aparece [escalaDeEntradaWindows] vezes maior;
+  /// no Android nada muda.
+  final bool entrada;
+
+  static const escalaDeEntradaWindows = 2.25;
+
+  @visibleForTesting
+  static bool? forcarWindows;
+
+  static bool get _eWindows => forcarWindows ?? (!kIsWeb && Platform.isWindows);
+
+  /// 1 fora do Windows; [escalaDeEntradaWindows] no Windows.
+  static double get escalaDeEntrada => _eWindows ? escalaDeEntradaWindows : 1.0;
 
   /// Ecrã de entrada: símbolo ao dobro e letras maiores.
   final bool grande;
@@ -34,39 +53,42 @@ class BrandLockup extends StatelessWidget {
   final bool emFundoEscuro;
 
   @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      SimboloFist(lado: grande ? 76 : 38),
-      if (!compact) ...[
-        SizedBox(width: grande ? 16 : 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Fist',
-              style: TextStyle(
-                color: emFundoEscuro ? Colors.white : FistTheme.navyDeep,
-                fontSize: grande ? 30 : 21,
-                fontWeight: FontWeight.w800,
+  Widget build(BuildContext context) {
+    final e = entrada ? escalaDeEntrada : 1.0;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SimboloFist(lado: (grande ? 76 : 38) * e),
+        if (!compact) ...[
+          SizedBox(width: (grande ? 16 : 10) * e),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Fist',
+                style: TextStyle(
+                  color: emFundoEscuro ? Colors.white : FistTheme.navyDeep,
+                  fontSize: (grande ? 30 : 21) * e,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-            Text(
-              'Agarra o comando.',
-              style: TextStyle(
-                // O mesmo papel dos dois lados: um cinza que se lê sem competir
-                // com o nome. No navy é o azulado claro de sempre; no claro, o
-                // navy esbatido — e não um cinza neutro, que ao lado do nome
-                // parecia de outra marca.
-                color: emFundoEscuro
-                    ? const Color(0xFFB7C5CE)
-                    : FistTheme.navyDeep.withValues(alpha: 0.62),
-                fontSize: grande ? 15 : 11,
+              Text(
+                'Agarra o comando.',
+                style: TextStyle(
+                  // O mesmo papel dos dois lados: um cinza que se lê sem competir
+                  // com o nome. No navy é o azulado claro de sempre; no claro, o
+                  // navy esbatido — e não um cinza neutro, que ao lado do nome
+                  // parecia de outra marca.
+                  color: emFundoEscuro
+                      ? const Color(0xFFB7C5CE)
+                      : FistTheme.navyDeep.withValues(alpha: 0.62),
+                  fontSize: (grande ? 15 : 11) * e,
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ],
-    ],
-  );
+    );
+  }
 }

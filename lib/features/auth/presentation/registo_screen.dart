@@ -173,7 +173,7 @@ class _RegistoScreenState extends ConsumerState<RegistoScreen> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const BrandLockup(),
+                        const BrandLockup(entrada: true),
                         const SizedBox(height: 20),
                         Text(
                           'Criar conta',

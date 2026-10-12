@@ -15,6 +15,7 @@ import '../../shared/widgets/brand_lockup.dart';
 import '../config/supabase_config.dart';
 import '../push/push_de_leads.dart';
 import 'cadeado_service.dart';
+import 'teclas_do_pin.dart';
 
 /// Ecrã de bloqueio. Aparece sobreposto ao resto da app quando o
 /// [cadeadoBloqueadoProvider] está `true`.
@@ -195,84 +196,99 @@ class _LockScreenState extends ConsumerState<LockScreen>
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: _navy,
-    body: SafeArea(
-      child: Center(
-        child: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 340),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const BrandLockup(emFundoEscuro: true),
-                  const SizedBox(height: 28),
-                  if (_aTentarBio) ...[
-                    const _BiometriaPendente(),
-                    const SizedBox(height: 20),
-                    // A saída de emergência. Enquanto isto não existiu, uma
-                    // biometria encravada deixava a app inacessível.
-                    TextButton(
-                      onPressed: () => setState(() => _mostrarPin = true),
-                      child: const Text(
-                        'Usar PIN',
-                        style: TextStyle(color: Colors.white70),
+    body: TeclasDoPin(
+      activo: _mostrarPin,
+      aoDigito: _digito,
+      aoApagar: _apagarDigito,
+      aoConfirmar: () {
+        if (_pin.length >= _minimoDigitos) _validarPin();
+      },
+      child: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              // No Windows o lockup de entrada é 2,25x maior e precisa de mais
+              // largura; o teclado de pontos mantém os seus 76 dp por tecla.
+              constraints: BoxConstraints(
+                maxWidth: BrandLockup.escalaDeEntrada > 1 ? 560 : 340,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const BrandLockup(emFundoEscuro: true, entrada: true),
+                    const SizedBox(height: 28),
+                    if (_aTentarBio) ...[
+                      const _BiometriaPendente(),
+                      const SizedBox(height: 20),
+                      // A saída de emergência. Enquanto isto não existiu, uma
+                      // biometria encravada deixava a app inacessível.
+                      TextButton(
+                        onPressed: () => setState(() => _mostrarPin = true),
+                        child: const Text(
+                          'Usar PIN',
+                          style: TextStyle(color: Colors.white70),
+                        ),
                       ),
-                    ),
-                  ] else if (!_mostrarPin)
-                    FilledButton.icon(
-                      onPressed: _tentarBiometria,
-                      icon: const Icon(Icons.fingerprint),
-                      label: const Text('Desbloquear'),
-                    ),
-                  if (_mostrarPin) ...[
-                    const Text(
-                      'Introduz o PIN',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.2,
+                    ] else if (!_mostrarPin)
+                      FilledButton.icon(
+                        onPressed: _tentarBiometria,
+                        icon: const Icon(Icons.fingerprint),
+                        label: const Text('Desbloquear'),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    _Pontos(preenchidos: _pin.length, erro: _erro != null),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 20,
-                      child: _erro == null
-                          ? null
-                          : Text(
-                              _erro!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Color(0xFFFF8A80),
-                                fontSize: 12.5,
+                    if (_mostrarPin) ...[
+                      const Text(
+                        'Introduz o PIN',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _Pontos(preenchidos: _pin.length, erro: _erro != null),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 20,
+                        child: _erro == null
+                            ? null
+                            : Text(
+                                _erro!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Color(0xFFFF8A80),
+                                  fontSize: 12.5,
+                                ),
                               ),
-                            ),
-                    ),
-                    const SizedBox(height: 4),
-                    _Teclado(
-                      onDigito: _digito,
-                      onApagar: _apagarDigito,
-                      onConfirmar: _pin.length >= _minimoDigitos
-                          ? _validarPin
-                          : null,
-                      biometriaVisivel: _bioPossivel,
-                      onBiometria: _tentarBiometria,
-                    ),
-                  ],
-                  if (_falhas >= 5) ...[
-                    const SizedBox(height: 20),
-                    TextButton(
-                      onPressed: _terminarSessao,
-                      child: const Text(
-                        'Esqueci o PIN — terminar sessão',
-                        style: TextStyle(color: Colors.white54, fontSize: 13),
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                      _Teclado(
+                        onDigito: _digito,
+                        onApagar: _apagarDigito,
+                        onConfirmar: _pin.length >= _minimoDigitos
+                            ? _validarPin
+                            : null,
+                        biometriaVisivel: _bioPossivel,
+                        onBiometria: _tentarBiometria,
+                      ),
+                    ],
+                    if (_falhas >= 5) ...[
+                      const SizedBox(height: 20),
+                      TextButton(
+                        onPressed: _terminarSessao,
+                        child: const Text(
+                          'Esqueci o PIN — terminar sessão',
+                          style: TextStyle(color: Colors.white54, fontSize: 13),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),

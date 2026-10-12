@@ -314,7 +314,7 @@ class _DefinirPinScreenState extends State<DefinirPinScreen> {
           // rede, para o teclado que for mais alto do que este.
           final lado = restricoes.maxWidth >= 480;
           final pin = _campoPin(_pin1, 'PIN', autofocus: true);
-          final repetir = _campoPin(_pin2, 'Repetir PIN');
+          final repetir = _campoPin(_pin2, 'Repetir PIN', aoEnter: _validar);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -355,9 +355,15 @@ class _DefinirPinScreenState extends State<DefinirPinScreen> {
     TextEditingController c,
     String label, {
     bool autofocus = false,
+    VoidCallback? aoEnter,
   }) => TextField(
     controller: c,
     autofocus: autofocus,
+    // Enter: do primeiro campo salta para o segundo, do segundo guarda.
+    textInputAction: aoEnter == null
+        ? TextInputAction.next
+        : TextInputAction.done,
+    onSubmitted: (_) => aoEnter?.call(),
     keyboardType: TextInputType.number,
     obscureText: true,
     maxLength: 6,

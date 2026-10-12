@@ -76,7 +76,7 @@ class _NovaPalavraPasseScreenState extends State<NovaPalavraPasseScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const BrandLockup(),
+                const BrandLockup(entrada: true),
                 const SizedBox(height: 24),
                 Text(
                   'Nova palavra-passe',

@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/orientacao/orientacao_do_contexto.dart';
+import 'brand_lockup.dart';
 
 /// Splash de arranque com o símbolo Fist.
 ///
@@ -96,8 +97,9 @@ class _SplashFistState extends State<SplashFist>
           child: Transform.scale(
             scale: _escala.value * (_c.value > 0.70 ? _pulse.value : 1.0),
             child: SizedBox(
-              width: 180,
-              height: 180,
+              // No Windows o símbolo do splash é 2,25x maior (1920x1080 a 125%).
+              width: 180 * BrandLockup.escalaDeEntrada,
+              height: 180 * BrandLockup.escalaDeEntrada,
               child: Image.asset(
                 'assets/brand/punho_elo_operacao_v010.png',
                 fit: BoxFit.contain,

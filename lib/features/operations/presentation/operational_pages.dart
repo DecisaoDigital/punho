@@ -776,7 +776,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const BrandLockup(),
+                          const BrandLockup(entrada: true),
                           const SizedBox(height: 28),
                           // Conta passos de dados, não ecrãs: os de contexto não têm
                           // contador, e dizer "12 de 14" num percurso cujo contador nunca
