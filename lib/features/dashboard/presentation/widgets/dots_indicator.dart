@@ -7,6 +7,8 @@
 // training or to generate derivative works without written permission.
 // SPDX-License-Identifier: LicenseRef-Proprietary
 
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/punho_theme.dart';
@@ -32,7 +34,7 @@ class DotsIndicator extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     children: [
       ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 260),
+        constraints: BoxConstraints(maxWidth: Platform.isWindows ? 420 : 260),
         child: Text(
           '${activo + 1}/${nomes.length} · ${nomes[activo]}',
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),

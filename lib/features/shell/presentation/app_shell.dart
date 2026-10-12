@@ -531,20 +531,23 @@ class _SidebarItem extends ConsumerWidget {
                               : const Color(0xFFB7C7D1),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          item.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 10,
-                            height: 1.1,
-                            fontWeight: selected
-                                ? FontWeight.w800
-                                : FontWeight.w500,
-                            color: selected
-                                ? FistTheme.orange
-                                : const Color(0xFFB7C7D1),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            item.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 10,
+                              height: 1.1,
+                              fontWeight: selected
+                                  ? FontWeight.w800
+                                  : FontWeight.w500,
+                              color: selected
+                                  ? FistTheme.orange
+                                  : const Color(0xFFB7C7D1),
+                            ),
                           ),
                         ),
                       ],

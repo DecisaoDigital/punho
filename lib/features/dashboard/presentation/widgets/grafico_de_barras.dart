@@ -98,9 +98,27 @@ class GraficoDeBarras extends StatelessWidget {
                                           30.0,
                                         )
                                       : 10.0;
+                                  // Reserva o que o texto mais largo pede,
+                                  // para nunca sair do cartão.
+                                  var textoMax = 0.0;
+                                  for (final o in barras) {
+                                    final m = TextPainter(
+                                      text: TextSpan(
+                                        text: o.texto,
+                                        style: pequeno,
+                                      ),
+                                      textDirection: TextDirection.ltr,
+                                      maxLines: 1,
+                                    )..layout();
+                                    if (m.width > textoMax) textoMax = m.width;
+                                    m.dispose();
+                                  }
                                   final largura = maximo <= 0
                                       ? 0.0
-                                      : (caixa.maxWidth - 44) *
+                                      : (caixa.maxWidth - 12 - textoMax).clamp(
+                                              0.0,
+                                              double.infinity,
+                                            ) *
                                             b.valor /
                                             maximo;
                                   return Row(
@@ -113,7 +131,14 @@ class GraficoDeBarras extends StatelessWidget {
                                         color: cor,
                                       ),
                                       const SizedBox(width: 4),
-                                      Text(b.texto, style: pequeno),
+                                      Flexible(
+                                        child: Text(
+                                          b.texto,
+                                          style: pequeno,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
                                     ],
                                   );
                                 },

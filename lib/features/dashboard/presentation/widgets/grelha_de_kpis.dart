@@ -62,7 +62,6 @@ class GrelhaDeKpis extends StatelessWidget {
                               const SizedBox(width: _entreCelulas),
                             Expanded(child: celulas[i]),
                           ],
-
                         ],
                       ),
               ),

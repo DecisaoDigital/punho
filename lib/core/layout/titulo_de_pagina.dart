@@ -18,7 +18,16 @@ import 'package:flutter/material.dart';
 /// ecrãs que já começavam por um botão. Fora do Windows não desenha o título —
 /// o telemóvel gasta cada dp — e devolve só a acção, encostada à direita.
 class TituloDePagina extends StatelessWidget {
-  const TituloDePagina({super.key, required this.texto, this.accao});
+  const TituloDePagina({
+    super.key,
+    required this.texto,
+    this.accao,
+    this.larguraFixa = false,
+  });
+
+  /// Dentro de uma linha sem largura definida (ex.: ao lado de abas): o título
+  /// ocupa só o que o texto pede.
+  final bool larguraFixa;
 
   final String texto;
   final Widget? accao;
@@ -29,6 +38,9 @@ class TituloDePagina extends StatelessWidget {
       return accao == null
           ? const SizedBox.shrink()
           : Align(alignment: Alignment.centerRight, child: accao);
+    }
+    if (larguraFixa) {
+      return Text(texto, maxLines: 1, style: estiloDoTituloDePagina(context));
     }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,

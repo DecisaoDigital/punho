@@ -96,7 +96,7 @@ Widget graficoCobradoPorColaborador(OperationsState estado, DateTime now) {
       cor: const Color(0xFF639922),
       vazio: 'Ainda ninguém cobrou este mês.',
       barras: [
-        for (final c in e.porCobrado.take(6))
+        for (final c in e.porCobrado.take(10))
           BarraDoGrafico(
             _primeiroNome(c.nome),
             c.cobradoCents.toDouble(),
@@ -116,7 +116,7 @@ Widget graficoAngariadosPorColaborador(OperationsState estado, DateTime now) {
       cor: const Color(0xFF1D9A8C),
       vazio: 'Ainda ninguém angariou este mês.',
       barras: [
-        for (final c in e.porAngariado.take(6))
+        for (final c in e.porAngariado.take(10))
           BarraDoGrafico(
             _primeiroNome(c.nome),
             c.contactos.toDouble(),

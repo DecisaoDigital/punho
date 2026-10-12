@@ -13,6 +13,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/format/campos.dart';
+import '../../../core/layout/margens_do_canvas.dart';
+import '../../../core/layout/titulo_de_pagina.dart';
 import '../../../core/finance/regime_fiscal.dart';
 import '../../../core/navigation/app_destination.dart';
 import '../../../core/operations/operations_controller.dart';
@@ -59,6 +61,22 @@ class _EmpresaPageState extends ConsumerState<EmpresaPage>
     super.dispose();
   }
 
+  TabBar _barraDeAbas() => TabBar(
+    controller: _abas,
+    isScrollable: true,
+    tabAlignment: TabAlignment.start,
+    dividerHeight: 0,
+    tabs: [
+      for (final aba in AbaDaEmpresa.values)
+        Tab(
+          height: 52,
+          iconMargin: const EdgeInsets.only(bottom: 2),
+          icon: Icon(aba.icon, size: 23),
+          text: aba.label,
+        ),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -66,21 +84,27 @@ class _EmpresaPageState extends ConsumerState<EmpresaPage>
       // no destino da sidebar e no rotulo permanente da app; repeti-lo aqui
       // so gastava vertical num telemovel.
       toolbarHeight: 0,
-      bottom: TabBar(
-        controller: _abas,
-        isScrollable: true,
-        tabAlignment: TabAlignment.start,
-        dividerHeight: 0,
-        tabs: [
-          for (final aba in AbaDaEmpresa.values)
-            Tab(
-              height: 52,
-              iconMargin: const EdgeInsets.only(bottom: 2),
-              icon: Icon(aba.icon, size: 23),
-              text: aba.label,
-            ),
-        ],
-      ),
+      bottom: Platform.isWindows
+          // Windows: o título "Empresa" fica à esquerda, ao mesmo y dos
+          // títulos dos outros ecrãs, com as abas na mesma linha.
+          ? PreferredSize(
+              preferredSize: const Size.fromHeight(
+                52 + MargensDoCanvas.vertical,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(top: MargensDoCanvas.vertical),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(width: MargensDoCanvas.lateral),
+                    const TituloDePagina(texto: 'Empresa', larguraFixa: true),
+                    const SizedBox(width: 24),
+                    Expanded(child: _barraDeAbas()),
+                  ],
+                ),
+              ),
+            )
+          : _barraDeAbas(),
     ),
     body: TabBarView(
       controller: _abas,
