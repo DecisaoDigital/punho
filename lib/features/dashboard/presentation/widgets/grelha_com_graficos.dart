@@ -23,7 +23,7 @@ class GrelhaComGraficos extends StatelessWidget {
     super.key,
     required this.celulas,
     required this.graficos,
-  }) : assert(celulas.length <= 3);
+  }) : assert(celulas.length <= 4);
 
   final List<Widget> celulas;
   final List<Widget> graficos;

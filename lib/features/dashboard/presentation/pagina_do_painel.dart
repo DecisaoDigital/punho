@@ -58,6 +58,15 @@ class PaginaDoPainel extends ConsumerWidget {
       for (final kpi in kpis)
         if (kpi.grafico case final desenhar?) desenhar(estado, now),
     ];
+    // Windows: um ecrã de 3 ou 4 KPIs sem gráficos ficava com o fundo vazio;
+    // enche-se com os gráficos do mesmo assunto, já calculados.
+    final relacionados = Platform.isWindows && graficos.isEmpty
+        ? _graficosRelacionados(kpis)
+        : const <String>[];
+    final comRelacionados = [
+      for (final id in relacionados)
+        if (kpiPorId(id)?.grafico case final desenhar?) desenhar(estado, now),
+    ];
     final celulas = [
       for (final kpi in kpis)
         if (kpi.grafico == null)
@@ -76,19 +85,67 @@ class PaginaDoPainel extends ConsumerWidget {
                 ? null
                 : kpi.id,
             agora: agora,
-            child: _comNotas(
-              kpi,
-              estado,
-              now,
-              detalhado: graficos.isEmpty && kpis.length <= 4,
-            ),
+            child: _comNotas(kpi, estado, now),
           ),
     ];
     if (graficos.isNotEmpty) {
       return GrelhaComGraficos(celulas: celulas, graficos: graficos);
     }
+    if (comRelacionados.isNotEmpty) {
+      return GrelhaComGraficos(celulas: celulas, graficos: comRelacionados);
+    }
     return GrelhaDeKpis(celulas: celulas);
   }
+}
+
+/// Gráficos do mesmo assunto dos KPIs de um ecrã (até 2), por ordem de
+/// aparição. Só para ecrãs de 3 ou 4 KPIs.
+List<String> _graficosRelacionados(List<KpiDefinicao> kpis) {
+  if (kpis.length < 3 || kpis.length > 4) return const [];
+  const porKpi = <String, List<String>>{
+    'contactos-novos': [
+      'grafico-contactos-por-origem',
+      'grafico-conversao-por-canal',
+    ],
+    'viraram-clientes': [
+      'grafico-conversao-por-canal',
+      'grafico-contactos-por-origem',
+    ],
+    'melhor-canal': [
+      'grafico-conversao-por-canal',
+      'grafico-contactos-por-origem',
+    ],
+    'quem-mais-cobrou': [
+      'grafico-cobrado-por-colaborador',
+      'grafico-angariados-por-colaborador',
+    ],
+    'quem-mais-angariou': [
+      'grafico-angariados-por-colaborador',
+      'grafico-cobrado-por-colaborador',
+    ],
+    'cobrado-por-colaborador': [
+      'grafico-cobrado-por-colaborador',
+      'grafico-angariados-por-colaborador',
+    ],
+    'vendas-mes': ['grafico-faturacao-mensal', 'grafico-total-por-ano'],
+    'lucro-mes': ['grafico-faturacao-mensal', 'grafico-entrou-vs-saiu'],
+    'estrutura-mes': [
+      'grafico-despesas-por-categoria',
+      'grafico-despesa-por-mes',
+    ],
+    'maquina-parada': [
+      'grafico-ocupacao-por-maquina',
+      'grafico-reservas-por-dia',
+    ],
+  };
+  final escolhidos = <String>[];
+  for (final k in kpis) {
+    for (final g in porKpi[k.id] ?? const <String>[]) {
+      if (!escolhidos.contains(g)) escolhidos.add(g);
+      if (escolhidos.length == 2) return escolhidos;
+    }
+  }
+  return escolhidos.length == 2 ? escolhidos : const [];
 }
 
 /// Torna uma célula tocável: ou desce a cadeia, ou vai ao destino operacional.
