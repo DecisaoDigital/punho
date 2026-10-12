@@ -803,6 +803,58 @@ class OperationsController extends Notifier<OperationsState> {
     state = _fromRepo();
   }
 
+  /// **Um humano valida a lead quente** (gerente ou administrativa): passa a
+  /// «qualificada» e fica com o nome e a hora de quem a validou. É a única
+  /// porta: o bot capta mas nunca chama isto.
+  void validarLead(String leadId, String porId, {DateTime? agora}) {
+    final atual = state.leads.where((l) => l.id == leadId).firstOrNull;
+    if (atual == null || atual.status == LeadStatus.converted) return;
+    _repo.saveLead(
+      atual.copyWith(
+        status: LeadStatus.qualified,
+        validadaEm: agora ?? DateTime.now(),
+        validadaPor: porId,
+      ),
+    );
+    state = _fromRepo();
+  }
+
+  /// O operador diz que **falou** (ou tentou) com a pessoa. Só assim se grava o
+  /// último contacto — nunca pelo clique em «ligar», que é intenção e não
+  /// contacto. Marca a próxima ação para daqui a [diasParaVoltar] dias, para a
+  /// lead nunca ficar sem data.
+  void registarContacto(
+    String leadId,
+    String canal, {
+    int diasParaVoltar = 2,
+    DateTime? agora,
+  }) {
+    final atual = state.leads.where((l) => l.id == leadId).firstOrNull;
+    if (atual == null || atual.status == LeadStatus.converted) return;
+    final quando = agora ?? DateTime.now();
+    _repo.saveLead(
+      atual.copyWith(
+        status: atual.status == LeadStatus.newLead
+            ? LeadStatus.contacted
+            : atual.status,
+        ultimoContactoEm: quando,
+        ultimoContactoCanal: canal,
+        proximaAcaoEm: quando.add(Duration(days: diasParaVoltar)),
+      ),
+    );
+    state = _fromRepo();
+  }
+
+  /// Dá a lead por perdida, com o motivo (lista fechada).
+  void perderLead(String leadId, MotivoDePerda motivo) {
+    final atual = state.leads.where((l) => l.id == leadId).firstOrNull;
+    if (atual == null || atual.status == LeadStatus.converted) return;
+    _repo.saveLead(
+      atual.copyWith(status: LeadStatus.lost, motivoDePerda: motivo),
+    );
+    state = _fromRepo();
+  }
+
   /// O cliente (não arquivado) com este telemóvel, ou `null`.
   Customer? clienteComTelemovel(String telemovel) {
     final alvo = telefoneNormalizado(telemovel);

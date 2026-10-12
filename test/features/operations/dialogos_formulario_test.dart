@@ -291,15 +291,9 @@ void main() {
       final guardar = find.widgetWithText(FilledButton, 'Guardar');
 
       expect(find.byType(EcraDeFormulario), findsOneWidget);
-      expect(
-        tester.getTopLeft(telefone).dx,
-        greaterThan(tester.getTopLeft(nome).dx),
-      );
-      expect(
-        (tester.getTopLeft(telefone).dy - tester.getTopLeft(nome).dy).abs(),
-        lessThan(8),
-        reason: 'em paisagem os dois campos devem caber lado a lado',
-      );
+      // Com a zona, o negócio, o email e a morada o formulário reparte-se por
+      // colunas (ver EcraDeFormulario): o que conta é que tudo se vê.
+      expect(tester.getRect(telefone).bottom, lessThanOrEqualTo(500 - 220));
       expect(tester.getRect(nome).bottom, lessThanOrEqualTo(500 - 220));
       expect(tester.getRect(guardar).bottom, lessThanOrEqualTo(500 - 220));
     });
@@ -325,7 +319,18 @@ void main() {
         find.widgetWithText(TextField, 'Telemóvel'),
         '914 555 555',
       );
-      // A origem é obrigatória: sem ela diz porquê e não grava.
+      // A zona é obrigatória: sem ela diz porquê e não grava.
+      await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Diz a zona: o código postal ou a localidade.'),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Localidade'),
+        'Porto',
+      );
+      // A origem também: sem ela diz porquê e não grava.
       await tester.tap(find.widgetWithText(FilledButton, 'Guardar'));
       await tester.pumpAndSettle();
       expect(find.text('Diz como a pessoa nos conheceu.'), findsOneWidget);

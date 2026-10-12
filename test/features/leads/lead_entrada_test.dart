@@ -25,6 +25,48 @@ void main() {
     'base_legal': baseLegal,
   };
 
+  group('LeadEntrada — ficha do CRM', () {
+    test('a ficha do funil/assistente passa para a lead quente', () {
+      final e = LeadEntrada.fromJson({
+        ...linha(origem: 'whatsapp', nome: 'Ana'),
+        'negocio': 'Estética Ana',
+        'codigo_postal': '4000-001',
+        'localidade': 'Porto',
+        'morada': 'Rua A, 1',
+        'email': 'ana@x.pt',
+        'interesse': 'depilação laser',
+        'horario_pedido': '2030-03-12T10:00:00Z',
+        'via': 'bot',
+        'tipo': 'aluguer',
+        'categoria': 'Emagrecimento',
+      });
+      final lead = e.paraLead('l1');
+      expect(lead.negocio, 'Estética Ana');
+      expect(lead.codigoPostal, '4000-001');
+      expect(lead.localidade, 'Porto');
+      expect(lead.morada, 'Rua A, 1');
+      expect(lead.email, 'ana@x.pt');
+      expect(lead.via, LeadVia.bot);
+      expect(lead.tipo, LeadTipo.aluguer);
+      expect(lead.categoria, 'Emagrecimento');
+      expect(lead.temZona, isTrue);
+      expect(lead.quente, isTrue);
+      expect(lead.summary, 'depilação laser');
+      expect(
+        lead.horarioPedido,
+        DateTime.parse('2030-03-12T10:00:00Z').toLocal(),
+      );
+    });
+
+    test('linha antiga, sem ficha, continua a abrir', () {
+      final lead = LeadEntrada.fromJson(linha()).paraLead('l2');
+      expect(lead.via, isNull);
+      expect(lead.negocio, '');
+      expect(lead.temZona, isFalse);
+      expect(lead.summary, '');
+    });
+  });
+
   group('LeadEntrada', () {
     test('a origem do servidor vira origem da lead', () {
       expect(LeadEntrada.fromJson(linha()).origem, LeadSource.landingPage);

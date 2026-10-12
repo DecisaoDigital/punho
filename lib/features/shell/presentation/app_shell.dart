@@ -18,6 +18,8 @@ import '../../conta/presentation/perfil_popup.dart';
 import '../../contabilista/historico_do_contabilista_provider.dart';
 import '../../dashboard/presentation/dashboard_page.dart';
 import '../../empresa/presentation/empresa_page.dart';
+import '../../equipa/domain/funcao_na_equipa.dart';
+import '../../equipa/equipa_providers.dart';
 import '../../kpis/presentation/kpis_page.dart';
 import '../../licenca/presentation/licenca_banner.dart';
 import '../../operations/presentation/operational_pages.dart';
@@ -133,8 +135,20 @@ class _AppShellState extends ConsumerState<AppShell> {
     // silencioso e uma vez só; o valor não interessa aqui, só que corra.
     ref.watch(historicoDoContabilistaProvider);
 
-    final destination = ref.watch(navigationProvider);
-    final destinations = visibleOperationalDestinations(operational);
+    // A administrativa não vê os ecrãs que o gerente lhe escondeu. Enquanto não se
+    // sabe quem é, vê-se tudo: esconder é apresentação e uma pergunta lenta não
+    // pode deixar um gerente sem o Painel.
+    final funcao =
+        ref.watch(minhaFuncaoProvider).valueOrNull ?? FuncaoNaEquipa.gerente;
+    final destinations = funcao.filtrar(
+      visibleOperationalDestinations(operational),
+    );
+    // Um salto para um ecrã escondido (um card do Painel, uma tarefa) cai no
+    // primeiro que ela vê, em vez de lhe abrir o que não devia.
+    final pedido = ref.watch(navigationProvider);
+    final destination = destinations.contains(pedido) || destinations.isEmpty
+        ? pedido
+        : destinations.first;
     final isDesktop = MediaQuery.sizeOf(context).width >= 680;
     // Só o ramo largo tem moldura. No estreito não há faixa nem barra lateral
     // para absorver o que o edge-to-edge descobre, e o conteúdo ficaria por

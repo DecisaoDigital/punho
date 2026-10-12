@@ -19,6 +19,16 @@ class LeadEntrada {
     this.mensagem,
     this.motivo,
     this.baseLegal = 'nao_registada',
+    this.negocio,
+    this.codigoPostal,
+    this.localidade,
+    this.morada,
+    this.interesse,
+    this.horarioPedido,
+    this.via,
+    this.tipo,
+    this.categoria,
+    this.periodoDias,
   });
 
   final String id;
@@ -26,6 +36,20 @@ class LeadEntrada {
   final String classificacao;
   final DateTime recebidaEm;
   final String? nome, telefone, email, mensagem, motivo;
+
+  /// A ficha do CRM, entregue pelo funil ou pelo assistente. Tudo opcional.
+  final String? negocio, codigoPostal, localidade, morada, interesse;
+
+  /// O dia e a hora que a pessoa pediu — já validados contra o horário da
+  /// empresa no servidor. É um pedido: quem marca é a administrativa.
+  final DateTime? horarioPedido;
+
+  /// Quem captou: `funil`, `bot` ou `manual`. Nulo nas linhas antigas.
+  final String? via;
+
+  /// `servico`, `aluguer` ou `venda`, e os dias de aluguer pedidos.
+  final String? tipo, categoria;
+  final int? periodoDias;
 
   /// O que autoriza guardar estes dados: `consentimento`,
   /// `diligencia_pre_contratual` ou `nao_registada`. Quem a escreve é o
@@ -66,6 +90,18 @@ class LeadEntrada {
     mensagem: json['mensagem'] as String?,
     motivo: json['motivo'] as String?,
     baseLegal: (json['base_legal'] as String?) ?? 'nao_registada',
+    negocio: json['negocio'] as String?,
+    codigoPostal: json['codigo_postal'] as String?,
+    localidade: json['localidade'] as String?,
+    morada: json['morada'] as String?,
+    interesse: json['interesse'] as String?,
+    horarioPedido: DateTime.tryParse(
+      json['horario_pedido'] as String? ?? '',
+    )?.toLocal(),
+    via: json['via'] as String?,
+    tipo: json['tipo'] as String?,
+    categoria: json['categoria'] as String?,
+    periodoDias: (json['periodo_dias'] as num?)?.toInt(),
   );
 
   static LeadSource _origem(String? bruto) => switch (bruto) {
@@ -92,8 +128,38 @@ class LeadEntrada {
     status: LeadStatus.newLead,
     createdAt: recebidaEm,
     source: origem,
-    summary: mensagem ?? '',
+    summary: _resumo(),
+    negocio: negocio ?? '',
+    codigoPostal: codigoPostal ?? '',
+    localidade: localidade ?? '',
+    morada: morada ?? '',
+    email: email ?? '',
+    via: switch (via) {
+      'bot' => LeadVia.bot,
+      'manual' => LeadVia.manual,
+      'funil' => LeadVia.funil,
+      _ => null,
+    },
+    tipo: switch (tipo) {
+      'servico' => LeadTipo.servico,
+      'aluguer' => LeadTipo.aluguer,
+      'venda' => LeadTipo.venda,
+      _ => null,
+    },
+    categoria: categoria ?? '',
+    periodoDias: periodoDias,
+    horarioPedido: horarioPedido,
   );
+
+  /// O que a pessoa quer, numa linha que a administrativa lê ao validar. O dia
+  /// e a hora pedidos vão em campo próprio na lead.
+  String _resumo() {
+    final partes = <String>[
+      if (interesse != null && interesse!.trim().isNotEmpty) interesse!.trim(),
+      if (mensagem != null && mensagem!.trim().isNotEmpty) mensagem!.trim(),
+    ];
+    return partes.join(' · ');
+  }
 }
 
 /// Lê a caixa de entrada no Supabase e marca o que já foi processado.

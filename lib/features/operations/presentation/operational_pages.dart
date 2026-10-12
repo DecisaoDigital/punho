@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../equipa/domain/funcao_na_equipa.dart';
+import '../../equipa/equipa_providers.dart';
 import '../../../shared/widgets/brand_lockup.dart';
 
 import '../../../core/config/supabase_config.dart';
@@ -27,6 +29,7 @@ import '../../../domain/models/historical_month.dart';
 import '../../auth/acesso_providers.dart';
 import '../../auth/domain/estado_acesso.dart';
 import 'bem_vindo_screen.dart';
+import 'leads_quentes_ui.dart';
 import 'reunioes_ui.dart';
 import 'boas_vindas_screen.dart';
 import 'mais_dados_screen.dart';
@@ -2147,6 +2150,8 @@ class ClientsPage extends ConsumerWidget {
     // pela ordem de chegada da sincronização (achado 20).
     final clientes = state.customers.where((c) => !c.archived).toList()
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    // As quentes têm a sua caixa por cima; aqui ficam as já validadas.
+    final leadsTratadas = state.leads.where((l) => !l.quente).toList();
     return _PageFrame(
       title: 'Clientes e leads',
       action: Wrap(
@@ -2170,6 +2175,14 @@ class ClientsPage extends ConsumerWidget {
       // empresa alguma vez teve para mostrar os oito que cabem no ecrã.
       child: CustomScrollView(
         slivers: [
+          SliverToBoxAdapter(
+            child: LeadsQuentesSecao(
+              validadoPor:
+                  (ref.watch(minhaFuncaoProvider).valueOrNull ??
+                          FuncaoNaEquipa.gerente)
+                      .nomeParaRegisto,
+            ),
+          ),
           const SliverToBoxAdapter(
             child: Text(
               'Clientes',
@@ -2236,9 +2249,9 @@ class ClientsPage extends ConsumerWidget {
             ),
           ),
           SliverList.builder(
-            itemCount: state.leads.length,
+            itemCount: leadsTratadas.length,
             itemBuilder: (context, i) {
-              final l = state.leads[i];
+              final l = leadsTratadas[i];
               return Card(
                 child: ListTile(
                   title: Text(l.name),
@@ -2592,13 +2605,27 @@ class _FormularioDeLead extends StatefulWidget {
 class _FormularioDeLeadState extends State<_FormularioDeLead> {
   final name = TextEditingController();
   final phone = TextEditingController();
+  final negocio = TextEditingController();
+  final codigoPostal = TextEditingController();
+  final localidade = TextEditingController();
+  final email = TextEditingController();
+  final morada = TextEditingController();
   String? erro;
   LeadSource? origem;
 
   @override
   void dispose() {
-    name.dispose();
-    phone.dispose();
+    for (final c in [
+      name,
+      phone,
+      negocio,
+      codigoPostal,
+      localidade,
+      email,
+      morada,
+    ]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -2625,6 +2652,33 @@ class _FormularioDeLeadState extends State<_FormularioDeLead> {
           rotulo: 'Telemóvel',
           teclado: TextInputType.phone,
         ),
+        // A zona decide se a pessoa vem ao escritório ou se vamos lá dar a
+        // formação; o negócio e o email são a segunda via para a reencontrar.
+        CampoDeTexto(
+          controlador: codigoPostal,
+          rotulo: 'Código postal',
+          teclado: TextInputType.number,
+        ),
+        CampoDeTexto(
+          controlador: localidade,
+          rotulo: 'Localidade',
+          capitalizacao: TextCapitalization.words,
+        ),
+        CampoDeTexto(
+          controlador: negocio,
+          rotulo: 'Nome do negócio (opcional)',
+          capitalizacao: TextCapitalization.words,
+        ),
+        CampoDeTexto(
+          controlador: email,
+          rotulo: 'Email (opcional)',
+          teclado: TextInputType.emailAddress,
+        ),
+        CampoDeTexto(
+          controlador: morada,
+          rotulo: 'Morada (opcional)',
+          capitalizacao: TextCapitalization.words,
+        ),
         DropdownButtonFormField<LeadSource?>(
           isExpanded: true,
           initialValue: origem,
@@ -2642,6 +2696,11 @@ class _FormularioDeLeadState extends State<_FormularioDeLead> {
           setState(() => erro = problema);
           return;
         }
+        if (codigoPostal.text.trim().isEmpty &&
+            localidade.text.trim().isEmpty) {
+          setState(() => erro = 'Diz a zona: o código postal ou a localidade.');
+          return;
+        }
         if (origem == null) {
           setState(() => erro = 'Diz como a pessoa nos conheceu.');
           return;
@@ -2655,6 +2714,12 @@ class _FormularioDeLeadState extends State<_FormularioDeLead> {
               status: LeadStatus.newLead,
               createdAt: DateTime.now(),
               source: origem,
+              via: LeadVia.manual,
+              negocio: negocio.text.trim(),
+              email: email.text.trim(),
+              morada: morada.text.trim(),
+              codigoPostal: codigoPostal.text.trim(),
+              localidade: localidade.text.trim(),
             ),
           );
         } on StateError catch (e) {

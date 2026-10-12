@@ -314,6 +314,33 @@ String? validarLead(String nome, String telemovel) =>
     ? 'A lead precisa do nome e do telemóvel.'
     : null;
 
+/// Por onde a lead entrou. O funil e o Carlitos criam a mesma lead quente; esta
+/// marca serve para comparar quem converte mais (César, 11 Out 2026).
+enum LeadVia { funil, bot, manual }
+
+/// O que a pessoa quer. Três pedidos com tratamentos diferentes:
+/// - [servico]: depilação no cliente, com horário e hora de almoço;
+/// - [aluguer]: máquinas entregues e recolhidas, sem hora de almoço;
+/// - [venda]: venda de máquinas, que é do gerente e não tem horário.
+enum LeadTipo { servico, aluguer, venda }
+
+String leadTipoLabel(LeadTipo t) => switch (t) {
+  LeadTipo.servico => 'Serviço',
+  LeadTipo.aluguer => 'Aluguer de máquinas',
+  LeadTipo.venda => 'Venda de máquinas',
+};
+
+/// Porque se perdeu. Lista fechada e curta: um dono leigo não escreve motivos.
+enum MotivoDePerda { preco, semResposta, foiParaOutro, naoPrecisa, outro }
+
+String motivoDePerdaLabel(MotivoDePerda m) => switch (m) {
+  MotivoDePerda.preco => 'Preço',
+  MotivoDePerda.semResposta => 'Não respondeu',
+  MotivoDePerda.foiParaOutro => 'Foi para outro',
+  MotivoDePerda.naoPrecisa => 'Já não precisa',
+  MotivoDePerda.outro => 'Outro',
+};
+
 class Lead {
   const Lead({
     required this.id,
@@ -326,8 +353,75 @@ class Lead {
     this.collaboratorResponsibleId,
     this.convertedCustomerId,
     this.bookingId,
+    this.negocio = '',
+    this.email = '',
+    this.morada = '',
+    this.codigoPostal = '',
+    this.localidade = '',
+    this.via,
+    this.tipo,
+    this.categoria = '',
+    this.periodoDias,
+    this.horarioPedido,
+    this.proximaAcaoEm,
+    this.ultimoContactoEm,
+    this.ultimoContactoCanal,
+    this.motivoDePerda,
+    this.validadaEm,
+    this.validadaPor,
   });
   final String id, name, phone, summary;
+
+  /// Nome do negócio, ao lado do nome da pessoa: se um telefone vier mal
+  /// percebido, é por aqui que se volta a chegar à empresa.
+  final String negocio, email, morada, codigoPostal, localidade;
+  final LeadVia? via;
+
+  /// O que a pessoa quer, quantos dias de aluguer pediu e o dia e hora (de
+  /// serviço ou de entrega) que sugeriu. O horário é um pedido: quem marca é uma
+  /// pessoa. Nulos nas leads antigas.
+  final LeadTipo? tipo;
+
+  /// A categoria do que quer (ex.: «Depilação a laser»). Tem o mesmo texto da
+  /// categoria das máquinas, para a lead e a máquina se encontrarem.
+  final String categoria;
+  final int? periodoDias;
+  final DateTime? horarioPedido;
+
+  /// Quando é preciso voltar a falar com a pessoa.
+  final DateTime? proximaAcaoEm;
+
+  /// Último contacto **confirmado pelo operador** (nunca pelo clique no botão
+  /// de ligar) e o canal usado: `tel`, `wa` ou `presencial`.
+  final DateTime? ultimoContactoEm;
+  final String? ultimoContactoCanal;
+  final MotivoDePerda? motivoDePerda;
+
+  /// Quando e quem (colaborador ou gestor) validou a lead quente. Só um humano.
+  final DateTime? validadaEm;
+  final String? validadaPor;
+
+  /// Lead quente: pessoa que nunca foi cliente, ainda por validar por um humano.
+  bool get quente =>
+      status == LeadStatus.newLead &&
+      validadaEm == null &&
+      convertedCustomerId == null;
+
+  /// Tem zona (código postal ou localidade): sem ela não se decide se a pessoa
+  /// vem ao escritório ou se vamos lá.
+  bool get temZona =>
+      codigoPostal.trim().isNotEmpty || localidade.trim().isNotEmpty;
+
+  /// Quantos dos 6 dados de contacto estão preenchidos (nome, telemóvel, zona,
+  /// negócio, email, morada). Não é pontuação: é contar campos.
+  int get fichaCompleta => [
+    name,
+    phone,
+    temZona ? 'x' : '',
+    negocio,
+    email,
+    morada,
+  ].where((c) => c.trim().isNotEmpty).length;
   final LeadStatus status;
   final LeadSource? source;
   final DateTime createdAt;
@@ -355,6 +449,17 @@ class Lead {
     String? collaboratorResponsibleId,
     String? convertedCustomerId,
     String? bookingId,
+    String? negocio,
+    String? email,
+    String? morada,
+    String? codigoPostal,
+    String? localidade,
+    DateTime? proximaAcaoEm,
+    DateTime? ultimoContactoEm,
+    String? ultimoContactoCanal,
+    MotivoDePerda? motivoDePerda,
+    DateTime? validadaEm,
+    String? validadaPor,
 
     /// Para atribuir ou desatribuir: devolve o novo valor (pode ser `null`).
     String? Function()? atribuidaA,
@@ -371,6 +476,22 @@ class Lead {
         : collaboratorResponsibleId ?? this.collaboratorResponsibleId,
     convertedCustomerId: convertedCustomerId ?? this.convertedCustomerId,
     bookingId: bookingId ?? this.bookingId,
+    negocio: negocio ?? this.negocio,
+    email: email ?? this.email,
+    morada: morada ?? this.morada,
+    codigoPostal: codigoPostal ?? this.codigoPostal,
+    localidade: localidade ?? this.localidade,
+    via: via,
+    tipo: tipo,
+    categoria: categoria,
+    periodoDias: periodoDias,
+    horarioPedido: horarioPedido,
+    proximaAcaoEm: proximaAcaoEm ?? this.proximaAcaoEm,
+    ultimoContactoEm: ultimoContactoEm ?? this.ultimoContactoEm,
+    ultimoContactoCanal: ultimoContactoCanal ?? this.ultimoContactoCanal,
+    motivoDePerda: motivoDePerda ?? this.motivoDePerda,
+    validadaEm: validadaEm ?? this.validadaEm,
+    validadaPor: validadaPor ?? this.validadaPor,
   );
 }
 

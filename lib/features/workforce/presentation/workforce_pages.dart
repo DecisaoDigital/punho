@@ -92,7 +92,9 @@ class CollaboratorsPage extends ConsumerWidget {
           children: [
             Text(
               'Funcionários',
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
             Text(
               mensagemVagasDeColaboradores(s.activeCollaborators, limite),
@@ -683,7 +685,12 @@ class VehiclesPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Veículos', style: Theme.of(context).textTheme.headlineMedium),
+            Text(
+              'Veículos',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
             Text(
               veiculos.isEmpty
                   ? 'Frota declarada, veículos por identificar'

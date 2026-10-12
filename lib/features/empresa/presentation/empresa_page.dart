@@ -130,45 +130,52 @@ class _AbaDados extends ConsumerWidget {
           Text(estado.legalForm, style: textos.bodyMedium),
         ],
         const SizedBox(height: 20),
-        _Retrato(
-          icone: Icons.badge_outlined,
-          titulo: 'Identificação',
-          linhas: [
-            ('Responsável', estado.ownerName),
-            ('NIF', estado.companyTaxId),
-          ],
-        ),
-        _Retrato(
-          icone: Icons.place_outlined,
-          titulo: 'Contactos e morada',
-          linhas: [
-            ('Telemóvel', estado.companyPhone),
-            ('Email', estado.companyEmail),
-            ('Morada', morada.isEmpty ? null : morada),
-          ],
-        ),
-        _Retrato(
-          icone: Icons.groups_outlined,
-          titulo: 'Equipa e frota',
-          linhas: [
-            ('Colaboradores', '${estado.declaredCollaboratorCount}'),
-            ('Veículos', '${estado.declaredVehicleCount}'),
-            (
-              'Máquinas declaradas',
-              '${estado.totalMachinesDeclared}'
-                  '${estado.machinesStillToIdentify > 0 ? ' · faltam identificar ${estado.machinesStillToIdentify}' : ''}',
+        _RetratosEmColunas(
+          retratos: [
+            _Retrato(
+              icone: Icons.badge_outlined,
+              titulo: 'Identificação',
+              linhas: [
+                ('Responsável', estado.ownerName),
+                ('NIF', estado.companyTaxId),
+              ],
             ),
-          ],
-        ),
-        _Retrato(
-          icone: Icons.query_stats_outlined,
-          titulo: 'Referências financeiras',
-          linhas: [
-            ('Facturação do ano passado', _euros(estado.revenueLastYearCents)),
-            ('Facturação deste ano', _euros(estado.revenueThisYearCents)),
-            (
-              'Manutenção no ano passado',
-              _euros(estado.maintenanceLastYearCents),
+            _Retrato(
+              icone: Icons.place_outlined,
+              titulo: 'Contactos e morada',
+              linhas: [
+                ('Telemóvel', estado.companyPhone),
+                ('Email', estado.companyEmail),
+                ('Morada', morada.isEmpty ? null : morada),
+              ],
+            ),
+            _Retrato(
+              icone: Icons.groups_outlined,
+              titulo: 'Equipa e frota',
+              linhas: [
+                ('Colaboradores', '${estado.declaredCollaboratorCount}'),
+                ('Veículos', '${estado.declaredVehicleCount}'),
+                (
+                  'Máquinas declaradas',
+                  '${estado.totalMachinesDeclared}'
+                      '${estado.machinesStillToIdentify > 0 ? ' · faltam identificar ${estado.machinesStillToIdentify}' : ''}',
+                ),
+              ],
+            ),
+            _Retrato(
+              icone: Icons.query_stats_outlined,
+              titulo: 'Referências financeiras',
+              linhas: [
+                (
+                  'Facturação do ano passado',
+                  _euros(estado.revenueLastYearCents),
+                ),
+                ('Facturação deste ano', _euros(estado.revenueThisYearCents)),
+                (
+                  'Manutenção no ano passado',
+                  _euros(estado.maintenanceLastYearCents),
+                ),
+              ],
             ),
           ],
         ),
@@ -241,7 +248,7 @@ class _Retrato extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(
-                    width: 132,
+                    width: 190,
                     child: Text(rotulo, style: textos.bodyMedium),
                   ),
                   const SizedBox(width: 12),
@@ -873,4 +880,26 @@ String _periodo(Booking reserva) {
   }
   if (dias <= 1) return inicio;
   return '$inicio a ${_data(reserva.endsAt.subtract(const Duration(minutes: 1)))}';
+}
+
+/// Os blocos do retrato em duas colunas quando a janela é larga (Windows);
+/// numa coluna só nos ecrãs estreitos, como sempre foi.
+class _RetratosEmColunas extends StatelessWidget {
+  const _RetratosEmColunas({required this.retratos});
+  final List<Widget> retratos;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, restricoes) {
+      if (restricoes.maxWidth < 900) return Column(children: retratos);
+      const entre = 32.0;
+      final largura = (restricoes.maxWidth - entre) / 2;
+      return Wrap(
+        spacing: entre,
+        children: [
+          for (final r in retratos) SizedBox(width: largura, child: r),
+        ],
+      );
+    },
+  );
 }

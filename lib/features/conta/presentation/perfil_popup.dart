@@ -12,6 +12,8 @@ import '../../../core/operations/operations_controller.dart';
 import '../../../shared/widgets/versao_app.dart';
 import '../../auth/acesso_providers.dart';
 import '../../company/presentation/company_settings_page.dart';
+import '../../equipa/equipa_providers.dart';
+import '../../equipa/presentation/acessos_da_equipa_screen.dart';
 import '../../licenca/presentation/diagnostico_licenca.dart';
 import '../../gestao/presentation/convites_screen.dart';
 import '../../gestao/presentation/dados_pessoais_screen.dart';
@@ -154,6 +156,27 @@ class PerfilPopup extends ConsumerWidget {
                   // o convite sai hoje, a pessoa inscreve-se quando puder. Sem
                   // uma entrada própria, quem se inscreveu ficava à espera sem
                   // que o gestor tivesse onde reparar nele.
+                  // Só o gerente gere a equipa: a administrativa tem os poderes
+                  // dele mas não decide o que os outros veem.
+                  if (!(ref
+                          .watch(minhaFuncaoProvider)
+                          .valueOrNull
+                          ?.eAdministrativa ??
+                      false)) ...[
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const AcessosDaEquipaScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.manage_accounts_outlined),
+                      label: const Text('Acessos da equipa'),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   OutlinedButton.icon(
                     onPressed: () => _abrirPedidos(context),
                     icon: const Icon(Icons.how_to_reg_outlined),

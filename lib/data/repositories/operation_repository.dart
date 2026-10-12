@@ -925,9 +925,10 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
         ],
         // Ausente nas gravações anteriores: sem metas, não há meta.
         metasDeCrescimento: {
-          for (final e in (_mapOrNull(onboardingJson['metasDeCrescimento']) ??
-                  const <String, dynamic>{})
-              .entries)
+          for (final e
+              in (_mapOrNull(onboardingJson['metasDeCrescimento']) ??
+                      const <String, dynamic>{})
+                  .entries)
             if (e.value is num) e.key: (e.value as num).toDouble(),
         },
       );
@@ -1107,7 +1108,26 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     'collaboratorResponsibleId': item.collaboratorResponsibleId,
     'convertedCustomerId': item.convertedCustomerId,
     'bookingId': item.bookingId,
+    'negocio': item.negocio,
+    'email': item.email,
+    'morada': item.morada,
+    'codigoPostal': item.codigoPostal,
+    'localidade': item.localidade,
+    'via': item.via?.name,
+    'tipo': item.tipo?.name,
+    'categoria': item.categoria,
+    'periodoDias': item.periodoDias,
+    'horarioPedido': item.horarioPedido?.toIso8601String(),
+    'proximaAcaoEm': item.proximaAcaoEm?.toIso8601String(),
+    'ultimoContactoEm': item.ultimoContactoEm?.toIso8601String(),
+    'ultimoContactoCanal': item.ultimoContactoCanal,
+    'motivoDePerda': item.motivoDePerda?.name,
+    'validadaEm': item.validadaEm?.toIso8601String(),
+    'validadaPor': item.validadaPor,
   };
+
+  static DateTime? _dataOuNula(Object? v) =>
+      v is String && v.isNotEmpty ? DateTime.tryParse(v) : null;
 
   static Lead _leadFromJson(Map<String, dynamic> data) => Lead(
     id: _string(data, 'id'),
@@ -1132,6 +1152,29 @@ class PersistentOperationRepository extends LocalDemoOperationRepository {
     // cliente a partir do telemóvel, que era como se criavam elos falsos.
     convertedCustomerId: _nullableString(data['convertedCustomerId']),
     bookingId: _nullableString(data['bookingId']),
+    // Todos os campos abaixo faltam nas leads gravadas antes de 11 Out 2026.
+    negocio: _string(data, 'negocio'),
+    email: _string(data, 'email'),
+    morada: _string(data, 'morada'),
+    codigoPostal: _string(data, 'codigoPostal'),
+    localidade: _string(data, 'localidade'),
+    via: LeadVia.values
+        .where((v) => v.name == _nullableString(data['via']))
+        .firstOrNull,
+    tipo: LeadTipo.values
+        .where((v) => v.name == _nullableString(data['tipo']))
+        .firstOrNull,
+    categoria: _string(data, 'categoria'),
+    periodoDias: (data['periodoDias'] as num?)?.toInt(),
+    horarioPedido: _dataOuNula(data['horarioPedido']),
+    proximaAcaoEm: _dataOuNula(data['proximaAcaoEm']),
+    ultimoContactoEm: _dataOuNula(data['ultimoContactoEm']),
+    ultimoContactoCanal: _nullableString(data['ultimoContactoCanal']),
+    motivoDePerda: MotivoDePerda.values
+        .where((v) => v.name == _nullableString(data['motivoDePerda']))
+        .firstOrNull,
+    validadaEm: _dataOuNula(data['validadaEm']),
+    validadaPor: _nullableString(data['validadaPor']),
   );
 
   static Map<String, Object?> _bookingToJson(Booking item) => {
