@@ -73,6 +73,9 @@ class _TeclasDoPinState extends State<TeclasDoPin> {
     // chegava. O `HardwareKeyboard` entrega a tecla a quem estiver registado,
     // seja qual for o foco, antes de a árvore de foco a ver.
     HardwareKeyboard.instance.addHandler(_aoTeclar);
+    try {
+      File('C:\\build\\pin_keys.log').writeAsStringSync('INIT\n', mode: FileMode.append);
+    } catch (_) {}
   }
 
   @override
