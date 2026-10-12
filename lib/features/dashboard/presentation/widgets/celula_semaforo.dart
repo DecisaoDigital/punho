@@ -293,7 +293,7 @@ class CelulaSemaforo extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(16, grande ? 14 : 10, 16, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: grande
+        mainAxisAlignment: grande && notas.isEmpty
             ? MainAxisAlignment.start
             : MainAxisAlignment.center,
         children: [
@@ -363,7 +363,7 @@ class CelulaSemaforo extends StatelessWidget {
             const SizedBox(height: 8),
             Divider(height: 1, color: cs.outlineVariant),
             const SizedBox(height: 6),
-            Expanded(child: _Notas(notas: notas)),
+            Flexible(child: _Notas(notas: notas)),
           ],
         ],
       ),

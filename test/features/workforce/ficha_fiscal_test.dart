@@ -283,13 +283,13 @@ void main() {
       // Contrato: custo real com a TSU somada.
       expect(
         find.textContaining(
-          'Contrato de trabalho · Solteiro · custo real 1237.50 €/mês',
+          'Contrato de trabalho · Solteiro · custo real 1237,50 €/mês',
         ),
         findsOneWidget,
       );
       // Recibos verdes: o que se paga é o custo.
       expect(
-        find.textContaining('Recibos verdes · custo 800.00 €/mês'),
+        find.textContaining('Recibos verdes · custo 800,00 €/mês'),
         findsOneWidget,
       );
     });

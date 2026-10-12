@@ -212,16 +212,16 @@ String _subtitulo(Collaborator c, OperationsState s, DateTime mes) {
     (contagem: final n, valorCents: null) =>
       '$n ${n == 1 ? 'reserva' : 'reservas'} este mês · valor por apurar',
     (contagem: final n, valorCents: _) =>
-      '$n ${n == 1 ? 'reserva' : 'reservas'} este mês · ${(valor! / 100).toStringAsFixed(2)} €',
+      '$n ${n == 1 ? 'reserva' : 'reservas'} este mês · ${textoDeCents(valor!)} €',
   };
   // O custo/hora vem em cêntimos, como o mensal. Estava a ser mostrado tal e
   // qual: um colaborador a 14,10 €/hora aparecia como "custo/hora: 1410.26".
   final custoHora = hourlyCollaboratorCost(c);
   return '$vendasTexto\n'
       '${_estadoEmPortugues(c.status)} · custo mensal: '
-      '${custoMensal == null ? 'por apurar' : '${(custoMensal / 100).toStringAsFixed(2)} €'}'
+      '${custoMensal == null ? 'por apurar' : '${textoDeCents(custoMensal)} €'}'
       ' · custo/hora: '
-      '${custoHora == null ? 'por apurar' : '${(custoHora / 100).toStringAsFixed(2)} €'}';
+      '${custoHora == null ? 'por apurar' : '${textoDeCents(custoHora.round())} €'}';
 }
 
 /// O `status.name` era o nome do valor do enum: a lista dizia "active".
@@ -590,7 +590,7 @@ String _linhaDoVinculo(Collaborator c, RegimeFiscal regime) {
         // Sem bruto declarado, ou regime não modelado: não se inventa.
         ? 'custo por apurar'
         : '${c.employmentType == EmploymentType.contrato ? 'custo real' : 'custo'} '
-              '${(custo / 100).toStringAsFixed(2)} €/mês',
+              '${textoDeCents(custo)} €/mês',
   );
   return partes.join(' · ');
 }
@@ -721,7 +721,7 @@ class VehiclesPage extends ConsumerWidget {
               veiculos.isEmpty
                   ? 'Frota declarada, veículos por identificar'
                   : 'Custo mensal estimado da frota: '
-                        '${(total / 100).toStringAsFixed(2)} €'
+                        '${textoDeCents(total)} €'
                         '${porApurar == 0
                             ? ''
                             : porApurar == 1
@@ -758,7 +758,7 @@ class VehiclesPage extends ConsumerWidget {
                               custo == null
                                   ? '${v.type} · Custo: por apurar'
                                   : '${v.type} · Custo: '
-                                        '${(custo / 100).toStringAsFixed(2)} €/mês',
+                                        '${textoDeCents(custo)} €/mês',
                             );
                           },
                         ),

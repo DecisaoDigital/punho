@@ -268,7 +268,7 @@ void main() {
       );
 
       expect(
-        find.textContaining('2 reservas este mês · 750.00 €'),
+        find.textContaining('2 reservas este mês · 750,00 €'),
         findsOneWidget,
       );
     });
@@ -311,7 +311,7 @@ void main() {
       expect(find.textContaining('active'), findsNothing);
       expect(find.textContaining('Ativo'), findsOneWidget);
       // 1200 €/mês por 18h/semana: ~15,38 €/hora, e não "1538.46".
-      expect(find.textContaining('custo/hora: 15.38 €'), findsOneWidget);
+      expect(find.textContaining('custo/hora: 15,38 €'), findsOneWidget);
     });
 
     testWidgets('tocar na linha abre o diálogo de edição com os dados', (

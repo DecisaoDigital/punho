@@ -26,7 +26,16 @@ const _mesesCurtos = [
   'jul', 'ago', 'set', 'out', 'nov', 'dez', //
 ];
 
-String euros(int cents) => '${(cents / 100).round()} €';
+String euros(int cents) {
+  final n = (cents / 100).round();
+  final d = n.abs().toString();
+  final b = StringBuffer(n < 0 ? '-' : '');
+  for (var i = 0; i < d.length; i++) {
+    if (i > 0 && (d.length - i) % 3 == 0) b.write('\u00A0');
+    b.write(d[i]);
+  }
+  return '$b €';
+}
 
 DateTime _mes(DateTime d, int delta) => DateTime(d.year, d.month + delta);
 bool _noMes(DateTime d, DateTime mes) =>
