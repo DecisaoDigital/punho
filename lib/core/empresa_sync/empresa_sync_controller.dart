@@ -128,6 +128,9 @@ class EmpresaSyncController extends Notifier<bool> {
     _timer = Timer.periodic(intervalo, (_) => unawaited(_tentar()));
     // Havia alguma coisa por enviar de uma sessão anterior (app fechada com a
     // rede em baixo, por exemplo)? Tenta já, sem esperar pelos 20 minutos.
+    // O instantâneo (painel incluído) também: traz o que outro aparelho
+    // arrumou e sobe o que este tem por subir.
+    unawaited(ref.read(operationsProvider.notifier).synchronizeRemote());
     await _tentarComMotor(motor);
   }
 

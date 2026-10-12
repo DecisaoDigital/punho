@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/operation_repository.dart';
@@ -46,6 +48,9 @@ class PainelController extends Notifier<ArranjoDoPainel> {
   void _guardar(ArranjoDoPainel novo) {
     _repo.savePainel(novo);
     state = novo;
+    // Sobe já, para o outro aparelho ver a mesma arrumação sem esperar pelo
+    // ciclo de 20 minutos. Best-effort: se falhar, fica por subir.
+    unawaited(ref.read(operationsProvider.notifier).synchronizeRemote());
   }
 }
 

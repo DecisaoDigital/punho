@@ -16,6 +16,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_platfor
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/cadeado/cadeado_gate.dart';
+import 'core/empresa_sync/empresa_sync_controller.dart';
 import 'core/layout/escala_de_desktop.dart';
 import 'core/diagnostico/relator_de_erros.dart';
 import 'shared/widgets/splash_punho.dart';
@@ -191,6 +192,9 @@ class _FistAppState extends ConsumerState<FistApp> {
     // shell, porque tem de correr tanto para o gestor como para o colaborador
     // — é entre os dois que os dados precisam de viajar.
     ref.watch(syncProvider);
+    // O outro canal: o instantâneo (ficha, custos fixos, painel). Só arrancava
+    // ao gravar a ficha da empresa — o painel nunca subia nem descia sozinho.
+    ref.watch(empresaSyncControllerProvider);
     // E os pings: sem eles o Control sabe que o terminal existe, mas não sabe
     // quando foi usado nem que versão lá está agora.
     ref.watch(pingsProvider);

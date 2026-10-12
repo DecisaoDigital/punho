@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 /// [aguarda] não é um nível de urgência — é a ausência dela.
@@ -86,7 +88,10 @@ class CelulaSemaforo extends StatelessWidget {
     // slides não tiveram teste nenhum.
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: cs.surface,
+        // No Windows um véu da cor do semáforo dá corpo ao cartão.
+        color: Platform.isWindows
+            ? Color.alphaBlend(cor.withValues(alpha: 0.06), cs.surface)
+            : cs.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
       ),
@@ -121,7 +126,9 @@ class CelulaSemaforo extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     final segunda = _segundaLinha;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 10, 14, 10),
+      padding: Platform.isWindows
+          ? const EdgeInsets.fromLTRB(20, 14, 24, 14)
+          : const EdgeInsets.fromLTRB(10, 10, 14, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -143,11 +150,12 @@ class CelulaSemaforo extends StatelessWidget {
               Flexible(
                 child: Text(
                   rotulo.toUpperCase(),
-                  style: tt.labelSmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    letterSpacing: 0.8,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: (Platform.isWindows ? tt.labelMedium : tt.labelSmall)
+                      ?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        letterSpacing: 0.8,
+                        fontWeight: FontWeight.w600,
+                      ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -160,11 +168,15 @@ class CelulaSemaforo extends StatelessWidget {
                     textAlign: TextAlign.end,
                     overflow: TextOverflow.ellipsis,
                     text: TextSpan(
-                      style: tt.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: valorEmDestaque ? cor : cs.onSurface,
-                        height: 1.1,
-                      ),
+                      style:
+                          (Platform.isWindows
+                                  ? tt.headlineSmall
+                                  : tt.titleLarge)
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: valorEmDestaque ? cor : cs.onSurface,
+                                height: 1.1,
+                              ),
                       children: [
                         TextSpan(text: valor),
                         if (unidade != null)
@@ -183,10 +195,11 @@ class CelulaSemaforo extends StatelessWidget {
             ],
           ),
           if (segunda != null) ...[
-            const SizedBox(height: 3),
+            SizedBox(height: Platform.isWindows ? 8 : 3),
             Text(
               segunda,
-              style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+              style: (Platform.isWindows ? tt.bodyMedium : tt.bodySmall)
+                  ?.copyWith(color: cs.onSurfaceVariant),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -200,7 +213,9 @@ class CelulaSemaforo extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 12, 14, 12),
+      padding: Platform.isWindows
+          ? const EdgeInsets.fromLTRB(20, 18, 22, 18)
+          : const EdgeInsets.fromLTRB(10, 12, 14, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

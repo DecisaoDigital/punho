@@ -378,7 +378,7 @@ class _LinhaDeKpi extends ConsumerWidget {
     final marcado = this.marcado;
     final indice = indiceParaArrastar;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AlturaDoKpi.entreDeitados),
+      padding: EdgeInsets.only(bottom: AlturaDoKpi.entreDeitados),
       child: SizedBox(
         // O cartão **deitado**: rótulo e número na mesma linha. A altura é
         // medida (`AlturaDoKpi.deitado`), não inventada — e é aqui que a

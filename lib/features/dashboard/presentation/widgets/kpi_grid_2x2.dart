@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/punho_theme.dart';
@@ -29,12 +31,14 @@ abstract final class AlturaDoKpi {
   /// Os 150 da grelha aqui eram ar: mediu-se a 10 de Agosto de 2026 que doze
   /// das catorze células enchiam entre 47% e 65% da largura, e cabia **linha e
   /// meia** por ecrã no Redmi deitado.
-  static const deitado = 84.0;
+  ///
+  /// No Windows a janela é grande e o cartão ganha ar por dentro: 112 dp.
+  static final deitado = Platform.isWindows ? 112.0 : 84.0;
 
   /// De um cartão deitado para o seguinte. Menor do que [entre]: numa lista o
   /// que separa é a linha, e não a moldura de cada um contra os vizinhos dos
   /// quatro lados.
-  static const entreDeitados = 8.0;
+  static final entreDeitados = Platform.isWindows ? 14.0 : 8.0;
 }
 
 /// Grelha 2×2 que enche a área que lhe dão.
