@@ -207,11 +207,7 @@ class _LockScreenState extends ConsumerState<LockScreen>
         child: Center(
           child: SingleChildScrollView(
             child: ConstrainedBox(
-              // No Windows o lockup de entrada é 2,25x maior e precisa de mais
-              // largura; o teclado de pontos mantém os seus 76 dp por tecla.
-              constraints: BoxConstraints(
-                maxWidth: BrandLockup.escalaDeEntrada > 1 ? 560 : 340,
-              ),
+              constraints: const BoxConstraints(maxWidth: 340),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,

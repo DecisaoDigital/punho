@@ -154,4 +154,28 @@ void main() {
     final win = await lado(true);
     expect(win / normal, closeTo(2.25, 0.01));
   });
+
+  testWidgets('lockup ampliado cabe nos 372 dp do login sem transbordar', (
+    tester,
+  ) async {
+    BrandLockup.forcarWindows = true;
+    addTearDown(() => BrandLockup.forcarWindows = null);
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 372,
+              child: BrandLockup(entrada: true, grande: true),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getSize(find.byType(BrandLockup)).width,
+      lessThanOrEqualTo(372),
+    );
+  });
 }

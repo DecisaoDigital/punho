@@ -55,39 +55,56 @@ class BrandLockup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final e = entrada ? escalaDeEntrada : 1.0;
+    final simbolo = SimboloFist(lado: (grande ? 76 : 38) * e);
+    if (compact) return simbolo;
+    // Com o lockup ampliado (Windows) a linha símbolo+letras já não cabe nos
+    // 420 dp dos formulários: empilha-se, centrado.
+    final empilhado = e > 1;
+    final textos = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: empilhado
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Fist',
+          style: TextStyle(
+            color: emFundoEscuro ? Colors.white : FistTheme.navyDeep,
+            fontSize: (grande ? 30 : 21) * e,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        Text(
+          'Agarra o comando.',
+          style: TextStyle(
+            // O mesmo papel dos dois lados: um cinza que se lê sem competir
+            // com o nome. No navy é o azulado claro de sempre; no claro, o
+            // navy esbatido — e não um cinza neutro, que ao lado do nome
+            // parecia de outra marca.
+            color: emFundoEscuro
+                ? const Color(0xFFB7C5CE)
+                : FistTheme.navyDeep.withValues(alpha: 0.62),
+            fontSize: (grande ? 15 : 11) * e,
+          ),
+        ),
+      ],
+    );
+    if (empilhado) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          simbolo,
+          SizedBox(height: (grande ? 10 : 8) * e),
+          textos,
+        ],
+      );
+    }
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SimboloFist(lado: (grande ? 76 : 38) * e),
-        if (!compact) ...[
-          SizedBox(width: (grande ? 16 : 10) * e),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Fist',
-                style: TextStyle(
-                  color: emFundoEscuro ? Colors.white : FistTheme.navyDeep,
-                  fontSize: (grande ? 30 : 21) * e,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                'Agarra o comando.',
-                style: TextStyle(
-                  // O mesmo papel dos dois lados: um cinza que se lê sem competir
-                  // com o nome. No navy é o azulado claro de sempre; no claro, o
-                  // navy esbatido — e não um cinza neutro, que ao lado do nome
-                  // parecia de outra marca.
-                  color: emFundoEscuro
-                      ? const Color(0xFFB7C5CE)
-                      : FistTheme.navyDeep.withValues(alpha: 0.62),
-                  fontSize: (grande ? 15 : 11) * e,
-                ),
-              ),
-            ],
-          ),
-        ],
+        simbolo,
+        SizedBox(width: grande ? 16 : 10),
+        textos,
       ],
     );
   }
