@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 abstract final class FistTheme {
@@ -32,6 +34,10 @@ abstract final class FistTheme {
         ),
       ),
       cardTheme: CardThemeData(
+        // No Windows, mais ar entre cartões (14 dp em vez dos 8 por omissão).
+        margin: Platform.isWindows
+            ? const EdgeInsets.symmetric(horizontal: 4, vertical: 7)
+            : null,
         elevation: 0,
         color: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
