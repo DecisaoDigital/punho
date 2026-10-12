@@ -29,6 +29,11 @@ const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const DIAS_TRIAL = 40;
 const MAX_DISPOSITIVOS = 2;
 
+// TEMPORÁRIO (12/10/2026, a pedido do César): a sessão única está desligada
+// para se poder usar o Redmi e o Windows na mesma conta enquanto se afina a
+// paridade entre as duas apps. Pôr a `true` para voltar à regra de sempre.
+const SESSAO_UNICA = false;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
@@ -280,7 +285,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
     sessaoId = (atual?.sessao_id as string | undefined) ?? null;
     // Perde a sessão quem apresenta um id que já não é o da sessão ativa.
-    sessaoAtiva = !!atual && !!body.sessao_id && body.sessao_id === atual.sessao_id;
+    sessaoAtiva = !SESSAO_UNICA ||
+      (!!atual && !!body.sessao_id && body.sessao_id === atual.sessao_id);
     if (sessaoAtiva) {
       await db.from('fist_sessoes').update({ visto_em: agora.toISOString() })
         .eq('user_id', utilizador.id);
