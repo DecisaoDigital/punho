@@ -8,9 +8,10 @@ import 'package:flutter/widgets.dart';
 const double _larguraReferencia = 820;
 const double _alturaReferencia = 392;
 
-/// Até onde se amplia. A barra lateral tem dez itens de ~57 dp: acima de 1,5×
-/// já não cabem num ecrã de 1080 px sem rolar, e a letra passa a ser de cartaz.
-const double _escalaMaxima = 1.5;
+/// Até onde se amplia. A 1,25× um ecrã de 1080 px mostra o dobro do conteúdo
+/// de um telemóvel deitado, ainda legível; a 1,5× (a barra lateral, de dez itens
+/// de ~57 dp, ainda cabia) a letra já era de cartaz e a informação não crescia.
+const double _escalaMaxima = 1.25;
 
 /// Escala a interface inteira num ecrã grande (Windows), em vez de a esticar.
 ///
