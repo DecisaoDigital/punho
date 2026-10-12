@@ -7,6 +7,8 @@
 // training or to generate derivative works without written permission.
 // SPDX-License-Identifier: LicenseRef-Proprietary
 
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -62,61 +64,64 @@ class TeclasDoPin extends StatefulWidget {
 }
 
 class _TeclasDoPinState extends State<TeclasDoPin> {
-  final _foco = FocusNode(debugLabel: 'TeclasDoPin');
-
   @override
   void initState() {
     super.initState();
-    // `autofocus` não chega: o cadeado vive em cima do shell, no mesmo escopo,
-    // e o foco já lá estava. Pede-se à força depois do primeiro frame.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _foco.requestFocus();
-    });
+    // **Handler global do teclado, e não `Focus`.** O cadeado vive por cima do
+    // shell e o foco pode estar noutro sítio (botões, o próprio shell); um
+    // `Focus` só recebe teclas quando tem o foco, e na app real do Windows não
+    // chegava. O `HardwareKeyboard` entrega a tecla a quem estiver registado,
+    // seja qual for o foco, antes de a árvore de foco a ver.
+    HardwareKeyboard.instance.addHandler(_aoTeclar);
   }
 
   @override
   void dispose() {
-    _foco.dispose();
+    HardwareKeyboard.instance.removeHandler(_aoTeclar);
     super.dispose();
   }
 
-  KeyEventResult _aoTeclar(FocusNode _, KeyEvent e) {
-    if (!widget.activo || e is KeyUpEvent) return KeyEventResult.ignored;
+  bool _aoTeclar(KeyEvent e) {
+    // DIAG-TEMPORARIO
+    try {
+      File('C:\\build\\pin_keys.log').writeAsStringSync('${e.runtimeType} ${e.logicalKey.keyLabel} ch=${e.character} act=${widget.activo}\n', mode: FileMode.append);
+    } catch (_) {}
+    if (!mounted || !widget.activo || e is KeyUpEvent) return false;
+    // Se um campo de texto tem o foco (ex. recuperar palavra-passe), as teclas
+    // são dele.
+    final foco = FocusManager.instance.primaryFocus;
+    if (foco?.context?.findAncestorWidgetOfExactType<EditableText>() != null) {
+      return false;
+    }
     final teclado = HardwareKeyboard.instance;
     // Ctrl/Alt/Meta são atalhos de quem os carrega; Shift+dígito é símbolo.
     if (teclado.isControlPressed ||
         teclado.isAltPressed ||
         teclado.isMetaPressed) {
-      return KeyEventResult.ignored;
+      return false;
     }
     final k = e.logicalKey;
-    final digito = TeclasDoPin._linhaDeCima[k];
+    var digito = TeclasDoPin._linhaDeCima[k];
+    // Alguns teclados/layouts só trazem o carácter.
+    final c = e.character;
+    if (digito == null && c != null && RegExp(r'^[0-9]$').hasMatch(c)) {
+      digito = c;
+    }
     if (digito != null) {
-      if (e is KeyRepeatEvent || teclado.isShiftPressed) {
-        return KeyEventResult.handled;
-      }
-      widget.aoDigito(digito);
-      return KeyEventResult.handled;
+      if (e is KeyDownEvent && !teclado.isShiftPressed) widget.aoDigito(digito);
+      return true;
     }
     if (k == LogicalKeyboardKey.backspace) {
       widget.aoApagar();
-      return KeyEventResult.handled;
+      return true;
     }
     if (k == LogicalKeyboardKey.enter || k == LogicalKeyboardKey.numpadEnter) {
       if (e is KeyDownEvent) widget.aoConfirmar();
-      return KeyEventResult.handled;
+      return true;
     }
-    return KeyEventResult.ignored;
+    return false;
   }
 
   @override
-  Widget build(BuildContext context) => Listener(
-    onPointerDown: (_) => _foco.requestFocus(),
-    child: Focus(
-      focusNode: _foco,
-      autofocus: true,
-      onKeyEvent: _aoTeclar,
-      child: widget.child,
-    ),
-  );
+  Widget build(BuildContext context) => widget.child;
 }
