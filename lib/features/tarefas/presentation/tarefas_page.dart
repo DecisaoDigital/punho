@@ -22,8 +22,18 @@ class TarefasPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tarefas = ref.watch(tarefasProvider);
     if (tarefas.isEmpty) return const _SemTarefas();
+    // Cabeçalho de grupo seguido das suas tarefas, numa lista plana.
+    final itens = <Object>[
+      for (final severidade in SeveridadeTarefa.values)
+        if (tarefas.any((t) => t.severidade == severidade)) ...[
+          severidade,
+          ...tarefas.where((t) => t.severidade == severidade),
+        ],
+    ];
     return SafeArea(
-      child: ListView(
+      // Preguiçosa: com centenas de tarefas, construir todas as linhas de uma
+      // vez bloqueava a janela do Windows.
+      child: ListView.builder(
         // Começa por texto: margem vertical inteira. Ver [MargensDoCanvas].
         padding: const EdgeInsets.fromLTRB(
           MargensDoCanvas.lateral,
@@ -31,30 +41,39 @@ class TarefasPage extends ConsumerWidget {
           MargensDoCanvas.lateral,
           MargensDoCanvas.vertical,
         ),
-        children: [
-          Text(
-            tarefas.length == 1
-                ? '1 tarefa pendente'
-                : '${tarefas.length} tarefas pendentes',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Recolhido do que a app já sabe: cobranças, dados por preencher e '
-            'conselhos que adiaste.',
-          ),
-          const SizedBox(height: 20),
-          for (final severidade in SeveridadeTarefa.values)
-            if (tarefas.any((t) => t.severidade == severidade))
-              _Grupo(
-                severidade: severidade,
-                tarefas: tarefas
-                    .where((t) => t.severidade == severidade)
-                    .toList(),
-              ),
-        ],
+        itemCount: itens.length + 1,
+        itemBuilder: (context, i) {
+          if (i == 0) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tarefas.length == 1
+                      ? '1 tarefa pendente'
+                      : '${tarefas.length} tarefas pendentes',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Recolhido do que a app já sabe: cobranças, dados por '
+                  'preencher e conselhos que adiaste.',
+                ),
+                const SizedBox(height: 20),
+              ],
+            );
+          }
+          final item = itens[i - 1];
+          if (item is SeveridadeTarefa) {
+            return _CabecalhoGrupo(severidade: item);
+          }
+          final tarefa = item as Tarefa;
+          return _LinhaTarefa(
+            tarefa: tarefa,
+            cor: aparenciaDaSeveridade(tarefa.severidade).cor,
+          );
+        },
       ),
     );
   }
@@ -79,36 +98,29 @@ class TarefasPage extends ConsumerWidget {
   ),
 };
 
-class _Grupo extends StatelessWidget {
-  const _Grupo({required this.severidade, required this.tarefas});
+class _CabecalhoGrupo extends StatelessWidget {
+  const _CabecalhoGrupo({required this.severidade});
   final SeveridadeTarefa severidade;
-  final List<Tarefa> tarefas;
 
   @override
   Widget build(BuildContext context) {
     final aparencia = aparenciaDaSeveridade(severidade);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(aparencia.icone, size: 18, color: aparencia.cor),
-            const SizedBox(width: 8),
-            Text(
-              severidade.label.toUpperCase(),
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.8,
-                color: aparencia.cor,
-              ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, top: 12),
+      child: Row(
+        children: [
+          Icon(aparencia.icone, size: 18, color: aparencia.cor),
+          const SizedBox(width: 8),
+          Text(
+            severidade.label.toUpperCase(),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: aparencia.cor,
             ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        for (final tarefa in tarefas)
-          _LinhaTarefa(tarefa: tarefa, cor: aparencia.cor),
-        const SizedBox(height: 22),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }

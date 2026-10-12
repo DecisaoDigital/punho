@@ -278,6 +278,11 @@ void main() {
         find.text('Convite sem resposta: apressado@exemplo.pt'),
         findsOneWidget,
       );
+      // A lista é preguiçosa: o que está fora do ecrã só existe ao rolar.
+      await tester.scrollUntilVisible(
+        find.text('Convite sem resposta: tranquilo@exemplo.pt'),
+        200,
+      );
       expect(
         find.text('Convite sem resposta: tranquilo@exemplo.pt'),
         findsOneWidget,
