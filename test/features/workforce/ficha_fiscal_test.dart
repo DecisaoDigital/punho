@@ -283,7 +283,7 @@ void main() {
       // Contrato: custo real com a TSU somada.
       expect(
         find.textContaining(
-          'Contrato de trabalho · Solteiro · custo real 1237,50 €/mês',
+          'Contrato de trabalho · Solteiro · custo real 1\u00A0237,50 €/mês',
         ),
         findsOneWidget,
       );

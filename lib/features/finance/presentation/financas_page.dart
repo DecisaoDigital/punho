@@ -8,6 +8,7 @@
 // SPDX-License-Identifier: LicenseRef-Proprietary
 
 import 'package:flutter/material.dart';
+import '../../../core/format/campos.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/operations/kpis.dart';
@@ -182,7 +183,7 @@ class _PrevisaoDoMesCard extends ConsumerWidget {
 }
 
 String _money(int cents) =>
-    '${(cents / 100).toStringAsFixed(2).replaceAll('.', ',')} €';
+    '${comMilhares((cents / 100).toStringAsFixed(2).replaceAll('.', ','))} €';
 
 class _Accao extends StatelessWidget {
   const _Accao({

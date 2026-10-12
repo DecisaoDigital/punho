@@ -132,7 +132,7 @@ const _explicacoes = <String, ExplicacaoDoKpi>{
   ),
   'utilizacao-rentabilidade': ExplicacaoDoKpi(
     comoSeChega:
-        'A percentagem é a ocupação das máquinas na semana em curso: os dias com trabalho marcado sobre os dias disponíveis. Por baixo vês quanto do dinheiro investido nas máquinas já voltou, contando o que elas facturaram. Verde a partir de 60% de ocupação, laranja a partir de 30%.',
+        'A percentagem é a ocupação das máquinas na semana em curso: os dias com trabalho marcado sobre os dias disponíveis. Por baixo vês quanto do dinheiro investido nas máquinas já voltou, contando o que elas faturaram. Verde a partir de 60% de ocupação, laranja a partir de 30%.',
     paraMelhorar: [
       'Propõe datas aos clientes habituais para os dias vazios desta semana e das seguintes.',
       'Se uma máquina quase não sai, revê-lhe o preço por dia ou oferece-a como alternativa nas reservas.',
@@ -470,7 +470,7 @@ const _explicacoes = <String, ExplicacaoDoKpi>{
   ),
   'contas-a-pagar': ExplicacaoDoKpi(
     comoSeChega:
-        'Tudo o que está lançado como despesa por pagar, de qualquer mês, e a mais antiga em dias. Uma factura de há dois meses continua a ter de sair da conta. Fica vermelho quando a mais velha tem 30 dias ou mais.',
+        'Tudo o que está lançado como despesa por pagar, de qualquer mês, e a mais antiga em dias. Uma fatura de há dois meses continua a ter de sair da conta. Fica vermelho quando a mais velha tem 30 dias ou mais.',
     paraMelhorar: [
       'Paga primeiro a mais antiga, ou combina um prazo com o fornecedor.',
       'Marca como paga cada despesa assim que a pagares, para o número ser verdadeiro.',

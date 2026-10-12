@@ -122,7 +122,7 @@ void main() {
       expect(find.text('Este mês'), findsOneWidget);
       expect(find.text('Mês passado'), findsOneWidget);
       // Março: 3379 € de vendas − 2326 € de despesas.
-      expect(find.text('1053 €'), findsOneWidget);
+      expect(find.text('1\u00A0053 €'), findsOneWidget);
     });
 
     testWidgets('um mês sem uma linha diz "sem registos", não 0 €', (
@@ -147,7 +147,7 @@ void main() {
       await abrir(tester, 'lucro-mes');
 
       expect(find.textContaining('LUCRO BRUTO DO MÊS'), findsWidgets);
-      expect(find.textContaining('Paga-se com 4300 €'), findsOneWidget);
+      expect(find.textContaining('Paga-se com 4\u00A0300 €'), findsOneWidget);
       expect(find.textContaining('ao ritmo de hoje não chega'), findsOneWidget);
     });
   });

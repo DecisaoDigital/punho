@@ -1578,7 +1578,7 @@ List<Recommendation> _recomendacoesEspecificas(
         Recommendation(
           id: 'queda-homologa',
           title:
-              'A facturar ${proporcao.round()}% do que fizeste em '
+              'A faturar ${proporcao.round()}% do que fizeste em '
               '${_nomesDosMeses[now.month - 1]} do ano passado',
           explanation:
               'A faturação deste mês está bem abaixo do mesmo mês do ano '

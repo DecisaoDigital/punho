@@ -3678,7 +3678,11 @@ class _BookingEventChip extends StatelessWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: _bookingColor(booking.status),
+          // Windows: texto escurecido para ler com contraste AA sobre a
+          // lavagem da própria cor.
+          color: Platform.isWindows
+              ? Color.lerp(_bookingColor(booking.status), Colors.black, 0.55)
+              : _bookingColor(booking.status),
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -3999,7 +4003,7 @@ Future<void> _editarValorDaReservaDialog(
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
             labelText: 'Valor (€)',
-            helperText: 'O que vai ser facturado ao cliente, IVA incluído.',
+            helperText: 'O que vai ser faturado ao cliente, IVA incluído.',
             errorText: erro,
           ),
         ),

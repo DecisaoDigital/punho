@@ -1256,7 +1256,7 @@ CelulaSemaforo kpiMaquinaParada(OperationsState estado, DateTime now) {
       : naoFacturado != null
       // Ordem de grandeza, e assumida como tal: pressupõe procura para todos
       // os dias. Vale por ser conferível de cabeça — dias × preço de tabela.
-      ? '${_euros(naoFacturado)} € por facturar, ao preço de tabela'
+      ? '${_euros(naoFacturado)} € por faturar, ao preço de tabela'
       : 'sem trabalho marcado';
 
   return CelulaSemaforo(
@@ -1787,7 +1787,7 @@ CelulaSemaforo kpiCicloDeTesouraria(OperationsState estado, DateTime now) {
       nivel: NivelSemaforo.aguarda,
       rotulo: 'Ciclo de tesouraria',
       texto: 'Sem receita nos últimos 90 dias',
-      subtexto: 'Sem facturação não há ciclo a medir',
+      subtexto: 'Sem faturação não há ciclo a medir',
     );
   }
   return CelulaSemaforo(

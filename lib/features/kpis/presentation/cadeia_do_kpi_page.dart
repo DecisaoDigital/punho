@@ -8,6 +8,7 @@
 // SPDX-License-Identifier: LicenseRef-Proprietary
 
 import 'package:flutter/material.dart';
+import '../../../core/format/campos.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/kpis/atencao.dart';
@@ -312,7 +313,8 @@ class _Comparacao extends StatelessWidget {
 /// Euros inteiros, com o menos tipográfico quando o mês deu prejuízo.
 String _euros(int cents) {
   final valor = (cents / 100).round();
-  return valor < 0 ? '− ${valor.abs()}' : '$valor';
+  final t = comMilhares('${valor.abs()}');
+  return valor < 0 ? '− $t' : t;
 }
 
 /// A frase que nomeia o culpado, com as parcelas por baixo.

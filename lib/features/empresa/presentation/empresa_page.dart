@@ -206,10 +206,10 @@ class _AbaDados extends ConsumerWidget {
               titulo: 'Referências financeiras',
               linhas: [
                 (
-                  'Facturação do ano passado',
+                  'Faturação do ano passado',
                   _euros(estado.revenueLastYearCents),
                 ),
-                ('Facturação deste ano', _euros(estado.revenueThisYearCents)),
+                ('Faturação deste ano', _euros(estado.revenueThisYearCents)),
                 (
                   'Manutenção no ano passado',
                   _euros(estado.maintenanceLastYearCents),
@@ -238,7 +238,7 @@ class _AbaDados extends ConsumerWidget {
 
 bool _temTexto(String? valor) => valor != null && valor.trim().isNotEmpty;
 
-String? _euros(int? cents) => cents == null ? null : '${textoDeCents(cents)} €';
+String? _euros(int? cents) => cents == null ? null : '${eurosDeCents(cents)} €';
 
 /// Um bloco do retrato: rótulo à esquerda, valor à direita, uma linha cada.
 ///
@@ -587,9 +587,9 @@ class _AbaCustosFixosState extends ConsumerState<_AbaCustosFixos> {
         // o que o painel já está a usar, em vez de «Por indicar».
         Text(
           total != null
-              ? '${textoDeCents(total)} €'
+              ? '${eurosDeCents(total)} €'
               : estado.fixedMonthlyCostsCents != null
-              ? '${textoDeCents(estado.fixedMonthlyCostsCents!)} €'
+              ? '${eurosDeCents(estado.fixedMonthlyCostsCents!)} €'
               : 'Por indicar',
           style: textos.headlineMedium,
         ),

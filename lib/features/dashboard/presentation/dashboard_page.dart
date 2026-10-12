@@ -457,5 +457,12 @@ class _SetaLateral extends StatelessWidget {
     icon: Icon(icone),
     iconSize: 26,
     visualDensity: VisualDensity.compact,
+    // Windows: sem círculo cinzento persistente quando o rato fica por cima.
+    style: Platform.isWindows
+        ? IconButton.styleFrom(
+            hoverColor: Colors.transparent,
+            focusColor: Colors.transparent,
+          )
+        : null,
   );
 }

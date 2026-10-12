@@ -81,7 +81,7 @@ void main() {
 
     // 1000 + 500 + 240 = 1740 no mês. O dia 15 rendeu 240.
     expect(
-      find.textContaining('1740 € este mês', findRichText: true),
+      find.textContaining('1\u00A0740 € este mês', findRichText: true),
       findsOneWidget,
     );
     expect(find.textContaining('Hoje: 240 €'), findsOneWidget);

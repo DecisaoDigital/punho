@@ -101,3 +101,24 @@ int contagemDeTexto(String valor) {
 /// rejeita o payload inteiro com 400). Ficar aquém disso deixava fichas de
 /// empresa presas para sempre com `dados={}` no Supabase.
 bool nifValido(String valor) => RegExp(r'^\d{9}$').hasMatch(valor.trim());
+
+/// Separa os milhares com espaço não separável nos valores a mostrar:
+/// «7275» → «7 275», «10312 €» → «10 312 €», «1250,00 €» → «1 250,00 €».
+///
+/// Só mexe em números de 4 ou mais dígitos que acabam o texto ou vêm antes de
+/// «€» — anos («2026»), NIF e telefones ficam como estão.
+String comMilhares(String t) => t.replaceAllMapped(
+  RegExp(r'(?<![\d.,:/])(\d{4,})((?:,\d+)?(?:\s?€|$))'),
+  (m) {
+    final d = m[1]!;
+    final b = StringBuffer();
+    for (var i = 0; i < d.length; i++) {
+      if (i > 0 && (d.length - i) % 3 == 0) b.write(' ');
+      b.write(d[i]);
+    }
+    return '$b${m[2]}';
+  },
+);
+
+/// Euros para mostrar, com vírgula decimal e milhares: 1 250,00.
+String eurosDeCents(int cents) => comMilhares(textoDeCents(cents));

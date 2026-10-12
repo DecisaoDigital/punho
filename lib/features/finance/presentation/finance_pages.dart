@@ -608,7 +608,7 @@ class _RegisterReceiptPageState extends ConsumerState<RegisterReceiptPage> {
 }
 
 String _money(int cents) =>
-    '${(cents / 100).toStringAsFixed(2).replaceAll('.', ',')} €';
+    '${comMilhares((cents / 100).toStringAsFixed(2).replaceAll('.', ','))} €';
 
 /// Recusa a mostrar-se dentro do formulário, junto ao campo do valor — o
 /// mesmo desenho visual do `aviso` de [EcraDeFormulario], para quem não

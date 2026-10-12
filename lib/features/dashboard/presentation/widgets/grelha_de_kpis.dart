@@ -38,32 +38,34 @@ class GrelhaDeKpis extends StatelessWidget {
       // incompleta, reparte a largura toda.
       if (Platform.isWindows && celulas.isNotEmpty) {
         final n = celulas.length;
-        // Quatro cartões ficam 2×2 (sem buraco nem cartão largo sozinho).
-        final colunas = n == 4 ? 2 : 3;
+        // Quatro cartões ficam numa só fila; senão 3 por linha. Os cartões são
+        // baixos (como os de cima nas páginas com gráficos) e não crescem.
+        final colunas = n == 4 ? 4 : 3;
         final linhas = (n + colunas - 1) ~/ colunas;
-        // Duas linhas de altura fixa, mesmo com menos KPIs: os cartões não
-        // crescem quando há poucos (decisão do Cesar, 12 Out 2026).
+        final altura = ((restricoes.maxHeight - _entreCelulas) / 2).clamp(
+          0.0,
+          300.0,
+        );
         return Column(
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            for (var r = 0; r < 2; r++) ...[
+            for (var r = 0; r < linhas; r++) ...[
               if (r > 0) const SizedBox(height: _entreCelulas),
-              Expanded(
-                child: r >= linhas
-                    ? const SizedBox.shrink()
-                    : Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          for (
-                            var i = r * colunas;
-                            i < n && i < (r + 1) * colunas;
-                            i++
-                          ) ...[
-                            if (i > r * colunas)
-                              const SizedBox(width: _entreCelulas),
-                            Expanded(child: celulas[i]),
-                          ],
-                        ],
-                      ),
+              SizedBox(
+                height: altura,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (
+                      var i = r * colunas;
+                      i < n && i < (r + 1) * colunas;
+                      i++
+                    ) ...[
+                      if (i > r * colunas) const SizedBox(width: _entreCelulas),
+                      Expanded(child: celulas[i]),
+                    ],
+                  ],
+                ),
               ),
             ],
           ],

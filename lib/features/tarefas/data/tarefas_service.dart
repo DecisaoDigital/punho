@@ -124,7 +124,7 @@ List<Tarefa> tarefasPendentes(
             : SeveridadeTarefa.aCompletar,
         titulo: pendente,
         subtitulo: fiscal
-            ? 'Sem NIF não há factura em condições'
+            ? 'Sem NIF não há fatura em condições'
             : 'O Fist decide melhor com este dado preenchido',
         cta: 'Preencher',
         destino: ehFacturacaoDoAno

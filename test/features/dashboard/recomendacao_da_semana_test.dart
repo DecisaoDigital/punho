@@ -395,7 +395,7 @@ void main() {
 
       expect(r!.id, 'queda-homologa');
       expect(r.gravidade, GravidadeRecomendacao.atencao);
-      expect(r.title, 'A facturar 40% do que fizeste em Julho do ano passado');
+      expect(r.title, 'A faturar 40% do que fizeste em Julho do ano passado');
     });
 
     test(

@@ -7,6 +7,8 @@
 // training or to generate derivative works without written permission.
 // SPDX-License-Identifier: LicenseRef-Proprietary
 
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -148,7 +150,11 @@ class _Linha extends StatelessWidget {
             child: Text(
               rotulo,
               style: base?.copyWith(
-                color: destaque ? azul : cores.outline,
+                color: destaque
+                    ? azul
+                    : (Platform.isWindows
+                          ? const Color(0xFF4A4A44)
+                          : cores.outline),
                 fontSize: tamanho,
                 fontWeight: destaque ? FontWeight.w700 : null,
               ),
@@ -159,7 +165,13 @@ class _Linha extends StatelessWidget {
               valor,
               style: base?.copyWith(
                 fontFeatures: const [FontFeature.tabularFigures()],
-                color: destaque ? azul : (esbatido ? cores.outline : null),
+                color: destaque
+                    ? azul
+                    : (esbatido
+                          ? (Platform.isWindows
+                                ? const Color(0xFF4A4A44)
+                                : cores.outline)
+                          : null),
                 fontSize: tamanho,
                 fontWeight: destaque ? FontWeight.w700 : null,
               ),

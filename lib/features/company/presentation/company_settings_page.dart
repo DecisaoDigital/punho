@@ -364,12 +364,12 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
           // cêntimos escreve-se por não haver tecla para eles.
           _campo(
             _revenueLastYear,
-            'Facturação do ano passado (€)',
+            'Faturação do ano passado (€)',
             teclado: const TextInputType.numberWithOptions(decimal: true),
           ),
           _campo(
             _revenueThisYear,
-            'Facturação deste ano até hoje (€)',
+            'Faturação deste ano até hoje (€)',
             teclado: const TextInputType.numberWithOptions(decimal: true),
           ),
           _campo(

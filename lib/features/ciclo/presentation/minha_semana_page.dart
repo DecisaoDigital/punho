@@ -376,7 +376,7 @@ class _FormularioDeValorState extends ConsumerState<_FormularioDeValor> {
         rotulo: 'Valor (€)',
         ajuda: _aindaPorFazer
             ? 'O que vai ser orçamentado ao cliente, com IVA incluído.'
-            : 'O que foi facturado ao cliente, com IVA incluído.',
+            : 'O que foi faturado ao cliente, com IVA incluído.',
         autofocus: true,
         teclado: const TextInputType.numberWithOptions(decimal: true),
       ),

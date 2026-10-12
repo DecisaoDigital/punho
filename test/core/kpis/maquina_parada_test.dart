@@ -215,7 +215,7 @@ void main() {
       expect(maquinaMaisParada(estado, hoje)!.naoFacturadoCents, 20 * 18500);
       expect(
         kpiMaquinaParada(estado, hoje).subtexto,
-        'Mini escavadora · 3700 € por facturar, ao preço de tabela',
+        'Mini escavadora · 3700 € por faturar, ao preço de tabela',
       );
     });
 

@@ -11,6 +11,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/format/campos.dart';
+
 /// [aguarda] não é um nível de urgência — é a ausência dela.
 ///
 /// Um painel de empresa nova tinha onze células laranja a dizer "Por apurar".
@@ -236,7 +238,7 @@ class CelulaSemaforo extends StatelessWidget {
                                 height: 1.1,
                               ),
                       children: [
-                        TextSpan(text: valor),
+                        TextSpan(text: comMilhares(valor!)),
                         if (unidade != null)
                           TextSpan(
                             text: ' ${unidade!}',
@@ -255,7 +257,7 @@ class CelulaSemaforo extends StatelessWidget {
           if (segunda != null) ...[
             SizedBox(height: Platform.isWindows ? 8 : 3),
             Text(
-              segunda,
+              comMilhares(segunda),
               style: (Platform.isWindows ? tt.bodyMedium : tt.bodySmall)
                   ?.copyWith(color: cs.onSurfaceVariant),
               maxLines: 2,
@@ -321,7 +323,7 @@ class CelulaSemaforo extends StatelessWidget {
                     height: 1.1,
                   ),
                   children: [
-                    TextSpan(text: valor),
+                    TextSpan(text: comMilhares(valor!)),
                     if (unidade != null)
                       TextSpan(
                         text: ' ${unidade!}',
@@ -336,7 +338,7 @@ class CelulaSemaforo extends StatelessWidget {
             )
           else
             Text(
-              texto!,
+              comMilhares(texto!),
               style: (grande ? tt.titleLarge : tt.titleMedium)?.copyWith(
                 fontWeight: FontWeight.w600,
                 height: 1.25,
@@ -347,7 +349,7 @@ class CelulaSemaforo extends StatelessWidget {
           if (subtexto != null) ...[
             SizedBox(height: grande ? 6 : 10),
             Text(
-              subtexto!,
+              comMilhares(subtexto!),
               style: (grande ? tt.bodyLarge : tt.bodyMedium)?.copyWith(
                 color: cs.onSurfaceVariant,
               ),
@@ -411,7 +413,7 @@ class CelulaSemaforo extends StatelessWidget {
                             height: 1.1,
                           ),
                   children: [
-                    TextSpan(text: valor),
+                    TextSpan(text: comMilhares(valor!)),
                     if (unidade != null)
                       TextSpan(
                         text: ' ${unidade!}',
@@ -426,7 +428,7 @@ class CelulaSemaforo extends StatelessWidget {
             )
           else
             Text(
-              texto!,
+              comMilhares(texto!),
               style: tt.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 height: 1.25,
@@ -447,7 +449,7 @@ class CelulaSemaforo extends StatelessWidget {
             ),
           if (subtexto != null)
             Text(
-              subtexto!,
+              comMilhares(subtexto!),
               style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
               maxLines: Platform.isWindows ? 4 : 2,
               overflow: TextOverflow.ellipsis,
