@@ -234,7 +234,7 @@ class CelulaSemaforo extends StatelessWidget {
                                   : tt.titleLarge)
                               ?.copyWith(
                                 fontWeight: FontWeight.w800,
-                                color: valorEmDestaque ? cor : cs.onSurface,
+                                color: valorEmDestaque ? _corLegivel(cor) : cs.onSurface,
                                 height: 1.1,
                               ),
                       children: [
@@ -319,7 +319,7 @@ class CelulaSemaforo extends StatelessWidget {
                   style: tt.displaySmall?.copyWith(
                     fontSize: grande ? 52.0 : 44,
                     fontWeight: FontWeight.w800,
-                    color: valorEmDestaque ? cor : cs.onSurface,
+                    color: valorEmDestaque ? _corLegivel(cor) : cs.onSurface,
                     height: 1.1,
                   ),
                   children: [
@@ -409,7 +409,7 @@ class CelulaSemaforo extends StatelessWidget {
                               : tt.headlineSmall)
                           ?.copyWith(
                             fontWeight: FontWeight.w800,
-                            color: valorEmDestaque ? cor : cs.onSurface,
+                            color: valorEmDestaque ? _corLegivel(cor) : cs.onSurface,
                             height: 1.1,
                           ),
                   children: [
@@ -569,3 +569,8 @@ class _Notas extends StatelessWidget {
     );
   }
 }
+
+/// Windows: a cor do semáforo escurecida para o valor ler-se com contraste AA
+/// sobre o fundo creme; fora do Windows fica como estava.
+Color _corLegivel(Color c) =>
+    Platform.isWindows ? Color.lerp(c, Colors.black, 0.3)! : c;

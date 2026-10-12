@@ -9,6 +9,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/format/campos.dart';
 import '../../../core/guidance/guidance_engine.dart';
 import '../../../core/operations/kpis.dart';
 import '../../../core/operations/operations_controller.dart';
@@ -101,7 +102,7 @@ List<Tarefa> tarefasPendentes(
         titulo: 'Cobrar ${cobranca.clienteNome}',
         subtitulo:
             '${_euros(cobranca.emDividaCents)} em atraso há '
-            '${cobranca.diasDeAtraso} dias',
+            '${comMilhares('${cobranca.diasDeAtraso}')} dias',
         cta: 'Ver cliente',
         destino: DestinoTarefa.clientes,
       ),

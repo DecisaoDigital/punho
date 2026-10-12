@@ -120,7 +120,7 @@ Urgencia _urgenciaDe(DateTime alvo, DateTime hoje) {
 
 /// "1 dia", "3 dias". Um plural mal feito num ecrã que se lê todos os dias
 /// desgasta a confiança em tudo o resto que lá está escrito.
-String _dias(int quantos) => quantos == 1 ? '1 dia' : '$quantos dias';
+String _dias(int quantos) => quantos == 1 ? '1 dia' : '${comMilhares('$quantos')} dias';
 
 String _quando(DateTime data, DateTime hoje) {
   final dias = _diasAte(data, hoje);

@@ -665,7 +665,12 @@ class _Linha extends StatelessWidget {
     children: [
       SizedBox(
         width: 64,
-        child: Text(rotulo, style: Theme.of(context).textTheme.bodySmall),
+        child: Text(
+          rotulo,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Platform.isWindows ? const Color(0xFF4A4A44) : null,
+          ),
+        ),
       ),
       Expanded(
         child: Text(valor, style: Theme.of(context).textTheme.bodyMedium),

@@ -3681,7 +3681,7 @@ class _BookingEventChip extends StatelessWidget {
           // Windows: texto escurecido para ler com contraste AA sobre a
           // lavagem da própria cor.
           color: Platform.isWindows
-              ? Color.lerp(_bookingColor(booking.status), Colors.black, 0.55)
+              ? Color.lerp(_bookingColor(booking.status), Colors.black, 0.7)
               : _bookingColor(booking.status),
           fontWeight: FontWeight.w700,
         ),
