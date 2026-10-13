@@ -85,9 +85,21 @@ class MesComparado {
   /// não tem problema nenhum; a cair 30% face ao Setembro passado, tem.
   double? get variacaoHomologa => _variacao(homologoCents);
 
+  /// Diferença absoluta (em cêntimos) face ao mês anterior. É o que se mostra
+  /// quando a percentagem não faz sentido (termo ou valor negativos).
+  int? get diferencaMesAnteriorCents =>
+      mesAnteriorCents == null ? null : valorCents - mesAnteriorCents!;
+
+  /// Diferença absoluta (em cêntimos) face ao mesmo mês do ano passado.
+  int? get diferencaHomologaCents =>
+      homologoCents == null ? null : valorCents - homologoCents!;
+
+  /// Percentagem só sobre base positiva e valor não negativo: «+300% sobre
+  /// −100 €» ou «−535% de um prejuízo» enganam. Nesses casos, `null` e usa-se
+  /// a diferença absoluta.
   double? _variacao(int? termo) {
-    if (termo == null || termo == 0) return null;
-    return (valorCents - termo) / termo.abs() * 100;
+    if (termo == null || termo <= 0 || valorCents < 0) return null;
+    return (valorCents - termo) / termo * 100;
   }
 }
 

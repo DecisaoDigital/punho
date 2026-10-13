@@ -756,19 +756,36 @@ String _comparado(MesComparado m) {
     return '${homologa >= 0 ? '▲' : '▼'} ${homologa.abs().round()}% '
         'face a ${_comSinal(m.homologoCents!)} € do ano passado';
   }
+  final difHomologa = m.homologoCents == 0 ? null : m.diferencaHomologaCents;
+  if (difHomologa != null) {
+    return '${_diferenca(difHomologa)} '
+        'face a ${_comSinal(m.homologoCents!)} € do ano passado';
+  }
   final anterior = m.variacaoMesAnterior;
   if (anterior != null) {
     return '${anterior >= 0 ? '▲' : '▼'} ${anterior.abs().round()}% '
         'face a ${_comSinal(m.mesAnteriorCents!)} € do mês passado';
   }
+  final difAnterior = m.mesAnteriorCents == 0
+      ? null
+      : m.diferencaMesAnteriorCents;
+  if (difAnterior != null) {
+    return '${_diferenca(difAnterior)} '
+        'face a ${_comSinal(m.mesAnteriorCents!)} € do mês passado';
+  }
   return 'Primeiro mês com registos — ainda não há com que comparar';
 }
+
+/// Variação absoluta em euros, para quando a percentagem não faz sentido
+/// (base negativa ou zero).
+String _diferenca(int cents) =>
+    '${cents >= 0 ? '▲' : '▼'} ${_euros(cents.abs())} €';
 
 /// A mini-comparação dos cartões grandes: o mês contra o mesmo termo que a
 /// nota escrita usa (homólogo, senão mês anterior). `null` sem termo ou com
 /// valores negativos — barras de lucro negativo enganariam.
 ComparacaoMini? _miniComparacao(MesComparado m) {
-  final homologa = m.homologoCents != null && m.variacaoHomologa != null;
+  final homologa = m.homologoCents != null && m.homologoCents! > 0;
   final termo = homologa ? m.homologoCents : m.mesAnteriorCents;
   if (termo == null || termo <= 0 || m.valorCents < 0) return null;
   return ComparacaoMini(
@@ -788,7 +805,9 @@ String _comSinal(int cents) =>
 
 /// Nível pela variação: a descer é laranja, a subir ou a manter é verde.
 NivelSemaforo _nivelPor(MesComparado m) {
-  final v = m.variacaoHomologa ?? m.variacaoMesAnterior;
+  final v =
+      (m.homologoCents == 0 ? null : m.diferencaHomologaCents) ??
+      (m.mesAnteriorCents == 0 ? null : m.diferencaMesAnteriorCents);
   if (v == null) return NivelSemaforo.verde;
   return v < 0 ? NivelSemaforo.laranja : NivelSemaforo.verde;
 }
@@ -846,7 +865,9 @@ CelulaSemaforo kpiLucro(OperationsState estado, DateTime now) {
     // dia 13 a estrutura já entrou toda: o mesmo número lê-se de duas maneiras
     // conforme se saiba isso ou não. A palavra escrita poupa a pergunta.
     unidade: '€ de ${positivo ? 'lucro' : 'prejuízo'} até hoje',
-    subtexto: margem == null
+    // Margem só quando o mês dá lucro: «−562%» sobre um prejuízo assusta sem
+    // dizer nada que o valor em euros não diga.
+    subtexto: margem == null || !positivo
         ? _comparado(mes)
         : 'Margem ${margem.round()}% · ${_comparado(mes)}',
     comparacao: _miniComparacao(mes),
