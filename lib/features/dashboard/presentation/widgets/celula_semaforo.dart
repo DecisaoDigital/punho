@@ -294,7 +294,7 @@ class CelulaSemaforo extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     final comp = grande ? comparacao : null;
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, grande ? 22 : 10, 16, 10),
+      padding: EdgeInsets.fromLTRB(16, grande ? 34 : 10, 16, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.start,

@@ -97,12 +97,13 @@ void main() {
     });
 
     test(
-      'dois meses negativos comparam-se na mesma — perder menos é melhor',
+      'dois meses negativos comparam-se em euros — perder menos é melhor',
       () {
         final a = caso(-200, -500);
 
         expect(a.tom, TomDaApreciacao.acima);
-        expect(a.frase, 'Estás acima da tua média em 60%.');
+        // Base negativa: percentagem não faz sentido, diz-se a diferença.
+        expect(a.frase, 'Estás acima da tua média em 3.00 €.');
       },
     );
   });

@@ -82,12 +82,11 @@ ApreciacaoDoKpi apreciar({
   final melhor = maisEMelhor ? diferenca > 0 : diferenca < 0;
 
   // A percentagem só se escreve quando tem significado. Com a referência a zero
-  // não há divisão possível; com sinais trocados — média negativa e mês
-  // positivo — a conta dá números como "+250%" que descrevem uma passagem de
-  // prejuízo a lucro como se fosse um crescimento, e ninguém lê aquilo bem. Nos
-  // dois casos diz-se a diferença em bruto, que é sempre verdade.
-  final podePercentagem = referencia != 0 && (valor >= 0) == (referencia >= 0);
-  final proporcao = podePercentagem ? diferenca.abs() / referencia.abs() : null;
+  // não há divisão possível; com base negativa ou valor negativo a conta dá
+  // números como "+250%" ou "+10%" sobre uma caixa a perder, que enganam. Nesses
+  // casos diz-se a diferença em bruto, que é sempre verdade.
+  final podePercentagem = referencia > 0 && valor >= 0;
+  final proporcao = podePercentagem ? diferenca.abs() / referencia : null;
 
   if (proporcao != null && proporcao < _bandaEmLinha) {
     return ApreciacaoDoKpi(
