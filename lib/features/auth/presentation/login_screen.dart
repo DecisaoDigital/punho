@@ -45,6 +45,9 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
+/// Altura útil (sem teclado) a partir da qual o login mostra a marca grande.
+const _alturaMinimaMarcaGrande = 600.0;
+
 class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -95,7 +98,18 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const BrandLockup(grande: true, entrada: true),
+                // A marca grande só quando sobra altura: com o teclado em cima
+                // (o `autofocus` levanta-o logo) ou o telemóvel deitado, os 38 dp
+                // a mais empurram o conteúdo para além da área visível e o
+                // scroll cola a marca ao topo — ou esconde «Esqueci a
+                // palavra-passe».
+                BrandLockup(
+                  grande:
+                      MediaQuery.sizeOf(context).height -
+                          MediaQuery.viewInsetsOf(context).bottom >=
+                      _alturaMinimaMarcaGrande,
+                  entrada: true,
+                ),
                 const SizedBox(height: 24),
                 Text(
                   'Iniciar sessão',

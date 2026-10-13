@@ -104,7 +104,10 @@ class BrandLockup extends StatelessWidget {
       children: [
         simbolo,
         SizedBox(width: grande ? 16 : 10),
-        textos,
+        // `Flexible`: com o símbolo a 76 dp e letra de sistema aumentada (ou a
+        // fonte larga dos testes) a linha passava dos 344 dp úteis do login
+        // e transbordava 6,6 px; assim o slogan quebra em vez de cortar.
+        Flexible(child: textos),
       ],
     );
   }
