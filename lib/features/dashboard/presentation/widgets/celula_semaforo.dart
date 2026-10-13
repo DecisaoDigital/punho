@@ -300,7 +300,7 @@ class CelulaSemaforo extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Text(
-            rotulo.toUpperCase(),
+            rotulo.replaceFirst('Gráfico · ', '').toUpperCase(),
             style: tt.labelMedium?.copyWith(
               color: cs.onSurfaceVariant,
               letterSpacing: 0.8,
@@ -309,11 +309,12 @@ class CelulaSemaforo extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          // O rótulo fica fixo no topo (alinha com os vizinhos); o resto
-          // centra-se no espaço que sobra, para o ar ser igual em cima e em
-          // baixo.
+          // Rótulo e número ficam à mesma altura em todos os cartões da fila
+          // (centrar o corpo fazia saltar o número de quem não tem «Como se
+          // chega»).
           Expanded(
-            child: Center(
+            child: Align(
+              alignment: Alignment.topLeft,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
