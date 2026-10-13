@@ -264,6 +264,7 @@ int paidExpenseTotal(Iterable<Expense> items, DateTime from, DateTime to) {
   }
   return soma;
 }
+
 int unpaidExpenseTotal(Iterable<Expense> items) => items
     .where((x) => !x.archived && x.status == ExpensePaymentStatus.unpaid)
     .fold(0, (sum, x) => sum + x.amountCents);

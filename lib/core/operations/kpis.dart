@@ -383,12 +383,7 @@ int _porReceberDeReservasDoMes(OperationsState state, DateTime mes) {
             !b.startsAt.isAfter(fim) &&
             !b.endsAt.isBefore(inicio),
       )
-      .fold(
-        0,
-        (sum, b) =>
-            sum +
-            pendenteDaReserva(state, b),
-      );
+      .fold(0, (sum, b) => sum + pendenteDaReserva(state, b));
 }
 
 PrevisaoDoMes previsaoDoMes(OperationsState state, DateTime now) {

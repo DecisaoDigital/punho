@@ -298,11 +298,7 @@ CicloDeTesouraria? cicloDeTesouraria(
             b.expectedValueCents != null &&
             !b.startsAt.isAfter(ate),
       )
-      .fold<int>(
-        0,
-        (t, b) =>
-            t + pendenteDaReserva(s, b),
-      );
+      .fold<int>(0, (t, b) => t + pendenteDaReserva(s, b));
 
   final despesasDaJanela = _soma(_despesas(s, de: de, ate: ate));
   final porPagar = _soma(
