@@ -309,64 +309,79 @@ class CelulaSemaforo extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: grande ? 8 : 10),
-          if (valor != null)
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: RichText(
-                text: TextSpan(
-                  style: tt.displaySmall?.copyWith(
-                    fontSize: grande ? 52.0 : 44,
-                    fontWeight: FontWeight.w800,
-                    color: valorEmDestaque ? _corLegivel(cor) : cs.onSurface,
-                    height: 1.1,
-                  ),
-                  children: [
-                    TextSpan(text: comMilhares(valor!)),
-                    if (unidade != null)
-                      TextSpan(
-                        text: ' ${unidade!}',
-                        style: tt.titleMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
+          // O rótulo fica fixo no topo (alinha com os vizinhos); o resto
+          // centra-se no espaço que sobra, para o ar ser igual em cima e em
+          // baixo.
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: grande ? 8 : 10),
+                  if (valor != null)
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: RichText(
+                        text: TextSpan(
+                          style: tt.displaySmall?.copyWith(
+                            fontSize: grande ? 58.0 : 44,
+                            fontWeight: FontWeight.w800,
+                            color: valorEmDestaque
+                                ? _corLegivel(cor)
+                                : cs.onSurface,
+                            height: 1.1,
+                          ),
+                          children: [
+                            TextSpan(text: comMilhares(valor!)),
+                            if (unidade != null)
+                              TextSpan(
+                                text: ' ${unidade!}',
+                                style: tt.titleMedium?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
+                    )
+                  else
+                    Text(
+                      comMilhares(texto!),
+                      style: (grande ? tt.titleLarge : tt.titleMedium)
+                          ?.copyWith(fontWeight: FontWeight.w600, height: 1.25),
+                      maxLines: nivel == NivelSemaforo.aguarda
+                          ? 1
+                          : (grande ? 5 : 3),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  if (subtexto != null) ...[
+                    SizedBox(height: grande ? 6 : 10),
+                    Text(
+                      comMilhares(subtexto!),
+                      style: (grande ? tt.bodyLarge : tt.bodyMedium)?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                      maxLines: grande ? 3 : 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
-                ),
+                  if (comp != null) ...[
+                    const SizedBox(height: 10),
+                    _MiniComparacao(comparacao: comp, cor: cor),
+                  ],
+                  if (grande && notas.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Divider(height: 1, color: cs.outlineVariant),
+                    const SizedBox(height: 6),
+                    Flexible(child: _Notas(notas: notas)),
+                  ],
+                ],
               ),
-            )
-          else
-            Text(
-              comMilhares(texto!),
-              style: (grande ? tt.titleLarge : tt.titleMedium)?.copyWith(
-                fontWeight: FontWeight.w600,
-                height: 1.25,
-              ),
-              maxLines: nivel == NivelSemaforo.aguarda ? 1 : (grande ? 5 : 3),
-              overflow: TextOverflow.ellipsis,
             ),
-          if (subtexto != null) ...[
-            SizedBox(height: grande ? 6 : 10),
-            Text(
-              comMilhares(subtexto!),
-              style: (grande ? tt.bodyLarge : tt.bodyMedium)?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-              maxLines: grande ? 3 : 4,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-          if (comp != null) ...[
-            const SizedBox(height: 10),
-            _MiniComparacao(comparacao: comp, cor: cor),
-          ],
-          if (grande && notas.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Divider(height: 1, color: cs.outlineVariant),
-            const SizedBox(height: 6),
-            Flexible(child: _Notas(notas: notas)),
-          ],
+          ),
         ],
       ),
     );
